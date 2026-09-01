@@ -8,6 +8,15 @@ Versioning is [semver](https://semver.org/); the `version` field in
 development milestones from before the repository went public, kept because
 they record why several non-obvious parts of the code look the way they do.
 
+## [1.4.2] - 2026-09-01
+
+### Fixed
+- List both `https://nextwork.ai/*` and `https://*.nextwork.ai/*` in the
+  content script matches. A wildcard host is documented to cover the bare host
+  too, so 1.3.0 narrowed it to the one pattern - but that put whether the
+  extension runs at all on a spec detail you cannot verify from the extensions
+  page. Explicit is worth the extra line.
+
 ## [1.4.1] - 2026-09-01
 
 ### Changed
@@ -213,7 +222,8 @@ First public release.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.2
 [1.4.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.1
 [1.4.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.0
 [1.3.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.3.0

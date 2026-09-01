@@ -99,7 +99,10 @@ check('every file the HTML pages load exists', () => {
 check('content scripts only touch nextwork.ai', () => {
   const bad = manifest.content_scripts
     .flatMap(cs => cs.matches)
-    .filter(m => !/^https:\/\/\*\.nextwork\.ai\/\*$/.test(m));
+    /* Both hosts are listed explicitly. `*.host` is documented to cover the
+     * bare host as well, but relying on that put the whole content script on a
+     * spec detail nobody can check from the extensions page. */
+    .filter(m => !/^https:\/\/(\*\.)?nextwork\.ai\/\*$/.test(m));
   if (bad.length) fail('unexpected match pattern(s): ' + bad.join(', '));
   return manifest.content_scripts[0].matches.join(' ');
 });
