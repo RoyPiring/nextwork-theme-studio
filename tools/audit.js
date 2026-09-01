@@ -322,6 +322,31 @@ check('scenery stays clear of the reading column', () => {
     ['far', 'near'].forEach(which => {
       const layer = scene[which];
       if (!layer) return;
+      /* A sparse layer is allowed to cover the viewport, because the thing the
+       * height cap protects against is a repeating pattern sitting behind a
+       * paragraph. A dozen small shapes at low opacity is not that. What has
+       * to be bounded instead is how much of the tile they actually cover and
+       * how big any one of them gets. */
+      if (layer.sparse) {
+        const body = layer.svg;
+        const shapes = (body.match(/<(circle|rect|ellipse|path)/g) || []).length;
+        if (shapes > 140) {
+          over.push(theme.name + ' ' + which + ' draws ' + shapes +
+                    ' shapes (max 140 for a sparse layer)');
+        }
+        let widest = 0;
+        (body.match(/r=['"]([\d.]+)/g) || []).forEach(m => {
+          widest = Math.max(widest, parseFloat(m.split(/['"]/)[1]) * 2);
+        });
+        (body.match(/rx=['"]([\d.]+)/g) || []).forEach(m => {
+          widest = Math.max(widest, parseFloat(m.split(/['"]/)[1]) * 2);
+        });
+        if (widest > layer.tile * 0.16) {
+          over.push(theme.name + ' ' + which + ' has a ' + widest.toFixed(0) +
+                    'px shape (max ' + (layer.tile * 0.16).toFixed(0) + ' for a sparse layer)');
+        }
+        return;
+      }
       const vh = parseInt(layer.height, 10);
       if (vh > CAP[which]) {
         over.push(theme.name + ' ' + which + ' is ' + vh + 'vh (max ' + CAP[which] + ')');
@@ -329,7 +354,7 @@ check('scenery stays clear of the reading column', () => {
     });
   });
   if (over.length) fail('\n    ' + over.join('\n    '));
-  return 'far <= ' + CAP.far + 'vh, near <= ' + CAP.near + 'vh';
+  return 'bands far <= ' + CAP.far + 'vh, near <= ' + CAP.near + 'vh; sparse layers by coverage';
 });
 
 check('both stylesheet variants build for every theme', () => {
@@ -393,6 +418,13 @@ check('contrast floor holds for every theme', () => {
     checks.push(['callout secondary text', C(p.calloutTextSecondary, p.callout), 4.5]);
     (scene.areaColors || []).forEach(c => {
       checks.push(['scenery ' + c, C(p.textPrimary, c), 7]);
+    });
+    /* A sparse motif is a handful of small shapes spread over the viewport,
+     * not a fill the eye reads a paragraph against, so it takes the AA floor
+     * rather than the AAA one. Holding it to 7:1 made every motif invisible on
+     * the dark themes, which is the same trap the wallpaper flanks were in. */
+    (scene.sparseColors || []).forEach(c => {
+      checks.push(['motif ' + c, C(p.textPrimary, c), 4.5]);
     });
     if (theme.backdrop) {
       [...new Set(theme.backdrop.match(/#[0-9a-f]{6}/gi) || [])].forEach(c => {

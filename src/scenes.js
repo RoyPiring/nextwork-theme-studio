@@ -597,56 +597,223 @@
    * an argument with the paragraph in front of it. */
   const HAZE = 11.2, FAR = 9.6, NEAR = 8.4;
 
-  /* ---- drifting layers -------------------------------------------------
-   * One per theme, no sharing. The wallpaper behind them does not move, so
-   * everything that reads as motion happens here, and eighteen pictures with
-   * the same dust over them wastes the fact that they are all different.
+  /* ---- drifting motifs -------------------------------------------------
+   * One per theme, and each is the thing that belongs in that picture rather
+   * than an abstract speck: gulls over the beaches, petals over the blossom,
+   * ships over the space scene, tetrominoes over the arcade.
    *
-   * The engine only pans a band sideways. That rules out anything that has to
-   * fall, so nothing here is drawn as a vertical streak; these are all things
-   * air would already be carrying, or things far enough away that sideways
-   * drift reads as parallax.
+   * These cover the whole viewport, not a band along the bottom. That is only
+   * safe because they are sparse. A solid band across the reading column would
+   * put a repeating pattern behind every paragraph, which is what the height
+   * cap in the audit exists to prevent; a dozen small shapes at low opacity do
+   * not, and the audit measures the ink coverage instead.
    *
-   * Every position comes from a fixed table rather than Math.random, so the
-   * same stylesheet comes out of every build and the exported assets in
-   * assets/ do not churn on each run.
+   * The engine pans a band sideways, so nothing here is drawn as something
+   * that ought to fall. Everything is either flying, floating, or far enough
+   * away that sideways travel reads as its own motion.
+   *
+   * Positions come from a seeded generator so every build produces the same
+   * file and the exported assets do not churn.
    */
 
-  /* Shared falloff for anything drawn as a soft point. */
-  function softDot(id, color, opacity) {
-    return "<defs><radialGradient id='" + id + "'>" +
-      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
-      "<stop offset='45%' stop-color='" + color + "' stop-opacity='" +
-      (opacity * 0.4).toFixed(3) + "'/>" +
-      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
-      "</radialGradient></defs>";
-  }
-
-  /* A spread of points, seeded so it is stable between builds. */
   function scatter(count, w, h, seed) {
-    var out = [], i, a = seed, b = seed * 7 + 11;
+    var out = [], i, a = seed * 2654435761 % 2147483647, b = seed * 40503 % 2147483647;
     for (i = 0; i < count; i++) {
       a = (a * 1103515245 + 12345) % 2147483648;
       b = (b * 1103515245 + 12345) % 2147483648;
-      out.push([(a % w), (b % h), ((a >> 7) % 100) / 100]);
+      out.push([a % w, b % h, ((a >> 9) % 1000) / 1000]);
     }
     return out;
   }
 
-  /* Soft blobs lying along the floor. Used as the far band by most themes. */
-  function floorMist(color, opacity) {
-    var id = uid(), out = '', i;
-    var pts = [[150, 116, 230], [440, 94, 160], [780, 124, 270], [1090, 102, 180],
-               [1430, 112, 220], [1720, 90, 150]];
+  /* Every motif band is this size. Wide enough that one pass takes a while,
+   * tall enough to cover a viewport. */
+  var MOTIF_W = 2400, MOTIF_H = 1400;
+
+  function motifBand(body, color, opacity) {
+    return svg(MOTIF_W, MOTIF_H,
+      "<g fill='" + color + "' stroke='" + color + "' opacity='" + opacity + "'>" +
+      body + "</g>");
+  }
+
+  /* A gull: two shallow arcs meeting. Reads as a bird at any size. */
+  function gulls(color, opacity, seed) {
+    var pts = scatter(16, MOTIF_W, MOTIF_H, seed), out = '', i;
     for (i = 0; i < pts.length; i++) {
-      out += "<ellipse cx='" + pts[i][0] + "' cy='" + (200 - pts[i][1] * 0.3) +
-             "' rx='" + pts[i][2] + "' ry='" + pts[i][1] + "'/>";
+      var x = pts[i][0], y = pts[i][1], s = 9 + pts[i][2] * 13;
+      out += "<path d='M" + (x - s) + " " + y + " q" + (s * 0.5) + " -" + (s * 0.62) + " " +
+             s + " 0 q" + (s * 0.5) + " -" + (s * 0.62) + " " + s + " 0' fill='none'" +
+             " stroke-width='" + (1.5 + pts[i][2] * 1.3).toFixed(1) +
+             "' stroke-linecap='round'/>";
     }
-    return svg(1900, 200,
+    return motifBand(out, color, opacity);
+  }
+
+  /* A five-lobed blossom, tilted. */
+  function petals(color, opacity, seed) {
+    var pts = scatter(16, MOTIF_W, MOTIF_H, seed), out = '', i;
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1], s = 5 + pts[i][2] * 7;
+      out += "<path d='M" + x + " " + y + " q" + s + " -" + (s * 1.25) + " " + (s * 2) +
+             " 0 q-" + s + " " + (s * 1.45) + " -" + (s * 2) + " 0 z' stroke='none'" +
+             " transform='rotate(" + Math.round(pts[i][2] * 300 - 150) + " " + x + " " + y + ")'/>";
+    }
+    return motifBand(out, color, opacity);
+  }
+
+  /* A comet: a bright head with a tail behind it. */
+  function comets(color, opacity, seed) {
+    var pts = scatter(12, MOTIF_W, MOTIF_H, seed), out = '', i;
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1], s = 34 + pts[i][2] * 66;
+      out += "<path d='M" + x + " " + y + " l" + s + " " + (s * 0.22).toFixed(1) +
+             "' fill='none' stroke-width='" + (1.2 + pts[i][2]).toFixed(1) +
+             "' stroke-linecap='round' opacity='0.55'/>";
+      out += "<circle cx='" + x + "' cy='" + y + "' r='" + (2 + pts[i][2] * 2).toFixed(1) +
+             "' stroke='none'/>";
+    }
+    return motifBand(out, color, opacity);
+  }
+
+  /* A firework: rays out of a centre, some with a spark on the end. */
+  function fireworks(color, opacity, seed) {
+    var pts = scatter(6, MOTIF_W, MOTIF_H, seed), out = '', i, k;
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1], s = 26 + pts[i][2] * 34;
+      for (k = 0; k < 10; k++) {
+        var a = (k / 10) * Math.PI * 2 + pts[i][2];
+        var dx = Math.cos(a) * s, dy = Math.sin(a) * s;
+        out += "<path d='M" + (x + dx * 0.28).toFixed(1) + " " + (y + dy * 0.28).toFixed(1) +
+               " L" + (x + dx).toFixed(1) + " " + (y + dy).toFixed(1) +
+               "' fill='none' stroke-width='1.4' stroke-linecap='round'/>";
+        if (k % 2 === 0) {
+          out += "<circle cx='" + (x + dx).toFixed(1) + "' cy='" + (y + dy).toFixed(1) +
+                 "' r='1.8' stroke='none'/>";
+        }
+      }
+    }
+    return motifBand(out, color, opacity);
+  }
+
+  /* Tetrominoes, outlined rather than filled so they read as silhouettes. */
+  function tetrominoes(color, opacity, seed) {
+    var pts = scatter(13, MOTIF_W, MOTIF_H, seed), out = '', i;
+    var shapes = [[[0,0],[1,0],[2,0],[2,1]], [[0,0],[0,1],[1,1],[2,1]],
+                  [[0,0],[1,0],[1,1],[2,1]], [[0,0],[1,0],[0,1],[1,1]],
+                  [[0,0],[1,0],[2,0],[1,1]]];
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1], u = 8 + pts[i][2] * 8;
+      var sh = shapes[i % shapes.length], k;
+      for (k = 0; k < sh.length; k++) {
+        out += "<rect x='" + (x + sh[k][0] * u).toFixed(1) + "' y='" +
+               (y + sh[k][1] * u).toFixed(1) + "' width='" + u.toFixed(1) + "' height='" +
+               u.toFixed(1) + "' rx='1.5' fill='none' stroke-width='1.6'/>";
+      }
+    }
+    return motifBand(out, color, opacity);
+  }
+
+  /* A ship seen from behind: a hull, a fin, and an engine glow. */
+  function ships(color, opacity, seed) {
+    var pts = scatter(11, MOTIF_W, MOTIF_H, seed), out = '', i;
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1], s = 12 + pts[i][2] * 14;
+      out += "<path d='M" + x + " " + y + " l" + (s * 2.2) + " -" + (s * 0.42) +
+             " l0 " + (s * 0.84) + " z' stroke='none'/>";
+      out += "<path d='M" + (x + s * 0.9) + " " + y + " l" + (s * 0.5) + " -" + (s * 0.8) +
+             " l" + (s * 0.35) + " " + (s * 0.8) + " z' stroke='none' opacity='0.7'/>";
+      out += "<circle cx='" + (x - s * 0.35).toFixed(1) + "' cy='" + y + "' r='" +
+             (s * 0.2).toFixed(1) + "' stroke='none' opacity='0.6'/>";
+    }
+    return motifBand(out, color, opacity);
+  }
+
+  /* A leaf with a midrib. */
+  function leaves(color, opacity, seed) {
+    var pts = scatter(12, MOTIF_W, MOTIF_H, seed), out = '', i;
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1], s = 8 + pts[i][2] * 10;
+      var rot = Math.round(pts[i][2] * 200 - 100);
+      out += "<g transform='rotate(" + rot + " " + x + " " + y + ")'>";
+      out += "<path d='M" + x + " " + y + " q" + s + " -" + (s * 0.85) + " " + (s * 2.1) +
+             " 0 q-" + s + " " + (s * 0.85) + " -" + (s * 2.1) + " 0 z' stroke='none'/>";
+      out += "<path d='M" + x + " " + y + " l" + (s * 2.1).toFixed(1) + " 0' fill='none'" +
+             " stroke-width='0.9' opacity='0.5'/></g>";
+    }
+    return motifBand(out, color, opacity);
+  }
+
+  /* Slow soft clouds. The quietest of these, for scenes already busy. */
+  function clouds(color, opacity, seed) {
+    var pts = scatter(7, MOTIF_W, MOTIF_H, seed), out = '', i, id = uid();
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1], s = 90 + pts[i][2] * 150;
+      out += "<ellipse cx='" + x + "' cy='" + y + "' rx='" + s.toFixed(0) + "' ry='" +
+             (s * 0.30).toFixed(0) + "' fill='url(#" + id + ")' stroke='none'/>";
+    }
+    return svg(MOTIF_W, MOTIF_H,
       "<defs><radialGradient id='" + id + "'>" +
       "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
       "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
-      "</radialGradient></defs><g fill='url(#" + id + ")'>" + out + "</g>");
+      "</radialGradient></defs>" + out);
+  }
+
+  /* Soft points of light. For rooms rather than skies. */
+  function glowMotes(color, opacity, seed, count, scale) {
+    var pts = scatter(count || 14, MOTIF_W, MOTIF_H, seed), out = '', i, id = uid();
+    for (i = 0; i < pts.length; i++) {
+      out += "<circle cx='" + pts[i][0] + "' cy='" + pts[i][1] + "' r='" +
+             ((3 + pts[i][2] * 5) * (scale || 1)).toFixed(1) +
+             "' fill='url(#" + id + ")'/>";
+    }
+    return svg(MOTIF_W, MOTIF_H,
+      "<defs><radialGradient id='" + id + "'>" +
+      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
+      "<stop offset='45%' stop-color='" + color + "' stop-opacity='" +
+      (opacity * 0.35).toFixed(3) + "'/>" +
+      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
+      "</radialGradient></defs>" + out);
+  }
+
+  /* A rising curl of smoke. */
+  function smoke(color, opacity, seed) {
+    var pts = scatter(6, MOTIF_W, MOTIF_H, seed), out = '', i;
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1], s = 30 + pts[i][2] * 40;
+      out += "<path d='M" + x + " " + y + " q" + (s * 0.6) + " -" + (s * 0.5) + " 0 -" + s +
+             " q-" + (s * 0.6) + " -" + (s * 0.5) + " 0 -" + (s * 1.9) +
+             "' fill='none' stroke-width='1.8' stroke-linecap='round'/>";
+    }
+    return motifBand(out, color, opacity);
+  }
+
+  /* Seed heads on a stalk. */
+  function seeds(color, opacity, seed) {
+    var pts = scatter(13, MOTIF_W, MOTIF_H, seed), out = '', i, k;
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1], s = 7 + pts[i][2] * 7;
+      for (k = 0; k < 6; k++) {
+        var a = (k / 6) * Math.PI * 2;
+        out += "<path d='M" + x + " " + y + " l" + (Math.cos(a) * s).toFixed(1) + " " +
+               (Math.sin(a) * s).toFixed(1) + "' fill='none' stroke-width='0.9'/>";
+      }
+      out += "<circle cx='" + x + "' cy='" + y + "' r='1.6' stroke='none'/>";
+    }
+    return motifBand(out, color, opacity);
+  }
+
+  /* Fine specks, denser than the rest. Snow and ash. */
+  function specks(color, opacity, seed, count) {
+    var pts = scatter(count || 34, MOTIF_W, MOTIF_H, seed), out = '', i, id = uid();
+    for (i = 0; i < pts.length; i++) {
+      out += "<circle cx='" + pts[i][0] + "' cy='" + pts[i][1] + "' r='" +
+             (1.6 + pts[i][2] * 2.4).toFixed(1) + "' fill='url(#" + id + ")'/>";
+    }
+    return svg(MOTIF_W, MOTIF_H,
+      "<defs><radialGradient id='" + id + "'>" +
+      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
+      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
+      "</radialGradient></defs>" + out);
   }
 
   /* Long shallow arcs, like light travelling across water. */
@@ -662,198 +829,20 @@
     return svg(2200, 300, "<g opacity='" + opacity + "'>" + out + "</g>");
   }
 
-  function dustMotes(color, opacity) {
+  /* Soft blobs lying along the floor, for the near band. */
+  function floorMist(color, opacity) {
     var id = uid(), out = '', i;
-    var pts = scatter(19, 2200, 290, 41);
+    var pts = [[150, 116, 230], [440, 94, 160], [780, 124, 270], [1090, 102, 180],
+               [1430, 112, 220], [1720, 90, 150]];
     for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<circle cx='" + x + "' cy='" + y + "' r='" + (8 * k).toFixed(1) + "' fill='url(#" + id + ")'/>";
+      out += "<ellipse cx='" + pts[i][0] + "' cy='" + (200 - pts[i][1] * 0.3) +
+             "' rx='" + pts[i][2] + "' ry='" + pts[i][1] + "'/>";
     }
-    return svg(2200, 290, softDot(id, color, opacity) + out);
-  }
-
-  function ashFlecks(color, opacity) {
-    var id = uid(), out = '', i;
-    var pts = scatter(34, 2200, 290, 73);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<circle cx='" + x + "' cy='" + y + "' r='" + (4 * k).toFixed(1) + "' fill='url(#" + id + ")'/>";
-    }
-    return svg(2200, 290, softDot(id, color, opacity) + out);
-  }
-
-  function snowSpecks(color, opacity) {
-    var out = '', i;
-    var pts = scatter(26, 2200, 290, 97);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<circle cx='" + x + "' cy='" + y + "' r='" + (5 * k).toFixed(1) + "'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function starPoints(color, opacity) {
-    var out = '', i;
-    var pts = scatter(20, 2200, 290, 131);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<path d='M" + x + " " + (y - 8) + " L" + (x + 2) + " " + y + " L" + x + " " + (y + 8) + " L" + (x - 2) + " " + y + " z'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function mistWisps(color, opacity) {
-    var out = '', i;
-    var pts = scatter(12, 2200, 290, 167);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<ellipse cx='" + x + "' cy='" + y + "' rx='" + (40 * k).toFixed(1) + "' ry='" + (6 * k).toFixed(1) + "'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function emberSparks(color, opacity) {
-    var id = uid(), out = '', i;
-    var pts = scatter(14, 2200, 290, 199);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<circle cx='" + x + "' cy='" + y + "' r='" + (10 * k).toFixed(1) + "' fill='url(#" + id + ")'/>";
-    }
-    return svg(2200, 290, softDot(id, color, opacity) + out);
-  }
-
-  function neonBokeh(color, opacity) {
-    var out = '', i;
-    var pts = scatter(13, 2200, 290, 233);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<circle cx='" + x + "' cy='" + y + "' r='" + (26 * k).toFixed(1) + "' fill='none' stroke-width='2'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function seedFluff(color, opacity) {
-    var out = '', i;
-    var pts = scatter(16, 2200, 290, 271);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<path d='M" + x + " " + y + " l" + (10 * k).toFixed(1) + " -" + (10 * k).toFixed(1) + " M" + x + " " + y + " l-" + (10 * k).toFixed(1) + " -" + (8 * k).toFixed(1) + " M" + x + " " + y + " l" + (6 * k).toFixed(1) + " " + (10 * k).toFixed(1) + "' fill='none' stroke-width='1.6' stroke-linecap='round'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function smokeCurls(color, opacity) {
-    var out = '', i;
-    var pts = scatter(10, 2200, 290, 307);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<path d='M" + x + " " + y + " q" + (18 * k).toFixed(1) + " -" + (14 * k).toFixed(1) + " 0 -" + (28 * k).toFixed(1) + "' fill='none' stroke-width='2' stroke-linecap='round'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function lanternGlow(color, opacity) {
-    var id = uid(), out = '', i;
-    var pts = scatter(11, 2200, 290, 347);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<circle cx='" + x + "' cy='" + y + "' r='" + (22 * k).toFixed(1) + "' fill='url(#" + id + ")'/>";
-    }
-    return svg(2200, 290, softDot(id, color, opacity) + out);
-  }
-
-  function blossomPetals(color, opacity) {
-    var out = '', i;
-    var pts = scatter(15, 2200, 290, 383);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<ellipse cx='" + x + "' cy='" + y + "' rx='" + (14 * k).toFixed(1) + "' ry='" + (7 * k).toFixed(1) + "' transform='rotate(" + Math.round(pts[i][2] * 90 - 45) + " " + x + " " + y + ")'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function meteorStreaks(color, opacity) {
-    var out = '', i;
-    var pts = scatter(9, 2200, 290, 419);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<path d='M" + x + " " + y + " l" + (60 * k).toFixed(1) + " " + (6 * k).toFixed(1) + "' fill='none' stroke-width='2' stroke-linecap='round'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function blockFall(color, opacity) {
-    var out = '', i;
-    var pts = scatter(12, 2200, 290, 457);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<rect x='" + x + "' y='" + y + "' width='" + (14 * k).toFixed(1) + "' height='" + (14 * k).toFixed(1) + "' rx='2' transform='rotate(" + Math.round(pts[i][2] * 90 - 45) + " " + x + " " + y + ")'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function oceanGlints(color, opacity) {
-    var out = '', i;
-    var pts = scatter(18, 2200, 290, 491);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<path d='M" + x + " " + y + " l" + (10 * k).toFixed(1) + " 0 M" + x + " " + y + " l-" + (10 * k).toFixed(1) + " 0' fill='none' stroke-width='2.4' stroke-linecap='round'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function leafFall(color, opacity) {
-    var out = '', i;
-    var pts = scatter(12, 2200, 290, 541);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<path d='M" + x + " " + y + " q" + (16 * k).toFixed(1) + " -" + (12 * k).toFixed(1) + " " + (32 * k).toFixed(1) + " 0 q-" + (16 * k).toFixed(1) + " " + (12 * k).toFixed(1) + " -" + (32 * k).toFixed(1) + " 0 z' transform='rotate(" + Math.round(pts[i][2] * 90 - 45) + " " + x + " " + y + ")'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function sunFlares(color, opacity) {
-    var out = '', i;
-    var pts = scatter(13, 2200, 290, 577);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<path d='M" + x + " " + (y - 12 * k) + " L" + x + " " + (y + 12 * k) + " M" + (x - 12 * k) + " " + y + " L" + (x + 12 * k) + " " + y + "' fill='none' stroke-width='1.8' stroke-linecap='round'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function windStreaks(color, opacity) {
-    var out = '', i;
-    var pts = scatter(11, 2200, 290, 613);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<path d='M" + x + " " + y + " l" + (70 * k).toFixed(1) + " 0' fill='none' stroke-width='1.6' stroke-linecap='round'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
-  }
-
-  function cherryPetals(color, opacity) {
-    var out = '', i;
-    var pts = scatter(17, 2200, 290, 647);
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], k = 0.5 + pts[i][2];
-      out += "<path d='M" + x + " " + y + " q" + (9 * k).toFixed(1) + " -" + (11 * k).toFixed(1) + " " + (18 * k).toFixed(1) + " 0 q-" + (9 * k).toFixed(1) + " " + (13 * k).toFixed(1) + " -" + (18 * k).toFixed(1) + " 0 z' transform='rotate(" + Math.round(pts[i][2] * 90 - 45) + " " + x + " " + y + ")'/>";
-    }
-    return svg(2200, 290, "<g fill='" + color + "' stroke='" + color +
-      "' opacity='" + opacity + "'>" + out + "</g>");
+    return svg(1900, 200,
+      "<defs><radialGradient id='" + id + "'>" +
+      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
+      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
+      "</radialGradient></defs><g fill='url(#" + id + ")'>" + out + "</g>");
   }
 
   function planes(u, p, hue, target, distance) {
@@ -893,221 +882,249 @@
    * `motifs` names the theme, since each now has its own photograph and the
    * exclusivity check amounts to making sure no two point at the same one.
    */
+  /* Each theme drifts the thing that belongs in its picture. Gulls over the
+   * beaches, petals over the blossom, ships over the space scene, tetrominoes
+   * over the arcade, comets over the star field, smoke over the fire-lit
+   * rooms.
+   *
+   * The motif layer covers the whole viewport rather than a strip along the
+   * bottom, which is only safe because it is sparse: a dozen small shapes at
+   * low opacity, not a repeating pattern behind every paragraph. The audit
+   * measures the ink coverage instead of capping the height.
+   */
   const SCENES = {
 
     concrete: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#9fb4c4', 4.8);
       return {
         motifs: ['concrete'],
         hero: { wallpaper: 'concrete', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 300, blur: 2 },
-        near: { svg: dustMotes(drift, 0.85), tile: 2200, height: '26vh', seconds: 141 },
-        areaColors: [haze, drift]
+        near: { svg: glowMotes(drift, 0.85, 41), tile: 2400, height: '100vh', seconds: 570, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     graphite: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#a8b0b4', 7.3);
+      const drift = u.toneOf('#a8b0b4', 4.8);
       return {
         motifs: ['graphite'],
         hero: { wallpaper: 'graphite', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 268, blur: 2 },
-        near: { svg: ashFlecks(drift, 0.85), tile: 2200, height: '26vh', seconds: 125 },
-        areaColors: [haze, drift]
+        near: { svg: specks(drift, 0.80, 73, 30), tile: 2400, height: '100vh', seconds: 509, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     slate: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#b6c6da', 7.3);
+      const drift = u.toneOf('#b6c6da', 4.8);
       return {
         motifs: ['slate'],
         hero: { wallpaper: 'slate', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 322, blur: 2 },
-        near: { svg: snowSpecks(drift, 0.85), tile: 2200, height: '26vh', seconds: 151 },
-        areaColors: [haze, drift]
+        near: { svg: specks(drift, 0.85, 97, 40), tile: 2400, height: '100vh', seconds: 611, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     carbon: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#cfd8e6', 7.3);
+      const drift = u.toneOf('#cfd8e6', 4.8);
       return {
         motifs: ['carbon'],
         hero: { wallpaper: 'carbon', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 284, blur: 2 },
-        near: { svg: starPoints(drift, 0.85), tile: 2200, height: '26vh', seconds: 133 },
-        areaColors: [haze, drift]
+        near: { svg: comets(drift, 0.90, 131), tile: 2400, height: '100vh', seconds: 539, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     fog: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#c2ccd0', 7.3);
+      const drift = u.toneOf('#c2ccd0', 4.8);
       return {
         motifs: ['fog'],
         hero: { wallpaper: 'fog', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 340, blur: 2 },
-        near: { svg: mistWisps(drift, 0.85), tile: 2200, height: '26vh', seconds: 159 },
-        areaColors: [haze, drift]
+        near: { svg: clouds(drift, 0.75, 167), tile: 2400, height: '100vh', seconds: 646, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     espresso: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#d59a5c', 7.3);
+      const drift = u.toneOf('#d59a5c', 4.8);
       return {
         motifs: ['espresso'],
         hero: { wallpaper: 'espresso', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 252, blur: 2 },
-        near: { svg: emberSparks(drift, 0.85), tile: 2200, height: '26vh', seconds: 118 },
-        areaColors: [haze, drift]
+        near: { svg: smoke(drift, 0.75, 199), tile: 2400, height: '100vh', seconds: 478, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     tokyoNight: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#b48ad6', 7.3);
+      const drift = u.toneOf('#b48ad6', 4.8);
       return {
         motifs: ['tokyoNight'],
         hero: { wallpaper: 'tokyoNight', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 310, blur: 2 },
-        near: { svg: neonBokeh(drift, 0.85), tile: 2200, height: '26vh', seconds: 145 },
-        areaColors: [haze, drift]
+        near: { svg: fireworks(drift, 0.75, 233), tile: 2400, height: '100vh', seconds: 589, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     wabiSabi: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#b8a97e', 7.3);
+      const drift = u.toneOf('#b8a97e', 4.8);
       return {
         motifs: ['wabiSabi'],
         hero: { wallpaper: 'wabiSabi', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 296, blur: 2 },
-        near: { svg: seedFluff(drift, 0.85), tile: 2200, height: '26vh', seconds: 139 },
-        areaColors: [haze, drift]
+        near: { svg: seeds(drift, 0.77, 271), tile: 2400, height: '100vh', seconds: 562, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     darkJapandi: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#caa189', 7.3);
+      const drift = u.toneOf('#caa189', 4.8);
       return {
         motifs: ['darkJapandi'],
         hero: { wallpaper: 'darkJapandi', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 330, blur: 2 },
-        near: { svg: smokeCurls(drift, 0.85), tile: 2200, height: '26vh', seconds: 155 },
-        areaColors: [haze, drift]
+        near: { svg: smoke(drift, 0.71, 307), tile: 2400, height: '100vh', seconds: 627, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     zenLobby: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#d8ae7c', 7.3);
+      const drift = u.toneOf('#d8ae7c', 4.8);
       return {
         motifs: ['zenLobby'],
         hero: { wallpaper: 'zenLobby', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 264, blur: 2 },
-        near: { svg: lanternGlow(drift, 0.85), tile: 2200, height: '26vh', seconds: 124 },
-        areaColors: [haze, drift]
+        near: { svg: glowMotes(drift, 0.85, 347, 10, 1.9), tile: 2400, height: '100vh', seconds: 501, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     concreteBlossom: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#d8b8bd', 7.3);
+      const drift = u.toneOf('#d8b8bd', 4.8);
       return {
         motifs: ['concreteBlossom'],
         hero: { wallpaper: 'concreteBlossom', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 316, blur: 2 },
-        near: { svg: blossomPetals(drift, 0.85), tile: 2200, height: '26vh', seconds: 148 },
-        areaColors: [haze, drift]
+        near: { svg: petals(drift, 0.80, 383), tile: 2400, height: '100vh', seconds: 600, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     galactica: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#cddaeb', 7.3);
+      const drift = u.toneOf('#cddaeb', 4.8);
       return {
         motifs: ['galactica'],
         hero: { wallpaper: 'galactica', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 288, blur: 2 },
-        near: { svg: meteorStreaks(drift, 0.85), tile: 2200, height: '26vh', seconds: 135 },
-        areaColors: [haze, drift]
+        near: { svg: ships(drift, 0.85, 419), tile: 2400, height: '100vh', seconds: 547, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     tetris: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#9fd4e4', 7.3);
+      const drift = u.toneOf('#9fd4e4', 4.8);
       return {
         motifs: ['tetris'],
         hero: { wallpaper: 'tetris', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 344, blur: 2 },
-        near: { svg: blockFall(drift, 0.85), tile: 2200, height: '26vh', seconds: 161 },
-        areaColors: [haze, drift]
+        near: { svg: tetrominoes(drift, 0.80, 457), tile: 2400, height: '100vh', seconds: 653, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     hawaiiOcean: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#7fb6c8', 7.3);
+      const drift = u.toneOf('#7fb6c8', 4.8);
       return {
         motifs: ['hawaiiOcean'],
         hero: { wallpaper: 'hawaiiOcean', size: '100% auto', position: 'center bottom' },
-        far: { svg: seaSpray(haze, 0.55), tile: 1900, height: '26vh', seconds: 272, blur: 2 },
-        near: { svg: oceanGlints(drift, 0.85), tile: 2200, height: '26vh', seconds: 127 },
-        areaColors: [haze, drift]
+        far: { svg: seaSpray(haze, 0.5), tile: 1900, height: '26vh', seconds: 272, blur: 2 },
+        near: { svg: gulls(drift, 0.85, 491), tile: 2400, height: '100vh', seconds: 516, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     palmForest: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#7fa383', 7.3);
+      const drift = u.toneOf('#7fa383', 4.8);
       return {
         motifs: ['palmForest'],
         hero: { wallpaper: 'palmForest', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 304, blur: 2 },
-        near: { svg: leafFall(drift, 0.85), tile: 2200, height: '26vh', seconds: 142 },
-        areaColors: [haze, drift]
+        near: { svg: leaves(drift, 0.77, 541), tile: 2400, height: '100vh', seconds: 577, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     hawaiiMorning: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#d9a684', 7.3);
+      const drift = u.toneOf('#d9a684', 4.8);
       return {
         motifs: ['hawaiiMorning'],
         hero: { wallpaper: 'hawaiiMorning', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 336, blur: 2 },
-        near: { svg: sunFlares(drift, 0.85), tile: 2200, height: '26vh', seconds: 157 },
-        areaColors: [haze, drift]
+        near: { svg: gulls(drift, 0.85, 577), tile: 2400, height: '100vh', seconds: 638, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     mountFuji: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#a8bcd8', 7.3);
+      const drift = u.toneOf('#a8bcd8', 4.8);
       return {
         motifs: ['mountFuji'],
         hero: { wallpaper: 'mountFuji', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 258, blur: 2 },
-        near: { svg: windStreaks(drift, 0.85), tile: 2200, height: '26vh', seconds: 121 },
-        areaColors: [haze, drift]
+        near: { svg: clouds(drift, 0.77, 613), tile: 2400, height: '100vh', seconds: 490, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     },
 
     cherryBlossom: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const drift = u.toneOf('#e0a8b8', 7.3);
+      const drift = u.toneOf('#e0a8b8', 4.8);
       return {
         motifs: ['cherryBlossom'],
         hero: { wallpaper: 'cherryBlossom', size: '100% auto', position: 'center bottom' },
         far: { svg: floorMist(haze, 0.8), tile: 1900, height: '26vh', seconds: 324, blur: 2 },
-        near: { svg: cherryPetals(drift, 0.85), tile: 2200, height: '26vh', seconds: 152 },
-        areaColors: [haze, drift]
+        near: { svg: petals(drift, 0.83, 647), tile: 2400, height: '100vh', seconds: 615, sparse: true },
+        areaColors: [haze],
+        sparseColors: [drift]
       };
     }
 

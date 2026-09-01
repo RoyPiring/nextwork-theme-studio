@@ -55,6 +55,7 @@ COLUMN = (0.15, 0.85)        # how wide the reading column can get
 SCRIM_FULL = (0.18, 0.82)    # where the middle band is at full strength
 SCRIM_FEATHER = 0.10
 FADE = 0.22                  # fraction of the height that fades out at the top
+SATURATION = 1.8             # see treat()
 WIDTH = 2048
 MAX_BASE64 = 72000
 
@@ -91,6 +92,24 @@ def _lut(factor, toward_white):
 
 def adjust(im, factor, toward_white):
     return im.point(_lut(factor, toward_white) * 3)
+
+
+def treat(im, factor, strength, toward_white):
+    """Exposure, then the scrim, then the colour back.
+
+    Pushing the exposure this far drains the colour out, and the result reads
+    as a heavy grey filter over the picture rather than as the picture. Putting
+    saturation back fixes that almost for free: colour is close to independent
+    of the luminance the contrast floor actually constrains. Measured on this
+    set, 1.8x saturation moves the worst contrast by about 0.2 on the darkest
+    theme and not at all on the lightest.
+
+    The whole treatment happens here so the search measures exactly what ships.
+    Saturating after the measurement, which is what it used to do, meant the
+    recorded numbers were for a different image than the one in the file.
+    """
+    out = apply_scrim(adjust(im, factor, toward_white), strength, toward_white)
+    return ImageEnhance.Color(out).enhance(SATURATION)
 
 
 def apply_scrim(im, strength, toward_white):
@@ -205,9 +224,8 @@ def build(theme_id, src_path, info, quiet=False):
 
     chosen = None
     for factor in (1.00, 0.85, 0.70, 0.55, 0.44, 0.34, 0.26, 0.20, 0.15, 0.11, 0.08):
-        lit = adjust(probe, factor, light)
         for strength in (0.70, 0.60, 0.50, 0.38, 0.30, 0.24, 0.18, 0.13, 0.09):
-            candidate = apply_scrim(lit, strength, light)
+            candidate = treat(probe, factor, strength, light)
             column = worst_contrast(candidate, text_lum, light, *COLUMN)
             if column < COLUMN_FLOOR:
                 continue
@@ -222,10 +240,7 @@ def build(theme_id, src_path, info, quiet=False):
         return None
 
     factor, strength, column, flank = chosen
-    img = apply_scrim(adjust(base, factor, light), strength, light)
-    # Pushing the exposure this far drains the colour out, so put some back or
-    # a coloured light source stops reading as coloured.
-    img = ImageEnhance.Color(img).enhance(1.25)
+    img = treat(base, factor, strength, light)
     sky = join_colour(img)
     img = fade_top(img)
 

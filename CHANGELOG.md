@@ -8,6 +8,34 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.3.0] - 2026-09-01
+
+### Changed
+- The drifting layer is the thing that belongs in each picture instead of an
+  abstract speck. Gulls over both beaches, petals over the blossom themes,
+  ships over the space scene, tetrominoes over the arcade, comets over the star
+  field, fireworks over the neon city, smoke over the fire-lit rooms, clouds
+  over the mountain.
+- Motifs cover the whole viewport rather than a strip along the bottom. That is
+  safe because they are sparse, so the audit stopped capping their height and
+  started measuring what they actually cover: shape count and the size of the
+  largest one.
+- Motifs take the WCAG AA floor rather than the AAA one the solid bands take. A
+  handful of small shapes spread over a page is not a fill a paragraph is read
+  against, and holding them to 7:1 made every one of them invisible on the dark
+  themes. The wallpaper flanks were in the same trap in 1.4.1.
+- Wallpaper saturation raised from 1.25 to 1.8. Pushing the exposure far enough
+  to clear the contrast floor drains the colour, and the result read as a heavy
+  grey filter over the picture rather than as the picture. Colour is close to
+  independent of the luminance the floor constrains: measured across this set,
+  1.8x moves the worst contrast by about 0.2 on the darkest theme and not at
+  all on the lightest.
+
+### Fixed
+- The measurement now happens after saturation rather than before it, so the
+  numbers recorded in src/wallpapers.js describe the image that actually
+  ships.
+
 ## [2.2.0] - 2026-09-01
 
 ### Changed
@@ -349,7 +377,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.3.0
 [2.2.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.2.0
 [2.1.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.1.0
 [2.0.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.0.0

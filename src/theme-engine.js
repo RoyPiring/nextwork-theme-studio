@@ -1239,6 +1239,29 @@
          * band sitting on the floor and catastrophic for one hanging from the
          * ceiling - it erases exactly the part meant to be seen, which is why
          * the forest canopy had vanished. */
+        /* A sparse motif layer covers the whole viewport, so the band fade
+         * would erase most of it. It gets a light falloff at the very top
+         * instead, just enough that shapes do not pop in at the edge. */
+        if (layer.sparse) {
+          const soft = 'linear-gradient(to bottom, rgba(0,0,0,0) 0%,' +
+                       ' rgba(0,0,0,1) 14%, rgba(0,0,0,1) 100%)';
+          L.push(rootSel + pseudo + ' {' +
+                 ' width: calc(100vw + ' + layer.tile + 'px);' +
+                 ' background-image: ' + svgUrl(layer.svg) + ';' +
+                 ' background-size: ' + layer.tile + 'px ' + layer.height + ';' +
+                 ' background-position: left top;' +
+                 ' background-repeat: repeat-x;' +
+                 ' -webkit-mask-image: ' + soft + '; mask-image: ' + soft + ';' +
+                 (o.animateBackdrop
+                   ? ' animation: ' + name + ' ' + layer.seconds + 's linear infinite;'
+                   : '') +
+                 ' }');
+          if (o.animateBackdrop) {
+            L.push('@keyframes ' + name + ' { from { transform: translate3d(0,0,0); }' +
+                   ' to { transform: translate3d(-' + layer.tile + 'px,0,0); } }');
+          }
+          return;
+        }
         const anchor = layer.y || 'bottom';
         const pct = /^(\d+)%$/.exec(anchor);
         const atBottom = anchor === 'bottom' || (pct && +pct[1] >= 55);
