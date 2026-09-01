@@ -865,6 +865,50 @@
     L.push('.hljs-emphasis { font-style: italic; }');
     L.push('.hljs-strong { font-weight: 700; }');
 
+    /* --- Tailwind Typography -----------------------------------------------
+     * The article body is a `.prose` container carrying its own family of
+     * eighteen --tw-prose-* variables, declared on the .prose class itself.
+     * They have nothing to do with NextWork's tokens, so every override so far
+     * missed them - and --tw-prose-headings is near-black, which is why the
+     * headings stayed dark on a dark page while classed text went light. */
+    const prose = {
+      'body': p.textSecondary,
+      'headings': p.textPrimary,
+      'lead': p.textSecondary,
+      'links': p.accent,
+      'bold': p.textPrimary,
+      'counters': p.textMuted,
+      'bullets': mix(p.border, p.textMuted, 0.4),
+      'hr': p.border,
+      'quotes': p.textPrimary,
+      'quote-borders': p.border,
+      'captions': p.textMuted,
+      'kbd': p.textPrimary,
+      'kbd-shadows': rgba(p.canvas, 0.4),
+      'code': p.textPrimary,
+      'pre-code': p.textSecondary,
+      'pre-bg': p.surface,
+      'th-borders': p.border,
+      'td-borders': mix(p.canvas, p.border, 0.7)
+    };
+    const proseKeys = Object.keys(prose);
+    L.push('.prose { ' + proseKeys.map(function (k) {
+      return '--tw-prose-' + k + ': ' + prose[k] + ';';
+    }).join(' ') + ' }');
+    /* mapped for prose-invert too, in case a subtree opts into it */
+    L.push('.prose { ' + proseKeys.map(function (k) {
+      return '--tw-prose-invert-' + k + ': ' + prose[k] + ';';
+    }).join(' ') + ' }');
+
+    /* --- gradient stops that start from white ------------------------------
+     * Tailwind gradient utilities bake the colour into --tw-gradient-from/to,
+     * so a panel using `from-white` paints a white sheet that no token can
+     * reach. */
+    L.push('[class*="from-white"] { --tw-gradient-from: var(--nwt-surface) !important; }');
+    L.push('[class*="via-white"] { --tw-gradient-via: var(--nwt-surface) !important; }');
+    L.push('[class*="to-white"] { --tw-gradient-to: var(--nwt-surface) !important; }');
+    L.push('[class*="from-paper"] { --tw-gradient-from: var(--nwt-canvas) !important; }');
+    L.push('[class*="to-paper"] { --tw-gradient-to: var(--nwt-canvas) !important; }');
     /* --- floating panels --------------------------------------------------
      * Tooltips, menus, dropdowns and dialogs are rendered on demand and often
      * portalled out of the component that owns them, so they miss whichever
@@ -927,8 +971,11 @@
        * at whatever they are supposed to be blending into: the canvas normally,
        * but nothing at all when a wallpaper is showing, or the fade paints an
        * opaque block over the artwork and the panel reads as a stuck-on card. */
-      const fadeTo = hasWallpaper ? 'transparent' : 'var(--nwt-canvas)';
-      L.push('.docs-hero-gradient:empty, [class*="pointer-events-none"][class*="sticky"]:empty, [class*="pointer-events-none"][class*="inset-x-0"]:empty { background-image: linear-gradient(to bottom, transparent, ' + fadeTo + ') !important; }');
+      /* These fades exist to blend a scrolling list into a cream page. On a
+       * themed page they can only ever paint a slab that does not match what
+       * is behind it - the box that kept coming back at the bottom of the
+       * Steps list. Remove them rather than try to match the ground. */
+      L.push('.docs-hero-gradient:empty, [class*="pointer-events-none"][class*="sticky"]:empty, [class*="pointer-events-none"][class*="inset-x-0"]:empty { background-image: none !important; }');
     }
     if (o.patchStubborn && !light) {
       /* Arbitrary-value utilities like bg-[#FDEEE2] bypass the token layer.

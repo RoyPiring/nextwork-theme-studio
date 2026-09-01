@@ -11,6 +11,15 @@ Versioning is [semver](https://semver.org/); the `version` field in
   pill and a toolbar badge. Counts across tabs and survives a restart.
 
 ### Fixed
+- Article headings stayed near-black on a dark page. The body is a Tailwind
+  Typography `.prose` container with its own eighteen `--tw-prose-*` variables,
+  declared on the class itself and unrelated to NextWork's tokens, so every
+  override missed them. All eighteen are now mapped, plus the `invert` set.
+- The box at the bottom of the Steps list. Those scroll fades exist to blend a
+  list into a cream page; on a themed page they can only paint a slab that does
+  not match what is behind them, so they are removed rather than recoloured.
+- Panels using Tailwind `from-white` gradient utilities painted a white sheet no
+  token could reach; the gradient stops are now themed.
 - Scenery reached into the reading column. Nine of eighteen scenes had bands
   44-70vh tall, so a pattern sat directly behind body copy - worst with the
   grid motifs, which read as ruled lines through the text. Bands are now capped
