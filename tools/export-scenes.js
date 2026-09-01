@@ -29,6 +29,14 @@ function resolve(id) {
 const outDir = path.join(__dirname, '..', 'assets');
 fs.mkdirSync(outDir, { recursive: true });
 
+/* Clear first. Without this a layer that stops being generated - a band that
+ * gets removed from every scene, say - stays in assets/ and in git as a file
+ * nothing produces any more, and the CI freshness check cannot see it because
+ * it only compares files that are still being written. */
+fs.readdirSync(outDir)
+  .filter(f => f.endsWith('.svg'))
+  .forEach(f => fs.unlinkSync(path.join(outDir, f)));
+
 let count = 0;
 Object.keys(SCENES).forEach(function (theme) {
   ['hero', 'far', 'near'].forEach(function (layer) {

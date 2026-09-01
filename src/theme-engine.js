@@ -1188,7 +1188,10 @@
        * frame are what read as a photograph. */
       const atmos = (typeof root !== 'undefined' && root.NWT_ATMOS) || null;
       if (scene && atmos) {
-        imgs.unshift(svgUrl(atmos.vignette(light ? '#5b5348' : '#000000', light ? 0.10 : 0.34)));
+        /* Light, not heavy. A vignette darkens the corners, and the corner is
+         * exactly where the character in every one of these pictures stands,
+         * so at 0.34 it was quietly dimming the one thing worth seeing. */
+        imgs.unshift(svgUrl(atmos.vignette(light ? '#5b5348' : '#000000', light ? 0.05 : 0.14)));
         sizes.unshift('cover'); positions.unshift('center'); repeats.unshift('no-repeat');
         imgs.unshift(svgUrl(atmos.grainTile(light ? 0.030 : 0.045)));
         sizes.unshift('220px 220px'); positions.unshift('center'); repeats.unshift('repeat');

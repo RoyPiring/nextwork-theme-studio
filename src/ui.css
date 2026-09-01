@@ -18,6 +18,9 @@
 
 body {
   margin: 0;
+  /* Pin the width. Without it the popup is sized by the widest row, which was
+   * the focus chips, and everything else had to live with that. */
+  width: 336px;
   background: var(--ui-canvas);
   color: var(--ui-text);
   font: 13px/1.5 ui-sans-serif, system-ui, "Segoe UI", sans-serif;
@@ -102,17 +105,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 /* ---- focus panel ---- */
 .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
   color: var(--ui-text-muted); font-weight: 600; }
-.focus { gap: 10px; }
+.focus { gap: 8px; }
 .focus-clock {
-  font: 700 34px/1 ui-monospace, "Cascadia Code", Consolas, monospace;
+  font: 700 30px/1 ui-monospace, "Cascadia Code", Consolas, monospace;
   font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
-  text-align: center; padding: 4px 0 2px; color: var(--ui-text);
+  text-align: center; padding: 2px 0 0; color: var(--ui-text);
 }
 .focus[data-state="running"] .focus-clock { color: var(--ui-accent); }
 .focus[data-state="over"] .focus-clock { color: #f0a77a; }
-.chips { display: flex; gap: 5px; }
+.chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
 .chips button {
-  flex: 1; padding: 5px 0; font-size: 11px; border-radius: 7px;
+  padding: 5px 0; font-size: 11px; border-radius: 7px; min-width: 0;
   background: transparent; color: var(--ui-text-dim);
 }
 .chips button[aria-pressed="true"] {

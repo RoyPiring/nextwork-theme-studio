@@ -8,6 +8,32 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.4.0] - 2026-09-01
+
+### Changed
+- Removed the fog band that ran along the bottom of every theme. It sat over
+  the part of the picture where the character stands.
+- Vignette down from 0.34 to 0.14 on dark themes and 0.10 to 0.05 on light
+  ones. A vignette darkens the corners, and the corner is exactly where that
+  character is, so it was quietly dimming the one thing worth seeing.
+- Galactica drifts a mixed fleet: wedges, saucers and haulers rather than one
+  repeated hull, with running lights in a second colour.
+- Mount Fuji drifts white cloud shapes, each built from a different number of
+  lobes so no two silhouettes match.
+- Carbon drifts plain points of light. The comet tails were too busy for what
+  is behind them.
+- The popup has a fixed width. Without one the browser sized it to the widest
+  row, which was the focus chips, and everything else had to live with that.
+  The chips are an even grid now instead of five different widths in a flex
+  row, the clock is smaller, and the labels under it are shorter.
+
+### Fixed
+- `tools/export-scenes.js` clears its output directory first. A layer that
+  stopped being generated stayed in `assets/` and in git as a file nothing
+  produced, and the freshness check in CI could not see it because it only
+  compares files still being written. Removing the fog band left eighteen
+  such orphans.
+
 ## [2.3.0] - 2026-09-01
 
 ### Changed
@@ -377,7 +403,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.4.0
 [2.3.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.3.0
 [2.2.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.2.0
 [2.1.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.1.0
