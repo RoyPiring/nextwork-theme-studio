@@ -193,13 +193,24 @@
     return svg(1700, 440, "<g opacity='" + opacity + "'>" + out + "</g>");
   }
 
-  /* A planet limb: the curve of a world rising at the bottom of frame. */
+  /* A planet limb: the curve of a world rising at the bottom of frame.
+   * The body is a radial gradient, not a flat fill. A flat circle draws a hard
+   * curved edge, and a hard edge crossing a column of text reads as the page
+   * being sliced in half - which is exactly what it did. The rim stays, thin
+   * and faint, because that is the part that says "planet". */
   function planetArc(body, rim, opacity) {
-    return svg(1600, 700,
+    var id = uid();
+    return bleed(1600, 700,
+      "<defs><radialGradient id='" + id + "' cx='50%' cy='163%' r='47%'>" +
+      "<stop offset='0%' stop-color='" + body + "' stop-opacity='1'/>" +
+      "<stop offset='72%' stop-color='" + body + "' stop-opacity='.92'/>" +
+      "<stop offset='96%' stop-color='" + body + "' stop-opacity='.18'/>" +
+      "<stop offset='100%' stop-color='" + body + "' stop-opacity='0'/>" +
+      "</radialGradient></defs>" +
       "<g opacity='" + opacity + "'>" +
-      "<circle cx='800' cy='1140' r='620' fill='" + body + "'/>" +
+      "<rect width='1600' height='700' fill='url(#" + id + ")'/>" +
       "<path d='M180 640 a620 620 0 0 1 1240 0' fill='none' stroke='" + rim +
-      "' stroke-width='7' opacity='.8'/>" +
+      "' stroke-width='5' opacity='.45'/>" +
       "</g>");
   }
 
@@ -689,9 +700,9 @@
       const hull = u.toneOf('#1b2432', NEAR);
       return {
         motifs: ['planet', 'fleet', 'nebula'],
-        hero: { svg: planetArc(body, rim, 0.95), size: '150% 76%', position: 'center bottom' },
+        hero: { svg: planetArc(body, rim, 0.9), size: '150% 58%', position: 'center bottom' },
         far: { svg: nebulaBand(u.toneOf('#42506b', FAR), 0.8), tile: 1600, height: '34vh', seconds: 420, y: '8%', blur: 3 },
-        near: { svg: fleetBand(hull, p.accent, 0.95), tile: 1700, height: '26vh', seconds: 240, y: '62%' },
+        near: { svg: fleetBand(hull, p.accent, 0.85), tile: 1700, height: '20vh', seconds: 240, y: '78%' },
         areaColors: [body, rim, hull, u.toneOf('#42506b', FAR)]
       };
     },

@@ -11,6 +11,9 @@ Versioning is [semver](https://semver.org/); the `version` field in
   pill and a toolbar badge. Counts across tabs and survives a restart.
 
 ### Fixed
+- Galactica's planet was a flat filled circle, so its limb drew a hard curved
+  edge straight through the reading column. The body is now a radial gradient
+  that fades at the limb, and the fleet moved below the text.
 - Article headings stayed near-black on a dark page. The body is a Tailwind
   Typography `.prose` container with its own eighteen `--tw-prose-*` variables,
   declared on the class itself and unrelated to NextWork's tokens, so every

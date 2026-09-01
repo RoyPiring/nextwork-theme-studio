@@ -1020,7 +1020,7 @@
     L.push('#nwt-focus .nwt-focus-label { font-size: 10px; font-weight: 600;' +
            ' letter-spacing: .1em; text-transform: uppercase; color: var(--nwt-text-muted); }');
     /* No right rail to align with on a narrow window, so tuck it back down. */
-    L.push('@media (max-width: 1100px) { #nwt-focus { top: auto; bottom: 18px; right: 18px;' +
+    L.push('@media (max-width: 900px) { #nwt-focus { top: auto; bottom: 18px; right: 18px;' +
            ' width: auto; font-size: 16px; padding: 9px 14px; border-radius: 999px; } }');
     L.push('#nwt-focus[data-state="running"] { border-color: ' + rgba(p.accent, 0.55) + '; }');
     L.push('#nwt-focus[data-state="running"] .nwt-focus-time { color: var(--nwt-accent); }');
