@@ -18,6 +18,12 @@ Versioning is [semver](https://semver.org/); the `version` field in
   rendered on demand and portalled away from their owner, so they missed the
   token pass; they are now themed by role.
 - The assistant slide-over arrived as a white sheet over the page.
+- The logo came back pale blue instead of white. `invert()` rotates hue as well
+  as value, and their mark is a warm near-black. Driving it to black first and
+  then inverting lands on neutral white whatever the source colour is.
+- The giant footer wordmark read as a billboard. It ships at 6% opacity, which
+  is far heavier as light-on-dark than as dark-on-light; it is now halved so it
+  stays a watermark.
 
 ## [1.0.0] - 2026-09-01
 

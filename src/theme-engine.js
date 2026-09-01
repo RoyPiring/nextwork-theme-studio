@@ -905,9 +905,17 @@
       L.push('::-webkit-scrollbar-thumb:hover { background: ' + mix(p.border, p.textMuted, 0.5) + '; }');
     }
     if (o.invertLogos && !light) {
-      /* Their wordmark is dark ink on transparent. They ship a white variant
-       * for dark panels, so skip anything already named *-white. */
-      L.push('img[src*="logo"]:not([src*="white"]), img[src*="wordmark"]:not([src*="white"]) { filter: invert(1) brightness(1.15); }');
+      /* Their mark is dark ink on transparent, so it has to be flipped to stay
+       * visible. Plain invert() rotates the hue as well as the value - their
+       * warm near-black came back as pale blue - so drive it to black first and
+       * then invert, which lands on neutral white whatever the source colour.
+       * 88% keeps it level with body text instead of brighter than it.
+       * Anything already named *-white is skipped. */
+      L.push('img[src*="logo"]:not([src*="white"]) { filter: brightness(0) invert(1); opacity: 0.88; }');
+      /* The giant footer wordmark is a watermark, shipped at 6% opacity. The
+       * same 6% reads far heavier as light-on-dark than dark-on-light, so it
+       * came back as a billboard. Halve it to keep it a whisper. */
+      L.push('img[src*="wordmark"]:not([src*="white"]) { filter: brightness(0) invert(1); opacity: 0.03; }');
     }
     if (o.neutralizeGlows && !light) {
       /* The hero bloom is an inline cream radial-gradient, so it needs both an
