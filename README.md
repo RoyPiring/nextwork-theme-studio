@@ -10,12 +10,24 @@ Not affiliated with NextWork. The extension makes no network requests at all.
 
 ## Install
 
-1. Open `chrome://extensions` — or, on Brave, `brave://extensions` and then click
-   **Manage extensions** on that page. (Brave 152 redirects `brave://extensions`
-   to a settings page with no Developer mode toggle.)
-2. Turn on **Developer mode**.
-3. **Load unpacked**, and pick this folder.
-4. Open nextwork.ai.
+Build the package for your browser, then follow the guide inside it:
+
+```bash
+node tools/build.js
+```
+
+That writes `dist/chrome`, `dist/brave`, `dist/edge`, `dist/firefox` and
+`dist/safari`, each with its own `INSTALL.md` and a zip ready to upload.
+
+Chrome, Brave and Edge: turn on Developer mode on the extensions page, click
+**Load unpacked**, pick the folder. Brave hides that page behind
+menu → Extensions → **Manage Extensions**; typing `brave://extensions` lands on
+a settings page with no Developer mode toggle.
+
+Firefox loads it from `about:debugging` and drops it on restart unless signed.
+Safari has to be converted into a native app with Xcode on a Mac.
+
+Details per browser: [docs/BROWSERS.md](docs/BROWSERS.md).
 
 `Alt+Shift+D` toggles the theme. Rebind at `chrome://extensions/shortcuts`.
 
@@ -91,7 +103,7 @@ src/options.*          The editor
 themes/                Themes as importable JSON
 assets/                Generated SVG layers, for looking at and editing
 tools/                 Audit gate, asset export, contact sheet, packaging
-docs/                  Architecture, decisions, publishing checklist
+docs/                  Architecture, decisions, browser guides, publishing
 ```
 
 ## Working on it
@@ -101,9 +113,9 @@ card, refresh the tab.
 
 ```bash
 node tools/audit.js           # the CI gate - run before every commit
+node tools/build.js           # per-browser packages into dist/
 node tools/export-scenes.js   # regenerate assets/*.svg from scenes.js
 node tools/contact-sheet.js   # render all 18 scenes on one page to compare
-node tools/package.js         # build a distributable zip
 ```
 
 `tools/audit.js` is the important one. It validates the manifest, parses every

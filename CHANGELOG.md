@@ -7,6 +7,15 @@ Versioning is [semver](https://semver.org/); the `version` field in
 ## [1.2.0] - 2026-09-01
 
 ### Added
+- Per-browser packages. `node tools/build.js` writes a loadable folder for
+  Chrome, Brave, Edge, Firefox and Safari into `dist/`, each carrying the
+  install guide for its own extensions page, plus a zip for the stores.
+- Firefox build: MV3 there has no service worker, so the background runs as an
+  event page with its libraries listed in the manifest. `src/background.js`
+  calls `importScripts` only where it exists, so one file serves both engines.
+- Safari: source laid out for `safari-web-extension-converter`, with the Xcode
+  steps written down. It cannot be loaded as a folder and is unverified -
+  converting it needs a Mac.
 - Panels that escape the token layer are now measured and repainted at runtime.
   Tooltips and side panels that are portalled away from their owner or built
   after load cannot be reached from a stylesheet; this finds anything still

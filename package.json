@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "audit": "node tools/audit.js",
+    "build": "node tools/build.js",
     "assets": "node tools/export-scenes.js",
     "contact-sheet": "node tools/contact-sheet.js"
   },

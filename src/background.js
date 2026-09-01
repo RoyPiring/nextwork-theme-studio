@@ -3,7 +3,12 @@
  * Seeds defaults on install, owns the keyboard shortcut, and keeps the
  * toolbar badge honest about whether the theme is on.
  * ==========================================================================*/
-importScripts('scenes.js', 'theme-engine.js');
+/* Chromium runs this as a service worker, where importScripts exists. Firefox
+ * MV3 runs it as an event page, where it does not - there the same two files
+ * are listed in manifest.background.scripts instead. One file, both worlds. */
+if (typeof importScripts === 'function') {
+  importScripts('scenes.js', 'theme-engine.js');
+}
 
 /* The badge shows the focus timer when one is running, because that is the
  * thing you want to glance at. Otherwise it just reports the theme state. */
