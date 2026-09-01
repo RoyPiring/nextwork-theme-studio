@@ -8,6 +8,23 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.2.0] - 2026-09-01
+
+### Changed
+- Every theme now has its own drift, not one of seven shared kinds. Eighteen
+  different pictures with the same dust over them wasted the difference. Dust,
+  ash, snow, star points, mist wisps, ember sparks, neon bokeh, seed fluff,
+  smoke curls, lantern glow, blossom petals, meteor streaks, falling blocks,
+  ocean glints, leaf fall, sun flares, wind streaks and cherry petals, one
+  each, tinted from its own palette.
+- Hawaii Ocean is cropped 30% off the top. Its source was drawn with the same
+  leafy border as Palm Forest, so the two looked like the same picture wherever
+  the top of the image showed. Cropping it also drops the shared green from the
+  colour that fills above the image. Structural similarity between the two fell
+  from 0.669 to 0.556.
+- The image pipeline takes a per-source crop, so a shared border in the artwork
+  can be handled without repainting anything.
+
 ## [2.1.0] - 2026-09-01
 
 ### Fixed
@@ -332,7 +349,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.2.0
 [2.1.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.1.0
 [2.0.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.0.0
 [1.5.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.5.0

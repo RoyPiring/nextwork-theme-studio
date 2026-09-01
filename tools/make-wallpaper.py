@@ -58,6 +58,13 @@ FADE = 0.22                  # fraction of the height that fades out at the top
 WIDTH = 2048
 MAX_BASE64 = 72000
 
+# Some sources were drawn with the same decorative border, which made two
+# themes look like the same picture at the top. Crop it off rather than accept
+# the collision: the fraction is taken off the top before anything else.
+CROP_TOP = {
+    "hawaiiOcean": 0.30,
+}
+
 
 def _to_linear(c):
     c /= 255.0
@@ -183,6 +190,12 @@ def build(theme_id, src_path, info, quiet=False):
     text_lum = hex_luminance(info["text"])
 
     src = Image.open(src_path).convert("RGB")
+    cut = CROP_TOP.get(theme_id, 0.0)
+    if cut:
+        src = src.crop((0, int(src.size[1] * cut), src.size[0], src.size[1]))
+        if not quiet:
+            print("  cropped %d%% off the top (shared border with another source)"
+                  % round(cut * 100))
     base = src.resize((WIDTH, int(src.size[1] * WIDTH / src.size[0])), Image.LANCZOS)
     probe = base.resize((768, base.size[1] * 768 // WIDTH), Image.LANCZOS)
 
