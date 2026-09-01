@@ -12,7 +12,7 @@ to the extensions page is not.
    **Manage Extensions**.
 2. Turn on **Developer mode** (top right)
 3. Click **Load unpacked**
-4. Select this folder — the one containing `manifest.json`
+4. Select this folder: the one containing `manifest.json`
 5. Open nextwork.ai
 
 Pin it from the puzzle-piece icon in the toolbar.
@@ -26,7 +26,7 @@ then refresh any nextwork.ai tab that is already open. Reloading the extension
 does not update tabs that are already loaded.
 
 If a change does not appear, check the version on the card against the version
-you built. If they differ, Brave is loading a different folder — check the path
+you built. If they differ, Brave is loading a different folder, check the path
 shown on the card, and make sure the same extension is not loaded twice.
 
 ## Notes

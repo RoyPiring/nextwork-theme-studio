@@ -15,7 +15,7 @@ node tools/build.js
 ```
 
 The audit runs first, and nothing is written if it fails. You get five folders
-under `dist/` — Chrome, Brave, Edge, Firefox, Safari — plus an archive for each
+under `dist/`: Chrome, Brave, Edge, Firefox, Safari, plus an archive for each
 of the four that can take one.
 
 Every archive is read back before the build reports success, because the
@@ -39,8 +39,8 @@ install-from-file picker filters to that extension.
 Both stores ask why the extension needs its permissions. The honest answers are
 short:
 
-- `storage` — saves your themes on your machine. It is the only permission.
-- Host access — the content script matches `https://*.nextwork.ai/*` and
+- `storage`: saves your themes on your machine. It is the only permission.
+- Host access: the content script matches `https://*.nextwork.ai/*` and
   nothing else.
 
 You will also need a privacy policy. The true one is one sentence: the

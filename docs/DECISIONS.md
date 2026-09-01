@@ -54,7 +54,7 @@ way to buy ID-level specificity. This is not obvious and cost an afternoon.
 saturation. `0` / `100%` leaves a theme exactly as designed.
 
 **Why.** Absolute dials overwrote every neutral's hue with one value, which
-flattened the thing that made themes distinct — Dark Japandi's rosy oatmeal over
+flattened the thing that made themes distinct. Dark Japandi's rosy oatmeal over
 cocoa became the same grey as everything else.
 
 **Migration.** Old dial positions mean something different now, so `migrate()`
@@ -81,7 +81,7 @@ against dark themes.
 inside the contrast limit, rather than hand-picking hex values.
 
 **Why.** Hand-picked fills sat at 11:1 when 7:1 was allowed. The art was
-technically present and practically invisible — most of the usable range went
+technically present and practically invisible. Most of the usable range went
 unused. The solver recovers it while keeping the guarantee.
 
 ---

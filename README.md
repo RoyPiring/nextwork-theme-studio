@@ -3,7 +3,8 @@
 [![audit](https://github.com/RoyPiring/nextwork-theme-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/RoyPiring/nextwork-theme-studio/actions/workflows/ci.yml)
 
 A browser extension that changes the colours of [nextwork.ai](https://nextwork.ai).
-It gives you 18 themes, an editor to build your own, and artwork behind the page.
+It gives you 18 themes, an editor to build your own, and a picture behind the
+page.
 
 This is an unofficial project. It is not made by NextWork and is not connected
 to them. It never sends any data anywhere.
@@ -52,7 +53,8 @@ at `chrome://extensions/shortcuts`.
 Click the extension icon in your toolbar. You will see three switches:
 
 - **Theme.** Turns the colours on and off.
-- **Wallpaper.** Turns the artwork on and off. This is separate from the colours.
+- **Wallpaper.** Turns the picture behind the page on and off. This is
+  separate from the colours.
 - **Focus.** A timer that sits on the page while you work.
 
 Below the switches you can pick any of the 18 themes. Four **dials** adjust
@@ -123,7 +125,7 @@ two problems that took the longest to solve.
 [docs/DECISIONS.md](docs/DECISIONS.md) explains the choices that would be hard
 to undo.
 
-### The artwork
+### The wallpapers
 
 Every theme has its own scene, and no two are the same.
 
@@ -133,9 +135,9 @@ speeds: mist along the floor, and dust in the air. The picture itself does not
 move. Without those layers it would look like a desktop background placed
 behind the text. Nothing is downloaded while you browse.
 
-There is a hard limit on how bright the artwork can be. On nextwork.ai, article
+There is a hard limit on how bright a wallpaper can be. On nextwork.ai, article
 text sits straight on the background with no panel behind it. So you read the
-words through the artwork. Text needs a contrast ratio of 7:1 to stay
+words through the picture. Text needs a contrast ratio of 7:1 to stay
 comfortable, and that makes the background very dark.
 
 A picture cannot be checked the same way a single colour can, so
@@ -153,14 +155,14 @@ them.
 ```
 manifest.json          Settings the browser reads
 src/theme-engine.js    Colours, contrast maths, and CSS generation
-src/scenes.js          The artwork drawn in code
+src/scenes.js          The mist and dust that drift over each wallpaper
 src/wallpapers.js      Picture wallpapers, stored inside the file
 src/content.js         Adds the stylesheet to the page
 src/background.js      Keyboard shortcut and toolbar icon
 src/popup.*            The panel behind the toolbar icon
 src/options.*          The editor
 art/                   Source pictures. Build input only, nothing here ships
-assets/                The artwork saved as SVG files you can open
+assets/                Those drifting layers saved as SVG files you can open
 tools/                 Tests, packaging, and image tools
 docs/                  Longer guides
 ```
@@ -174,7 +176,7 @@ the tools below.
 ```bash
 node tools/audit.js           # run the tests, do this before every commit
 node tools/build.js           # build a folder for each browser
-node tools/export-scenes.js   # save the artwork as SVG files
+node tools/export-scenes.js   # save the drifting layers as SVG files
 node tools/gallery.js         # rebuild the picture at the top of this README
 node tools/contact-sheet.js   # view all 18 scenes on one page
 python tools/make-wallpaper.py --all art   # rebuild every wallpaper

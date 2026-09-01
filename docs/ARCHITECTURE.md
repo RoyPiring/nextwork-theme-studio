@@ -9,8 +9,8 @@ NextWork is built on Tailwind v4, and every utility resolves through a CSS
 variable. `.bg-gray-50` compiles to `background-color: var(--color-gray-50)`.
 
 That means you do not have to override their rules. You override their
-*variables*, and the site restyles itself. The alternative — matching every
-selector with `!important` — breaks the moment they ship a new component.
+*variables*, and the site restyles itself. The alternative, matching every
+selector with `!important`, breaks the moment they ship a new component.
 
 Four families have to be handled. Missing any one leaves half the page light.
 
@@ -24,7 +24,7 @@ low numbers become surfaces, high numbers become text.
 
 `--color-bg-*`, `--color-text-*`, `--color-fg-*`, `--color-border-*` and
 `--color-utility-*` are hardcoded hex values, not aliases of the ramp. They are
-what actually paints the signed-in app — cards, tables, skeletons, badges.
+what paints the signed-in app. Cards, tables, skeletons, badges.
 Overriding the ramp alone gets you a themed marketing page and a light app.
 
 ### 3. The namespaced aliases
@@ -43,7 +43,7 @@ every border and ring stays light while the page around it goes dark.
 
 ### 4. Shadow DOM
 
-NextWork ships web components — `nw-tooltip`, `nw-button`, `nw-badge`,
+NextWork ships web components. `nw-tooltip`, `nw-button`, `nw-badge`,
 `nw-icon`, `nw-modal-provider` and more. A single project page has **86 open
 shadow roots**.
 
@@ -57,18 +57,18 @@ mounts components continuously.
 
 ## Winning the cascade without `!important`
 
-Two ordering traps, both found the hard way.
+Two ordering traps.
 
 **Document order.** The stylesheet is injected at `document_start`, which puts
 it *before* the site's own sheets. Their unlayered rules therefore win every
-specificity tie — including `body { background: #f8f5f1 }`, which is exactly how
+specificity tie. Including `body { background: #f8f5f1 }`, which is exactly how
 you end up with a cream page and light text. Every generated selector is scoped
 under `html`, and the token block uses `:root:root`, so ties are settled on
 specificity and injection order stops mattering.
 
-**Inside a shadow root** the same problem needs a different answer. `:host:host`
-parses but still loses to the site's own `:host` block. The shadow copy uses
-`:host(:not(#nwt-never))` — the valid way to buy ID-level specificity.
+**Inside a shadow root** the same problem needs a different answer. The shadow
+copy uses `:host(:not(#nwt-never))`. Why that shape and not the obvious one is
+in [DECISIONS](DECISIONS.md#3-adopt-a-second-stylesheet-into-shadow-roots).
 
 Tailwind's utilities live in `@layer`, and unlayered rules beat layered ones
 outright, so `!important` appears in exactly two places.
@@ -96,14 +96,17 @@ A theme is nine colours plus four relative dials. Everything else is derived.
 5–13% colour over the canvas: on a dark ground anything heavier reads as a
 coloured slab bolted onto the page, so the border and text carry the signal.
 
-The dials are **relative** — tint rotates hue, saturation scales what the theme
+The dials are **relative**: tint rotates hue, saturation scales what the theme
 already has. Absolute dials flattened every theme to one hue, which destroyed
 the thing that made them distinct.
 
-`toneOf(hue, textColour, targetRatio)` is the important helper. Give it a hue
-and a contrast target and it solves the lightness that lands just inside the
-floor. Picking those by eye is what left the first scenery invisible: fills sat
-at 11:1 when 7:1 was permitted, so most of the usable range went unused.
+`toneOf(hex, textColour, targetRatio)` is the important helper. Give it a
+colour, the text colour it has to sit behind, and a ratio, and it solves for the
+lightness that lands just inside the floor. Inside a scene generator it arrives
+already bound to the theme's text colour, so there it takes two arguments.
+
+Why the tones are solved rather than picked by eye is in
+[DECISIONS](DECISIONS.md).
 
 ## Scenery
 
@@ -130,9 +133,10 @@ page ground, so body copy is read *against* the scenery. Every large fill is
 contrast-checked against body text at 7:1 and CI fails if one slips. That is why
 these read as watermarks rather than silhouettes.
 
-**One motif per theme.** Each scene declares `motifs`, and the audit fails if two
-scenes share one. Reusing a silhouette is what made eighteen wallpapers feel like
-three.
+**One motif per theme.** Each scene declares `motifs`, and the audit fails if
+two scenes share one. Now that every theme has its own picture the subjects are
+distinct anyway, so the check amounts to making sure no two themes point at the
+same wallpaper.
 
 ## Files
 

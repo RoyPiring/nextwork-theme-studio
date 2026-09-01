@@ -104,14 +104,14 @@ Renamed to Pineapple NextWork Theme Studio Mod.
 ### Changed
 - The Concrete wallpaper is 3.2x brighter. Darkening the whole frame to clear
   7:1 had taken it to 0.17 of source exposure, and what reached the page was a
-  smudge rather than a picture — the arches, the lit doorway and the figure
+  smudge rather than a picture: the arches, the lit doorway and the figure
   were all technically present and effectively invisible.
 
   It now darkens in two zones. The reading column is a strip down the middle of
   the viewport; the rest is margin and panels. Scrimming that middle band lets
   the flanks run at 0.55 exposure instead of 0.17, which matters here because
   the composition puts everything worth looking at out at the edges. It ships
-  at 7.44:1 in the reading column — the project's floor, WCAG AAA — and 4.90:1
+  at 7.44:1 in the reading column: the project's floor, WCAG AAA, and 4.90:1
   everywhere else, which is WCAG AA, so text straying outside the column is
   still readable rather than merely darker.
 - The wallpaper audit check enforces both floors separately. A single global
@@ -120,22 +120,22 @@ Renamed to Pineapple NextWork Theme Studio Mod.
 ## [1.4.0] - 2026-09-01
 
 ### Added
-- Concrete is now a corridor. It uses a raster wallpaper — an arcade at night
-  looking toward a lit doorway — with mist along the floor and dust in the air
+- Concrete is now a corridor. It uses a raster wallpaper: an arcade at night
+  looking toward a lit doorway, with mist along the floor and dust in the air
   drifting over it on the two parallax bands. The picture is fixed; the layers
   moving at different rates over it are what stop it reading as a desktop
   background someone pasted in.
 - `src/wallpapers.js` carries raster wallpapers inline as data URIs. A content
-  script cannot fetch a file — the site's CSP blocks it, and
+  script cannot fetch a file: the site's CSP blocks it, and
   `web_accessible_resources` would widen the extension's surface for the sake
-  of one picture — so the bytes ride in the injected stylesheet. Only the theme
+  of one picture. So the bytes ride in the injected stylesheet. Only the theme
   using one pays for it: Concrete's stylesheet is 78 KB, against 26-42 KB for
   the themes without a wallpaper, which are unchanged.
 - `tools/make-wallpaper.py` encodes a source image from `art/`. An image cannot
   be contrast-checked the way a hex fill can, so it measures instead: it finds
   the gentlest exposure cut that still clears 7:1 against body text, taken on a
   blurred copy because a reader reads against the local average rather than a
-  single pixel — which is also what lets the doorway keep a bright core. The
+  single pixel, which is also what lets the doorway keep a bright core. The
   corridor measured 2.40:1 as supplied and ships at 7.32:1.
 - An audit check for wallpapers: inline data URIs only, a 160 KB cap, the
   recorded contrast has to clear the floor, and a scene cannot name a wallpaper
@@ -174,12 +174,12 @@ reviewing the project as an outsider would read it.
   leaves the live count to the pill on the page.
 
 ### Security
-- Removed the `activeTab` permission. It was requested and never used — the
+- Removed the `activeTab` permission. It was requested and never used: the
   popup's reload button calls `chrome.tabs.reload()`, which needs no
   permission. `storage` is now the only one.
 - Imported themes are validated instead of merged. Colours must be `#rrggbb`,
   dials are clamped, unknown keys are dropped, and custom CSS containing
-  `url()`, `@import`, `image-set()` or `expression()` is refused — any of which
+  `url()`, `@import`, `image-set()` or `expression()` is refused, any of which
   could have made a live request from a page you are signed into.
 - The zero-flash cache no longer trusts the page. It stored generated CSS in
   the site's own `localStorage` and injected whatever it found there at
@@ -194,7 +194,7 @@ reviewing the project as an outsider would read it.
   HTML pages load, and compares the manifest and package versions. Fifteen
   checks, up from thirteen.
 - The focus HUD, the panel repair pass and the boot cache are confined to the
-  top frame. With `all_frames` on, every same-origin subframe was drawing its
+  top frame. With `all_frames` on, every same-origin subframe drew its
   own timer.
 - Shadow-root adoption and the mutation sweep are coalesced, and the repair
   pass reads every element before writing to any of them rather than forcing a

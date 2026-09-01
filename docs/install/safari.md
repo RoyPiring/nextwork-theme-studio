@@ -9,9 +9,9 @@ out the way the converter expects, plus the steps to do the conversion on a Mac.
 
 ## What you need
 
-- **macOS** — the converter is a macOS-only tool
+- **macOS**: the converter is a macOS-only tool
 - **Xcode** (free, from the Mac App Store). The Command Line Tools alone are
-  not enough — `xcrun safari-web-extension-converter` needs the full app.
+  not enough. `xcrun safari-web-extension-converter` needs the full app.
 - **Safari 16.4 or newer** for MV3 support
 - An **Apple Developer account** ($99/year) only if you want to distribute it.
   Running it on your own Mac does not need one.
@@ -27,9 +27,9 @@ xcrun safari-web-extension-converter /path/to/safari --macos-only --project-loca
 That generates an Xcode project wrapping the extension in a small host app.
 Useful flags:
 
-- `--app-name "Pineapple NextWork Theme Studio Mod"` — sets the app's name
-- `--bundle-identifier com.yourname.nextworktheme` — use your own identifier
-- `--no-open` — skip launching Xcode straight away
+- `--app-name "Pineapple NextWork Theme Studio Mod"`: sets the app's name
+- `--bundle-identifier com.yourname.nextworktheme`: use your own identifier
+- `--no-open`: do not open Xcode immediately
 
 ## Run it
 

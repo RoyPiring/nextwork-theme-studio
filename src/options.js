@@ -40,9 +40,16 @@
     if (!theme.isPreset) return settings.themeId;
 
     const id = 'custom-' + Date.now().toString(36);
+    /* mode, backdrop and sceneKey have to come along. Without mode a light
+     * theme forks to dark and every !light branch in buildCSS fires against a
+     * light palette; without sceneKey the fork's new id names no scene, so the
+     * scenery disappears. */
     const copy = {
       name: theme.name + ' (yours)',
       note: 'Forked from ' + theme.name,
+      mode: theme.mode,
+      backdrop: theme.backdrop,
+      sceneKey: theme.sceneKey || settings.themeId,
       colors: NWT.cloneTheme(theme.colors),
       tuning: NWT.cloneTheme(theme.tuning),
       customCSS: theme.customCSS || ''
@@ -311,6 +318,12 @@
     if (typeof raw.name === 'string') out.name = raw.name.slice(0, 60);
     if (typeof raw.note === 'string') out.note = raw.note.slice(0, 200);
     out.mode = raw.mode === 'light' ? 'light' : 'dark';
+    /* Only a scene this build actually has. An unknown value would leave the
+     * theme with no scenery at all. */
+    const scenes = (typeof self !== 'undefined' && self.NWT_SCENES) || {};
+    if (typeof raw.sceneKey === 'string' && scenes[raw.sceneKey]) {
+      out.sceneKey = raw.sceneKey;
+    }
 
     const colors = raw.colors || {};
     COLOR_KEYS.forEach(function (k) {
@@ -422,6 +435,9 @@
       customThemes[id] = {
         name: theme.name.replace(/ \(yours\)$/, '') + ' copy',
         note: 'Copy of ' + theme.name,
+        mode: theme.mode,
+        backdrop: theme.backdrop,
+        sceneKey: theme.sceneKey || settings.themeId,
         colors: NWT.cloneTheme(theme.colors),
         tuning: NWT.cloneTheme(theme.tuning),
         customCSS: theme.customCSS || ''
@@ -452,6 +468,8 @@
         theme: {
           name: theme.name,
           note: theme.note || '',
+          mode: theme.mode,
+          sceneKey: theme.sceneKey,
           colors: theme.colors,
           tuning: theme.tuning,
           customCSS: theme.customCSS || ''

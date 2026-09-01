@@ -12,7 +12,7 @@ same code.
 
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click **Load Temporary Add-on…**
-3. Select the **`manifest.json`** file in this folder — the file, not the folder
+3. Select the **`manifest.json`** file in this folder: the file, not the folder
 4. Open nextwork.ai
 
 If the page does not change, open the extensions button in the toolbar and

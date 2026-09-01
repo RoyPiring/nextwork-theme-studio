@@ -7,7 +7,7 @@ Edge is Chromium, so the extension is identical to the Chrome build.
 1. Open `edge://extensions`
 2. Turn on **Developer mode** (bottom left of the sidebar)
 3. Click **Load unpacked**
-4. Select this folder — the one containing `manifest.json`
+4. Select this folder: the one containing `manifest.json`
 5. Open nextwork.ai
 
 Pin it from the puzzle-piece icon in the toolbar.
@@ -25,6 +25,6 @@ and refresh any open nextwork.ai tab.
   expected for an unpacked extension and can be dismissed.
 - **Load unpacked** does not need the *Allow extensions from other stores*
   toggle. That one only governs installing from the Chrome Web Store, and
-  people go hunting for it because the banner sounds like it is asking.
+  people look for it because the banner seems to ask for it.
 - If your workplace manages Edge by policy, sideloading may be blocked. That
   restriction is set by your administrator, not by the extension.

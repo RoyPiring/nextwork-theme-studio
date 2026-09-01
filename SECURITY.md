@@ -5,8 +5,7 @@
 Open a GitHub issue. If you would rather not do that publicly, use GitHub's
 private vulnerability reporting on this repository.
 
-This is a volunteer-maintained project, not a product with an on-call rota —
-expect a reply in days, not hours.
+This is a volunteer-maintained project, not a product with staff on duty. Expect a reply in days, not hours.
 
 ## What this extension can and cannot do
 
@@ -42,21 +41,20 @@ The realistic risks for an extension like this:
 - **DOM injection.** All rendering uses `textContent` and `createElement`. The
   audit rejects `innerHTML` and the other HTML sinks.
 
-The extension does read the page it themes — it must, to fix components the
+The extension does read the page it themes. It must, to fix components the
 token layer cannot reach. It does not transmit anything it reads.
 
 ### Importing a theme is a trust boundary
 
 A `.nwtheme.json` file is data from somewhere else, and a theme can carry
 custom CSS that ends up in the stylesheet injected into a site you are signed
-into. CSS is not inert there: a `url()` is a live request, and an attribute
-selector paired with a background image is a known way to read a form field out
-one character at a time.
+into. CSS is not inert there. A `url()` is a live request. An attribute selector
+paired with a background image is a known way to read a form field out one
+character at a time.
 
-So imports are validated rather than merged. Colours must be `#rrggbb`, dials
-are clamped to a numeric range, unknown keys are dropped, and custom CSS that
-contains `url()`, `@import`, `image-set()` or `expression()` is refused with a
-message saying why. Import files from people you trust anyway.
+So imports are validated rather than merged. Anything that is not a `#rrggbb` colour or an
+in-range dial value is dropped. Custom CSS that could make a network request is
+refused, with a message saying why. Import files from people you trust anyway.
 
 ## Not a supported target
 

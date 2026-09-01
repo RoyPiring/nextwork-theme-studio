@@ -5,7 +5,7 @@
 1. Open `chrome://extensions`
 2. Turn on **Developer mode** (top right)
 3. Click **Load unpacked**
-4. Select this folder — the one containing `manifest.json`
+4. Select this folder: the one containing `manifest.json`
 5. Open nextwork.ai
 
 Pin it: click the puzzle-piece in the toolbar, then the pin next to
