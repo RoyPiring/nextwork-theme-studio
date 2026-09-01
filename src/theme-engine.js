@@ -550,6 +550,26 @@
       ramp[400] = ensureContrast(ramp[400], ramp[50], 4.5);
       ramp[300] = ensureContrast(ramp[300], ramp[50], 4.5);
     });
+
+    /* --- the callout panel ------------------------------------------------
+     * NextWork puts some sections on `leather`, a dark navy block, and that is
+     * fine on a dark theme where it reads as one more surface. On a light
+     * theme it was left alone, so a near-black slab sat in the middle of a
+     * pale page, and the heading inside it went dark with the rest of the page
+     * and disappeared into its own background.
+     *
+     * So the callout gets its own colour, tinted with the theme's accent so it
+     * belongs to the palette rather than fighting it, and its own text colour
+     * that is measured against it rather than against the page. */
+    const lightTheme = theme.mode === 'light';
+    p.callout = lightTheme
+      ? mix(p.surface, p.accent, 0.14)
+      : mix(p.surfaceAlt, p.accent, 0.11);
+    p.calloutBorder = lightTheme
+      ? mix(p.callout, p.accent, 0.30)
+      : mix(p.callout, p.textMuted, 0.28);
+    p.calloutText = ensureContrast(p.textPrimary, p.callout, 7);
+    p.calloutTextSecondary = ensureContrast(p.textSecondary, p.callout, 4.5);
     return p;
   }
 
@@ -662,7 +682,7 @@
      * matching text-* utilities get repointed below. */
     L.push('  --color-paper: ' + p.canvas + ';');
     L.push('  --color-warm-white: ' + p.surface + ';');
-    if (!light) L.push('  --color-leather: ' + p.surfaceAlt + ';');
+    L.push('  --color-leather: ' + p.callout + ';');
     L.push('  --color-glass-sand: ' + rgba(p.surface, 0.72) + ';');
     L.push('  --color-glass-surface: ' + rgba(p.surfaceAlt, 0.8) + ';');
     L.push('  --color-glass-border: ' + p.border + ';');
@@ -854,7 +874,32 @@
      * over their dark cards and would vanish. Patch backgrounds only. */
     L.push('.bg-white, .bg-warm-white { background-color: var(--nwt-surface); }');
     L.push('.bg-paper { background-color: var(--nwt-canvas); }');
-    if (!light) L.push('.bg-leather { background-color: var(--nwt-surface-alt); }');
+
+    /* --- the callout panel ------------------------------------------------
+     * Text inside a callout has to be measured against the callout, not
+     * against the page. Redeclaring the tokens on the panel itself is enough:
+     * they inherit, so every rule already written in terms of them follows,
+     * including the prose headings that were disappearing into the panel. */
+    const CALLOUT = '.bg-leather, [class*="bg-leather"]';
+    L.push(CALLOUT + ' { background-color: ' + p.callout + '; color: ' + p.calloutText + ';' +
+           ' border-color: ' + p.calloutBorder + '; }');
+    L.push(CALLOUT + ' {' +
+           ' --nwt-text: ' + p.calloutText + ';' +
+           ' --nwt-text-secondary: ' + p.calloutTextSecondary + ';' +
+           ' --nwt-surface: ' + mix(p.callout, p.textPrimary, 0.07) + ';' +
+           ' --nwt-surface-alt: ' + mix(p.callout, p.textPrimary, 0.12) + ';' +
+           ' --nwt-border: ' + p.calloutBorder + ';' +
+           ' --color-text-primary: ' + p.calloutText + ';' +
+           ' --color-text-secondary: ' + p.calloutTextSecondary + ';' +
+           ' --color-text-tertiary: ' + p.calloutTextSecondary + ';' +
+           ' --tw-prose-headings: ' + p.calloutText + ';' +
+           ' --tw-prose-body: ' + p.calloutTextSecondary + ';' +
+           ' --tw-prose-bold: ' + p.calloutText + ';' +
+           ' }');
+    L.push(CALLOUT + ' h1, ' + CALLOUT + ' h2, ' + CALLOUT + ' h3, ' + CALLOUT + ' h4,' +
+           CALLOUT + ' strong, ' + CALLOUT + ' b { color: ' + p.calloutText + '; }');
+    L.push(CALLOUT + ' p, ' + CALLOUT + ' li, ' + CALLOUT + ' span { color: ' + p.calloutTextSecondary + '; }');
+
     L.push('input, textarea, select { background-color: var(--nwt-surface-alt); color: var(--nwt-text); border-color: var(--nwt-border); }');
     L.push('::placeholder { color: var(--nwt-text-muted); }');
 

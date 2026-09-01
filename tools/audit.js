@@ -385,6 +385,12 @@ check('contrast floor holds for every theme', () => {
     ['success', 'warning', 'error', 'information'].forEach(fam => {
       checks.push([fam + ' badge', C(p.status[fam][400], p.status[fam][50]), 4.5]);
     });
+    /* The callout is a panel with its own background, so its text is measured
+     * against the panel and not against the page. Light themes used to leave
+     * NextWork's dark navy in place and then darken the heading with the rest
+     * of the page, which put dark text on a near-black slab. */
+    checks.push(['callout text', C(p.calloutText, p.callout), 7]);
+    checks.push(['callout secondary text', C(p.calloutTextSecondary, p.callout), 4.5]);
     (scene.areaColors || []).forEach(c => {
       checks.push(['scenery ' + c, C(p.textPrimary, c), 7]);
     });

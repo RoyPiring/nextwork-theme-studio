@@ -597,8 +597,19 @@
    * an argument with the paragraph in front of it. */
   const HAZE = 11.2, FAR = 9.6, NEAR = 8.4;
 
-  /* concrete - mist lying along the floor. The architecture is fixed, so this
-   * is the layer carrying the motion: buildings do not drift, haze does. */
+  /* ---- drifting layers -------------------------------------------------
+   * The wallpaper behind these does not move, so everything that reads as
+   * motion happens here. The engine only pans a band sideways, which rules
+   * out anything that has to fall: rain and snow drawn as streaks look wrong
+   * travelling horizontally. What works is material that is already being
+   * carried by air, so these are all things that drift.
+   *
+   * Positions come from fixed tables rather than Math.random, so the same
+   * stylesheet comes out of every build and the exported assets do not churn.
+   */
+
+  /* Soft blobs lying along the floor. The oldest of these and still the one
+   * that suits most scenes. */
   function floorMist(color, opacity) {
     var id = uid(), out = '', i;
     var pts = [[150, 116, 230], [440, 94, 160], [780, 124, 270], [1090, 102, 180],
@@ -614,15 +625,7 @@
       "</radialGradient></defs><g fill='url(#" + id + ")'>" + out + "</g>");
   }
 
-  /* concrete - dust hanging in the air of the corridor, lit from the doorway.
-   *
-   * This is what the painting cannot do: the picture is fixed, so the motes
-   * and the mist are the only things that move, and the two bands panning at
-   * different rates are what stop it reading as a static desktop background.
-   *
-   * Sizes and heights are picked off a fixed table rather than Math.random, so
-   * the same stylesheet comes out of every build and the generated assets in
-   * assets/ do not churn on every run. */
+  /* Dust hanging in the air, lit from wherever the scene is lit. */
   function motes(color, opacity) {
     var id = uid(), out = '', i;
     var pts = [[70, 214, 3.0], [186, 96, 1.8], [305, 268, 2.4], [412, 150, 1.4],
@@ -634,12 +637,118 @@
       out += "<circle cx='" + pts[i][0] + "' cy='" + pts[i][1] + "' r='" +
              (pts[i][2] * 4) + "' fill='url(#" + id + ")'/>";
     }
-    return svg(2200, 300,
-      "<defs><radialGradient id='" + id + "'>" +
+    return svg(2200, 300, softDot(id, color, opacity) + out);
+  }
+
+  /* Shared falloff for anything drawn as a soft point. */
+  function softDot(id, color, opacity) {
+    return "<defs><radialGradient id='" + id + "'>" +
       "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
-      "<stop offset='45%' stop-color='" + color + "' stop-opacity='" + (opacity * 0.4).toFixed(3) + "'/>" +
+      "<stop offset='45%' stop-color='" + color + "' stop-opacity='" +
+      (opacity * 0.4).toFixed(3) + "'/>" +
       "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
-      "</radialGradient></defs>" + out);
+      "</radialGradient></defs>";
+  }
+
+  /* Petals, tilted and drifting. Blossom themes. */
+  function petalDrift(color, opacity) {
+    var out = '', i;
+    var pts = [[90, 210, 13, -24], [260, 96, 9, 38], [430, 258, 15, -12], [590, 140, 8, 55],
+               [760, 58, 12, -40], [930, 216, 10, 20], [1100, 122, 14, -58], [1280, 264, 9, 33],
+               [1450, 88, 11, -18], [1620, 190, 13, 47], [1790, 138, 8, -35], [1960, 246, 12, 15],
+               [2110, 74, 10, -50]];
+    for (i = 0; i < pts.length; i++) {
+      out += "<ellipse cx='" + pts[i][0] + "' cy='" + pts[i][1] + "' rx='" + pts[i][2] +
+             "' ry='" + (pts[i][2] * 0.52) + "' transform='rotate(" + pts[i][3] + " " +
+             pts[i][0] + " " + pts[i][1] + ")'/>";
+    }
+    return svg(2200, 300, "<g fill='" + color + "' opacity='" + opacity + "'>" + out + "</g>");
+  }
+
+  /* Broader, heavier shapes than a petal. Forest themes. */
+  function leafDrift(color, opacity) {
+    var out = '', i;
+    var pts = [[120, 190, 19, -28], [340, 82, 14, 44], [560, 246, 22, -9], [790, 128, 16, 61],
+               [1010, 62, 18, -46], [1240, 208, 15, 24], [1470, 150, 21, -63], [1690, 258, 13, 37],
+               [1910, 96, 17, -21], [2100, 176, 19, 52]];
+    for (i = 0; i < pts.length; i++) {
+      out += "<path d='M" + pts[i][0] + " " + pts[i][1] + " q" + pts[i][2] + " -" +
+             (pts[i][2] * 0.8) + " " + (pts[i][2] * 2) + " 0 q-" + pts[i][2] + " " +
+             (pts[i][2] * 0.8) + " -" + (pts[i][2] * 2) + " 0 z' transform='rotate(" +
+             pts[i][3] + " " + pts[i][0] + " " + pts[i][1] + ")'/>";
+    }
+    return svg(2200, 300, "<g fill='" + color + "' opacity='" + opacity + "'>" + out + "</g>");
+  }
+
+  /* Small warm points, sparser and brighter than dust. Fire-lit rooms. */
+  function embers(color, opacity) {
+    var id = uid(), out = '', i;
+    var pts = [[140, 232, 2.6], [318, 158, 1.6], [497, 264, 3.2], [676, 104, 2.0],
+               [854, 196, 1.4], [1033, 248, 2.8], [1212, 132, 1.8], [1390, 212, 3.4],
+               [1569, 88, 2.2], [1748, 240, 1.5], [1926, 168, 2.9], [2105, 118, 2.1]];
+    for (i = 0; i < pts.length; i++) {
+      out += "<circle cx='" + pts[i][0] + "' cy='" + pts[i][1] + "' r='" +
+             (pts[i][2] * 5) + "' fill='url(#" + id + ")'/>";
+    }
+    return svg(2200, 300, softDot(id, color, opacity) + out);
+  }
+
+  /* Sparse points of very different sizes. Night skies. */
+  function starDrift(color, opacity) {
+    var id = uid(), out = '', i;
+    var pts = [[60, 74, 1.0], [178, 188, 2.2], [292, 42, 1.4], [404, 132, 0.9],
+               [530, 96, 2.6], [648, 218, 1.1], [770, 58, 1.7], [896, 164, 1.0],
+               [1014, 108, 2.4], [1138, 36, 1.3], [1262, 200, 1.8], [1384, 78, 1.0],
+               [1508, 148, 2.1], [1630, 52, 1.2], [1752, 192, 1.6], [1876, 116, 2.8],
+               [1998, 66, 1.1], [2120, 172, 1.9]];
+    for (i = 0; i < pts.length; i++) {
+      out += "<circle cx='" + pts[i][0] + "' cy='" + pts[i][1] + "' r='" +
+             (pts[i][2] * 3.4) + "' fill='url(#" + id + ")'/>";
+    }
+    return svg(2200, 260, softDot(id, color, opacity) + out);
+  }
+
+  /* Long shallow arcs, like light moving across water. */
+  function seaSpray(color, opacity) {
+    var out = '', i;
+    var pts = [[0, 210, 420], [360, 168, 300], [700, 232, 500], [1140, 190, 360],
+               [1520, 248, 460], [1930, 176, 320]];
+    for (i = 0; i < pts.length; i++) {
+      out += "<path d='M" + pts[i][0] + " " + pts[i][1] + " q" + (pts[i][2] / 2) +
+             " -16 " + pts[i][2] + " 0' fill='none' stroke='" + color +
+             "' stroke-width='" + (3 + (i % 3)) + "' stroke-linecap='round'/>";
+    }
+    return svg(2200, 300, "<g opacity='" + opacity + "'>" + out + "</g>");
+  }
+
+  /* Small squares, drifting. The retro themes only. */
+  function pixelDrift(color, opacity) {
+    var out = '', i;
+    var pts = [[110, 208, 14], [300, 120, 10], [498, 252, 16], [690, 74, 12],
+               [880, 186, 9], [1075, 238, 15], [1268, 100, 11], [1460, 214, 13],
+               [1652, 142, 10], [1848, 262, 14], [2040, 88, 12]];
+    for (i = 0; i < pts.length; i++) {
+      out += "<rect x='" + pts[i][0] + "' y='" + pts[i][1] + "' width='" + pts[i][2] +
+             "' height='" + pts[i][2] + "' rx='2' transform='rotate(" + ((i * 37) % 45) +
+             " " + pts[i][0] + " " + pts[i][1] + ")'/>";
+    }
+    return svg(2200, 300, "<g fill='" + color + "' opacity='" + opacity + "'>" + out + "</g>");
+  }
+
+  /* Fine specks, denser and smaller than dust. Cold scenes. */
+  function snowDrift(color, opacity) {
+    var id = uid(), out = '', i;
+    var pts = [[48, 128, 1.5], [142, 232, 1.1], [239, 66, 1.8], [331, 176, 1.2],
+               [428, 100, 1.6], [524, 254, 1.0], [618, 142, 1.9], [713, 42, 1.3],
+               [808, 208, 1.5], [903, 118, 1.1], [998, 262, 1.7], [1094, 84, 1.2],
+               [1188, 190, 1.4], [1284, 52, 1.8], [1378, 236, 1.0], [1472, 154, 1.6],
+               [1568, 96, 1.3], [1662, 220, 1.5], [1758, 62, 1.1], [1852, 178, 1.9],
+               [1948, 124, 1.2], [2044, 246, 1.4], [2138, 74, 1.7]];
+    for (i = 0; i < pts.length; i++) {
+      out += "<circle cx='" + pts[i][0] + "' cy='" + pts[i][1] + "' r='" +
+             (pts[i][2] * 3) + "' fill='url(#" + id + ")'/>";
+    }
+    return svg(2200, 300, softDot(id, color, opacity) + out);
   }
 
   function planes(u, p, hue, target, distance) {
@@ -662,11 +771,21 @@
    * The drift speeds are staggered on purpose. Eighteen bands sharing one
    * period made the whole set feel like a single animation reused.
    */
+  /* Each theme picks the drift that suits its picture rather than all of them
+   * sharing one. Blossom themes get petals, forests get leaves, the fire-lit
+   * rooms get embers, night skies get stars, the retro one gets falling
+   * blocks, and the cold scenes get fine snow. Speeds are staggered so no two
+   * themes animate in step.
+   *
+   * `motifs` used to name the silhouette a generated scene drew. Each theme now
+   * has its own picture, so it names the theme, and the exclusivity check
+   * amounts to making sure no two point at the same wallpaper.
+   */
   const SCENES = {
 
     concrete: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#9fb4c4', 7.3);
       return {
         motifs: ['concrete'],
         hero: { wallpaper: 'concrete', size: '100% auto', position: 'center bottom' },
@@ -675,16 +794,16 @@
           tile: 1900, height: '26vh', seconds: 300, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: motes(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 141
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     graphite: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#a8b0b4', 7.3);
       return {
         motifs: ['graphite'],
         hero: { wallpaper: 'graphite', size: '100% auto', position: 'center bottom' },
@@ -693,16 +812,16 @@
           tile: 1900, height: '26vh', seconds: 268, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: motes(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 125
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     slate: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#b6c6da', 7.3);
       return {
         motifs: ['slate'],
         hero: { wallpaper: 'slate', size: '100% auto', position: 'center bottom' },
@@ -711,16 +830,16 @@
           tile: 1900, height: '26vh', seconds: 322, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: snowDrift(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 151
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     carbon: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#cfd8e6', 7.3);
       return {
         motifs: ['carbon'],
         hero: { wallpaper: 'carbon', size: '100% auto', position: 'center bottom' },
@@ -729,16 +848,16 @@
           tile: 1900, height: '26vh', seconds: 284, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: starDrift(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 133
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     fog: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#c2ccd0', 7.3);
       return {
         motifs: ['fog'],
         hero: { wallpaper: 'fog', size: '100% auto', position: 'center bottom' },
@@ -747,16 +866,16 @@
           tile: 1900, height: '26vh', seconds: 340, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: motes(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 159
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     espresso: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#d59a5c', 7.3);
       return {
         motifs: ['espresso'],
         hero: { wallpaper: 'espresso', size: '100% auto', position: 'center bottom' },
@@ -765,16 +884,16 @@
           tile: 1900, height: '26vh', seconds: 252, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: embers(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 118
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     tokyoNight: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#b48ad6', 7.3);
       return {
         motifs: ['tokyoNight'],
         hero: { wallpaper: 'tokyoNight', size: '100% auto', position: 'center bottom' },
@@ -783,16 +902,16 @@
           tile: 1900, height: '26vh', seconds: 310, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: motes(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 145
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     wabiSabi: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#b8a97e', 7.3);
       return {
         motifs: ['wabiSabi'],
         hero: { wallpaper: 'wabiSabi', size: '100% auto', position: 'center bottom' },
@@ -801,16 +920,16 @@
           tile: 1900, height: '26vh', seconds: 296, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: leafDrift(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 139
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     darkJapandi: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#caa189', 7.3);
       return {
         motifs: ['darkJapandi'],
         hero: { wallpaper: 'darkJapandi', size: '100% auto', position: 'center bottom' },
@@ -819,16 +938,16 @@
           tile: 1900, height: '26vh', seconds: 330, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: embers(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 155
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     zenLobby: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#d8ae7c', 7.3);
       return {
         motifs: ['zenLobby'],
         hero: { wallpaper: 'zenLobby', size: '100% auto', position: 'center bottom' },
@@ -837,16 +956,16 @@
           tile: 1900, height: '26vh', seconds: 264, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: embers(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 124
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     concreteBlossom: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#d8b8bd', 7.3);
       return {
         motifs: ['concreteBlossom'],
         hero: { wallpaper: 'concreteBlossom', size: '100% auto', position: 'center bottom' },
@@ -855,16 +974,16 @@
           tile: 1900, height: '26vh', seconds: 316, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: petalDrift(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 148
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     galactica: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#cddaeb', 7.3);
       return {
         motifs: ['galactica'],
         hero: { wallpaper: 'galactica', size: '100% auto', position: 'center bottom' },
@@ -873,16 +992,16 @@
           tile: 1900, height: '26vh', seconds: 288, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: starDrift(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 135
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     tetris: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#9fd4e4', 7.3);
       return {
         motifs: ['tetris'],
         hero: { wallpaper: 'tetris', size: '100% auto', position: 'center bottom' },
@@ -891,34 +1010,34 @@
           tile: 1900, height: '26vh', seconds: 344, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: pixelDrift(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 161
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     hawaiiOcean: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#7fb6c8', 7.3);
       return {
         motifs: ['hawaiiOcean'],
         hero: { wallpaper: 'hawaiiOcean', size: '100% auto', position: 'center bottom' },
         far: {
-          svg: floorMist(haze, 0.8),
+          svg: seaSpray(haze, 0.55),
           tile: 1900, height: '26vh', seconds: 272, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: motes(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 127
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     palmForest: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#7fa383', 7.3);
       return {
         motifs: ['palmForest'],
         hero: { wallpaper: 'palmForest', size: '100% auto', position: 'center bottom' },
@@ -927,16 +1046,16 @@
           tile: 1900, height: '26vh', seconds: 304, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: leafDrift(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 142
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     hawaiiMorning: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#d9a684', 7.3);
       return {
         motifs: ['hawaiiMorning'],
         hero: { wallpaper: 'hawaiiMorning', size: '100% auto', position: 'center bottom' },
@@ -945,16 +1064,16 @@
           tile: 1900, height: '26vh', seconds: 336, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: motes(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 157
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     mountFuji: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#a8bcd8', 7.3);
       return {
         motifs: ['mountFuji'],
         hero: { wallpaper: 'mountFuji', size: '100% auto', position: 'center bottom' },
@@ -963,16 +1082,16 @@
           tile: 1900, height: '26vh', seconds: 258, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: snowDrift(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 121
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     },
 
     cherryBlossom: function (p, u) {
       const haze = u.toneOf('#2b2f33', 8.2);
-      const dust = u.toneOf('#9fb4c4', 7.3);
+      const drift = u.toneOf('#e0a8b8', 7.3);
       return {
         motifs: ['cherryBlossom'],
         hero: { wallpaper: 'cherryBlossom', size: '100% auto', position: 'center bottom' },
@@ -981,10 +1100,10 @@
           tile: 1900, height: '26vh', seconds: 324, blur: 2
         },
         near: {
-          svg: motes(dust, 0.85),
+          svg: petalDrift(drift, 0.85),
           tile: 2200, height: '26vh', seconds: 152
         },
-        areaColors: [haze, dust]
+        areaColors: [haze, drift]
       };
     }
 

@@ -8,6 +8,34 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.1.0] - 2026-09-01
+
+### Fixed
+- The callout panel. NextWork puts some sections on a dark navy block, which is
+  fine on a dark theme where it reads as one more surface. Light themes left it
+  alone, so a near-black slab sat in the middle of a pale page, and the heading
+  inside it went dark along with the rest of the page and disappeared into its
+  own background.
+
+  Every theme now has its own callout colour, tinted with that theme accent so
+  it belongs to the palette instead of fighting it, and its own text colour
+  measured against the panel rather than against the page. Text clears 7:1 on
+  all eighteen, and the audit checks it.
+
+### Changed
+- Each theme picks the drift that suits its picture instead of all eighteen
+  sharing mist and dust. Blossom themes get petals, forests get leaves, the
+  fire-lit rooms get embers, night skies get stars, the retro theme gets
+  falling blocks, and the cold scenes get fine snow. Seven kinds in all, each
+  tinted from its own palette.
+
+  Nothing here falls. The engine only pans a band sideways, so rain and snow
+  drawn as streaks look wrong; everything drifting is material air would
+  actually carry.
+- Pinned actions moved to checkout 7.0.1 and setup-node 7.0.0, applied directly
+  rather than through the two Dependabot pull requests, whose merge base no
+  longer existed. Both are closed and their branches deleted.
+
 ## [2.0.0] - 2026-09-01
 
 Renamed to Pineapple NextWork Theme Studio Mod.
@@ -304,7 +332,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.1.0
 [2.0.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.0.0
 [1.5.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.5.0
 [1.4.4]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.4
