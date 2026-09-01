@@ -374,6 +374,27 @@
     });
   }
 
+  /* Give every rescued element its colour back.
+   *
+   * The pass writes inline `!important` styles and stamps the element so it is
+   * skipped next time. Without an undo, two things went wrong and both were
+   * visible: turning the theme off left panels wearing the theme surface, and
+   * switching theme left them wearing the *previous* theme, because the stamp
+   * made them skip. */
+  const RESCUED = ['background-color', 'color', 'border-color'];
+
+  function unrescue() {
+    let nodes;
+    try { nodes = document.querySelectorAll('[data-nwt-lit]'); }
+    catch (e) { return; }
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      RESCUED.forEach(function (prop) { el.style.removeProperty(prop); });
+      delete el.dataset.nwtLit;
+      if (el.removeAttribute) el.removeAttribute('data-nwt-lit');
+    }
+  }
+
   function scheduleRescue(palette) {
     if (rescueQueued) return;
     rescueQueued = true;
@@ -391,6 +412,7 @@
     if (!s.enabled) {
       remove();
       removeHud();
+      unrescue();                   /* inline styles outlive the stylesheet */
       shadowSheetFor('');           /* neutralise the adopted copies in place */
       writeCache(false, '');
       return;
@@ -401,13 +423,19 @@
     renderHud(s);
 
     const theme = NWT.getTheme(s);
-    if (theme.mode !== 'light' && s.options && s.options.rescuePanels !== false) {
-      const p = NWT.buildPalette(theme);
-      lastPalette = { surface: p.surfaceAlt, text: p.textPrimary, border: p.border };
-      scheduleRescue(lastPalette);
-    } else {
-      lastPalette = null;
-    }
+    const wanted = (theme.mode !== 'light' && s.options && s.options.rescuePanels !== false)
+      ? (function () {
+          const p = NWT.buildPalette(theme);
+          return { surface: p.surfaceAlt, text: p.textPrimary, border: p.border };
+        })()
+      : null;
+
+    /* If the colours changed, everything already painted is wearing the old
+     * ones and has to be released before it can be painted again. */
+    const changed = JSON.stringify(wanted) !== JSON.stringify(lastPalette);
+    if (changed) unrescue();
+    lastPalette = wanted;
+    if (wanted) scheduleRescue(wanted);
   }
 
   chrome.storage.local.get(null, function (settings) {

@@ -32,7 +32,7 @@ a full restyle.
 
 ## Next, in order
 
-### 2. Panels keep a colour they were given once and never give it back
+### 2. Panels keep a colour they were given once and never give it back  [done]
 
 **Symptom.** Boxes change colour over time. Components look wrong after a while
 or after switching themes.
