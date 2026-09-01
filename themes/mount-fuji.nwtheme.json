@@ -1,0 +1,28 @@
+{
+  "kind": "nextwork-theme",
+  "version": 1,
+  "theme": {
+    "name": "Mount Fuji",
+    "note": "Cold dawn air, snow, and a faint pink on the ridge.",
+    "mode": "light",
+    "colors": {
+      "canvas": "#f2f5fa",
+      "surface": "#ffffff",
+      "surfaceAlt": "#e9eef7",
+      "border": "#d2dbea",
+      "textPrimary": "#1a2640",
+      "textSecondary": "#45526d",
+      "textMuted": "#727f99",
+      "accent": "#3a5a9f",
+      "accentText": "#ffffff"
+    },
+    "tuning": {
+      "hue": 0,
+      "saturation": 100,
+      "contrast": 0,
+      "brightness": 0
+    },
+    "backdrop": "radial-gradient(1100px 600px at 50% 0%, #dde7f6 0%, rgba(221,231,246,0) 62%), radial-gradient(820px 480px at 18% 96%, #f3e4ea 0%, rgba(243,228,234,0) 60%), radial-gradient(900px 560px at 88% 92%, #e3eaf5 0%, rgba(227,234,245,0) 62%), linear-gradient(180deg, #eef3fb 0%, #f7f9fc 55%, #f4f1f4 100%)",
+    "customCSS": ""
+  }
+}

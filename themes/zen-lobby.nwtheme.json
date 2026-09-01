@@ -1,0 +1,26 @@
+{
+  "kind": "nextwork-theme",
+  "version": 1,
+  "theme": {
+    "name": "Zen Lobby",
+    "note": "Dark stone lit by hidden warm light. The most dramatic of the warm set.",
+    "colors": {
+      "canvas": "#17120f",
+      "surface": "#1e1814",
+      "surfaceAlt": "#27201a",
+      "border": "#41352c",
+      "textPrimary": "#ece0d2",
+      "textSecondary": "#b5a493",
+      "textMuted": "#8a7a6a",
+      "accent": "#e0a86a",
+      "accentText": "#1c1410"
+    },
+    "tuning": {
+      "hue": 0,
+      "saturation": 100,
+      "contrast": 0,
+      "brightness": 0
+    },
+    "customCSS": ""
+  }
+}

@@ -1,0 +1,185 @@
+/* Options page layout. Colors all come from ui.css variables, which the page
+   rewrites live from the theme you are editing. */
+
+.app { display: grid; grid-template-columns: 268px 1fr; min-height: 100vh; }
+
+.sidebar {
+  border-right: 1px solid var(--ui-border);
+  padding: 18px 16px;
+  position: sticky; top: 0; align-self: start;
+  height: 100vh; overflow-y: auto;
+  background: var(--ui-surface);
+}
+.section-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--ui-text-muted); margin: 16px 0 8px;
+}
+.themes.one-col { grid-template-columns: 1fr; }
+.sidebar-actions { display: flex; gap: 8px; margin-top: 12px; }
+.sidebar-actions button { flex: 1; font-size: 12px; padding: 6px 8px; }
+
+.main { padding: 22px 26px 60px; max-width: 1500px; }
+.main-head { margin-bottom: 18px; }
+.title-input {
+  font-size: 20px; font-weight: 600; letter-spacing: -0.02em;
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+  padding: 4px 8px; width: auto; min-width: 220px;
+}
+.title-input:hover { border-color: var(--ui-border); }
+.badge {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em;
+  border: 1px solid var(--ui-border); border-radius: 999px;
+  padding: 3px 9px; color: var(--ui-text-muted);
+}
+
+.cols { display: grid; grid-template-columns: minmax(340px, 1fr) minmax(360px, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .cols { grid-template-columns: 1fr; } .app { grid-template-columns: 1fr; } .sidebar { height: auto; position: static; } }
+
+.color-label { line-height: 1.25; }
+.color-label b { font-weight: 600; font-size: 12px; display: block; }
+.color-label span { font-size: 11px; color: var(--ui-text-muted); }
+
+/* ---- ramp ---- */
+.ramp { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
+.ramp div { text-align: center; }
+.ramp i { display: block; height: 42px; border-radius: 4px; border: 1px solid rgba(128,128,128,0.18); }
+.ramp span { font-size: 9px; color: var(--ui-text-muted); display: block; margin-top: 4px; }
+
+/* ---- contrast checks ---- */
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.check-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; font-size: 12px; }
+.check-row .ratio { font-variant-numeric: tabular-nums; color: var(--ui-text-dim); }
+.verdict { font-size: 10px; border-radius: 999px; padding: 2px 8px; letter-spacing: 0.04em; }
+.verdict.pass { background: rgba(80, 190, 130, 0.16); color: #78d8a6; }
+.verdict.mid { background: rgba(230, 190, 90, 0.16); color: #e6c46a; }
+.verdict.fail { background: rgba(230, 110, 95, 0.16); color: #f0a79f; }
+
+/* ---- mock preview ----
+   Every colour here is a --pv-* variable written by dressUI(), so this panel
+   is a true rehearsal of the generated stylesheet rather than a mood board. */
+.preview {
+  position: relative;
+  border: 1px solid var(--pv-border); border-radius: 10px; overflow: hidden;
+  background-color: var(--pv-canvas);
+  background-image: var(--pv-scene-hero, none), var(--pv-backdrop, none);
+  background-size: var(--pv-scene-hero-size, auto), cover;
+  background-position: var(--pv-scene-hero-pos, center), center;
+  background-repeat: no-repeat, no-repeat;
+  color: var(--pv-text);
+  font-size: 12px; line-height: 1.5;
+}
+/* the near parallax band, static here - the preview is for judging colour */
+.preview::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: var(--pv-scene-near, none);
+  background-repeat: repeat-x; background-position: left bottom;
+  background-size: auto 42%;
+}
+.preview > * { position: relative; z-index: 1; }
+/* On a backdrop theme the page ground is transparent, exactly as on the site,
+   so the gradient reads behind the copy while cards stay opaque. */
+.preview .pv-body { background: transparent; }
+
+.pv-nav {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 12px; background: var(--pv-surface-alt);
+  border-bottom: 1px solid var(--pv-border);
+}
+.pv-logo { font-weight: 700; letter-spacing: -0.02em; color: var(--pv-text); }
+.pv-link { color: var(--pv-text-secondary); font-size: 11px; }
+.pv-link.pv-on { color: var(--pv-text); box-shadow: 0 6px 0 -5px var(--pv-accent); }
+.pv-spacer { flex: 1; }
+.pv-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 10px; font-weight: 700;
+  background: var(--pv-surface); border: 1px solid var(--pv-border); color: var(--pv-text-secondary);
+}
+
+.pv-body { padding: 14px 12px 16px; }
+.pv-crumb { font-size: 10px; color: var(--pv-text-muted); margin-bottom: 6px; }
+.pv-h { font-size: 16px; margin: 0 0 3px; color: var(--pv-text); }
+.pv-p { color: var(--pv-text-secondary); margin-bottom: 12px; }
+
+/* buttons: solid accent, outlined, and bare */
+.pv-btnrow { display: flex; gap: 8px; margin-bottom: 14px; }
+.pv-btn {
+  background: var(--pv-accent); color: var(--pv-accent-text);
+  padding: 5px 11px; border-radius: 7px; font-weight: 600; font-size: 11px;
+}
+.pv-btn2 {
+  background: var(--pv-surface-alt); color: var(--pv-text);
+  border: 1px solid var(--pv-border);
+  padding: 4px 10px; border-radius: 7px; font-size: 11px;
+}
+.pv-btn3 { color: var(--pv-text-secondary); padding: 5px 6px; font-size: 11px; }
+
+.pv-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.pv-card { background: var(--pv-surface); border: 1px solid var(--pv-border); border-radius: 9px; padding: 10px; }
+.pv-kicker { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--pv-text-muted); }
+.pv-card-title { font-weight: 600; margin: 3px 0 8px; color: var(--pv-text); }
+.pv-bar { height: 4px; border-radius: 999px; background: var(--pv-surface-alt); overflow: hidden; }
+.pv-bar i { display: block; height: 100%; background: var(--pv-accent); }
+.pv-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 10px; color: var(--pv-text-muted); }
+.pv-pill {
+  font-size: 10px; padding: 2px 8px; border-radius: 999px;
+  background: var(--pv-surface-alt); color: var(--pv-text-secondary); border: 1px solid var(--pv-border);
+}
+
+/* list rows — the densest thing on the site, and the first to go muddy */
+.pv-rows { border: 1px solid var(--pv-border); border-radius: 9px; overflow: hidden; margin-bottom: 12px; }
+.pv-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; background: var(--pv-surface);
+  border-bottom: 1px solid var(--pv-border);
+}
+.pv-row:last-child { border-bottom: none; }
+.pv-row:nth-child(even) { background: var(--pv-canvas); }
+.pv-num { color: var(--pv-text-muted); font-size: 10px; width: 12px; }
+.pv-tag { font-size: 9px; padding: 2px 7px; border-radius: 999px; border: 1px solid; letter-spacing: 0.03em; }
+.pv-success { background: var(--pv-success-bg); border-color: var(--pv-success-border); color: var(--pv-success-fg); }
+.pv-warning { background: var(--pv-warning-bg); border-color: var(--pv-warning-border); color: var(--pv-warning-fg); }
+.pv-error   { background: var(--pv-error-bg);   border-color: var(--pv-error-border);   color: var(--pv-error-fg); }
+.pv-info    { background: var(--pv-info-bg);    border-color: var(--pv-info-border);    color: var(--pv-info-fg); }
+
+.pv-alert {
+  background: var(--pv-warning-bg); border: 1px solid var(--pv-warning-border);
+  color: var(--pv-warning-fg); border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; font-size: 11px;
+}
+.pv-alert b { color: var(--pv-warning-fg); }
+
+.pv-field {
+  background: var(--pv-surface-alt); border: 1px solid var(--pv-border);
+  border-radius: 7px; padding: 6px 10px; color: var(--pv-text-muted); margin-bottom: 8px; font-size: 11px;
+}
+.pv-field.pv-focused {
+  color: var(--pv-text);
+  border-color: var(--pv-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pv-accent) 28%, transparent);
+}
+
+.pv-muted { color: var(--pv-text-muted); font-size: 10px; margin-top: 10px; }
+.pv-a { color: var(--pv-accent); }
+.pv-code {
+  font-family: ui-monospace, Consolas, monospace; font-size: 10px;
+  background: var(--pv-canvas); border: 1px solid var(--pv-border);
+  border-radius: 4px; padding: 1px 5px; color: var(--pv-text-secondary);
+}
+
+/* ---- css dump ---- */
+pre {
+  margin: 8px 0 0; padding: 10px; max-height: 320px; overflow: auto;
+  background: var(--ui-canvas); border: 1px solid var(--ui-border); border-radius: 8px;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 11px; line-height: 1.5;
+  color: var(--ui-text-dim); white-space: pre;
+}
+summary { cursor: pointer; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: var(--ui-text-dim); }
+
+/* ---- toast ---- */
+.toast {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: var(--ui-surface-alt); color: var(--ui-text);
+  border: 1px solid var(--ui-border); border-radius: 9px;
+  padding: 9px 16px; font-size: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+  z-index: 10;
+}

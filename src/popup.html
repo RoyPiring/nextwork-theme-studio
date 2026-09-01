@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NextWork Theme Studio</title>
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    body { width: 320px; padding: 14px; }
+    header { margin-bottom: 12px; }
+    .hint { margin-top: 10px; }
+    footer { display: flex; gap: 8px; margin-top: 12px; }
+    footer button { flex: 1; }
+    body.off .dimmable { opacity: 0.4; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>NextWork Theme</h1>
+    <p class="tiny muted" id="status">Loading&#8230;</p>
+  </header>
+
+  <div class="switch-row">
+    <label class="switch-item" title="Toggle the theme (Alt+Shift+D)">
+      <span class="switch-label">Theme</span>
+      <span class="switch"><input type="checkbox" id="enabled"><span></span></span>
+    </label>
+    <label class="switch-item" title="Show the scenery behind the page">
+      <span class="switch-label">Wallpaper</span>
+      <span class="switch"><input type="checkbox" id="sceneBackdrop"><span></span></span>
+    </label>
+  </div>
+
+  <div class="stack dimmable">
+    <div class="themes" id="themes"></div>
+
+    <div class="card stack">
+      <div class="field">
+        <div class="row between"><label for="hue">Tint</label><output id="hue-out"></output></div>
+        <input type="range" id="hue" min="-180" max="180" step="1">
+      </div>
+      <div class="field">
+        <div class="row between"><label for="saturation">Saturation</label><output id="saturation-out"></output></div>
+        <input type="range" id="saturation" min="0" max="200" step="5">
+      </div>
+      <div class="field">
+        <div class="row between"><label for="contrast">Contrast</label><output id="contrast-out"></output></div>
+        <input type="range" id="contrast" min="-20" max="20" step="1">
+      </div>
+      <div class="field">
+        <div class="row between"><label for="brightness">Brightness</label><output id="brightness-out"></output></div>
+        <input type="range" id="brightness" min="-12" max="12" step="1">
+      </div>
+      <div class="row between tiny">
+        <span class="muted" id="dial-note"></span>
+        <button class="ghost tiny" id="reset-dials" style="padding:3px 8px;font-size:11px">Reset dials</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <button class="primary" id="open-editor">Open editor</button>
+    <button id="reload-tab" title="Reload the NextWork tab">Reload page</button>
+  </footer>
+
+  <script src="scenes.js"></script>
+  <script src="theme-engine.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

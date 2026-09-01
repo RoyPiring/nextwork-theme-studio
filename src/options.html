@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NextWork Theme Studio</title>
+  <link rel="stylesheet" href="ui.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ---------------- sidebar ---------------- -->
+    <aside class="sidebar">
+      <div class="row between" style="margin-bottom:14px">
+        <div>
+          <h1>Theme Studio</h1>
+          <p class="tiny muted">nextwork.ai</p>
+        </div>
+        <label class="switch" title="Toggle theme (Alt+Shift+D)">
+          <input type="checkbox" id="enabled"><span></span>
+        </label>
+      </div>
+
+      <h2 class="section-label">Presets</h2>
+      <div class="themes one-col" id="presets"></div>
+
+      <h2 class="section-label">Your themes</h2>
+      <div class="themes one-col" id="customs"></div>
+      <p class="tiny muted" id="no-customs">None yet — edit any color and a copy is made for you.</p>
+
+      <div class="sidebar-actions">
+        <button id="new-theme">New from current</button>
+        <button id="delete-theme" class="danger">Delete</button>
+      </div>
+
+      <hr>
+      <div class="sidebar-actions">
+        <button id="export-theme">Export theme</button>
+        <button id="import-theme">Import</button>
+      </div>
+      <button id="reset-all" class="ghost tiny" style="width:100%;margin-top:8px">Reset everything</button>
+      <input type="file" id="file-input" accept="application/json,.json" hidden>
+    </aside>
+
+    <!-- ---------------- editor ---------------- -->
+    <main class="main">
+      <div class="main-head row between">
+        <div class="row" style="gap:12px">
+          <input type="text" id="theme-name" class="title-input" spellcheck="false">
+          <span class="badge" id="theme-kind"></span>
+        </div>
+        <span class="tiny muted" id="save-note">Saved automatically</span>
+      </div>
+
+      <div class="cols">
+        <!-- left: controls -->
+        <div class="stack">
+
+          <section class="card stack">
+            <h2>Global dials</h2>
+            <p class="tiny muted">Re-tint every neutral at once. The fastest way to get from brown to gray.</p>
+            <div class="field">
+              <div class="row between"><label for="hue">Tint — warmer / cooler</label><output id="hue-out"></output></div>
+              <input type="range" id="hue" min="-180" max="180" step="1">
+            </div>
+            <div class="field">
+              <div class="row between"><label for="saturation">Saturation</label><output id="saturation-out"></output></div>
+              <input type="range" id="saturation" min="0" max="200" step="5">
+            </div>
+            <div class="field">
+              <div class="row between"><label for="contrast">Contrast</label><output id="contrast-out"></output></div>
+              <input type="range" id="contrast" min="-20" max="20" step="1">
+            </div>
+            <div class="field">
+              <div class="row between"><label for="brightness">Brightness</label><output id="brightness-out"></output></div>
+              <input type="range" id="brightness" min="-12" max="12" step="1">
+            </div>
+          </section>
+
+          <section class="card stack">
+            <h2>Palette</h2>
+            <p class="tiny muted">Nine colors. Everything NextWork renders is derived from these.</p>
+            <div class="stack" id="colors" style="gap:9px"></div>
+          </section>
+
+          <section class="card stack">
+            <h2>Extras</h2>
+            <div class="field">
+              <div class="row between"><label for="dimImages">Dim images</label><output id="dimImages-out"></output></div>
+              <input type="range" id="dimImages" min="0" max="40" step="1">
+              <p class="tiny muted">Takes the glare off bright screenshots. Hover restores full brightness.</p>
+            </div>
+            <label class="check"><input type="checkbox" id="softenShadows"> Soften drop shadows</label>
+            <label class="check"><input type="checkbox" id="themeScrollbars"> Theme the scrollbars</label>
+            <label class="check"><input type="checkbox" id="accentLinks"> Tint plain links with the accent</label>
+            <label class="check"><input type="checkbox" id="invertLogos"> Flip dark logos so they stay visible</label>
+            <label class="check"><input type="checkbox" id="neutralizeGlows"> Neutralize the warm hero glow</label>
+            <label class="check"><input type="checkbox" id="patchStubborn"> Patch hardcoded light patches</label>
+            <label class="check"><input type="checkbox" id="sceneBackdrop"> Show scenery (Fuji, forest, skyline, blossoms)</label>
+            <label class="check"><input type="checkbox" id="animateBackdrop"> Drift the backdrop (themes that have one)</label>
+          </section>
+
+          <section class="card stack">
+            <h2>Custom CSS</h2>
+            <p class="tiny muted">Appended after the generated rules. Use <code>var(--nwt-surface)</code> and friends.</p>
+            <textarea id="customCSS" spellcheck="false" placeholder="/* e.g. */&#10;.some-stubborn-widget { background: var(--nwt-surface) !important; }"></textarea>
+          </section>
+        </div>
+
+        <!-- right: preview -->
+        <div class="stack">
+          <section class="card stack">
+            <h2>Generated ramp</h2>
+            <p class="tiny muted">NextWork's neutral scale, rebuilt from your palette. 25 is a surface, 950 is text.</p>
+            <div class="ramp" id="ramp"></div>
+          </section>
+
+          <section class="card stack">
+            <h2>Contrast check</h2>
+            <div class="checks" id="checks"></div>
+          </section>
+
+          <section class="card stack">
+            <h2>Preview</h2>
+            <p class="tiny muted">The component types NextWork actually uses, drawn with this theme.</p>
+            <div class="preview" id="preview">
+              <div class="pv-nav">
+                <span class="pv-logo">nextwork</span>
+                <span class="pv-link pv-on">Projects</span>
+                <span class="pv-link">Roadmaps</span>
+                <span class="pv-spacer"></span>
+                <span class="pv-avatar">R</span>
+                <span class="pv-btn">Start building</span>
+              </div>
+
+              <div class="pv-body">
+                <div class="pv-crumb">Projects / AWS / S3</div>
+                <h3 class="pv-h">Deploy a static website</h3>
+                <p class="pv-p">Build it, break it, then write about what happened.</p>
+
+                <div class="pv-btnrow">
+                  <span class="pv-btn">Primary</span>
+                  <span class="pv-btn2">Secondary</span>
+                  <span class="pv-btn3">Ghost</span>
+                </div>
+
+                <div class="pv-cards">
+                  <div class="pv-card">
+                    <div class="pv-kicker">Step 1</div>
+                    <div class="pv-card-title">Create an S3 bucket</div>
+                    <div class="pv-bar"><i style="width:72%"></i></div>
+                    <div class="pv-meta"><span class="pv-pill">12 min</span><span>72%</span></div>
+                  </div>
+                  <div class="pv-card">
+                    <div class="pv-kicker">Step 2</div>
+                    <div class="pv-card-title">Upload your files</div>
+                    <div class="pv-bar"><i style="width:24%"></i></div>
+                    <div class="pv-meta"><span class="pv-pill">8 min</span><span>24%</span></div>
+                  </div>
+                </div>
+
+                <div class="pv-rows">
+                  <div class="pv-row"><span class="pv-num">1</span><span class="grow">Ship a landing page</span><span class="pv-tag pv-success">Complete</span></div>
+                  <div class="pv-row"><span class="pv-num">2</span><span class="grow">Build a blog writing crew</span><span class="pv-tag pv-warning">In review</span></div>
+                  <div class="pv-row"><span class="pv-num">3</span><span class="grow">Automate your calendar</span><span class="pv-tag pv-error">Failed</span></div>
+                  <div class="pv-row"><span class="pv-num">4</span><span class="grow">Host a static site</span><span class="pv-tag pv-info">Draft</span></div>
+                </div>
+
+                <div class="pv-alert"><b>Heads up</b> — your bucket policy is still public.</div>
+
+                <div class="pv-field">Search projects&#8230;</div>
+                <div class="pv-field pv-focused">my-portfolio-bucket</div>
+
+                <p class="pv-muted">Updated 3 days ago &middot; <span class="pv-a">changelog</span> &middot; <code class="pv-code">aws s3 sync</code></p>
+              </div>
+            </div>
+          </section>
+
+          <section class="card stack">
+            <h2>Generated CSS</h2>
+            <div class="row between">
+              <p class="tiny muted"><span id="css-size"></span> injected into the page</p>
+              <button id="copy-css" class="tiny" style="padding:4px 9px;font-size:11px">Copy</button>
+            </div>
+            <details>
+              <summary class="tiny dim">Show stylesheet</summary>
+              <pre id="css-out"></pre>
+            </details>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="scenes.js"></script>
+  <script src="theme-engine.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

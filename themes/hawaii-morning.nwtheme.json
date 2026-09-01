@@ -1,0 +1,28 @@
+{
+  "kind": "nextwork-theme",
+  "version": 1,
+  "theme": {
+    "name": "Hawaii Morning",
+    "note": "Sunrise over the water - peach, gold and a band of aqua.",
+    "mode": "light",
+    "colors": {
+      "canvas": "#fdf4ec",
+      "surface": "#ffffff",
+      "surfaceAlt": "#fbe9dd",
+      "border": "#eed9c7",
+      "textPrimary": "#3a2317",
+      "textSecondary": "#68493a",
+      "textMuted": "#8f6f5c",
+      "accent": "#c05622",
+      "accentText": "#ffffff"
+    },
+    "tuning": {
+      "hue": 0,
+      "saturation": 100,
+      "contrast": 0,
+      "brightness": 0
+    },
+    "backdrop": "radial-gradient(1000px 560px at 20% 2%, #ffe7d2 0%, rgba(255,231,210,0) 62%), radial-gradient(900px 520px at 84% 10%, #fdf0d5 0%, rgba(253,240,213,0) 62%), radial-gradient(1100px 620px at 70% 104%, #d9eef0 0%, rgba(217,238,240,0) 64%), linear-gradient(180deg, #fdf3ea 0%, #fdf7f0 58%, #f1f7f6 100%)",
+    "customCSS": ""
+  }
+}

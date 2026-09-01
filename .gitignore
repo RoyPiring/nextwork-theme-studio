@@ -1,0 +1,16 @@
+# scratch output from the review tools
+_review/
+scratch*.css
+scratch*.js
+scratch*.txt
+
+# editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# packaged builds
+*.zip
+dist/

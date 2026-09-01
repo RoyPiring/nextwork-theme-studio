@@ -1,0 +1,26 @@
+{
+  "kind": "nextwork-theme",
+  "version": 1,
+  "theme": {
+    "name": "Dark Japandi",
+    "note": "Walnut panelling and oatmeal boucle. Clay accent, nothing louder than the room.",
+    "colors": {
+      "canvas": "#191412",
+      "surface": "#201a17",
+      "surfaceAlt": "#2a221d",
+      "border": "#42362e",
+      "textPrimary": "#e6ddd8",
+      "textSecondary": "#b0a29c",
+      "textMuted": "#857670",
+      "accent": "#c98f63",
+      "accentText": "#1a1310"
+    },
+    "tuning": {
+      "hue": 0,
+      "saturation": 100,
+      "contrast": 0,
+      "brightness": 0
+    },
+    "customCSS": ""
+  }
+}

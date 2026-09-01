@@ -1,0 +1,26 @@
+{
+  "kind": "nextwork-theme",
+  "version": 1,
+  "theme": {
+    "name": "Wabi-Sabi",
+    "note": "Sumi ink ground, bone-paper text, aged brass for actions. The quietest one.",
+    "colors": {
+      "canvas": "#1b1a16",
+      "surface": "#22211c",
+      "surfaceAlt": "#2b2922",
+      "border": "#413f34",
+      "textPrimary": "#ded8c8",
+      "textSecondary": "#aea695",
+      "textMuted": "#847a69",
+      "accent": "#a98d5a",
+      "accentText": "#191713"
+    },
+    "tuning": {
+      "hue": 0,
+      "saturation": 100,
+      "contrast": 0,
+      "brightness": 0
+    },
+    "customCSS": ""
+  }
+}

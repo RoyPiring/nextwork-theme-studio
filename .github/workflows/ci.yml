@@ -1,0 +1,39 @@
+name: audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The workflow only reads the checked-out code. Nothing here needs write access.
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions are pinned to a commit SHA, not a tag. A tag can be moved to
+      # point at different code; a SHA cannot.
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '20'
+
+      # No dependencies, so there is no install step and no lockfile to audit.
+      - name: Run the audit gate
+        run: node tools/audit.js
+
+      # assets/*.svg are generated from src/scenes.js. If they drift, the files
+      # in the repo no longer match the code that made them.
+      - name: Check generated assets are up to date
+        run: |
+          node tools/export-scenes.js > /dev/null
+          if ! git diff --quiet -- assets; then
+            echo "assets/ is out of date. Run: node tools/export-scenes.js"
+            git diff --stat -- assets
+            exit 1
+          fi
