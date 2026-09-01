@@ -164,7 +164,8 @@ src/options.*          The editor
 art/                   Source pictures. Build input only, nothing here ships
 assets/                Those drifting layers saved as SVG files you can open
 tools/                 Tests, packaging, and image tools
-docs/                  Longer guides
+tests/                 Unit tests, run with npm test
+docs/                  Longer guides, and the work queue in PLAN.md
 ```
 
 ## Working on it
@@ -174,7 +175,8 @@ the extension card, then refresh the page. Node 18 or newer is needed only for
 the tools below.
 
 ```bash
-node tools/audit.js           # run the tests, do this before every commit
+npm test                      # unit tests
+node tools/audit.js           # repository checks, run before every commit
 node tools/build.js           # build a folder for each browser
 node tools/export-scenes.js   # save the drifting layers as SVG files
 node tools/gallery.js         # rebuild the picture at the top of this README
