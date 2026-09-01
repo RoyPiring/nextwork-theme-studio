@@ -393,14 +393,21 @@
       renderAll();
     });
 
+    /* Same as the popup: the preview updates on every event, the write waits
+     * until the drag settles. Without this every pixel of slider travel wrote
+     * storage, and every write reached every open tab. */
+    const writeDials = NWT.debounce(function () {
+      chrome.storage.local.set({ tuningOverrides: settings.tuningOverrides });
+    }, 140);
     DIALS.forEach(function (k) {
       $(k).addEventListener('input', function () {
         const value = Number($(k).value);
         const base = NWT.getTheme(settings).tuning;
         const overrides = Object.assign({}, settings.tuningOverrides);
         overrides[settings.themeId] = Object.assign({}, base, { [k]: value });
-        persist({ tuningOverrides: overrides });
+        settings.tuningOverrides = overrides;
         renderAll();
+        writeDials();
       });
     });
 

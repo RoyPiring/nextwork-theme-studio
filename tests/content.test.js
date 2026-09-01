@@ -128,3 +128,17 @@ test('the newest settings win when two reads overlap', () => {
   assert.ok(css.indexOf(tokyo.canvas) !== -1,
     'the last write should be what is on the page');
 });
+
+test('dragging a dial writes storage once, not once per pixel', () => {
+  /* A range input fires per pixel of travel. Each write reached every open
+   * nextwork.ai tab, and each of those rebuilt both stylesheets and re-walked
+   * the DOM, so one drag drove a restyle storm across every tab. */
+  const { loadContentScript } = require('./harness');
+  const NWT = loadContentScript({ settings: {} }).sandbox.NWT;
+  let writes = 0;
+  const commit = NWT.debounce(() => { writes++; }, 140);
+  for (let i = 0; i < 40; i++) commit();
+  assert.strictEqual(writes, 0, 'nothing should be written while still dragging');
+  commit.flush();
+  assert.strictEqual(writes, 1, 'the drag should settle into a single write');
+});

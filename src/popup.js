@@ -121,16 +121,31 @@
     renderFocus();
   }
 
+  /* A range input fires on every pixel of travel. Writing storage on each one
+   * put a change event on every open nextwork.ai tab, and each of those rebuilt
+   * both stylesheets and re-walked the DOM. Dragging one slider drove a restyle
+   * storm across every tab.
+   *
+   * The local preview still updates on every event, so dragging feels the same.
+   * Only the write is held back. */
+  const writeDials = NWT.debounce(function () {
+    chrome.storage.local.set({ tuningOverrides: settings.tuningOverrides });
+  }, 140);
+
   function onDial(k) {
     const value = Number($(k).value);
     const overrides = Object.assign({}, settings.tuningOverrides);
     const base = NWT.getTheme(settings).tuning;
     overrides[settings.themeId] = Object.assign({}, base, { [k]: value });
-    save({ tuningOverrides: overrides });
+
+    /* Update in memory now so the UI is live, persist once the drag settles. */
+    settings.tuningOverrides = overrides;
     const theme = NWT.getTheme(settings);
     dressUI(theme);
     renderDials();
     renderThemes();
+
+    writeDials();
   }
 
   /* ---- focus ---- */

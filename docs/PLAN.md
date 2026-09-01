@@ -69,7 +69,7 @@ callback if it has moved on.
 **Test.** Drive two overlapping reads through a stubbed `chrome.storage` and
 assert the later settings win.
 
-### 4. Every dial pixel writes storage and rebuilds the world
+### 4. Every dial pixel writes storage and rebuilds the world  [done]
 
 **Cause.** `input` fires per pixel. Each tick writes storage, which re-enters
 through the change listener, rebuilds all 18 theme cards in the popup, and

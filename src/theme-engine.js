@@ -429,6 +429,31 @@
   /* Dial semantics changed in schema 2 (absolute -> relative). Old dial
    * positions mean something different now, so drop them rather than
    * silently desaturating every theme. */
+  /* Run fn once the calls stop coming.
+   *
+   * Both dial handlers need this. A range input fires on every pixel of
+   * travel, and each storage write reaches every open nextwork.ai tab, where
+   * it rebuilds stylesheets and re-walks the DOM. `flush` runs a pending call
+   * immediately, which is what a test uses instead of waiting. */
+  function debounce(fn, ms) {
+    let timer = null;
+    let pending = false;
+    function schedule() {
+      pending = true;
+      clearTimeout(timer);
+      timer = setTimeout(run, ms);
+    }
+    function run() {
+      if (!pending) return;
+      pending = false;
+      clearTimeout(timer);
+      fn();
+    }
+    schedule.flush = run;
+    schedule.pending = function () { return pending; };
+    return schedule;
+  }
+
   function migrate(settings) {
     const s = settings || {};
     if (s.schema !== SCHEMA) {
@@ -1314,6 +1339,7 @@
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
     focusElapsed, focusRemaining, formatDuration,
     toneOf,
+    debounce,
     color: { hexToRgb, rgbToHex, hexToHsl, hslToHex, mix, rgba, lighten, contrastRatio, clamp }
   };
 })(typeof self !== 'undefined' ? self : this);
