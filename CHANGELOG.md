@@ -4,7 +4,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is [semver](https://semver.org/); the `version` field in
 `manifest.json` is the source of truth.
 
-## [Unreleased]
+## [1.1.0] - 2026-09-01
 
 ### Added
 - The focus timer can be dragged anywhere and remembers where it was put, as a

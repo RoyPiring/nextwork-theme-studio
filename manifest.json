@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NextWork Theme Studio",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Personal, fully customizable dark themes for nextwork.ai. Edit the palette live, VS Code style.",
   "permissions": [
     "storage",
