@@ -25,7 +25,10 @@ jobs:
 
       # No dependencies, so there is no install step and no lockfile to audit.
       - name: Unit tests
-        run: node --test "tests/*.test.js"
+        # No path: node discovers *.test.js itself. A quoted glob is passed
+        # through literally by bash on Linux, and an unquoted one is expanded
+        # by the shell on some platforms and not others.
+        run: node --test
 
       - name: Run the audit gate
         run: node tools/audit.js
