@@ -434,6 +434,7 @@
     if (s.schema !== SCHEMA) {
       s.tuningOverrides = {};
       s.schema = SCHEMA;
+      s.migrated = true;        /* caller has to persist, or this repeats */
     }
     return s;
   }
@@ -575,13 +576,19 @@
   }
 
   function scopeCSS(css, prefix, rootSel) {
-    return css.replace(/(^|\n)([^\n{}][^{}\n]*)\{/g, function (m, nl, sel) {
-      const s = sel.trim();
-      /* Leave at-rules and the token block alone - the doubled root selector
-       * already outranks any single :root / :host the site declares. */
-      if (!s || s.charAt(0) === '@' || s.indexOf(rootSel) === 0) return m;
-      return nl + splitSelectors(s).map(function (x) { return prefix + x; }).join(', ') + ' {';
-    });
+    /* The delimiter is a lookbehind rather than a captured character on
+     * purpose. Consuming it meant that after an at-rule prelude was matched
+     * and skipped, its opening brace was gone, so the selector inside it never
+     * matched and never got the prefix - which quietly cost every rule in a
+     * one-line @media block the specificity tie it was relying on. */
+    return css.replace(/(?<=[\n{}]|^)([ \t]*)([^\n{}][^{}\n]*)\{/g,
+      function (m, ws, sel) {
+        const s = sel.trim();
+        /* Leave at-rule preludes and the token block alone - the doubled root
+         * selector already outranks any single :root / :host the site sets. */
+        if (!s || s.charAt(0) === '@' || s.indexOf(rootSel) === 0) return m;
+        return ws + splitSelectors(s).map(function (x) { return prefix + x; }).join(', ') + ' {';
+      });
   }
 
   /* Inline an SVG as a background-image. Encoded rather than base64 so the
@@ -949,7 +956,11 @@
       L.push('[class*="shadow-"] { --tw-shadow-color: rgba(0, 0, 0, 0.45); }');
     }
     if (o.themeScrollbars) {
-      L.push('* { scrollbar-color: ' + p.border + ' ' + p.canvas + '; }');
+      /* On the root, not on every element: scrollbar-color inherits, so the
+       * old universal selector bought nothing and put * into every recalc.
+       * rootSel rather than a literal html, because there is no html inside a
+       * shadow tree. */
+      L.push(rootSel + ' { scrollbar-color: ' + p.border + ' ' + p.canvas + '; }');
       L.push('::-webkit-scrollbar { width: 12px; height: 12px; }');
       L.push('::-webkit-scrollbar-track { background: ' + p.canvas + '; }');
       L.push('::-webkit-scrollbar-thumb { background: ' + p.border + '; border-radius: 8px; border: 3px solid ' + p.canvas + '; }');

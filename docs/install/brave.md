@@ -7,10 +7,9 @@ to the extensions page is not.
 
 1. Open the Brave menu (☰) → **Extensions** → **Manage Extensions**
 
-   Typing `brave://extensions` lands you on *Settings → Extensions*, which has
-   no Developer mode toggle. You want the page reached through **Manage
-   Extensions**. Brave changed this in v152; `chrome://extensions` typed into
-   the address bar is refused outright.
+   Typing `brave://extensions` can land you on *Settings → Extensions*, which
+   has no Developer mode toggle. The page you want is the one reached through
+   **Manage Extensions**.
 2. Turn on **Developer mode** (top right)
 3. Click **Load unpacked**
 4. Select this folder — the one containing `manifest.json`
@@ -33,6 +32,6 @@ shown on the card, and make sure the same extension is not loaded twice.
 ## Notes
 
 - Brave Shields does not affect extension content scripts on a normal site.
-- Keep this folder out of a cloud-synced directory. OneDrive's Files On-Demand
-  can turn files into placeholders, and Brave will error on an unpacked
-  extension it cannot read.
+- Keep this folder out of a cloud-synced directory. On-demand sync (OneDrive,
+  Dropbox, iCloud Drive) can leave files as placeholders on disk, and Brave
+  will error on an unpacked extension it cannot read.

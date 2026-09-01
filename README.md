@@ -1,35 +1,33 @@
 # NextWork Theme Studio
 
+[![audit](https://github.com/RoyPiring/nextwork-theme-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/RoyPiring/nextwork-theme-studio/actions/workflows/ci.yml)
+
 An unofficial theme extension for [nextwork.ai](https://nextwork.ai). Eighteen
-themes, a live editor, and hand-drawn scenery behind the page. Chrome and Brave,
-loaded unpacked.
+themes, a live palette editor, and generated scenery behind the page. Chromium
+browsers load it directly; Firefox and Safari are packaged but unverified.
 
 Not affiliated with NextWork. The extension makes no network requests at all.
 
----
+![The eighteen themes](docs/img/themes.svg)
 
-## Install
-
-Build the package for your browser, then follow the guide inside it:
+## Try it in a minute
 
 ```bash
-node tools/build.js
+git clone https://github.com/RoyPiring/nextwork-theme-studio
 ```
 
-That writes `dist/chrome`, `dist/brave`, `dist/edge`, `dist/firefox` and
-`dist/safari`, each with its own `INSTALL.md` and a zip ready to upload.
+Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**,
+and pick the folder you just cloned. There is nothing to build — the manifest
+and `src/` sit at the repository root.
 
-Chrome, Brave and Edge: turn on Developer mode on the extensions page, click
-**Load unpacked**, pick the folder. Brave hides that page behind
-menu → Extensions → **Manage Extensions**; typing `brave://extensions` lands on
-a settings page with no Developer mode toggle.
+Brave hides that page behind menu → Extensions → **Manage Extensions**; typing
+`brave://extensions` lands on a settings page with no Developer mode toggle.
+Edge is `edge://extensions`.
 
-Firefox loads it from `about:debugging` and drops it on restart unless signed.
-Safari has to be converted into a native app with Xcode on a Mac.
+Then open nextwork.ai. `Alt+Shift+D` toggles the theme, and you can rebind it at
+`chrome://extensions/shortcuts`.
 
-Details per browser: [docs/BROWSERS.md](docs/BROWSERS.md).
-
-`Alt+Shift+D` toggles the theme. Rebind at `chrome://extensions/shortcuts`.
+Firefox and Safari need a packaged build — see below.
 
 ## Use it
 
@@ -44,8 +42,8 @@ Click the toolbar icon:
 readout, the generated neutral ramp, a component preview, and a custom CSS box.
 Presets are read-only — change a colour and it forks into a theme of your own.
 
-Themes live in `chrome.storage.local`, so they stay on this machine. Use
-**Export theme** / **Import** to move one between browsers.
+Themes live in `chrome.storage.local`, so they stay on the machine that made
+them. Use **Export theme** / **Import** to move one between browsers.
 
 ### Focus timer
 
@@ -58,7 +56,25 @@ zero rather than stopping, so an overrun is visible instead of silent. Time is
 stored as timestamps, not as a running counter, so nothing is lost or
 double-counted if the browser restarts.
 
----
+## Packaging for other browsers
+
+```bash
+node tools/build.js
+```
+
+That writes `dist/chrome`, `dist/brave`, `dist/edge`, `dist/firefox` and
+`dist/safari`, each with its own `INSTALL.md`, plus a zip ready to upload to a
+store. The audit runs first and nothing is written if it fails.
+
+Chrome, Brave and Edge are byte-identical Chromium builds — the separate folders
+exist so each carries the right install guide. Firefox needs a different
+manifest, because MV3 there runs the background as an event page rather than a
+service worker, and a temporary add-on is dropped on restart unless it is
+signed. Safari cannot be loaded as a folder at all; it has to be converted into
+a native app with Xcode on a Mac.
+
+Per-browser detail is in [docs/BROWSERS.md](docs/BROWSERS.md), and each
+`docs/install/*.md` is the guide that ships inside its package.
 
 ## How it works
 
@@ -68,7 +84,7 @@ So the extension doesn't fight the site with a wall of `!important` — it
 redefines the design tokens and lets the site restyle itself.
 
 Doing that properly means handling four variable families, the last of which
-lives inside 86 shadow roots that no document stylesheet can reach. Full detail,
+lives inside shadow roots that no document stylesheet can reach. Full detail,
 including the two cascade traps that cost the most time, is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The reasoning behind the choices
 that are expensive to reverse is in [docs/DECISIONS.md](docs/DECISIONS.md).
@@ -77,18 +93,16 @@ that are expensive to reverse is in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 Each theme has its own scene — an arcade, a ridge line, rooftops, bamboo, a
 skyline, a planet. One motif belongs to exactly one theme, and CI fails if two
-share, because reusing a silhouette made eighteen wallpapers feel like three.
+share.
 
-All of it is original SVG in `src/scenes.js` — no stock photography. Toggle it
-with **Wallpaper** in the popup, independently of the colours.
+All of it is original SVG in `src/scenes.js`; there is no stock photography and
+nothing is fetched. Toggle it with **Wallpaper** in the popup, independently of
+the colours.
 
-The constraint that shapes it: NextWork sets article text directly on the page
-ground, so body copy is read *against* the scenery. Every large fill is
-contrast-checked against body text at 7:1 and CI fails if one slips. That is why
-these read as watermarks — a bold silhouette behind a paragraph is unreadable,
-however good it looks alone.
-
----
+Body copy on nextwork.ai is read against the scenery rather than on top of a
+panel, which is the constraint that shapes every scene and the reason they read
+as watermarks. Why that is, and what CI checks because of it, is in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#scenery).
 
 ## Layout
 
@@ -100,22 +114,23 @@ src/content.js         Injects the stylesheet, adopts it into shadow roots
 src/background.js      Keyboard shortcut and toolbar badge
 src/popup.*            Toolbar panel
 src/options.*          The editor
-themes/                Themes as importable JSON
 assets/                Generated SVG layers, for looking at and editing
-tools/                 Audit gate, asset export, contact sheet, packaging
-docs/                  Architecture, decisions, browser guides, publishing
+tools/                 Audit gate, asset export, gallery, contact sheet, packaging
+docs/                  Architecture, decisions, browser guides, release process
+docs/img/              Generated images used by this README
 ```
 
 ## Working on it
 
 No build step and no dependencies. Edit a file, hit reload on the extension
-card, refresh the tab.
+card, refresh the tab. Node 18+ is needed only for the tools.
 
 ```bash
 node tools/audit.js           # the CI gate - run before every commit
 node tools/build.js           # per-browser packages into dist/
 node tools/export-scenes.js   # regenerate assets/*.svg from scenes.js
-node tools/contact-sheet.js   # render all 18 scenes on one page to compare
+node tools/gallery.js         # regenerate docs/img/themes.svg
+node tools/contact-sheet.js   # render all 18 scenes at reading size
 ```
 
 `tools/audit.js` is the important one. It validates the manifest, parses every

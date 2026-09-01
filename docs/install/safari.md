@@ -10,7 +10,8 @@ out the way the converter expects, plus the steps to do the conversion on a Mac.
 ## What you need
 
 - **macOS** — the converter is a macOS-only tool
-- **Xcode** (free, from the Mac App Store)
+- **Xcode** (free, from the Mac App Store). The Command Line Tools alone are
+  not enough — `xcrun safari-web-extension-converter` needs the full app.
 - **Safari 16.4 or newer** for MV3 support
 - An **Apple Developer account** ($99/year) only if you want to distribute it.
   Running it on your own Mac does not need one.
@@ -45,9 +46,14 @@ Useful flags:
 
 ## Distributing it
 
-Signed distribution goes through the Mac App Store, which needs a paid Apple
-Developer account and an App Store review. There is no unsigned sideloading path
-for other people's Macs the way there is on Chromium.
+There are two signed routes, and both need a paid Apple Developer account:
+
+- **The Mac App Store**, which adds an App Store review.
+- **Developer ID plus notarisation**, distributed yourself. Safari will load an
+  extension from a notarised Developer ID app, so this skips App Store review.
+
+There is no unsigned sideloading path for other people's Macs the way there is
+on Chromium.
 
 ## What to expect
 
@@ -60,7 +66,7 @@ this extension are worth watching:
 - **The keyboard shortcut.** Safari handles `commands` differently from
   Chromium; `Alt+Shift+D` may not bind. The toolbar popup toggle always works.
 
-I have not been able to test any of this — the conversion requires a Mac and
-this was built on Windows. Treat the Safari path as unverified. Everything up to
-the conversion step is standard Apple documentation; what happens after it is
-worth checking before you rely on it.
+This path is unverified: the conversion requires a Mac, and the project is
+developed on Windows. Everything up to the conversion step is standard Apple
+documentation; what happens after it is worth checking before you rely on it.
+A report either way is a useful contribution.

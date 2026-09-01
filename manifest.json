@@ -1,17 +1,16 @@
 {
   "manifest_version": 3,
   "name": "NextWork Theme Studio",
-  "version": "1.2.0",
-  "description": "Personal, fully customizable dark themes for nextwork.ai. Edit the palette live, VS Code style.",
+  "version": "1.3.0",
+  "minimum_chrome_version": "121",
+  "description": "Unofficial. Not affiliated with NextWork. 18 light and dark themes for nextwork.ai, with a live palette editor and generated scenery.",
   "permissions": [
-    "storage",
-    "activeTab"
+    "storage"
   ],
   "content_scripts": [
     {
       "matches": [
-        "*://nextwork.ai/*",
-        "*://*.nextwork.ai/*"
+        "https://*.nextwork.ai/*"
       ],
       "js": [
         "src/scenes.js",

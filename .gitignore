@@ -4,7 +4,7 @@ scratch*.css
 scratch*.js
 scratch*.txt
 
-# editor / OS
+# editor and OS
 .DS_Store
 Thumbs.db
 *.swp
@@ -13,4 +13,5 @@ Thumbs.db
 
 # packaged builds
 *.zip
+*.xpi
 dist/

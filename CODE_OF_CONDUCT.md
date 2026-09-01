@@ -23,8 +23,8 @@ project.
 Report anything that needs attention by opening an issue, or privately through
 GitHub if you would rather not do it publicly. Reports are handled discreetly.
 
-Consequences scale with the behaviour: a note, a warning, or a block. The
-maintainer's call is final.
+Consequences scale with the behaviour: a note, a warning, or a block.
+Maintainers make the final call.
 
 This is adapted from the [Contributor Covenant](https://www.contributor-covenant.org),
 v2.1, shortened for a small project.

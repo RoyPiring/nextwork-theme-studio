@@ -1,16 +1,34 @@
 {
   "name": "nextwork-theme-studio",
-  "version": "1.2.0",
-  "description": "Unofficial theme extension for nextwork.ai - 18 themes, live editor, hand-drawn scenery.",
+  "version": "1.3.0",
+  "description": "Unofficial theme extension for nextwork.ai - 18 themes, a live palette editor and generated scenery.",
   "license": "MIT",
   "private": true,
   "scripts": {
-    "audit": "node tools/audit.js",
+    "check": "node tools/audit.js",
     "build": "node tools/build.js",
     "assets": "node tools/export-scenes.js",
+    "gallery": "node tools/gallery.js",
     "contact-sheet": "node tools/contact-sheet.js"
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RoyPiring/nextwork-theme-studio.git"
+  },
+  "homepage": "https://github.com/RoyPiring/nextwork-theme-studio#readme",
+  "bugs": {
+    "url": "https://github.com/RoyPiring/nextwork-theme-studio/issues"
+  },
+  "keywords": [
+    "browser-extension",
+    "manifest-v3",
+    "chrome-extension",
+    "theme",
+    "dark-mode",
+    "userstyle",
+    "nextwork"
+  ]
 }

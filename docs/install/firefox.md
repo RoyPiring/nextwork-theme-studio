@@ -15,6 +15,11 @@ same code.
 3. Select the **`manifest.json`** file in this folder — the file, not the folder
 4. Open nextwork.ai
 
+If the page does not change, open the extensions button in the toolbar and
+check that this add-on has access to nextwork.ai. Firefox's site-access model
+has moved more than once and a manifest-declared content script is not always
+granted silently.
+
 `Alt+Shift+D` toggles the theme.
 
 **A temporary add-on is removed when Firefox restarts.** That is a Firefox rule
@@ -23,11 +28,12 @@ across restarts you need one of the options below.
 
 ## Keeping it installed
 
-**Firefox Developer Edition or Nightly.** Set `xpinstall.signatures.required`
-to `false` in `about:config`, then install the packaged `.xpi`. Release and ESR
-builds ignore this setting.
+**Firefox Developer Edition, Nightly or ESR.** Set
+`xpinstall.signatures.required` to `false` in `about:config`, then install
+`dist/nextwork-theme-studio-firefox-<version>.xpi` through *Install Add-on From
+File…*. Release and Beta builds enforce signing and ignore this setting.
 
-**Sign it through Mozilla.** Submit the zip to
+**Sign it through Mozilla.** Submit the `.xpi` to
 [addons.mozilla.org](https://addons.mozilla.org/developers/) and choose
 *"On your own"* if you do not want it listed publicly. You get back a signed
 `.xpi` that installs normally on any Firefox. It is free, and unlisted

@@ -4,6 +4,68 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is [semver](https://semver.org/); the `version` field in
 `manifest.json` is the source of truth.
 
+1.3.0 is the first public release. The 1.0.0 and 1.1.0 entries below are
+development milestones from before the repository went public, kept because
+they record why several non-obvious parts of the code look the way they do.
+
+## [1.3.0] - 2026-09-01
+
+First release prepared for a public repository. Most of this is the result of
+reviewing the project as an outsider would read it.
+
+### Fixed
+- **The packaged archives were not loadable.** The Windows build path used
+  PowerShell's `Compress-Archive`, which writes backslashes as path separators
+  into the zip index. Every entry came out as one flat filename, so the
+  manifest's reference to `src/content.js` resolved to nothing and the archives
+  failed to install everywhere while the build still reported success. The
+  build now uses `tar`, and reads each archive back before claiming it worked.
+- Selectors inside a single-line `@media` block were never given the `html`
+  prefix the rest of the sheet gets, so they lost every specificity tie. The
+  narrow-window rule that moves the focus timer out from under the account menu
+  had never once applied.
+- Panel repair could not read the colours it was written to catch. It matched
+  `rgb()` only, and this is a Tailwind v4 site, so computed colours arrive as
+  `oklch()` and every test answered "not light". Colours now round-trip through
+  a canvas first.
+- A stale settings schema cleared the four dials on every popup open, because
+  the migration ran on a copy that was never written back.
+- The toolbar badge counted down in minutes but nothing ever ticked it, so it
+  froze at the starting number. It now shows that a session is running and
+  leaves the live count to the pill on the page.
+
+### Security
+- Removed the `activeTab` permission. It was requested and never used — the
+  popup's reload button calls `chrome.tabs.reload()`, which needs no
+  permission. `storage` is now the only one.
+- Imported themes are validated instead of merged. Colours must be `#rrggbb`,
+  dials are clamped, unknown keys are dropped, and custom CSS containing
+  `url()`, `@import`, `image-set()` or `expression()` is refused — any of which
+  could have made a live request from a page you are signed into.
+- The zero-flash cache no longer trusts the page. It stored generated CSS in
+  the site's own `localStorage` and injected whatever it found there at
+  `document_start`; it now stores a theme id, checks it against the bundled
+  presets, and builds the stylesheet itself.
+- Host access narrowed to `https://*.nextwork.ai/*`.
+
+### Changed
+- The audit walks `src/` recursively, strips comments before scanning rather
+  than skipping any line that starts with one, covers `optional_permissions`,
+  `web_accessible_resources` and `externally_connectable`, checks the files the
+  HTML pages load, and compares the manifest and package versions. Fifteen
+  checks, up from thirteen.
+- The focus HUD, the panel repair pass and the boot cache are confined to the
+  top frame. With `all_frames` on, every same-origin subframe was drawing its
+  own timer.
+- Shadow-root adoption and the mutation sweep are coalesced, and the repair
+  pass reads every element before writing to any of them rather than forcing a
+  layout per node.
+- `themes/` is gone. Ten hand-maintained JSON files duplicated palettes whose
+  source of truth is `PRESETS`, nothing read them, and they shipped inside
+  every package.
+- `tools/gallery.js` renders every theme into `docs/img/themes.svg` for the
+  README, and CI fails if it drifts from the code that generates it.
+
 ## [1.2.0] - 2026-09-01
 
 ### Added
@@ -88,7 +150,7 @@ Versioning is [semver](https://semver.org/); the `version` field in
 First public release.
 
 ### Added
-- 18 themes: 12 dark, 5 light with layered backdrops, and 2 retro.
+- 18 themes: 13 dark and 5 light, each with a layered backdrop.
 - Live editor with nine palette colours, four relative dials, a WCAG contrast
   readout, the generated neutral ramp, a component preview, and custom CSS.
 - Hand-drawn SVG scenery per theme, with parallax and a wallpaper toggle
@@ -103,5 +165,8 @@ First public release.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/OWNER/REPO/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/OWNER/REPO/releases/tag/v1.0.0
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.3.0
+[1.2.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.2.0
+[1.1.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.1.0
+[1.0.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.0.0

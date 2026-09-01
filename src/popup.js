@@ -10,6 +10,12 @@
   function load(cb) {
     chrome.storage.local.get(null, function (stored) {
       settings = NWT.migrate(Object.assign({}, NWT.DEFAULT_SETTINGS, stored || {}));
+      /* migrate() only reports; persisting is the caller's job. Without this
+       * the same migration reruns on every open and clears the dials again. */
+      if (settings.migrated) {
+        delete settings.migrated;
+        chrome.storage.local.set({ schema: settings.schema, tuningOverrides: {} });
+      }
       settings.options = Object.assign({}, NWT.DEFAULT_SETTINGS.options, settings.options);
       cb();
     });

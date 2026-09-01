@@ -11,7 +11,7 @@ wrong if it isn't obvious.
 
 **Theme** — which one, and whether Wallpaper was on or off.
 
-**Browser** — Chrome or Brave, and the version.
+**Browser and version** — and whether you loaded it unpacked or from a package.
 
 **Anything in the console?** Right-click → Inspect → Console. Extension errors
 show up there.

@@ -1,9 +1,22 @@
 # Contributing
 
+## Where to start
+
+Themes and scenery are the easiest way in. A theme is one entry in `PRESETS`
+and one function in `src/scenes.js`, and the audit tells you straight away if
+it misses the contrast floor. Firefox and Safari are packaged but nobody has
+confirmed a run on either, so a report from one of those is worth as much as
+code.
+
 ## Setup
 
-Clone it, load it unpacked (see the README), and you're set. There is no build
-step and no dependencies — Node is used only for the tools in `tools/`.
+Clone it and load the repository root unpacked — not `dist/`, which is build
+output and will not pick up your edits. There is no build step and no
+dependencies; Node 18+ is needed only for the tools in `tools/`.
+
+Most of what this extension styles is behind a login. Without a nextwork.ai
+account you can see the marketing pages themed correctly but cannot reproduce
+or verify anything on a project page, which is where most of the work is.
 
 ## Before you open a PR
 
@@ -23,34 +36,46 @@ Judging a palette from hex values does not work. Look at it.
 
 ## What the audit enforces
 
-- The manifest is valid, every file it references exists, and permissions stay
-  at `storage` + `activeTab`.
+- The manifest is valid, every file it references exists — including the ones
+  only the HTML pages pull in — and the only permission is `storage`.
 - Content scripts match nextwork.ai and nothing else.
+- `manifest.json` and `package.json` agree on the version.
 - No `fetch`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, or remote URLs. The
   extension must never talk to anything.
 - No `eval`, `new Function`, or `innerHTML`.
 - Body text clears 7:1 on canvas and surface, secondary 4.5:1, text on accent
   4.5:1, badges 4.5:1, and every scenery fill 7:1 against body text.
 
-The contrast floor is not advisory. Article text on nextwork.ai sits directly on
-the page background, so scenery is read *through* body copy.
+The contrast floor is not advisory, and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#scenery) explains what it is
+protecting.
 
 ## Adding scenery
 
 Every scene declares `motifs`, and no two scenes may share one — the audit fails
 if they do. If you want pine trees, Fog already has them; pick something else.
-That rule exists because five themes once shared the same ridge line and the set
-felt like three wallpapers instead of eighteen.
 
-`tools/contact-sheet.js` renders all of them on one page. Use it.
+The shape of a scene is documented in the header comment at the top of
+`src/scenes.js`. Copy the `tokyoNight` entry and work from that rather than
+starting empty.
+
+`tools/contact-sheet.js` renders all of them on one page at reading size. Use
+it — a band that looks like a tasteful strip in a thumbnail can swallow the
+whole reading column at full height.
 
 ## Adding a theme
 
-Add an entry to `PRESETS` in `src/theme-engine.js` with nine colours, then a
-matching scene in `src/scenes.js`. Run the audit — it will tell you which pair
-misses the floor. `NWT.toneOf(hue, textColour, targetRatio)` solves the
-lightness for you: pass the hue you want, get back the version of it that sits
-just inside the floor.
+Add an entry to `PRESETS` in `src/theme-engine.js`, then a matching scene in
+`src/scenes.js`. The quickest route is to copy the `concrete` entry and change
+the values; the nine colours are `canvas`, `surface`, `surfaceAlt`, `border`,
+`textPrimary`, `textSecondary`, `textMuted`, `accent` and `accentText`.
+
+Run the audit — it names the pair that misses the floor. Rather than guessing
+at a lightness by hand, `NWT.toneOf(hex, textHex, targetRatio)` solves for it:
+give it the colour you want, the text colour it has to sit behind, and the
+ratio, and it returns the nearest version of that colour which clears the
+floor. Inside a scene generator it arrives already bound to the theme's text
+colour, so there it takes two arguments: `toneOf(hex, targetRatio)`.
 
 Light themes set `mode: 'light'`. That skips the dark-mode repairs, which would
 otherwise do damage — the ramp is not reversed and `--color-leather` stays dark,

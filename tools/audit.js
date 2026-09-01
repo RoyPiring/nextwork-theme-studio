@@ -51,28 +51,85 @@ check('every referenced file exists', () => {
 });
 
 check('permissions stay minimal', () => {
-  const allowed = ['storage', 'activeTab'];
+  /* storage only. activeTab was requested for a year and never used: the
+   * popup's reload button calls chrome.tabs.reload() with no arguments, which
+   * needs no permission at all. */
+  const allowed = ['storage'];
   const extra = (manifest.permissions || []).filter(p => !allowed.includes(p));
   if (extra.length) fail('unexpected permission(s): ' + extra.join(', '));
-  if (manifest.host_permissions) fail('host_permissions should not be needed');
+  /* Everything below is another way to widen reach without touching
+   * `permissions`, so each one has to be absent rather than merely unchecked. */
+  ['host_permissions', 'optional_permissions', 'optional_host_permissions',
+   'web_accessible_resources', 'externally_connectable',
+   'content_security_policy'].forEach(key => {
+    if (manifest[key]) fail(key + ' should not be needed');
+  });
   return (manifest.permissions || []).join(', ');
+});
+
+check('manifest and package version agree', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  if (pkg.version !== manifest.version) {
+    fail('manifest.json ' + manifest.version + ' vs package.json ' + pkg.version);
+  }
+  return manifest.version;
+});
+
+check('every file the HTML pages load exists', () => {
+  /* The manifest names three entry points; each of those pages then pulls in
+   * scripts and stylesheets nobody was checking. Renaming options.js used to
+   * pass the audit and ship a blank editor. */
+  const pages = ['src/options.html', 'src/popup.html'];
+  const missing = [];
+  let n = 0;
+  pages.forEach(page => {
+    const dir = path.dirname(path.join(ROOT, page));
+    const body = fs.readFileSync(path.join(ROOT, page), 'utf8');
+    const refs = [];
+    body.replace(/(?:src|href)="([^"]+)"/g, (_, r) => { refs.push(r); return _; });
+    refs.filter(r => !/^(https?:)?\/\//.test(r) && !r.startsWith('data:')).forEach(r => {
+      n++;
+      if (!fs.existsSync(path.join(dir, r))) missing.push(page + ' -> ' + r);
+    });
+  });
+  if (missing.length) fail('missing: ' + missing.join(', '));
+  return n + ' references';
 });
 
 check('content scripts only touch nextwork.ai', () => {
   const bad = manifest.content_scripts
     .flatMap(cs => cs.matches)
-    .filter(m => !/^\*:\/\/(\*\.)?nextwork\.ai\/\*$/.test(m));
+    .filter(m => !/^https:\/\/\*\.nextwork\.ai\/\*$/.test(m));
   if (bad.length) fail('unexpected match pattern(s): ' + bad.join(', '));
   return manifest.content_scripts[0].matches.join(' ');
 });
 
 /* ------------------------------------------------------------------ syntax */
-const srcFiles = fs.readdirSync(path.join(ROOT, 'src'))
-  .filter(f => f.endsWith('.js'))
-  .map(f => path.join(ROOT, 'src', f));
-const toolFiles = fs.readdirSync(path.join(ROOT, 'tools'))
-  .filter(f => f.endsWith('.js'))
-  .map(f => path.join(ROOT, 'tools', f));
+/* Walk, do not list. A flat readdir left src/anything/deeper.js exempt from
+ * every content check below, which is exactly where something would hide. */
+function jsUnder(dir) {
+  const out = [];
+  (function walk(d) {
+    fs.readdirSync(d, { withFileTypes: true }).forEach(e => {
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name.endsWith('.js')) out.push(full);
+    });
+  })(dir);
+  return out;
+}
+const srcFiles = jsUnder(path.join(ROOT, 'src'));
+const toolFiles = jsUnder(path.join(ROOT, 'tools'));
+
+/* Strip comments before scanning, rather than skipping any line that starts
+ * with one. The old test skipped the whole line, so `/* *\/ fetch(url)` was
+ * invisible, and a trailing `// see fetch()` produced a false failure. */
+function codeOnly(body) {
+  return body
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .split('\n')
+    .map(line => line.replace(/\/\/.*$/, ''));
+}
 
 check('all JavaScript parses', () => {
   srcFiles.concat(toolFiles).forEach(f => {
@@ -92,9 +149,7 @@ check('no network calls in extension code', () => {
   const banned = /\b(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|importScripts)\s*\(/;
   const offenders = [];
   srcFiles.forEach(f => {
-    const body = fs.readFileSync(f, 'utf8');
-    body.split('\n').forEach((line, i) => {
-      if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;          /* comments are fine */
+    codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
       if (/importScripts\('theme-engine|importScripts\('scenes/.test(line)) return;
       if (banned.test(line)) offenders.push(rel(f) + ':' + (i + 1));
     });
@@ -106,8 +161,7 @@ check('no network calls in extension code', () => {
 check('no remote URLs in extension code', () => {
   const offenders = [];
   srcFiles.forEach(f => {
-    fs.readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
-      if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+    codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
       /* the SVG xmlns is a namespace identifier, never fetched */
       const stripped = line.replace(/http:\/\/www\.w3\.org\/2000\/svg/g, '');
       if (/https?:\/\//.test(stripped)) offenders.push(rel(f) + ':' + (i + 1));
@@ -117,12 +171,16 @@ check('no remote URLs in extension code', () => {
   return 'clean';
 });
 
-check('no eval or innerHTML', () => {
-  const banned = /\b(eval\s*\(|new\s+Function\s*\(|\.innerHTML\s*=|document\.write\s*\()/;
+check('no eval or HTML injection', () => {
+  /* `.innerHTML +=` slipped past the old `\\s*=`, and the other four sinks were
+   * simply not listed. */
+  const banned = new RegExp(
+    '\\b(eval\\s*\\(|new\\s+Function\\s*\\(|document\\.write\\s*\\(' +
+    '|\\.(inner|outer)HTML\\s*\\+?=' +
+    '|insertAdjacentHTML|setHTMLUnsafe|createContextualFragment)');
   const offenders = [];
   srcFiles.forEach(f => {
-    fs.readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
-      if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+    codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
       if (banned.test(line)) offenders.push(rel(f) + ':' + (i + 1));
     });
   });

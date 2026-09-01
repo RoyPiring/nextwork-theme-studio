@@ -294,17 +294,69 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
 
+  /* An imported theme is a file from someone else, and whatever it carries
+   * ends up in the stylesheet injected into a site you are signed into. CSS is
+   * not inert there: a url() in a custom rule is a live request, and attribute
+   * selectors plus a background image are a well-known way to read a form field
+   * out one character at a time. So the import is an allowlist, not a merge. */
+  const COLOR_KEYS = ['canvas', 'surface', 'surfaceAlt', 'border',
+                      'textPrimary', 'textSecondary', 'textMuted',
+                      'accent', 'accentText'];
+  const HEX = /^#[0-9a-fA-F]{6}$/;
+  const CSS_REACHES_OUT = /url\s*\(|@import|expression\s*\(|image-set\s*\(/i;
+
+  function cleanTheme(raw) {
+    if (!raw || typeof raw !== 'object') throw new Error('not a theme');
+    const out = { colors: {} };
+    if (typeof raw.name === 'string') out.name = raw.name.slice(0, 60);
+    if (typeof raw.note === 'string') out.note = raw.note.slice(0, 200);
+    out.mode = raw.mode === 'light' ? 'light' : 'dark';
+
+    const colors = raw.colors || {};
+    COLOR_KEYS.forEach(function (k) {
+      if (!HEX.test(colors[k] || '')) throw new Error('colour "' + k + '" is not a #rrggbb value');
+      out.colors[k] = colors[k];
+    });
+
+    if (raw.tuning && typeof raw.tuning === 'object') {
+      out.tuning = {};
+      Object.keys(raw.tuning).forEach(function (k) {
+        const v = Number(raw.tuning[k]);
+        if (isFinite(v)) out.tuning[k] = Math.max(-100, Math.min(100, v));
+      });
+    }
+
+    if (raw.customCSS) {
+      const css = String(raw.customCSS);
+      if (CSS_REACHES_OUT.test(css)) {
+        throw new Error('custom CSS in this file can load an external resource');
+      }
+      out.customCSS = css.slice(0, 20000);
+    }
+    return out;
+  }
+
   function importPayload(data) {
     /* Accepts a single exported theme or a whole settings backup. */
     if (data && data.kind === 'nextwork-theme' && data.theme) {
+      let theme;
+      try { theme = cleanTheme(data.theme); }
+      catch (e) { toast('Cannot import: ' + e.message); return; }
       const id = 'custom-' + Date.now().toString(36);
       const customThemes = Object.assign({}, settings.customThemes);
-      customThemes[id] = data.theme;
+      customThemes[id] = theme;
       persist({ customThemes: customThemes, themeId: id });
-      toast('Imported "' + (data.theme.name || 'theme') + '"');
+      toast('Imported "' + (theme.name || 'theme') + '"');
     } else if (data && data.kind === 'nextwork-theme-settings' && data.settings) {
-      persist(Object.assign({}, NWT.DEFAULT_SETTINGS, data.settings));
-      chrome.storage.local.set(settings);
+      const restored = Object.assign({}, NWT.DEFAULT_SETTINGS, data.settings);
+      const themes = {};
+      try {
+        Object.keys(restored.customThemes || {}).forEach(function (k) {
+          themes[k] = cleanTheme(restored.customThemes[k]);
+        });
+      } catch (e) { toast('Cannot restore: ' + e.message); return; }
+      restored.customThemes = themes;
+      persist(restored);
       toast('Settings restored');
     } else {
       toast('That file is not a Theme Studio export');
@@ -437,6 +489,7 @@
   });
 
   chrome.storage.onChanged.addListener(function (changes, area) {
+    if (!settings) return;              /* a change can land before load() returns */
     /* Only react to changes made elsewhere (the popup or the shortcut). */
     if (area === 'local' && changes.enabled) {
       settings.enabled = changes.enabled.newValue;

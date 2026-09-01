@@ -14,7 +14,6 @@
  */
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const { execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
@@ -23,7 +22,7 @@ const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'u
 const VERSION = manifest.version;
 
 /* Runtime files only. No docs, tools or review scaffolding. */
-const PAYLOAD = ['src', 'icons', 'themes'];
+const PAYLOAD = ['src', 'icons'];
 
 console.log('Running the audit first...\n');
 try {
@@ -35,27 +34,75 @@ try {
 
 function copyDir(from, to) {
   fs.mkdirSync(to, { recursive: true });
+  let n = 0;
   for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
     const src = path.join(from, entry.name);
     const dst = path.join(to, entry.name);
-    if (entry.isDirectory()) copyDir(src, dst);
-    else fs.copyFileSync(src, dst);
+    if (entry.isDirectory()) n += copyDir(src, dst);
+    else { fs.copyFileSync(src, dst); n++; }
   }
+  return n;
+}
+
+/* bsdtar, not PowerShell's Compress-Archive.
+ *
+ * Compress-Archive writes Windows path separators into the zip central
+ * directory. The spec requires forward slashes, so src/content.js came back
+ * out as a single root-level entry whose name merely contained a separator
+ * character. The manifest's reference to it resolved to nothing, and every
+ * store upload and Firefox install failed - while the build still reported
+ * success.
+ *
+ * tar has shipped in Windows since 10 1803 and is standard everywhere else,
+ * so one call now covers every platform. */
+/* On Windows, resolve System32's bsdtar by full path. If a POSIX toolchain is
+ * on PATH first - Git for Windows ships one - a bare `tar` finds GNU tar, which
+ * reads the drive letter in an absolute path as a remote host and fails with
+ * "Cannot connect to C". */
+function tarBin() {
+  if (process.platform === 'win32') {
+    const sys = path.join(process.env.SystemRoot || '', 'System32', 'tar.exe');
+    if (fs.existsSync(sys)) return sys;
+  }
+  return 'tar';
 }
 
 function zip(dir, outFile) {
-  try {
-    if (os.platform() === 'win32') {
-      execFileSync('powershell', ['-NoProfile', '-Command',
-        'Compress-Archive -Path "' + dir + '\\*" -DestinationPath "' + outFile + '" -Force'
-      ], { stdio: 'pipe' });
-    } else {
-      execFileSync('zip', ['-r', '-q', outFile, '.'], { cwd: dir, stdio: 'pipe' });
+  const entries = fs.readdirSync(dir);
+  /* -a picks the format from the file extension, and it does not know .xpi -
+   * asking for one directly produced an uncompressed tar that Firefox refused.
+   * Always write a .zip, then rename. */
+  const zipFile = outFile.replace(/\.xpi$/, '.zip');
+  execFileSync(tarBin(), ['-a', '-c', '-f', zipFile, '-C', dir].concat(entries),
+               { stdio: 'pipe' });
+  const entryCount = verifyZip(zipFile);
+  if (zipFile !== outFile) fs.renameSync(zipFile, outFile);
+  return entryCount;
+}
+
+/* A zip that will not load is worse than no zip, because the build looks like
+ * it worked. Read the archive back and check the two things that broke. */
+function verifyZip(file) {
+  const buf = fs.readFileSync(file);
+  const SEP = String.fromCharCode(92);   /* backslash, kept out of the literal */
+  const names = [];
+  for (let i = 0; i < buf.length - 46; i++) {
+    /* central directory file header signature */
+    if (buf[i] === 0x50 && buf[i + 1] === 0x4b && buf[i + 2] === 0x01 && buf[i + 3] === 0x02) {
+      const len = buf.readUInt16LE(i + 28);
+      names.push(buf.toString('utf8', i + 46, i + 46 + len));
     }
-    return true;
-  } catch (e) {
-    return false;
   }
+  if (!names.length) throw new Error('no entries in ' + path.basename(file));
+  const wrongSep = names.filter(function (n) { return n.indexOf(SEP) !== -1; });
+  if (wrongSep.length) {
+    throw new Error(path.basename(file) + ': entry "' + wrongSep[0] + '" uses the wrong ' +
+                    'path separator - the archiver is not writing a valid zip');
+  }
+  if (names.indexOf('manifest.json') === -1) {
+    throw new Error(path.basename(file) + ': manifest.json is not at the archive root');
+  }
+  return names.length;
 }
 
 /* ---------------------------------------------------------------- manifests */
@@ -70,6 +117,8 @@ function firefoxManifest() {
    * are listed here instead of being pulled in with importScripts. */
   delete m.background.service_worker;
   m.background.scripts = ['src/scenes.js', 'src/theme-engine.js', 'src/background.js'];
+  /* Chromium-only key; Firefox warns on it during review. */
+  delete m.minimum_chrome_version;
   m.browser_specific_settings = {
     gecko: {
       id: 'nextwork-theme-studio@local',
@@ -99,30 +148,32 @@ TARGETS.forEach(function (t) {
   const out = path.join(DIST, t.dir);
   fs.mkdirSync(out, { recursive: true });
 
-  PAYLOAD.forEach(function (p) { copyDir(path.join(ROOT, p), path.join(out, p)); });
+  let files = 0;
+  PAYLOAD.forEach(function (p) { files += copyDir(path.join(ROOT, p), path.join(out, p)); });
   fs.writeFileSync(path.join(out, 'manifest.json'),
                    JSON.stringify(t.manifest(), null, 2) + '\n');
   fs.copyFileSync(path.join(ROOT, 'LICENSE'), path.join(out, 'LICENSE'));
+  files += 2;
 
   const guide = path.join(ROOT, 'docs', 'install', t.dir + '.md');
-  if (fs.existsSync(guide)) fs.copyFileSync(guide, path.join(out, 'INSTALL.md'));
-
-  const files = execFileSync(process.execPath, ['-e',
-    'const fs=require("fs"),p=require("path");' +
-    'let n=0;(function w(d){for(const e of fs.readdirSync(d,{withFileTypes:true}))' +
-    'e.isDirectory()?w(p.join(d,e.name)):n++})(process.argv[1]);console.log(n)', out
-  ], { encoding: 'utf8' }).trim();
+  if (fs.existsSync(guide)) { fs.copyFileSync(guide, path.join(out, 'INSTALL.md')); files++; }
 
   let zipped = '';
   if (t.zip) {
-    const zipFile = path.join(DIST, 'nextwork-theme-studio-' + t.dir + '-' + VERSION + '.zip');
-    zipped = zip(out, zipFile) ? '  + zip' : '  (zip unavailable)';
+    /* Firefox's install-from-file picker filters to .xpi. It is a zip either
+     * way, but under a .zip name the file looks missing and people conclude
+     * the build is broken. */
+    const ext = t.dir === 'firefox' ? '.xpi' : '.zip';
+    const zipFile = path.join(DIST, 'nextwork-theme-studio-' + t.dir + '-' + VERSION + ext);
+    const entries = zip(out, zipFile);
+    zipped = '  + ' + path.basename(zipFile) + ' (' + entries + ' entries, verified)';
   }
-  console.log('  dist/' + t.dir.padEnd(9) + files + ' files' + zipped);
+  console.log('  dist/' + t.dir.padEnd(9) + String(files).padStart(3) + ' files' + zipped);
 });
 
 console.log('\nVersion ' + VERSION);
 console.log('Chrome, Brave and Edge are identical Chromium builds.');
-console.log('Firefox uses an event-page background rather than a service worker.');
-console.log('Safari has no zip: it must be converted with Xcode on macOS -');
+console.log('Firefox uses an event-page background rather than a service worker,');
+console.log('and its archive is named .xpi so the install picker shows it.');
+console.log('Safari has no archive: it must be converted with Xcode on macOS -');
 console.log('see dist/safari/INSTALL.md.');

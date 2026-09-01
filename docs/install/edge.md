@@ -23,5 +23,8 @@ and refresh any open nextwork.ai tab.
 
 - Edge shows a banner about extensions from outside the Microsoft Store. It is
   expected for an unpacked extension and can be dismissed.
+- **Load unpacked** does not need the *Allow extensions from other stores*
+  toggle. That one only governs installing from the Chrome Web Store, and
+  people go hunting for it because the banner sounds like it is asking.
 - If your workplace manages Edge by policy, sideloading may be blocked. That
   restriction is set by your administrator, not by the extension.

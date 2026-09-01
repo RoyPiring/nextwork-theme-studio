@@ -5,8 +5,8 @@
 Open a GitHub issue. If you would rather not do that publicly, use GitHub's
 private vulnerability reporting on this repository.
 
-This is a personal project, not a product with an on-call rota — expect a reply
-in days, not hours.
+This is a volunteer-maintained project, not a product with an on-call rota —
+expect a reply in days, not hours.
 
 ## What this extension can and cannot do
 
@@ -16,13 +16,14 @@ It restyles one site in your browser. That is the whole capability.
 | --- | --- | --- |
 | Network requests | none | `tools/audit.js`, in CI |
 | Remote code | none | no `eval`, no `new Function`, no remote scripts |
-| Dependencies | none | no `package-lock`, nothing to audit |
 | Permissions | `storage`, `activeTab` | audit fails on anything else |
 | Host access | `*://*.nextwork.ai/*` | audit fails on any other match pattern |
-| Data leaving the device | none | there is no code that could send it |
+| Data leaving the device | none | `tools/audit.js`, in CI |
 
-`storage` holds your themes. `activeTab` is used by one button in the popup that
-reloads the current tab, and is only granted when you click the extension.
+`storage` holds your themes, and it is the only permission requested. The popup's
+reload button calls `chrome.tabs.reload()` with no arguments, which needs no
+permission at all — `activeTab` was requested for a while and never used, so it
+is gone.
 
 Your themes are in `chrome.storage.local`, which does not sync. They stay on the
 machine you made them on.
@@ -36,13 +37,26 @@ The realistic risks for an extension like this:
 - **Over-broad host permissions.** A content script that matched `<all_urls>`
   could read every page you visit. This one is pinned to nextwork.ai and CI
   fails if that changes.
-- **Exfiltration.** Prevented structurally: the audit rejects any network API or
+- **Exfiltration from our own code.** The audit rejects any network API or
   remote URL in `src/`, so a change that adds one cannot pass CI.
 - **DOM injection.** All rendering uses `textContent` and `createElement`. The
-  audit rejects `innerHTML`.
+  audit rejects `innerHTML` and the other HTML sinks.
 
 The extension does read the page it themes — it must, to fix components the
 token layer cannot reach. It does not transmit anything it reads.
+
+### Importing a theme is a trust boundary
+
+A `.nwtheme.json` file is data from somewhere else, and a theme can carry
+custom CSS that ends up in the stylesheet injected into a site you are signed
+into. CSS is not inert there: a `url()` is a live request, and an attribute
+selector paired with a background image is a known way to read a form field out
+one character at a time.
+
+So imports are validated rather than merged. Colours must be `#rrggbb`, dials
+are clamped to a numeric range, unknown keys are dropped, and custom CSS that
+contains `url()`, `@import`, `image-set()` or `expression()` is refused with a
+message saying why. Import files from people you trust anyway.
 
 ## Not a supported target
 

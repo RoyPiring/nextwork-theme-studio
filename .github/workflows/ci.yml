@@ -27,13 +27,18 @@ jobs:
       - name: Run the audit gate
         run: node tools/audit.js
 
-      # assets/*.svg are generated from src/scenes.js. If they drift, the files
-      # in the repo no longer match the code that made them.
+      # assets/*.svg and docs/img/themes.svg are generated from src/scenes.js.
+      # If they drift, the files in the repo no longer match the code that made
+      # them, and the README shows themes that no longer exist.
       - name: Check generated assets are up to date
         run: |
           node tools/export-scenes.js > /dev/null
-          if ! git diff --quiet -- assets; then
-            echo "assets/ is out of date. Run: node tools/export-scenes.js"
-            git diff --stat -- assets
+          node tools/gallery.js > /dev/null
+          # --porcelain, not `git diff`: a new theme adds *untracked* files,
+          # which a diff of tracked paths reports as no change at all.
+          if [ -n "$(git status --porcelain -- assets docs/img)" ]; then
+            echo "Generated files are out of date."
+            echo "Run: node tools/export-scenes.js && node tools/gallery.js"
+            git status --porcelain -- assets docs/img
             exit 1
           fi
