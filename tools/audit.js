@@ -39,6 +39,20 @@ check('manifest is v3', () => {
   return 'v3';
 });
 
+/* Chromium refuses to load an unpacked extension whose root contains a name
+ * starting with an underscore - those are reserved. The repo root is what
+ * CONTRIBUTING tells contributors to load, and the tools write output into it,
+ * so a generated directory could quietly make the whole extension unloadable.
+ * The error names the directory but not the cause. */
+check('no reserved underscore names at the root', () => {
+  const bad = fs.readdirSync(ROOT).filter(n => n.charAt(0) === '_');
+  if (bad.length) {
+    fail(bad.join(', ') + ' - Chromium reserves names starting with "_", so ' +
+         'the root cannot be loaded unpacked while these exist');
+  }
+  return 'clean';
+});
+
 check('every referenced file exists', () => {
   const refs = [manifest.background.service_worker, manifest.options_ui.page,
                 manifest.action.default_popup]

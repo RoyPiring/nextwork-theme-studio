@@ -29,7 +29,7 @@ It must exit 0. CI runs the same command, so a red audit is a red PR.
 If you changed anything about colour, also look at the result:
 
 ```bash
-node tools/contact-sheet.js   # then open _review/contact-sheet.html
+node tools/contact-sheet.js   # then open review/contact-sheet.html
 ```
 
 Judging a palette from hex values does not work. Look at it.

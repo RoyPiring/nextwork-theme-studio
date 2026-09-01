@@ -8,6 +8,15 @@ Versioning is [semver](https://semver.org/); the `version` field in
 development milestones from before the repository went public, kept because
 they record why several non-obvious parts of the code look the way they do.
 
+## [1.4.4] - 2026-09-01
+
+### Fixed
+- The contact sheet wrote into `_review/`, and Chromium reserves names starting
+  with an underscore at an extension root. Since CONTRIBUTING tells you to load
+  the repo root unpacked, running that tool made the extension refuse to load
+  with an error naming the directory but not the cause. It is `review/` now,
+  and the audit fails on any underscore-prefixed name at the root.
+
 ## [1.4.3] - 2026-09-01
 
 ### Fixed
@@ -229,7 +238,8 @@ First public release.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.4.3...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.4.4...HEAD
+[1.4.4]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.4
 [1.4.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.3
 [1.4.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.2
 [1.4.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.1

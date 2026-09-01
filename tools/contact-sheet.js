@@ -1,7 +1,7 @@
 /* Renders every scene as a card on one page, so the whole set can be judged
  * side by side instead of one theme at a time.
  *
- *   node tools/contact-sheet.js   ->  _review/contact-sheet.html
+ *   node tools/contact-sheet.js   ->  review/contact-sheet.html
  *
  * The layer CSS goes in a real <style> block, never an inline style attribute.
  * The SVG uses single-quoted attributes and the data URI is wrapped in
@@ -107,7 +107,11 @@ ${rules.join('\n')}
 ${cards.join('\n')}
 </div>`;
 
-const outDir = path.join(__dirname, '..', '_review');
+/* Not _review: Chromium refuses to load an unpacked extension whose root
+ * contains a name starting with an underscore, and the repo root is exactly
+ * what CONTRIBUTING tells you to load. Running this tool used to make the
+ * extension unloadable, with an error naming this directory. */
+const outDir = path.join(__dirname, '..', 'review');
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, 'contact-sheet.html'), html);
-console.log('wrote _review/contact-sheet.html (' + (html.length / 1024).toFixed(0) + ' KB)');
+console.log('wrote review/contact-sheet.html (' + (html.length / 1024).toFixed(0) + ' KB)');
