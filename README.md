@@ -2,174 +2,186 @@
 
 [![audit](https://github.com/RoyPiring/nextwork-theme-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/RoyPiring/nextwork-theme-studio/actions/workflows/ci.yml)
 
-An unofficial theme extension for [nextwork.ai](https://nextwork.ai). Eighteen
-themes, a live palette editor, and generated scenery behind the page. Chromium
-browsers load it directly; Firefox and Safari are packaged but unverified.
+A browser extension that changes the colours of [nextwork.ai](https://nextwork.ai).
+It gives you 18 themes, an editor to build your own, and artwork behind the page.
 
-Not affiliated with NextWork. The extension makes no network requests at all.
+This is an unofficial project. It is not made by NextWork and is not connected
+to them. It never sends any data anywhere.
 
 ![The eighteen themes](docs/img/themes.svg)
 
-## Try it in a minute
+## Install it
+
+You need Chrome, Brave, or Edge. Firefox and Safari need extra steps, which are
+covered further down.
+
+**Step 1.** Download this project. Either click the green **Code** button above
+and choose **Download ZIP**, then unzip it, or run:
 
 ```bash
 git clone https://github.com/RoyPiring/nextwork-theme-studio
 ```
 
-Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**,
-and pick the folder you just cloned. There is nothing to build — the manifest
-and `src/` sit at the repository root.
+**Step 2.** Open your browser's extensions page:
 
-Brave hides that page behind menu → Extensions → **Manage Extensions**; typing
-`brave://extensions` lands on a settings page with no Developer mode toggle.
-Edge is `edge://extensions`.
+| Browser | Page |
+| --- | --- |
+| Chrome | `chrome://extensions` |
+| Edge | `edge://extensions` |
+| Brave | Menu, then Extensions, then **Manage Extensions** |
 
-Then open nextwork.ai. `Alt+Shift+D` toggles the theme, and you can rebind it at
-`chrome://extensions/shortcuts`.
+In Brave, do not type `brave://extensions`. That opens a settings page with no
+Developer mode switch.
 
-Firefox and Safari need a packaged build — see below.
+**Step 3.** Turn on **Developer mode**.
+
+**Step 4.** Click **Load unpacked** and choose the folder you downloaded. Pick
+the folder itself, not a file inside it. It is the folder that contains
+`manifest.json`.
+
+**Step 5.** Open nextwork.ai. The colours should change straight away.
+
+There is nothing to build and nothing to install. The extension runs from the
+folder as it is.
+
+To turn the theme on and off, press `Alt+Shift+D`. You can change that shortcut
+at `chrome://extensions/shortcuts`.
 
 ## Use it
 
-Click the toolbar icon:
+Click the extension icon in your toolbar. You will see three switches:
 
-- **Theme** — on/off.
-- **Wallpaper** — scenery on/off, independent of the colours.
-- **Focus** — a timer on the page, for timeboxing a project.
-- Pick any of the 18 themes. Four dials re-tint every neutral at once.
+- **Theme.** Turns the colours on and off.
+- **Wallpaper.** Turns the artwork on and off. This is separate from the colours.
+- **Focus.** A timer that sits on the page while you work.
 
-**Open editor** gives you the full palette: nine colours, a live WCAG contrast
-readout, the generated neutral ramp, a component preview, and a custom CSS box.
-Presets are read-only — change a colour and it forks into a theme of your own.
+Below the switches you can pick any of the 18 themes. Four sliders let you
+adjust every colour at once.
 
-Themes live in `chrome.storage.local`, so they stay on the machine that made
-them. Use **Export theme** / **Import** to move one between browsers.
+Click **Open editor** for full control. There you can set all nine colours, see
+a live contrast score, preview the result, and add your own CSS. The 18 themes
+that come with the extension cannot be edited. If you change a colour, the
+extension makes a copy for you to work on and leaves the original alone.
 
-### Focus timer
+Your themes are saved on your own computer. They are not synced and not
+uploaded. To move a theme to another browser, use **Export theme** in the
+editor, then **Import** on the other side.
 
-Pick a length — 15/25/45/60 minutes, or **Count up** for an open session — and
-press Start. A small pill sits in the corner of the page and the toolbar badge
-shows the minutes left, so you can glance without opening anything.
+### The focus timer
 
-It counts across every tab, survives closing the popup, and keeps counting past
-zero rather than stopping, so an overrun is visible instead of silent. Time is
-stored as timestamps, not as a running counter, so nothing is lost or
-double-counted if the browser restarts.
+Choose 15, 25, 45, or 60 minutes, or choose **Count up** for an open session.
+Then press Start.
 
-## Packaging for other browsers
+A small pill appears in the corner of the page, and the toolbar icon shows that
+a session is running. The timer keeps going across every tab, and it keeps
+going if you close the popup. When time runs out it does not stop. It counts
+past zero, so you can see that you went over.
+
+The timer stores start and end times rather than counting seconds. This means
+nothing is lost or double counted if your browser restarts.
+
+## Other browsers
+
+Firefox and Safari need a packaged build. Run this to create one:
 
 ```bash
 node tools/build.js
 ```
 
-That writes `dist/chrome`, `dist/brave`, `dist/edge`, `dist/firefox` and
-`dist/safari`, each with its own `INSTALL.md`, plus a zip ready to upload to a
-store. The audit runs first and nothing is written if it fails.
+That creates a folder for each browser inside `dist/`, and each folder has its
+own install guide. You need Node 18 or newer.
 
-Chrome, Brave and Edge are byte-identical Chromium builds — the separate folders
-exist so each carries the right install guide. Firefox needs a different
-manifest, because MV3 there runs the background as an event page rather than a
-service worker, and a temporary add-on is dropped on restart unless it is
-signed. Safari cannot be loaded as a folder at all; it has to be converted into
-a native app with Xcode on a Mac.
+- **Chrome, Brave, and Edge** get the same files. They only have separate
+  folders so each one carries the right instructions.
+- **Firefox** needs a different settings file, because it runs background code
+  in another way. Firefox also removes the extension when you restart, unless
+  the extension is signed.
+- **Safari** cannot load a folder at all. It has to be turned into a Mac app
+  using Xcode, which only works on a Mac.
 
-Per-browser detail is in [docs/BROWSERS.md](docs/BROWSERS.md), and each
-`docs/install/*.md` is the guide that ships inside its package.
+See [docs/BROWSERS.md](docs/BROWSERS.md) for the details.
 
 ## How it works
 
-NextWork is built on Tailwind v4, and every utility resolves through a CSS
-variable: `.bg-gray-50` is literally `background-color: var(--color-gray-50)`.
-So the extension doesn't fight the site with a wall of `!important` — it
-redefines the design tokens and lets the site restyle itself.
+NextWork is built with Tailwind CSS. Every colour on the site comes from a CSS
+variable. For example, `.bg-gray-50` simply means
+`background-color: var(--color-gray-50)`.
 
-Doing that properly means handling four variable families, the last of which
-lives inside shadow roots that no document stylesheet can reach. Full detail,
-including the two cascade traps that cost the most time, is in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The reasoning behind the choices
-that are expensive to reverse is in [docs/DECISIONS.md](docs/DECISIONS.md).
+So this extension does not fight the site. It changes those variables, and the
+site recolours itself.
 
-### Scenery
+Doing this properly means handling four separate groups of variables. The last
+group lives inside shadow roots, which a normal stylesheet cannot reach.
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains all of it, including the
+two problems that took the longest to solve.
+[docs/DECISIONS.md](docs/DECISIONS.md) explains the choices that would be hard
+to undo.
 
-Each theme has its own scene — an arcade, a ridge line, rooftops, bamboo, a
-skyline, a planet. One motif belongs to exactly one theme, and CI fails if two
-share.
+### The artwork
 
-Most of it is SVG generated from the theme's own palette in `src/scenes.js`.
-Concrete is the exception: it uses a raster image from `art/`, encoded inline in
-`src/wallpapers.js`, with the mist and dust drawn over the top. Nothing is
-fetched at runtime either way. Toggle it with **Wallpaper** in the popup,
-independently of the colours.
+Every theme has its own scene. There is an arcade, a mountain ridge, rooftops,
+bamboo, a city skyline, a planet, and more. No two themes share a shape, and
+the tests fail if they do.
 
-An image cannot be contrast-checked the way a hex fill can, so
-`tools/make-wallpaper.py` measures it instead — and it darkens in two zones,
-because one exposure dark enough for body text throws the picture away.
+Most scenes are drawn in code from the theme's own colours, in `src/scenes.js`.
+Concrete is the exception. It uses a picture from `art/`, stored inside
+`src/wallpapers.js`, with mist and dust drifting over the top. Nothing is
+downloaded while you browse.
 
-The reading column is a strip down the middle of the viewport; the rest is
-margin and panels. Scrimming that middle band lets the flanks stay far brighter
-than a single exposure would allow, which on this artwork is the whole point:
-the composition puts the arcades, the doorway and the figure out at the edges.
-The corridor is 1.95:1 as painted, and ships at **7.44:1 in the reading column**
-(the project's floor, WCAG AAA) and **4.90:1 everywhere else** (WCAG AA, so text
-that strays outside the column is still readable). Both are measured on a
-blurred copy, because a reader reads against the local average rather than one
-pixel — which is also what lets the doorway keep a bright core. The audit holds
-it to both numbers.
+There is a hard limit on how bright the artwork can be. On nextwork.ai, article
+text sits straight on the background with no panel behind it. So you read the
+words through the artwork. Text needs a contrast ratio of 7:1 to stay
+comfortable, and that makes the background very dark.
 
-Body copy on nextwork.ai is read against the scenery rather than on top of a
-panel, which is the constraint that shapes every scene and the reason they read
-as watermarks. Why that is, and what CI checks because of it, is in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#scenery).
+A picture cannot be checked the same way a single colour can, so
+`tools/make-wallpaper.py` measures it. It darkens the middle of the image, where
+your text sits, and leaves the sides brighter, where the artwork is. The
+corridor picture starts at 1.95:1. It ships at 7.44:1 in the reading area and
+4.90:1 at the edges. The tests check both numbers.
 
-## Layout
+## What is in this project
 
 ```
-manifest.json          MV3, matches *://*.nextwork.ai/*
-src/theme-engine.js    Palettes, contrast maths, CSS generation
-src/scenes.js          Motif generators and the scene per theme
-src/wallpapers.js      Raster wallpapers, encoded inline
-src/content.js         Injects the stylesheet, adopts it into shadow roots
-src/background.js      Keyboard shortcut and toolbar badge
-src/popup.*            Toolbar panel
+manifest.json          Settings the browser reads
+src/theme-engine.js    Colours, contrast maths, and CSS generation
+src/scenes.js          The artwork drawn in code
+src/wallpapers.js      Picture wallpapers, stored inside the file
+src/content.js         Adds the stylesheet to the page
+src/background.js      Keyboard shortcut and toolbar icon
+src/popup.*            The panel behind the toolbar icon
 src/options.*          The editor
-art/                   Source images for the raster wallpapers
-assets/                Generated SVG layers, for looking at and editing
-tools/                 Audit gate, asset export, gallery, contact sheet, packaging
-docs/                  Architecture, decisions, browser guides, release process
-docs/img/              Generated images used by this README
+art/                   Original pictures used by wallpapers
+assets/                The artwork saved as SVG files you can open
+tools/                 Tests, packaging, and image tools
+docs/                  Longer guides
 ```
 
 ## Working on it
 
-No build step and no dependencies. Edit a file, hit reload on the extension
-card, refresh the tab. Node 18+ is needed only for the tools.
+There is no build step and no libraries to install. Edit a file, click Reload on
+the extension card, then refresh the page. Node 18 or newer is needed only for
+the tools below.
 
 ```bash
-node tools/audit.js           # the CI gate - run before every commit
-node tools/build.js           # per-browser packages into dist/
-node tools/export-scenes.js   # regenerate assets/*.svg from scenes.js
-node tools/gallery.js         # regenerate docs/img/themes.svg
+node tools/audit.js           # run the tests, do this before every commit
+node tools/build.js           # build a folder for each browser
+node tools/export-scenes.js   # save the artwork as SVG files
+node tools/gallery.js         # rebuild the picture at the top of this README
+node tools/contact-sheet.js   # view all 18 scenes on one page
 python tools/make-wallpaper.py concreteCorridor art/concrete-corridor.jpg
-node tools/contact-sheet.js   # render all 18 scenes at reading size
 ```
 
-`tools/audit.js` is the important one. It validates the manifest, parses every
-file, enforces that the extension makes no network calls and uses no `eval` or
-`innerHTML`, and runs the full contrast floor across all 18 themes. Every check
-in it exists because that bug actually shipped at some point during development.
+`tools/audit.js` is the important one. It checks the settings file, reads every
+script, confirms the extension makes no network requests, confirms it uses no
+unsafe code, and checks the contrast of all 18 themes. Every test in it exists
+because that exact problem happened at some point.
 
-[CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) ·
-[CHANGELOG.md](CHANGELOG.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+[CONTRIBUTING.md](CONTRIBUTING.md) tells you how to add a theme.
+[SECURITY.md](SECURITY.md) explains what the extension can and cannot do.
+[CHANGELOG.md](CHANGELOG.md) lists what changed.
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) covers behaviour.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). That covers the artwork in `art/` as well as the
+MIT. See [LICENSE](LICENSE). This covers the pictures in `art/` as well as the
 code.
-
-## Related
-
-[ZAG23/nextwork-dark](https://github.com/ZAG23/nextwork-dark) is a separate,
-earlier dark-mode extension for the same site, also MIT. This project is an
-independent implementation and shares no code with it — a runtime theming engine
-rather than a static stylesheet. If you want one warm dark theme and nothing
-else, that one is smaller and simpler.
