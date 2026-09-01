@@ -142,3 +142,24 @@ test('dragging a dial writes storage once, not once per pixel', () => {
   commit.flush();
   assert.strictEqual(writes, 1, 'the drag should settle into a single write');
 });
+
+test('a mutation walks only what was added, not the whole page', () => {
+  /* The debounce bounded how often the walk ran, not how much it did: every
+   * pass was querySelectorAll('*') from the root plus every shadow root under
+   * it, on a page that mounts components continuously. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'concrete' } });
+  env.flush();
+
+  /* A page with some depth to it. */
+  for (let i = 0; i < 60; i++) env.addPanel(DARK);
+  env.flush();
+
+  const added = env.addPanel(DARK);
+  const walked = env.countWalks(() => {
+    env.mutate([{ addedNodes: [added] }]);
+    env.flush();
+  });
+
+  assert.ok(walked.fromRoot === 0,
+    'the whole document was walked ' + walked.fromRoot + ' time(s) for one added node');
+});

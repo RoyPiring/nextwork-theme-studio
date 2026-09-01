@@ -113,13 +113,46 @@
    * a full document walk plus a walk of every shadow root inside it. Coalesce
    * them instead. */
   let paintQueued = false;
-  function schedulePaint() {
-    if (paintQueued || !shadowSheet) return;
+  /* Subtrees that were added since the last pass. Painting these is bounded by
+   * what actually changed, rather than by the size of the page.
+   *
+   * The debounce alone bounded how *often* the walk ran, not how much it did:
+   * every pass was still querySelectorAll('*') from the root plus a recursive
+   * walk of every shadow root under it, on a page that mounts components
+   * continuously. */
+  let pendingRoots = [];
+
+  function schedulePaint(scopes) {
+    if (!shadowSheet) return;
+    if (scopes && scopes.length) {
+      for (let i = 0; i < scopes.length; i++) pendingRoots.push(scopes[i]);
+    } else {
+      pendingRoots = null;              /* null means "the whole document" */
+    }
+    if (paintQueued) return;
     paintQueued = true;
     setTimeout(function () {
       paintQueued = false;
-      try { paintShadowRoots(shadowSheet); } catch (e) { /* never break the page */ }
+      const scoped = pendingRoots;
+      pendingRoots = [];
+      try {
+        if (scoped === null) {
+          paintShadowRoots(shadowSheet);
+        } else {
+          for (let i = 0; i < scoped.length; i++) {
+            /* An element removed again before this ran has no owner document. */
+            if (scoped[i].isConnected === false) continue;
+            adoptWithin(shadowSheet, scoped[i]);
+          }
+        }
+      } catch (e) { /* never break the page */ }
     }, 120);
+  }
+
+  /* The element itself may host a shadow root, and so may anything under it. */
+  function adoptWithin(sheet, el) {
+    if (el.shadowRoot) { adopt(el.shadowRoot, sheet); paintShadowRoots(sheet, el.shadowRoot); }
+    paintShadowRoots(sheet, el);
   }
 
   function paintShadowRoots(sheet, scope) {
@@ -418,6 +451,8 @@
       return;
     }
     apply(NWT.buildCSS(s));
+    /* A full pass here, because this is the first sight of the page. After
+     * this the observer only has to cover what changes. */
     paintShadowRoots(shadowSheetFor(NWT.buildCSS(s, null, { shadow: true })));
     writeCache(true, s.themeId);
     renderHud(s);
@@ -462,13 +497,24 @@
 
   /* If the page ever nukes our node (head swaps during hydration), put it
    * back with whatever we last applied. */
-  const observer = new MutationObserver(function () {
-    if (lastCSS && !document.getElementById(STYLE_ID)) apply(lastCSS);
-    /* The app mounts components continuously, so newly created shadow roots
-     * need the sheet too. */
-    if (lastCSS) schedulePaint();
+  const observer = new MutationObserver(function (records) {
+    if (!lastCSS) return;
+    if (!document.getElementById(STYLE_ID)) apply(lastCSS);
+
+    /* Only the subtrees that were actually added. A page that mounts a single
+     * component should cost one small walk, not a walk of the document. */
+    const added = [];
+    for (let i = 0; i < records.length; i++) {
+      const nodes = records[i].addedNodes;
+      if (!nodes) continue;
+      for (let k = 0; k < nodes.length; k++) {
+        if (nodes[k].nodeType === 1) added.push(nodes[k]);
+      }
+    }
+    if (added.length) schedulePaint(added);
+
     /* panels are built on demand, so re-check whenever the DOM changes */
-    if (lastCSS && lastPalette) scheduleRescue(lastPalette);
+    if (lastPalette) scheduleRescue(lastPalette);
   });
   if (document.documentElement) {
     observer.observe(document.documentElement, { childList: true, subtree: true });

@@ -32,6 +32,8 @@ a full restyle.
 
 ## Next, in order
 
+All seven are done. What follows is the record of each.
+
 ### 2. Panels keep a colour they were given once and never give it back  [done]
 
 **Symptom.** Boxes change colour over time. Components look wrong after a while
@@ -98,7 +100,7 @@ checks and sidebar, leaving the rows in place.
 - No `chrome.runtime.lastError` check anywhere outside `content.js`, which does
   check. Same pattern, applied in one file of four.
 
-### 7. The mutation observer still walks the whole document
+### 7. The mutation observer still walks the whole document  [done]
 
 **Cause.** `paintShadowRoots` does `querySelectorAll('*')` and recurses into
 every shadow root. It is debounced at 120 ms, which bounds how often, not how

@@ -40,6 +40,8 @@ let nodeSeq = 0;
 class FakeElement {
   constructor(tag, doc) {
     this.tagName = String(tag).toUpperCase();
+    this.nodeType = 1;              /* ELEMENT_NODE; the observer filters on it */
+    this.isConnected = true;
     this.ownerDocument = doc;
     this.children = [];
     this.parentNode = null;
@@ -260,7 +262,20 @@ function loadContentScript(options) {
       doc.body.appendChild(el);
       return el;
     },
-    mutate() { observers.forEach(o => o.fn([])); },
+    mutate(records) { observers.forEach(o => o.fn(records || [])); },
+    /* Count how many times a walk started from the document root, which is
+     * the cost the observer is supposed to stop paying. */
+    countWalks(run) {
+      let fromRoot = 0;
+      /* paintShadowRoots walks from `document`, not documentElement. */
+      const original = doc.querySelectorAll.bind(doc);
+      doc.querySelectorAll = function (sel) {
+        if (sel === '*') fromRoot++;
+        return original(sel);
+      };
+      try { run(); } finally { doc.querySelectorAll = original; }
+      return { fromRoot };
+    },
     panels() { return doc.querySelectorAll('div'); }
   };
 }
