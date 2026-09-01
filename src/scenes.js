@@ -25,6 +25,15 @@
     return "<svg xmlns='http://www.w3.org/2000/svg' width='" + w + "' height='" + h +
            "' viewBox='0 0 " + w + " " + h + "' preserveAspectRatio='xMidYMax slice'>" + body + "</svg>";
   }
+
+  /* Full-bleed gradients must STRETCH, not slice. With 'slice' the SVG is
+   * cropped to cover its box, which cuts off the outer ring where the gradient
+   * reaches zero opacity - so the box edge still paints, as a straight
+   * horizontal line across the page. */
+  function bleed(w, h, body) {
+    return "<svg xmlns='http://www.w3.org/2000/svg' width='" + w + "' height='" + h +
+           "' viewBox='0 0 " + w + " " + h + "' preserveAspectRatio='none'>" + body + "</svg>";
+  }
   function wrap(fill, opacity, body) {
     return "<g fill='" + fill + "' opacity='" + opacity + "'>" + body + "</g>";
   }
@@ -242,7 +251,7 @@
   function scanlines(fill, opacity) {
     var out = '', i;
     for (i = 0; i < 90; i++) out += "<rect x='0' y='" + (i * 6) + "' width='1600' height='2'/>";
-    return svg(1600, 540, wrap(fill, opacity, out));
+    return bleed(1600, 540, wrap(fill, opacity, out));
   }
 
   /* ==========================================================================
@@ -277,7 +286,7 @@
   /* A glow that is genuinely zero before the edge of its box. */
   function softGlow(color, opacity, cy) {
     var id = uid();
-    return svg(1400, 700,
+    return bleed(1400, 700,
       "<defs><radialGradient id='" + id + "' cx='50%' cy='" + (cy || 88) + "%' r='52%'>" +
       "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
       "<stop offset='70%' stop-color='" + color + "' stop-opacity='" + (opacity * 0.35).toFixed(3) + "'/>" +
@@ -288,7 +297,7 @@
   /* Film grain. Kept very low - it should be felt, not seen. */
   function grainTile(opacity) {
     var id = uid();
-    return svg(240, 240,
+    return bleed(240, 240,
       "<defs><filter id='" + id + "'>" +
       "<feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>" +
       "<feColorMatrix type='saturate' values='0'/>" +
@@ -299,7 +308,7 @@
   /* Edge falloff, so the frame darkens away from the reading column. */
   function vignette(color, opacity) {
     var id = uid();
-    return svg(1400, 900,
+    return bleed(1400, 900,
       "<defs><radialGradient id='" + id + "' cx='50%' cy='45%' r='72%'>" +
       "<stop offset='55%' stop-color='" + color + "' stop-opacity='0'/>" +
       "<stop offset='100%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
@@ -375,7 +384,7 @@
   /* A sun/moon disc with a real corona rather than a hard circle. */
   function disc(color, opacity, r) {
     var id = uid();
-    return svg(900, 900,
+    return bleed(900, 900,
       "<defs><radialGradient id='" + id + "' cx='50%' cy='50%' r='50%'>" +
       "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
       "<stop offset='" + (r || 34) + "%' stop-color='" + color + "' stop-opacity='" + (opacity * 0.85) + "'/>" +

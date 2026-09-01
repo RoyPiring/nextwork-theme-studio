@@ -92,6 +92,7 @@
     const s = Object.assign({}, NWT.DEFAULT_SETTINGS, settings || {});
     if (!s.enabled) {
       remove();
+      removeHud();
       shadowSheetFor('');           /* neutralise the adopted copies in place */
       writeCache(false, '');
       return;
@@ -100,6 +101,7 @@
     apply(css);
     paintShadowRoots(shadowSheetFor(NWT.buildCSS(s, null, { shadow: true })));
     writeCache(true, css);
+    renderHud(s);
   }
 
   chrome.storage.local.get(null, function (settings) {
@@ -124,6 +126,57 @@
       chrome.storage.local.get(null, function (settings) { render(settings); });
     }
   });
+
+  /* ---- focus HUD -------------------------------------------------------
+   * A small pill in the corner showing the timer. It ticks locally from the
+   * stored timestamps rather than being driven from outside, so it stays
+   * correct even if nothing messages it for an hour. */
+  const HUD_ID = 'nwt-focus';
+  let hudTimer = null;
+
+  function hudEl() {
+    let el = document.getElementById(HUD_ID);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = HUD_ID;
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'off');
+      const time = document.createElement('span');
+      time.className = 'nwt-focus-time';
+      const label = document.createElement('span');
+      label.className = 'nwt-focus-label';
+      el.appendChild(time);
+      el.appendChild(label);
+      (document.body || document.documentElement).appendChild(el);
+    }
+    return el;
+  }
+
+  function removeHud() {
+    if (hudTimer) { clearInterval(hudTimer); hudTimer = null; }
+    const el = document.getElementById(HUD_ID);
+    if (el) el.remove();
+  }
+
+  function paintHud(focus) {
+    const el = hudEl();
+    const counting = focus.targetMin > 0;
+    const value = counting ? NWT.focusRemaining(focus) : NWT.focusElapsed(focus);
+    el.querySelector('.nwt-focus-time').textContent = NWT.formatDuration(value);
+    el.querySelector('.nwt-focus-label').textContent =
+      !focus.running ? 'paused' : (counting && value < 0 ? 'over' : 'focus');
+    el.setAttribute('data-state',
+      !focus.running ? 'paused' : (counting && value < 0 ? 'over' : 'running'));
+  }
+
+  function renderHud(settings) {
+    const focus = Object.assign({}, NWT.DEFAULT_SETTINGS.focus, settings.focus);
+    if (!settings.enabled || !focus.enabled) { removeHud(); return; }
+    paintHud(focus);
+    if (hudTimer) clearInterval(hudTimer);
+    /* only tick while running - a paused timer never changes */
+    if (focus.running) hudTimer = setInterval(function () { paintHud(focus); }, 1000);
+  }
 
   /* If the page ever nukes our node (head swaps during hydration), put it
    * back with whatever we last applied. */

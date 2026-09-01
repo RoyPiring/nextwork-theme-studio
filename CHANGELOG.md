@@ -6,6 +6,19 @@ Versioning is [semver](https://semver.org/); the `version` field in
 
 ## [Unreleased]
 
+### Added
+- Focus timer: 15/25/45/60-minute sessions or open-ended count-up, an on-page
+  pill and a toolbar badge. Counts across tabs and survives a restart.
+
+### Fixed
+- A horizontal line across the page: full-bleed gradients used
+  `preserveAspectRatio="slice"`, which crops the outer ring where a gradient
+  reaches zero opacity, so the background box edge still painted.
+- Tooltips, menus and dialogs kept a white background with light text. They are
+  rendered on demand and portalled away from their owner, so they missed the
+  token pass; they are now themed by role.
+- The assistant slide-over arrived as a white sheet over the page.
+
 ## [1.0.0] - 2026-09-01
 
 First public release.

@@ -364,6 +364,16 @@
     /* Per-theme dial positions, so presets stay pristine. */
     tuningOverrides: {},
     schema: 2,
+    /* Focus timer. Time is stored as timestamps, never as a running counter, so
+     * it stays correct across popup closes, page loads and browser restarts:
+     * elapsed = accumulatedMs + (running ? now - startedAt : 0). */
+    focus: {
+      enabled: false,      /* show the on-page timer */
+      running: false,
+      startedAt: 0,        /* epoch ms of the current run */
+      accumulatedMs: 0,    /* time banked from previous runs */
+      targetMin: 25        /* 0 counts up; anything else counts down */
+    },
     options: {
       dimImages: 0,          /* 0-40 % - knocks the glare off bright screenshots */
       softenShadows: true,   /* light-mode drop shadows look like smudges on dark */
@@ -376,6 +386,29 @@
       sceneBackdrop: true    /* hand-drawn scenery behind the page */
     }
   };
+
+  /* Focus timer maths, shared by the popup, the badge and the on-page HUD so
+   * they can never disagree about what time it is. */
+  function focusElapsed(focus, now) {
+    const f = Object.assign({}, DEFAULT_SETTINGS.focus, focus);
+    return f.accumulatedMs + (f.running ? Math.max(0, (now || Date.now()) - f.startedAt) : 0);
+  }
+
+  function focusRemaining(focus, now) {
+    const f = Object.assign({}, DEFAULT_SETTINGS.focus, focus);
+    if (!f.targetMin) return null;                 /* counting up */
+    return f.targetMin * 60000 - focusElapsed(f, now);
+  }
+
+  /* mm:ss, or h:mm:ss once it runs past an hour. */
+  function formatDuration(ms) {
+    const sign = ms < 0 ? '-' : '';
+    let t = Math.floor(Math.abs(ms) / 1000);
+    const h = Math.floor(t / 3600); t -= h * 3600;
+    const m = Math.floor(t / 60); const sec = t - m * 60;
+    const pad = n => (n < 10 ? '0' : '') + n;
+    return sign + (h ? h + ':' + pad(m) : m) + ':' + pad(sec);
+  }
 
   /* One place that knows how a dial reads, so both UIs agree. */
   function formatDial(key, value) {
@@ -832,6 +865,26 @@
     L.push('.hljs-emphasis { font-style: italic; }');
     L.push('.hljs-strong { font-weight: 700; }');
 
+    /* --- floating panels --------------------------------------------------
+     * Tooltips, menus, dropdowns and dialogs are rendered on demand and often
+     * portalled out of the component that owns them, so they miss whichever
+     * token pass would otherwise have caught them - a white bubble with our
+     * light body text on it is unreadable. Catch the whole class by role. */
+    L.push('[popover], dialog, [role="tooltip"], [role="dialog"], [role="menu"], ' +
+           '[role="listbox"], [role="alertdialog"], [data-rac][data-trigger], ' +
+           '[class*="tooltip"]:not(a):not(button), [class*="popover"], [class*="dropdown"] ' +
+           '{ background-color: var(--nwt-surface-alt); color: var(--nwt-text); ' +
+           'border-color: var(--nwt-border); }');
+    /* Their own text utilities inside a bubble must not stay dark-on-dark. */
+    L.push('[popover] .text-primary, dialog .text-primary, [role="tooltip"] .text-primary, ' +
+           '[role="dialog"] .text-primary { color: var(--nwt-text); }');
+
+    /* Slide-over panels (the assistant drawer) arrive as a fixed white sheet
+     * with a gradient fade. Theme the sheet and neutralise a fade that ends in
+     * a light literal, or it shows as a white band over the page. */
+    L.push('[class*="fixed"][class*="inset-y"], [class*="fixed"][class*="right-0"][class*="h-full"], ' +
+           '[class*="translate-x"][class*="fixed"] { background-color: var(--nwt-surface); }');
+
     /* --- borders, rings, selection --------------------------------------- */
     L.push('.border-glass-border, .border-white, .divide-gray-200 > * + * { border-color: var(--nwt-border); }');
     L.push('.outline-brand { outline-color: var(--nwt-accent); }');
@@ -891,6 +944,25 @@
       L.push('img, video, [style*="background-image"] { filter: brightness(' + b.toFixed(2) + '); }');
       L.push('img:hover, video:hover { filter: none; }');
     }
+
+    /* --- focus HUD --------------------------------------------------------
+     * Styled here rather than in the content script so it wears the current
+     * theme like everything else. */
+    L.push('#nwt-focus { position: fixed; left: 18px; bottom: 18px; z-index: 2147483000;' +
+           ' display: flex; align-items: baseline; gap: 8px; padding: 9px 14px;' +
+           ' border-radius: 999px; pointer-events: none; user-select: none;' +
+           ' font: 600 15px/1 ui-monospace, "Cascadia Code", Consolas, monospace;' +
+           ' font-variant-numeric: tabular-nums;' +
+           ' background: ' + rgba(p.surfaceAlt, 0.92) + '; color: var(--nwt-text);' +
+           ' border: 1px solid var(--nwt-border);' +
+           ' box-shadow: 0 6px 24px rgba(0,0,0,.28); backdrop-filter: blur(6px); }');
+    L.push('#nwt-focus .nwt-focus-label { font-size: 10px; font-weight: 500;' +
+           ' letter-spacing: .08em; text-transform: uppercase; color: var(--nwt-text-muted); }');
+    L.push('#nwt-focus[data-state="running"] { border-color: ' + rgba(p.accent, 0.55) + '; }');
+    L.push('#nwt-focus[data-state="running"] .nwt-focus-time { color: var(--nwt-accent); }');
+    L.push('#nwt-focus[data-state="over"] { border-color: ' + p.status.warning[400] + '; }');
+    L.push('#nwt-focus[data-state="over"] .nwt-focus-time { color: ' + p.status.warning[400] + '; }');
+    L.push('#nwt-focus[data-state="paused"] { opacity: .72; }');
 
     /* Root surface last, so nothing above accidentally wins it. */
     /* scopeCSS turns this into `html body`. Meaningless inside a shadow root. */
@@ -1005,6 +1077,7 @@
   root.NWT = {
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
+    focusElapsed, focusRemaining, formatDuration,
     toneOf,
     color: { hexToRgb, rgbToHex, hexToHsl, hslToHex, mix, rgba, lighten, contrastRatio, clamp }
   };

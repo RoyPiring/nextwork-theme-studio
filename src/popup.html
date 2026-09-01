@@ -28,6 +28,10 @@
       <span class="switch-label">Wallpaper</span>
       <span class="switch"><input type="checkbox" id="sceneBackdrop"><span></span></span>
     </label>
+    <label class="switch-item" title="Show the focus timer on the page">
+      <span class="switch-label">Focus</span>
+      <span class="switch"><input type="checkbox" id="focusEnabled"><span></span></span>
+    </label>
   </div>
 
   <div class="stack dimmable">
@@ -56,6 +60,29 @@
       </div>
     </div>
   </div>
+
+  <section class="card focus" id="focus-panel">
+    <div class="row between">
+      <h2 class="section-title">Focus</h2>
+      <span class="tiny muted" id="focus-state">paused</span>
+    </div>
+
+    <div class="focus-clock" id="focus-clock">25:00</div>
+
+    <div class="chips" id="focus-targets" role="group" aria-label="Session length">
+      <button type="button" data-min="15">15m</button>
+      <button type="button" data-min="25">25m</button>
+      <button type="button" data-min="45">45m</button>
+      <button type="button" data-min="60">60m</button>
+      <button type="button" data-min="0">Count up</button>
+    </div>
+
+    <div class="row" style="gap:8px">
+      <button class="primary grow" id="focus-toggle">Start</button>
+      <button id="focus-reset" title="Reset the timer">Reset</button>
+    </div>
+    <p class="tiny muted" id="focus-note">Counts on every tab, not just this one.</p>
+  </section>
 
   <footer>
     <button class="primary" id="open-editor">Open editor</button>

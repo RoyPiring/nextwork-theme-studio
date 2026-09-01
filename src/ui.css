@@ -99,6 +99,27 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .switch-item .switch span::after { width: 13px; height: 13px; }
 .switch-item .switch input:checked + span::after { transform: translateX(15px); }
 
+/* ---- focus panel ---- */
+.section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ui-text-muted); font-weight: 600; }
+.focus { gap: 10px; }
+.focus-clock {
+  font: 700 34px/1 ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+  text-align: center; padding: 4px 0 2px; color: var(--ui-text);
+}
+.focus[data-state="running"] .focus-clock { color: var(--ui-accent); }
+.focus[data-state="over"] .focus-clock { color: #f0a77a; }
+.chips { display: flex; gap: 5px; }
+.chips button {
+  flex: 1; padding: 5px 0; font-size: 11px; border-radius: 7px;
+  background: transparent; color: var(--ui-text-dim);
+}
+.chips button[aria-pressed="true"] {
+  background: var(--ui-surface-alt); color: var(--ui-text);
+  border-color: var(--ui-accent);
+}
+
 /* ---- theme cards ---- */
 .themes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .theme {

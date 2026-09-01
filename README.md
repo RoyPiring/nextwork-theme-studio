@@ -25,6 +25,7 @@ Click the toolbar icon:
 
 - **Theme** — on/off.
 - **Wallpaper** — scenery on/off, independent of the colours.
+- **Focus** — a timer on the page, for timeboxing a project.
 - Pick any of the 18 themes. Four dials re-tint every neutral at once.
 
 **Open editor** gives you the full palette: nine colours, a live WCAG contrast
@@ -33,6 +34,17 @@ Presets are read-only — change a colour and it forks into a theme of your own.
 
 Themes live in `chrome.storage.local`, so they stay on this machine. Use
 **Export theme** / **Import** to move one between browsers.
+
+### Focus timer
+
+Pick a length — 15/25/45/60 minutes, or **Count up** for an open session — and
+press Start. A small pill sits in the corner of the page and the toolbar badge
+shows the minutes left, so you can glance without opening anything.
+
+It counts across every tab, survives closing the popup, and keeps counting past
+zero rather than stopping, so an overrun is visible instead of silent. Time is
+stored as timestamps, not as a running counter, so nothing is lost or
+double-counted if the browser restarts.
 
 ---
 

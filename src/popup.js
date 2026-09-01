@@ -106,6 +106,7 @@
     dressUI(theme);
     renderThemes();
     renderDials();
+    renderFocus();
   }
 
   function onDial(k) {
@@ -120,6 +121,40 @@
     renderThemes();
   }
 
+  /* ---- focus ---- */
+  function focusState() {
+    return Object.assign({}, NWT.DEFAULT_SETTINGS.focus, settings.focus);
+  }
+
+  function saveFocus(patch) {
+    const focus = Object.assign({}, focusState(), patch);
+    save({ focus: focus });
+    renderFocus();
+  }
+
+  let focusTick = null;
+
+  function renderFocus() {
+    const f = focusState();
+    const counting = f.targetMin > 0;
+    const value = counting ? NWT.focusRemaining(f) : NWT.focusElapsed(f);
+    const state = !f.running ? 'paused' : (counting && value < 0 ? 'over' : 'running');
+
+    $('focus-clock').textContent = NWT.formatDuration(value);
+    $('focus-panel').setAttribute('data-state', state);
+    $('focus-state').textContent =
+      state === 'over' ? 'over target' : state === 'running' ? 'running' : 'paused';
+    $('focus-toggle').textContent = f.running ? 'Pause' : (NWT.focusElapsed(f) ? 'Resume' : 'Start');
+    $('focusEnabled').checked = !!f.enabled;
+
+    [...$('focus-targets').querySelectorAll('button')].forEach(function (b) {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.min) === f.targetMin));
+    });
+
+    if (focusTick) { clearInterval(focusTick); focusTick = null; }
+    if (f.running) focusTick = setInterval(renderFocus, 1000);
+  }
+
   /* ---- wiring ---- */
   load(function () {
     renderAll();
@@ -127,6 +162,34 @@
     $('enabled').addEventListener('change', function () {
       save({ enabled: $('enabled').checked });
       renderAll();
+    });
+
+    /* ---- focus timer -------------------------------------------------
+     * Every control writes timestamps to storage; the popup only ever reads
+     * the clock. That way closing the popup, switching tabs or restarting the
+     * browser cannot lose or double-count time. */
+    $('focusEnabled').addEventListener('change', function () {
+      saveFocus({ enabled: $('focusEnabled').checked });
+    });
+
+    $('focus-toggle').addEventListener('click', function () {
+      const f = focusState();
+      if (f.running) {
+        /* bank what has elapsed, then stop the clock */
+        saveFocus({ running: false, accumulatedMs: NWT.focusElapsed(f), startedAt: 0 });
+      } else {
+        saveFocus({ running: true, startedAt: Date.now(), enabled: true });
+      }
+    });
+
+    $('focus-reset').addEventListener('click', function () {
+      saveFocus({ running: false, startedAt: 0, accumulatedMs: 0 });
+    });
+
+    $('focus-targets').addEventListener('click', function (e) {
+      const btn = e.target.closest('button[data-min]');
+      if (!btn) return;
+      saveFocus({ targetMin: Number(btn.dataset.min) });
     });
 
     $('sceneBackdrop').addEventListener('change', function () {
