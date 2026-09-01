@@ -87,46 +87,6 @@
     }
   }
 
-  /* ---- real settings --------------------------------------------------- */
-  function render(settings) {
-    const s = Object.assign({}, NWT.DEFAULT_SETTINGS, settings || {});
-    if (!s.enabled) {
-      remove();
-      removeHud();
-      shadowSheetFor('');           /* neutralise the adopted copies in place */
-      writeCache(false, '');
-      return;
-    }
-    const css = NWT.buildCSS(s);
-    apply(css);
-    paintShadowRoots(shadowSheetFor(NWT.buildCSS(s, null, { shadow: true })));
-    writeCache(true, css);
-    renderHud(s);
-  }
-
-  chrome.storage.local.get(null, function (settings) {
-    if (chrome.runtime.lastError) return;
-    render(settings);
-  });
-
-  chrome.storage.onChanged.addListener(function (changes, area) {
-    if (area !== 'local') return;
-    chrome.storage.local.get(null, function (settings) {
-      if (chrome.runtime.lastError) return;
-      render(settings);
-    });
-  });
-
-  /* Live preview: the options page pushes a candidate stylesheet while you
-   * drag a slider, without saving it. */
-  chrome.runtime.onMessage.addListener(function (msg) {
-    if (!msg) return;
-    if (msg.type === 'nwt-preview' && typeof msg.css === 'string') apply(msg.css);
-    if (msg.type === 'nwt-preview-end') {
-      chrome.storage.local.get(null, function (settings) { render(settings); });
-    }
-  });
-
   /* ---- focus HUD -------------------------------------------------------
    * A small pill in the corner showing the timer. It ticks locally from the
    * stored timestamps rather than being driven from outside, so it stays
@@ -169,14 +129,138 @@
       !focus.running ? 'paused' : (counting && value < 0 ? 'over' : 'running'));
   }
 
+  /* ---- dragging --------------------------------------------------------
+   * Position is stored as a fraction of the viewport rather than pixels, so
+   * the pill keeps its relative place when the window is resized. It is also
+   * clamped on every paint, so it can never end up off-screen. */
+  function placeHud(el, focus) {
+    if (focus.hudX == null || focus.hudY == null) {
+      el.style.left = el.style.top = el.style.right = '';
+      return;
+    }
+    const w = el.offsetWidth || 180, h = el.offsetHeight || 40;
+    const maxX = Math.max(0, window.innerWidth - w - 8);
+    const maxY = Math.max(0, window.innerHeight - h - 8);
+    el.style.left = Math.min(maxX, Math.max(8, focus.hudX * window.innerWidth)) + 'px';
+    el.style.top = Math.min(maxY, Math.max(8, focus.hudY * window.innerHeight)) + 'px';
+    el.style.right = 'auto';
+  }
+
+  function makeDraggable(el) {
+    if (el.dataset.draggable === '1') return;
+    el.dataset.draggable = '1';
+    let startX = 0, startY = 0, originX = 0, originY = 0, moved = false;
+
+    el.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) return;
+      const r = el.getBoundingClientRect();
+      startX = e.clientX; startY = e.clientY;
+      originX = r.left; originY = r.top;
+      moved = false;
+      el.setPointerCapture(e.pointerId);
+      el.setAttribute('data-dragging', '1');
+      e.preventDefault();
+    });
+
+    el.addEventListener('pointermove', function (e) {
+      if (!el.hasAttribute('data-dragging')) return;
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+      const w = el.offsetWidth, h = el.offsetHeight;
+      const x = Math.min(window.innerWidth - w - 8, Math.max(8, originX + dx));
+      const y = Math.min(window.innerHeight - h - 8, Math.max(8, originY + dy));
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.style.right = 'auto';
+    });
+
+    function drop(e) {
+      if (!el.hasAttribute('data-dragging')) return;
+      el.removeAttribute('data-dragging');
+      try { el.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+      if (!moved) return;
+      const r = el.getBoundingClientRect();
+      chrome.storage.local.get({ focus: {} }, function (stored) {
+        const focus = Object.assign({}, NWT.DEFAULT_SETTINGS.focus, stored.focus, {
+          hudX: r.left / window.innerWidth,
+          hudY: r.top / window.innerHeight
+        });
+        chrome.storage.local.set({ focus: focus });
+      });
+    }
+    el.addEventListener('pointerup', drop);
+    el.addEventListener('pointercancel', drop);
+
+    /* double-click puts it back where it started */
+    el.addEventListener('dblclick', function () {
+      chrome.storage.local.get({ focus: {} }, function (stored) {
+        const focus = Object.assign({}, NWT.DEFAULT_SETTINGS.focus, stored.focus,
+                                    { hudX: null, hudY: null });
+        chrome.storage.local.set({ focus: focus });
+      });
+    });
+  }
+
   function renderHud(settings) {
     const focus = Object.assign({}, NWT.DEFAULT_SETTINGS.focus, settings.focus);
     if (!settings.enabled || !focus.enabled) { removeHud(); return; }
     paintHud(focus);
+    const el = hudEl();
+    makeDraggable(el);
+    placeHud(el, focus);
     if (hudTimer) clearInterval(hudTimer);
     /* only tick while running - a paused timer never changes */
     if (focus.running) hudTimer = setInterval(function () { paintHud(focus); }, 1000);
   }
+
+  /* keep it on screen if the window is resized under it */
+  window.addEventListener('resize', function () {
+    const el = document.getElementById(HUD_ID);
+    if (!el) return;
+    chrome.storage.local.get({ focus: {} }, function (stored) {
+      placeHud(el, Object.assign({}, NWT.DEFAULT_SETTINGS.focus, stored.focus));
+    });
+  });
+
+  /* ---- real settings --------------------------------------------------- */
+  function render(settings) {
+    const s = Object.assign({}, NWT.DEFAULT_SETTINGS, settings || {});
+    if (!s.enabled) {
+      remove();
+      removeHud();
+      shadowSheetFor('');           /* neutralise the adopted copies in place */
+      writeCache(false, '');
+      return;
+    }
+    const css = NWT.buildCSS(s);
+    apply(css);
+    paintShadowRoots(shadowSheetFor(NWT.buildCSS(s, null, { shadow: true })));
+    writeCache(true, css);
+    renderHud(s);
+  }
+
+  chrome.storage.local.get(null, function (settings) {
+    if (chrome.runtime.lastError) return;
+    render(settings);
+  });
+
+  chrome.storage.onChanged.addListener(function (changes, area) {
+    if (area !== 'local') return;
+    chrome.storage.local.get(null, function (settings) {
+      if (chrome.runtime.lastError) return;
+      render(settings);
+    });
+  });
+
+  /* Live preview: the options page pushes a candidate stylesheet while you
+   * drag a slider, without saving it. */
+  chrome.runtime.onMessage.addListener(function (msg) {
+    if (!msg) return;
+    if (msg.type === 'nwt-preview' && typeof msg.css === 'string') apply(msg.css);
+    if (msg.type === 'nwt-preview-end') {
+      chrome.storage.local.get(null, function (settings) { render(settings); });
+    }
+  });
 
   /* If the page ever nukes our node (head swaps during hydration), put it
    * back with whatever we last applied. */

@@ -7,10 +7,18 @@ Versioning is [semver](https://semver.org/); the `version` field in
 ## [Unreleased]
 
 ### Added
+- The focus timer can be dragged anywhere and remembers where it was put, as a
+  fraction of the viewport so it holds its place when the window resizes.
+  Double-click returns it to the corner. It is clamped on screen at all times.
 - Focus timer: 15/25/45/60-minute sessions or open-ended count-up, an on-page
   pill and a toolbar badge. Counts across tabs and survives a restart.
 
 ### Fixed
+- The Your Work overlay let the page bleed through it. The page ground is made
+  transparent so scenery shows, but NextWork paints `.bg-paper` on sticky
+  headers and modal panels too, so those went see-through as well. Positioned
+  elements are panels rather than ground, and now keep their surface.
+- The focus timer overlapped the account avatar and could be pushed off-screen.
 - Eight bands across seven themes were invisible. The mask always faded the top
   edge, which is right for a band on the floor and destroys one hanging from
   the ceiling - it erased exactly the part meant to be seen. Palm Forest lost

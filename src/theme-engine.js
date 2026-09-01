@@ -372,7 +372,12 @@
       running: false,
       startedAt: 0,        /* epoch ms of the current run */
       accumulatedMs: 0,    /* time banked from previous runs */
-      targetMin: 25        /* 0 counts up; anything else counts down */
+      targetMin: 25,       /* 0 counts up; anything else counts down */
+      /* Where the pill was last dropped, as a fraction of the viewport, so it
+       * lands in the same relative place on a different window size. null
+       * means "wherever the stylesheet puts it". */
+      hudX: null,
+      hudY: null
     },
     options: {
       dimImages: 0,          /* 0-40 % - knocks the glare off bright screenshots */
@@ -1010,23 +1015,32 @@
     /* 76px clears the account avatar, which sits in the same corner. Width is
      * content-driven with a floor and a ceiling rather than fixed, so a long
      * time never pushes the label outside the box. */
+    /* Sized in vw with clamps rather than fixed px, so it shrinks as the page
+     * text grows instead of expanding into it. Draggable, hence pointer-events
+     * and the grab cursor; the content script stores wherever it is put. */
     L.push('#nwt-focus { position: fixed; top: 76px; right: 24px;' +
-           ' min-width: 168px; max-width: 232px;' +
            ' box-sizing: border-box; z-index: 2147483000;' +
            ' display: flex; align-items: baseline; justify-content: flex-start;' +
-           ' gap: 12px; padding: 10px 16px;' +
-           ' border-radius: 12px; pointer-events: none; user-select: none;' +
-           ' font: 700 21px/1 ui-monospace, "Cascadia Code", Consolas, monospace;' +
+           ' gap: clamp(7px, 0.7vw, 12px);' +
+           ' padding: clamp(6px, 0.6vw, 10px) clamp(10px, 1vw, 16px);' +
+           ' border-radius: clamp(9px, 0.8vw, 12px); touch-action: none;' +
+           ' pointer-events: auto; cursor: grab; user-select: none;' +
+           ' font: 700 clamp(14px, 1.15vw, 21px)/1 ui-monospace, "Cascadia Code", Consolas, monospace;' +
            ' font-variant-numeric: tabular-nums; letter-spacing: -0.01em;' +
            ' background: ' + rgba(p.surfaceAlt, 0.92) + '; color: var(--nwt-text);' +
            ' border: 1px solid var(--nwt-border);' +
-           ' box-shadow: 0 6px 24px rgba(0,0,0,.28); backdrop-filter: blur(6px); }');
-    L.push('#nwt-focus .nwt-focus-label { font-size: 10px; font-weight: 600;' +
-           ' letter-spacing: .1em; text-transform: uppercase; color: var(--nwt-text-muted); }');
+           ' box-shadow: 0 6px 24px rgba(0,0,0,.28); backdrop-filter: blur(6px);' +
+           ' transition: opacity 120ms ease; }');
+    L.push('#nwt-focus:hover { opacity: 1; }');
+    L.push('#nwt-focus[data-dragging="1"] { cursor: grabbing; opacity: .9;' +
+           ' box-shadow: 0 10px 34px rgba(0,0,0,.42); }');
+    L.push('#nwt-focus .nwt-focus-label { font-size: clamp(8px, 0.55vw, 10px);' +
+           ' font-weight: 600; letter-spacing: .1em; text-transform: uppercase;' +
+           ' color: var(--nwt-text-muted); }');
     /* No right rail to align with on a narrow window, so tuck it back down. */
     L.push('#nwt-focus .nwt-focus-time { flex: none; }');
     L.push('@media (max-width: 900px) { #nwt-focus { top: auto; bottom: 18px; right: 18px;' +
-           ' min-width: 0; font-size: 16px; padding: 9px 14px; border-radius: 999px; } }');
+           ' border-radius: 999px; } }');
     L.push('#nwt-focus[data-state="running"] { border-color: ' + rgba(p.accent, 0.55) + '; }');
     L.push('#nwt-focus[data-state="running"] .nwt-focus-time { color: var(--nwt-accent); }');
     L.push('#nwt-focus[data-state="over"] { border-color: ' + p.status.warning[400] + '; }');
@@ -1084,7 +1098,14 @@
        * or the whole scene is hidden behind it - the root keeps painting the
        * canvas colour, so nothing is lost. */
       L.push('body { background-color: transparent; }');
-      L.push('.bg-paper, .bg-brand-primary { background-color: transparent; }');
+      /* The page ground goes transparent so the scenery behind it shows. But
+       * NextWork also paints .bg-paper on sticky headers and modal panels, and
+       * a see-through modal lets the page bleed through it - which is what the
+       * Your Work overlay was doing. Anything positioned is a panel, not the
+       * ground, so it keeps its surface. */
+      L.push('.bg-paper:not([class*="fixed"]):not([class*="sticky"]):not([class*="absolute"]), .bg-brand-primary:not([class*="fixed"]):not([class*="sticky"]):not([class*="absolute"]) { background-color: transparent; }');
+      /* and the panels that ARE positioned get a real surface to sit on */
+      L.push('.bg-paper[class*="fixed"], .bg-paper[class*="sticky"], .bg-paper[class*="absolute"] { background-color: var(--nwt-surface); }');
 
       if (o.animateBackdrop && !scene && theme.backdrop) {
         /* No scenery: drift the wash itself so the page still breathes. */
