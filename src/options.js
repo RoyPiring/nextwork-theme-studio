@@ -527,7 +527,9 @@
       if (!file) return;
       file.text().then(function (text) {
         try { importPayload(JSON.parse(text)); }
-        catch (e) { toast('Could not read that file'); }
+        catch (e) { toast('That file is not valid JSON'); }
+      }, function () {
+        toast('Could not read that file');
       });
       $('file-input').value = '';
     });
@@ -542,8 +544,15 @@
     });
 
     $('copy-css').addEventListener('click', function () {
-      navigator.clipboard.writeText($('css-out').textContent).then(function () {
+      /* Clipboard access can be refused, and a rejection with no handler is
+       * invisible: the toast never appears and nothing says why. */
+      const copy = navigator.clipboard && navigator.clipboard.writeText
+        ? navigator.clipboard.writeText($('css-out').textContent)
+        : Promise.reject(new Error('no clipboard'));
+      copy.then(function () {
         toast('Stylesheet copied');
+      }, function () {
+        toast('Could not copy. Select the text and copy it by hand.');
       });
     });
   });

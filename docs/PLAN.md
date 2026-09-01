@@ -90,7 +90,7 @@ every change, including the `<input type="color">` currently being dragged.
 **Fix.** Commit should update the theme and re-run only the preview, ramp,
 checks and sidebar, leaving the rows in place.
 
-### 6. Errors that never surface
+### 6. Errors that never surface  [done]
 
 - `navigator.clipboard.writeText(...)` with no `.catch` - a denied permission is
   an unhandled rejection and the user believes the copy worked.

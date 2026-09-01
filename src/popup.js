@@ -11,9 +11,18 @@
    * and two reads in flight can come back in either order. */
   let readSeq = 0;
 
+  /* chrome.storage reports failure by setting runtime.lastError rather than
+   * throwing, so it has to be read or the failure is silent. */
+  function storageFailed(what) {
+    if (!chrome.runtime.lastError) return false;
+    console.warn('[nwt] ' + what + ': ' + chrome.runtime.lastError.message);
+    return true;
+  }
+
   function load(cb) {
     const mine = ++readSeq;
     chrome.storage.local.get(null, function (stored) {
+      if (storageFailed('could not read settings')) return;
       if (mine !== readSeq) return;
       settings = NWT.migrate(Object.assign({}, NWT.DEFAULT_SETTINGS, stored || {}));
       /* migrate() only reports; persisting is the caller's job. Without this
@@ -28,7 +37,7 @@
   }
   function save(patch) {
     Object.assign(settings, patch);
-    chrome.storage.local.set(patch);
+    chrome.storage.local.set(patch, function () { storageFailed('could not save'); });
   }
 
   /* The popup wears the theme you are editing. */

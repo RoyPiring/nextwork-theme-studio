@@ -38,7 +38,10 @@ function setBadge(settings) {
 }
 
 function refreshBadge() {
-  chrome.storage.local.get(null, function (s) { setBadge(s); });
+  chrome.storage.local.get(null, function (s) {
+    if (chrome.runtime.lastError) return;
+    setBadge(s);
+  });
 }
 
 /* Migration runs here, once, and the result is written back. It used to run
