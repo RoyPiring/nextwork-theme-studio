@@ -1,4 +1,4 @@
-# NextWork Theme Studio
+# Pineapple NextWork Theme Studio Mod
 
 [![audit](https://github.com/RoyPiring/nextwork-theme-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/RoyPiring/nextwork-theme-studio/actions/workflows/ci.yml)
 
@@ -55,11 +55,13 @@ Click the extension icon in your toolbar. You will see three switches:
 - **Wallpaper.** Turns the artwork on and off. This is separate from the colours.
 - **Focus.** A timer that sits on the page while you work.
 
-Below the switches you can pick any of the 18 themes. Four sliders let you
-adjust every colour at once.
+Below the switches you can pick any of the 18 themes. Four **dials** adjust
+every colour at once.
 
 Click **Open editor** for full control. There you can set all nine colours, see
-a live contrast score, preview the result, and add your own CSS. The 18 themes
+a live contrast score, preview the result, and add your own CSS. An **Extras**
+section holds switches for the few things colours alone cannot reach, such as
+the logo, code blocks, and panels that stay light. The 18 themes
 that come with the extension cannot be edited. If you change a colour, the
 extension makes a copy for you to work on and leaves the original alone.
 
@@ -68,6 +70,10 @@ uploaded. To move a theme to another browser, use **Export theme** in the
 editor, then **Import** on the other side.
 
 ### The focus timer
+
+NextWork projects are long. The theme is there to make one comfortable to read.
+The timer is there to help you sit with it, so it only appears on project pages.
+You will not see it on the dashboard or on the marketing pages.
 
 Choose 15, 25, 45, or 60 minutes, or choose **Count up** for an open session.
 Then press Start.
@@ -119,14 +125,13 @@ to undo.
 
 ### The artwork
 
-Every theme has its own scene. There is an arcade, a mountain ridge, rooftops,
-bamboo, a city skyline, a planet, and more. No two themes share a shape, and
-the tests fail if they do.
+Every theme has its own scene, and no two are the same.
 
-Most scenes are drawn in code from the theme's own colours, in `src/scenes.js`.
-Concrete is the exception. It uses a picture from `art/`, stored inside
-`src/wallpapers.js`, with mist and dust drifting over the top. Nothing is
-downloaded while you browse.
+Every theme has its own picture, kept in `art/` and stored inside
+`src/wallpapers.js`. Over the top of each one, two layers drift at different
+speeds: mist along the floor, and dust in the air. The picture itself does not
+move. Without those layers it would look like a desktop background placed
+behind the text. Nothing is downloaded while you browse.
 
 There is a hard limit on how bright the artwork can be. On nextwork.ai, article
 text sits straight on the background with no panel behind it. So you read the
@@ -134,10 +139,14 @@ words through the artwork. Text needs a contrast ratio of 7:1 to stay
 comfortable, and that makes the background very dark.
 
 A picture cannot be checked the same way a single colour can, so
-`tools/make-wallpaper.py` measures it. It darkens the middle of the image, where
-your text sits, and leaves the sides brighter, where the artwork is. The
-corridor picture starts at 1.95:1. It ships at 7.44:1 in the reading area and
-4.90:1 at the edges. The tests check both numbers.
+`tools/make-wallpaper.py` measures it instead. It pushes the middle of the
+image, where your text sits, further than the sides, where the picture is. Dark
+themes get darker and light themes get lighter, because the two need opposite
+treatment.
+
+Every wallpaper ships at 7:1 or better in the reading area, and 4.5:1 or better
+at the edges. Both numbers are recorded for each picture and the tests check
+them.
 
 ## What is in this project
 
@@ -150,7 +159,7 @@ src/content.js         Adds the stylesheet to the page
 src/background.js      Keyboard shortcut and toolbar icon
 src/popup.*            The panel behind the toolbar icon
 src/options.*          The editor
-art/                   Original pictures used by wallpapers
+art/                   Source pictures. Build input only, nothing here ships
 assets/                The artwork saved as SVG files you can open
 tools/                 Tests, packaging, and image tools
 docs/                  Longer guides
@@ -168,7 +177,7 @@ node tools/build.js           # build a folder for each browser
 node tools/export-scenes.js   # save the artwork as SVG files
 node tools/gallery.js         # rebuild the picture at the top of this README
 node tools/contact-sheet.js   # view all 18 scenes on one page
-python tools/make-wallpaper.py concreteCorridor art/concrete-corridor.jpg
+python tools/make-wallpaper.py --all art   # rebuild every wallpaper
 ```
 
 `tools/audit.js` is the important one. It checks the settings file, reads every
@@ -183,5 +192,7 @@ because that exact problem happened at some point.
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE). This covers the pictures in `art/` as well as the
-code.
+MIT. See [LICENSE](LICENSE).
+
+The pictures in `art/` were made for this project and are covered by the same
+licence. Nothing in this repository uses stock photography.

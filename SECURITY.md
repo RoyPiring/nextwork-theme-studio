@@ -16,14 +16,14 @@ It restyles one site in your browser. That is the whole capability.
 | --- | --- | --- |
 | Network requests | none | `tools/audit.js`, in CI |
 | Remote code | none | no `eval`, no `new Function`, no remote scripts |
-| Permissions | `storage`, `activeTab` | audit fails on anything else |
-| Host access | `*://*.nextwork.ai/*` | audit fails on any other match pattern |
+| Permissions | `storage` | audit fails on anything else |
+| Host access | `https://nextwork.ai/*` and `https://*.nextwork.ai/*` | audit fails on any other match pattern |
 | Data leaving the device | none | `tools/audit.js`, in CI |
 
 `storage` holds your themes, and it is the only permission requested. The popup's
 reload button calls `chrome.tabs.reload()` with no arguments, which needs no
-permission at all — `activeTab` was requested for a while and never used, so it
-is gone.
+permission at all. `activeTab` was requested for a while, never used, and has
+been removed.
 
 Your themes are in `chrome.storage.local`, which does not sync. They stay on the
 machine you made them on.

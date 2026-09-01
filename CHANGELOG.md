@@ -4,9 +4,52 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is [semver](https://semver.org/); the `version` field in
 `manifest.json` is the source of truth.
 
-1.3.0 was the first public release. The 1.0.0 and 1.1.0 entries below are
-development milestones from before the repository went public, kept because
-they record why several non-obvious parts of the code look the way they do.
+1.3.0 is the first version published to a public repository. Everything below
+it predates that and was never released; those entries are kept because they
+record why several non-obvious parts of the code look the way they do.
+
+## [2.0.0] - 2026-09-01
+
+Renamed to Pineapple NextWork Theme Studio Mod.
+
+### Fixed
+- Nothing has been moving. The scoping pass added in 1.4.x prefixed keyframe
+  selectors as well as element selectors, producing `html from`, which is not a
+  valid keyframe selector. Browsers discard the whole block, so every parallax
+  band in every theme has been sitting still since then, while the code that
+  set the speeds, the wrap distance and the reduced-motion opt-out all looked
+  correct. Keyframe bodies are now lifted out before scoping and put back
+  after.
+- The audit only checked that a stylesheet was non-empty, which is why the
+  above passed for four releases. It now also rejects a scoped keyframe
+  selector, unbalanced braces, and an empty background layer list.
+
+### Added
+- All 18 themes have a picture now, not just Concrete. Each one keeps mist and
+  dust drifting over the top at staggered speeds, so no two themes animate in
+  step.
+- Wallpapers handle light and dark themes. A dark theme has light text, so its
+  picture has to be dark and the brightest part is what fails. A light theme is
+  the exact opposite. `tools/make-wallpaper.py` now picks the direction from
+  the palette, and flips the measurement to match.
+- Each wallpaper carries a thumbnail for the README gallery. Embedding the full
+  images there made that one file 794 KB; it is 93 KB with thumbnails.
+
+### Changed
+- The top of every wallpaper fades to transparent, and the colour it fades into
+  is measured and recorded so the stylesheet fills the space above it with the
+  same value. Before this, shrinking the window left the picture sitting on a
+  visible horizontal edge, which is exactly what makes an image look pasted on
+  rather than part of the page.
+- `tools/theme-info.js` reports each theme's mode and text colour, so the image
+  pipeline reads the palette instead of hard-coding colours that live in
+  `PRESETS`.
+- `SECURITY.md` listed `activeTab` and the wrong host pattern in its capability
+  table, and contradicted itself four lines later. Both rows now match the
+  manifest.
+- Decision 8 said all artwork is generated SVG, which stopped being true in
+  1.4.0. It now states the rule and the exception, and what an image has to
+  prove before it can ship.
 
 ## [1.5.0] - 2026-09-01
 
@@ -243,7 +286,7 @@ reviewing the project as an outsider would read it.
 
 ## [1.0.0] - 2026-09-01
 
-First public release.
+First working version. Never published.
 
 ### Added
 - 18 themes: 13 dark and 5 light, each with a layered backdrop.
@@ -261,7 +304,8 @@ First public release.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.0.0
 [1.5.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.5.0
 [1.4.4]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.4
 [1.4.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.3

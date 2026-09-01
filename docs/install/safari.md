@@ -27,7 +27,7 @@ xcrun safari-web-extension-converter /path/to/safari --macos-only --project-loca
 That generates an Xcode project wrapping the extension in a small host app.
 Useful flags:
 
-- `--app-name "NextWork Theme Studio"` — sets the app's name
+- `--app-name "Pineapple NextWork Theme Studio Mod"` — sets the app's name
 - `--bundle-identifier com.yourname.nextworktheme` — use your own identifier
 - `--no-open` — skip launching Xcode straight away
 
@@ -40,7 +40,7 @@ Useful flags:
 
    This resets every time Safari restarts. It is Safari's rule for unsigned
    extensions, not something the package controls.
-5. Safari → **Settings → Extensions** → enable **NextWork Theme Studio**
+5. Safari → **Settings → Extensions** → enable **Pineapple NextWork Theme Studio Mod**
 6. Grant it access to nextwork.ai when Safari asks
 7. Open nextwork.ai
 

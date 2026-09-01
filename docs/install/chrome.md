@@ -9,7 +9,7 @@
 5. Open nextwork.ai
 
 Pin it: click the puzzle-piece in the toolbar, then the pin next to
-**NextWork Theme Studio**.
+**Pineapple NextWork Theme Studio Mod**.
 
 `Alt+Shift+D` toggles the theme. Rebind at `chrome://extensions/shortcuts`.
 

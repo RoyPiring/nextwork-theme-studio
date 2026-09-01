@@ -1,5 +1,5 @@
 /* ============================================================================
- * NextWork Theme Studio - content script
+ * Pineapple NextWork Theme Studio Mod - content script
  * Runs at document_start. Injects one <style> element built from the saved
  * theme, then keeps it in sync with storage.
  * ==========================================================================*/

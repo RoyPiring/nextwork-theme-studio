@@ -65,7 +65,7 @@ check('every referenced file exists', () => {
 });
 
 check('permissions stay minimal', () => {
-  /* storage only. activeTab was requested for a year and never used: the
+  /* storage only. activeTab was requested for a while and never used: the
    * popup's reload button calls chrome.tabs.reload() with no arguments, which
    * needs no permission at all. */
   const allowed = ['storage'];
@@ -238,6 +238,12 @@ check('image wallpapers stay inline, small and legible', () => {
     }
     const kb = w.uri.length / 1024;
     if (kb > CAP_KB) fail(id + ' is ' + kb.toFixed(0) + ' KB (max ' + CAP_KB + ')');
+    if (!/^data:image\/webp;base64,/.test(w.thumb || '')) {
+      fail(id + ' has no thumbnail for the README gallery');
+    }
+    if (w.thumb.length / 1024 > 12) {
+      fail(id + ' thumbnail is ' + (w.thumb.length / 1024).toFixed(0) + ' KB (max 12)');
+    }
     /* Two floors. The reading column is a strip down the middle of the
      * viewport and gets the project's 7:1; everywhere else has to clear WCAG
      * AA so text that strays outside the column is still readable. A single
@@ -332,6 +338,19 @@ check('both stylesheet variants build for every theme', () => {
     const doc = NWT.buildCSS(settings, theme);
     const shadow = NWT.buildCSS(settings, theme, { shadow: true });
     if (!doc.length || !shadow.length) fail(id + ' produced an empty stylesheet');
+    /* The old check only asserted the sheet was non-empty, which is why the
+     * scoping pass could prefix keyframe selectors - producing `html from`,
+     * which browsers discard - and every parallax band sat still for four
+     * releases while this check stayed green. */
+    if (/@(-\w+-)?keyframes[^{]*\{[\s\S]*?(html|:host)[^{}]*(from|to|\d+%)\s*\{/.test(doc)) {
+      fail(id + ': a keyframe selector got scoped, so the animation is dead');
+    }
+    if ((doc.match(/\{/g) || []).length !== (doc.match(/\}/g) || []).length) {
+      fail(id + ': unbalanced braces in the generated stylesheet');
+    }
+    if (/background-(image|size|position|repeat):\s*;/.test(doc)) {
+      fail(id + ': an empty background layer list was emitted');
+    }
     /* the shadow copy must not carry document-only selectors */
     if (/\bhtml /.test(shadow)) fail(id + ': shadow variant contains html-scoped rules');
   });

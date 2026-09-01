@@ -1,5 +1,5 @@
 /* ============================================================================
- * NextWork Theme Studio - service worker
+ * Pineapple NextWork Theme Studio Mod - service worker
  * Seeds defaults on install, owns the keyboard shortcut, and keeps the
  * toolbar badge honest about whether the theme is on.
  * ==========================================================================*/
@@ -33,7 +33,7 @@ function setBadge(settings) {
   chrome.action.setBadgeText({ text: enabled ? '' : 'off' });
   chrome.action.setBadgeBackgroundColor({ color: '#3a3f42' });
   chrome.action.setTitle({
-    title: 'NextWork Theme Studio - ' + (enabled ? 'on' : 'off') + ' (Alt+Shift+D)'
+    title: 'Pineapple NextWork Theme Studio Mod - ' + (enabled ? 'on' : 'off') + ' (Alt+Shift+D)'
   });
 }
 

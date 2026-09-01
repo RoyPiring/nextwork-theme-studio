@@ -112,8 +112,11 @@ ids.forEach(function (id, n) {
   const papers = global.self.NWT_WALLPAPERS || {};
   const paper = scene && scene.hero && scene.hero.wallpaper && papers[scene.hero.wallpaper];
   if (paper) {
+    /* The thumbnail, not the full wallpaper. A card here is 300px wide, and
+     * embedding eighteen full-size images made this one file 794 KB. */
     out.push('<image x="0" y="0" width="' + W + '" height="' + H +
-             '" preserveAspectRatio="xMidYMax slice" href="' + paper.uri + '"/>');
+             '" preserveAspectRatio="xMidYMax slice" href="' +
+             (paper.thumb || paper.uri) + '"/>');
   } else if (scene && scene.hero) {
     const u = unwrap(scene.hero.svg);
     if (u && u.viewBox) {

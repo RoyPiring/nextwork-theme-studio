@@ -1,44 +1,45 @@
-"""Encode a source image in art/ into src/wallpapers.js.
+"""Turn a source image in art/ into a wallpaper the page can be read through.
 
-    python tools/make-wallpaper.py concreteCorridor art/concrete-corridor.jpg
+    python tools/make-wallpaper.py concrete art/concrete.jpeg
+    python tools/make-wallpaper.py --all art
 
-Body copy on nextwork.ai sits directly on the page ground, so a wallpaper is
-read *through* the text. That caps how bright it can be, and the cap is brutal:
-7:1 against body text means a relative luminance of about 0.0707, roughly
-#4b4b4b. A photograph or a painting is nowhere near that dark.
+Body copy on nextwork.ai sits straight on the page background with no panel
+behind it, so a wallpaper is read *through* the text. The project's floor is a
+contrast ratio of 7:1, and that is a hard limit on how much picture can survive.
 
-Darkening the whole image to clear that floor works, and it also throws the
-picture away - the first version of this ran at 0.17 of source exposure and
-what reached the page was a faint smudge.
+Three problems, and this script exists for all three.
 
-So it darkens in two zones instead.
+1. Direction. A dark theme has light text, so its wallpaper has to be dark: the
+   brightest part of the image is what fails. A light theme has dark text, so
+   its wallpaper has to be light, and the darkest part is what fails. The two
+   need opposite treatment, and the measurement flips as well.
 
-The reading column is a narrow strip down the middle of the viewport; the rest
-of the page is margin, panels and chrome. A scrim over that middle band lets
-the flanks stay far brighter than a single global exposure would ever allow. On
-this artwork that is the whole game, because the composition puts the arcades,
-the doorway and the figure out at the edges and leaves the middle empty.
+2. How much. Darkening the whole frame far enough to clear 7:1 works and also
+   throws the picture away. So the middle band, where the reading column sits,
+   is pushed further than the sides are. The sides are where the interesting
+   parts of these images live, so this is most of the win.
 
-Two floors, and both are enforced by the audit:
+     reading column   7:1    the project's floor, WCAG AAA for body text
+     anywhere else    4.5:1  WCAG AA, so text outside the column stays readable
 
-  reading column   7:1   the project's floor, WCAG AAA for body text
-  anywhere else    4.5:1 WCAG AA, so text that strays outside the column
-                         is still readable rather than merely darker
+   Both are measured on a blurred copy, because nobody reads against a single
+   pixel. They read against the local average. That is also what lets a small
+   light source, such as a lit doorway, keep a bright core without failing.
 
-Everything is measured on a blurred copy, because nobody reads against a single
-pixel - they read against the local average. That is also what lets a small
-light source, like a lit doorway, keep a bright core without failing.
-
-The image travels as a data URI inside a stylesheet injected into every page -
-a content script cannot fetch a file, the site's CSP blocks it - so the byte
-count is a real cost and the audit caps it too.
+3. The join. The image is sized to the viewport width and pinned to the bottom,
+   so on a tall window there is empty space above it. A hard top edge makes it
+   look like a photo pasted on. The top of the image is faded to transparent,
+   and the colour it fades into is recorded so the stylesheet can fill the gap
+   with the same value. The join then has no edge at any window size.
 
 Needs Pillow: python -m pip install pillow
 """
 import base64
 import io
+import json
 import os
 import re
+import subprocess
 import sys
 
 try:
@@ -48,14 +49,14 @@ except ImportError:
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-TEXT_LUMINANCE = 0.795        # #e8e9e9, the darkest body text any theme uses
-COLUMN_FLOOR = 7.0            # the project's floor, inside the reading column
-FLANK_FLOOR = 4.5             # WCAG AA, everywhere else
-COLUMN = (0.15, 0.85)         # how much of the width the reading column can span
-SCRIM_FULL = (0.18, 0.82)     # where the scrim is at full strength
-SCRIM_FEATHER = 0.10          # and how far it takes to fade out
-WIDTH = 2560                  # upscaling a 1600px image on a wide screen was soft
-MAX_BASE64 = 140000
+COLUMN_FLOOR = 7.0
+FLANK_FLOOR = 4.5
+COLUMN = (0.15, 0.85)        # how wide the reading column can get
+SCRIM_FULL = (0.18, 0.82)    # where the middle band is at full strength
+SCRIM_FEATHER = 0.10
+FADE = 0.22                  # fraction of the height that fades out at the top
+WIDTH = 2048
+MAX_BASE64 = 72000
 
 
 def _to_linear(c):
@@ -71,21 +72,26 @@ def _to_srgb(v):
 LINEAR = [_to_linear(i) for i in range(256)]
 
 
-def _lut(factor):
-    return [int(round(_to_srgb(LINEAR[i] * factor) * 255)) for i in range(256)]
+def _lut(factor, toward_white):
+    """factor < 1 moves every value toward black, or toward white if asked."""
+    out = []
+    for i in range(256):
+        v = LINEAR[i]
+        v = 1.0 - (1.0 - v) * factor if toward_white else v * factor
+        out.append(int(round(_to_srgb(v) * 255)))
+    return out
 
 
-def expose(im, factor):
-    """Scale exposure in linear light, not a grey wash laid over the top."""
-    return im.point(_lut(factor) * 3)
+def adjust(im, factor, toward_white):
+    return im.point(_lut(factor, toward_white) * 3)
 
 
-def apply_scrim(im, strength):
-    """Darken the middle band, feathered so there is no visible vertical edge.
+def apply_scrim(im, strength, toward_white):
+    """Push the middle band further than the sides, feathered so no edge shows.
 
-    Applied column by column with a lookup table per column. Slower than a
-    single multiply, but it keeps the maths in linear light and the tool free
-    of a numpy dependency, which this repo does not otherwise have.
+    Done one column at a time with a lookup table per column. Slower than a
+    single multiply, but it keeps the maths in linear light and avoids adding
+    numpy, which this repo does not otherwise need.
     """
     w, h = im.size
     lo, hi = SCRIM_FULL
@@ -103,138 +109,245 @@ def apply_scrim(im, strength):
             k = 1.0 + (strength - 1.0) * (a * a * (3 - 2 * a))   # smoothstep
         key = round(k, 3)
         if key not in cache:
-            cache[key] = _lut(key) * 3
-        strip = out.crop((x, 0, x + 1, h)).point(cache[key])
-        out.paste(strip, (x, 0))
+            cache[key] = _lut(key, toward_white) * 3
+        out.paste(out.crop((x, 0, x + 1, h)).point(cache[key]), (x, 0))
     return out
 
 
-def brightest(im, x0=0.0, x1=1.0):
-    """Max relative luminance of a blurred copy - what a reader reads against."""
+def extreme_luminance(im, x0, x1, brightest):
+    """Highest or lowest local luminance in a horizontal slice."""
     blurred = im.convert("RGB").filter(ImageFilter.GaussianBlur(radius=9))
     px = blurred.load()
     w, h = blurred.size
-    best = 0.0
+    best = 0.0 if brightest else 1.0
     for y in range(0, h, 2):
         for x in range(int(w * x0), int(w * x1), 2):
             r, g, b = px[x, y]
             lum = 0.2126 * LINEAR[r] + 0.7152 * LINEAR[g] + 0.0722 * LINEAR[b]
-            if lum > best:
+            if (lum > best) if brightest else (lum < best):
                 best = lum
     return best
 
 
-def contrast(luminance):
-    return (TEXT_LUMINANCE + 0.05) / (luminance + 0.05)
+def worst_contrast(im, text_luminance, light_theme, x0=0.0, x1=1.0):
+    """Contrast at the point in this slice where the image is closest to failing."""
+    if light_theme:
+        lum = extreme_luminance(im, x0, x1, brightest=False)
+        return (lum + 0.05) / (text_luminance + 0.05)
+    lum = extreme_luminance(im, x0, x1, brightest=True)
+    return (text_luminance + 0.05) / (lum + 0.05)
 
 
-def sky_colour(im):
-    """Average of the top rows.
+def hex_luminance(hex_colour):
+    r = int(hex_colour[1:3], 16)
+    g = int(hex_colour[3:5], 16)
+    b = int(hex_colour[5:7], 16)
+    return 0.2126 * LINEAR[r] + 0.7152 * LINEAR[g] + 0.0722 * LINEAR[b]
 
-    The image is sized to the full viewport width and pinned to the bottom, so
-    on a tall window there is bare space above it. Filling that with the theme
-    canvas puts a lighter band and a hard horizontal edge across the top of the
-    scene. Filling it with the image's own sky instead makes the join
-    invisible, which is the whole reason this gets measured and recorded.
-    """
+
+def fade_top(im):
+    """Fade the top edge to transparent so there is no hard join."""
+    rgba = im.convert("RGBA")
+    w, h = rgba.size
+    alpha = Image.new("L", (w, h), 255)
+    cut = int(h * FADE)
+    for y in range(cut):
+        a = y / cut
+        value = int(round(255 * (a * a * (3 - 2 * a))))     # smoothstep
+        alpha.paste(value, (0, y, w, y + 1))
+    rgba.putalpha(alpha)
+    return rgba
+
+
+def join_colour(im):
+    """The colour the fade lands on, so the stylesheet can fill above it."""
     w, h = im.size
-    px = im.load()
+    px = im.convert("RGB").load()
+    row = int(h * FADE)
     r = g = b = n = 0
-    for y in range(0, max(1, h // 20)):
+    for y in range(row, min(h, row + max(2, h // 40))):
         for x in range(0, w, 7):
             p = px[x, y]
             r += p[0]; g += p[1]; b += p[2]; n += 1
     return "#%02x%02x%02x" % (r // n, g // n, b // n)
 
 
-def build(name, src_path):
+def themes():
+    raw = subprocess.check_output(
+        ["node", os.path.join(ROOT, "tools", "theme-info.js")], cwd=ROOT)
+    return json.loads(raw.decode("utf-8"))
+
+
+def build(theme_id, src_path, info, quiet=False):
+    light = info["mode"] == "light"
+    text_lum = hex_luminance(info["text"])
+
     src = Image.open(src_path).convert("RGB")
     base = src.resize((WIDTH, int(src.size[1] * WIDTH / src.size[0])), Image.LANCZOS)
-    probe = base.resize((800, base.size[1] * 800 // WIDTH), Image.LANCZOS)
+    probe = base.resize((768, base.size[1] * 768 // WIDTH), Image.LANCZOS)
 
-    print("source %dx%d, %.2f:1 untouched" % (src.size + (contrast(brightest(probe)),)))
-    print("\nexposure  scrim   reading column   anywhere else")
+    if not quiet:
+        print("  source %.2f:1 untouched, %s theme, text %s"
+              % (worst_contrast(probe, text_lum, light), info["mode"], info["text"]))
 
     chosen = None
-    for exposure in (1.00, 0.85, 0.70, 0.55, 0.44, 0.34, 0.26, 0.20, 0.17):
-        lit = expose(probe, exposure)
-        for strength in (0.60, 0.50, 0.38, 0.30, 0.24, 0.18, 0.14, 0.10):
-            candidate = apply_scrim(lit, strength)
-            column = contrast(brightest(candidate, *COLUMN))
+    for factor in (1.00, 0.85, 0.70, 0.55, 0.44, 0.34, 0.26, 0.20, 0.15, 0.11, 0.08):
+        lit = adjust(probe, factor, light)
+        for strength in (0.70, 0.60, 0.50, 0.38, 0.30, 0.24, 0.18, 0.13, 0.09):
+            candidate = apply_scrim(lit, strength, light)
+            column = worst_contrast(candidate, text_lum, light, *COLUMN)
             if column < COLUMN_FLOOR:
                 continue
-            flank = contrast(brightest(candidate))
-            ok = flank >= FLANK_FLOOR
-            print("  %-9s %-6s %6.2f:1        %6.2f:1%s"
-                  % (exposure, strength, column, flank, "  ok" if ok else ""))
-            if ok and chosen is None:
-                chosen = (exposure, strength, column, flank)
+            flank = worst_contrast(candidate, text_lum, light)
+            if flank >= FLANK_FLOOR:
+                chosen = (factor, strength, column, flank)
             break
         if chosen:
             break
 
     if not chosen:
-        sys.exit("No exposure cleared both floors. The source may be too bright.")
+        return None
 
-    exposure, strength, column, flank = chosen
-    img = apply_scrim(expose(base, exposure), strength)
-    # Heavy darkening drains colour; put a little back so a coloured light
-    # source still reads as coloured.
+    factor, strength, column, flank = chosen
+    img = apply_scrim(adjust(base, factor, light), strength, light)
+    # Pushing the exposure this far drains the colour out, so put some back or
+    # a coloured light source stops reading as coloured.
     img = ImageEnhance.Color(img).enhance(1.25)
+    sky = join_colour(img)
+    img = fade_top(img)
 
-    # WebP, not JPEG. This artwork is mostly smooth dark gradients, which is
-    # the worst case for JPEG - it bands visibly right where the scene is
-    # darkest. WebP holds those gradients at roughly a third the size, so the
-    # same byte budget buys 2560px instead of 1600px and the picture stops
-    # looking soft on a wide screen.
     encoded = None
-    mime = "webp"
-    for quality in (90, 84, 78, 70, 62):
+    for quality in (86, 80, 74, 68, 60, 52):
         buf = io.BytesIO()
         img.save(buf, "WEBP", quality=quality, method=6)
         candidate = base64.b64encode(buf.getvalue()).decode("ascii")
         if len(candidate) < MAX_BASE64:
             encoded = candidate
-            print("\n  webp quality %d -> %.0f KB base64" % (quality, len(candidate) / 1024))
             break
     if encoded is None:
-        sys.exit("Could not get under %d base64 chars." % MAX_BASE64)
+        return None
 
-    sky = sky_colour(img)
-    print("%s: exposure %s, scrim %s, column %.2f:1, elsewhere %.2f:1, sky %s"
-          % (name, exposure, strength, column, flank, sky))
+    # A card in the README gallery is 300px wide. Embedding the full wallpaper
+    # there made that one file 794 KB, so each entry carries a thumbnail for it.
+    thumb_img = img.resize((320, int(img.size[1] * 320 / img.size[0])), Image.LANCZOS)
+    tbuf = io.BytesIO()
+    thumb_img.save(tbuf, "WEBP", quality=68, method=6)
+    thumb = base64.b64encode(tbuf.getvalue()).decode("ascii")
+
     return {
-        "name": name, "column": column, "flank": flank, "sky": sky,
-        "exposure": exposure, "scrim": strength,
+        "id": theme_id, "column": column, "flank": flank, "sky": sky,
+        "thumb": "data:image/webp;base64," + thumb,
+        "exposure": factor, "scrim": strength,
         "width": img.size[0], "height": img.size[1],
-        "uri": "data:image/" + mime + ";base64," + encoded,
+        "kb": len(encoded) / 1024,
+        "uri": "data:image/webp;base64," + encoded,
     }
 
 
-def write_into_module(entry):
-    """Replace one wallpaper's block in src/wallpapers.js, leaving the rest."""
+HEADER = '''/* ============================================================================
+ * NextWork Theme Studio - image wallpapers
+ *
+ * Generated by tools/make-wallpaper.py from the sources in art/.
+ * Do not edit the data below by hand; it will be overwritten.
+ *
+ * Most scenery in this extension is drawn in code from the theme's own
+ * colours. These are photographs, carried inline as data URIs because a
+ * content script cannot fetch a file: the site's content security policy
+ * blocks it, and making them web accessible would widen what the extension
+ * exposes for the sake of some pictures.
+ *
+ * Each entry records what the generator measured:
+ *
+ *   columnRatio  contrast in the reading column, floor 7:1   (WCAG AAA)
+ *   minRatio     contrast anywhere else,         floor 4.5:1 (WCAG AA)
+ *   sky          the colour the faded top edge lands on, so the stylesheet
+ *                can fill the space above the image with the same value
+ *
+ * The audit checks all three.
+ * ==========================================================================*/
+(function (root) {
+  'use strict';
+
+  root.NWT_WALLPAPERS = {
+'''
+
+FOOTER = '''  };
+
+})(typeof self !== 'undefined' ? self : this);
+'''
+
+
+def write_module(entries):
+    parts = [HEADER]
+    for i, e in enumerate(entries):
+        parts.append("    %s: {\n" % e["id"])
+        parts.append("      columnRatio: %.2f,\n" % e["column"])
+        parts.append("      minRatio: %.2f,\n" % e["flank"])
+        parts.append("      sky: '%s',\n" % e["sky"])
+        parts.append("      width: %d,\n" % e["width"])
+        parts.append("      height: %d,\n" % e["height"])
+        parts.append("      uri: '%s',\n" % e["uri"])
+        parts.append("      thumb: '%s'\n" % e["thumb"])
+        parts.append("    }%s\n" % ("," if i < len(entries) - 1 else ""))
+    parts.append(FOOTER)
     path = os.path.join(ROOT, "src", "wallpapers.js")
-    body = io.open(path, encoding="utf-8").read()
-    pattern = re.compile(
-        r"(    " + re.escape(entry["name"]) + r": \{\n).*?(\n    \})", re.S)
-    if not pattern.search(body):
-        sys.exit("No block named %s in src/wallpapers.js - add one first." % entry["name"])
-    replacement = (
-        "\\1"
-        "      columnRatio: %.2f,\n"
-        "      minRatio: %.2f,\n"
-        "      sky: '%s',\n"
-        "      width: %d,\n"
-        "      height: %d,\n"
-        "      uri: '%s'"
-        "\\2" % (entry["column"], entry["flank"], entry["sky"], entry["width"],
-                 entry["height"], entry["uri"])
-    )
-    io.open(path, "w", encoding="utf-8", newline="\n").write(pattern.sub(replacement, body))
-    print("wrote src/wallpapers.js")
+    io_open(path, "".join(parts))
+    return path
+
+
+def io_open(path, text):
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(text)
+
+
+def slug(theme_id):
+    return re.sub(r"(?<!^)(?=[A-Z])", "-", theme_id).lower()
+
+
+def main():
+    if len(sys.argv) < 2:
+        sys.exit(__doc__)
+    info = themes()
+
+    if sys.argv[1] == "--all":
+        folder = os.path.join(ROOT, sys.argv[2] if len(sys.argv) > 2 else "art")
+        entries, skipped = [], []
+        for theme_id in info:
+            match = None
+            for ext in (".jpeg", ".jpg", ".png", ".webp"):
+                candidate = os.path.join(folder, slug(theme_id) + ext)
+                if os.path.exists(candidate):
+                    match = candidate
+                    break
+            if not match:
+                skipped.append(theme_id + " (no image)")
+                continue
+            print("%s" % theme_id)
+            built = build(theme_id, match, info[theme_id])
+            if not built:
+                skipped.append(theme_id + " (could not reach the floors)")
+                print("  SKIPPED")
+                continue
+            entries.append(built)
+            print("  exposure %.2f, scrim %.2f, column %.2f:1, elsewhere %.2f:1, "
+                  "sky %s, %.0f KB"
+                  % (built["exposure"], built["scrim"], built["column"],
+                     built["flank"], built["sky"], built["kb"]))
+        write_module(entries)
+        total = sum(e["kb"] for e in entries)
+        print("\n%d wallpapers, %.0f KB total" % (len(entries), total))
+        for s in skipped:
+            print("  skipped: " + s)
+        return
+
+    theme_id = sys.argv[1]
+    if theme_id not in info:
+        sys.exit("Unknown theme: " + theme_id)
+    built = build(theme_id, os.path.join(ROOT, sys.argv[2]), info[theme_id])
+    if not built:
+        sys.exit("Could not reach both floors for " + theme_id)
+    print(built["id"], "%.2f:1 / %.2f:1, %.0f KB" % (built["column"], built["flank"], built["kb"]))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        sys.exit(__doc__)
-    write_into_module(build(sys.argv[1], os.path.join(ROOT, sys.argv[2])))
+    main()

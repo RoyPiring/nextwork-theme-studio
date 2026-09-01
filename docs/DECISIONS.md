@@ -96,17 +96,26 @@ than in review.
 
 ---
 
-## 8. Draw the scenery, don't ship photographs
+## 8. Draw the scenery by default; ship an image only when it earns it
 
-**Decision.** All artwork is original SVG in `src/scenes.js`.
+**Decision.** Scenery is generated SVG in `src/scenes.js`, built from the theme's
+own palette. Raster images are the exception, not the norm.
 
 **Why.** Stock photography puts someone else's copyright in the repository, and a
-raster image cannot be recoloured to match a palette or contrast-checked against
-body text. The whole set is 32 KB.
+generated scene can be recoloured with the palette and contrast-checked against
+body text as a set of known fills. A picture can do neither.
 
-**Limit, stated plainly.** This buys stylised depth, not photorealism. If a
-photographic backdrop is ever wanted, it needs an image the project owns, and the
-masking, blur, grain and contrast-guarding already exist to host it.
+**The exception, added in 1.4.0.** Images now ship for themes that have one, in
+`src/wallpapers.js`, with their sources in `art/`. Two conditions make that
+acceptable. The project has to own the image, and the image has to be measured
+rather than trusted: `tools/make-wallpaper.py` finds the strongest exposure that
+still clears 7:1 in the reading column and 4.5:1 elsewhere, records both numbers,
+and the audit enforces them. A raster that cannot reach those floors does not
+ship.
+
+**Cost.** Bytes. A generated scene is a few KB; an image is tens of KB carried
+inline in every injected stylesheet, because a content script cannot fetch a
+file. The drifting layers over the top are still SVG, and still recolour.
 
 ---
 

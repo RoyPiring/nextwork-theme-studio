@@ -1,5 +1,5 @@
 /* ============================================================================
- * NextWork Theme Studio - theme engine
+ * Pineapple NextWork Theme Studio Mod - theme engine
  * Shared by the content script, the popup and the options page.
  * No modules (MV3 content scripts), so everything hangs off window.NWT.
  * ==========================================================================*/
@@ -581,7 +581,17 @@
      * and skipped, its opening brace was gone, so the selector inside it never
      * matched and never got the prefix - which quietly cost every rule in a
      * one-line @media block the specificity tie it was relying on. */
-    return css.replace(/(?<=[\n{}]|^)([ \t]*)([^\n{}][^{}\n]*)\{/g,
+    /* Keyframe bodies are lifted out before scoping and spliced back after.
+     * `from`, `to` and `50%` are keyframe selectors, not element selectors, so
+     * prefixing one produces `html from`. That is invalid, the browser throws
+     * away the whole block, and the animation silently does nothing. Every
+     * parallax band in every theme sat perfectly still because of this. */
+    const frames = [];
+    const MARK = String.fromCharCode(0);
+    css = css.replace(/@(-\w+-)?keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g,
+      function (block) { return MARK + (frames.push(block) - 1) + MARK; });
+
+    css = css.replace(/(?<=[\n{}]|^)([ \t]*)([^\n{}][^{}\n]*)\{/g,
       function (m, ws, sel) {
         const s = sel.trim();
         /* Leave at-rule preludes and the token block alone - the doubled root
@@ -589,6 +599,9 @@
         if (!s || s.charAt(0) === '@' || s.indexOf(rootSel) === 0) return m;
         return ws + splitSelectors(s).map(function (x) { return prefix + x; }).join(', ') + ' {';
       });
+
+    return css.replace(new RegExp(MARK + '(\\d+)' + MARK, 'g'),
+                       function (_, i) { return frames[Number(i)]; });
   }
 
   /* Inline an SVG as a background-image. Encoded rather than base64 so the
@@ -627,7 +640,7 @@
       : sceneDef;
     const hasWallpaper = !!(scene || theme.backdrop) && !shadow;
 
-    L.push('/* NextWork Theme Studio - generated stylesheet */');
+    L.push('/* Pineapple NextWork Theme Studio Mod - generated stylesheet */');
     L.push(rootSel + ' {');
     L.push('  color-scheme: ' + (light ? 'light' : 'dark') + ';');
     L.push('  background-color: ' + p.canvas + ';');
