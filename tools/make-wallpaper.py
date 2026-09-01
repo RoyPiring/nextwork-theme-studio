@@ -2,24 +2,36 @@
 
     python tools/make-wallpaper.py concreteCorridor art/concrete-corridor.jpg
 
-Two constraints shape this, and they pull against each other.
+Body copy on nextwork.ai sits directly on the page ground, so a wallpaper is
+read *through* the text. That caps how bright it can be, and the cap is brutal:
+7:1 against body text means a relative luminance of about 0.0707, roughly
+#4b4b4b. A photograph or a painting is nowhere near that dark.
 
-Contrast. Body copy on nextwork.ai sits directly on the page ground, so a
-wallpaper is read *through* the text. The project's floor is 7:1, which caps
-the background's relative luminance at about 0.0707 - roughly #4b4b4b. A normal
-photograph or painting is nowhere near that dark, so this cuts exposure in
-linear light rather than laying a grey veil over the top, which would flatten
-the picture to mud. It searches downward for the gentlest cut that still
-clears the floor, so the image stays as bright as it is allowed to be.
+Darkening the whole image to clear that floor works, and it also throws the
+picture away - the first version of this ran at 0.17 of source exposure and
+what reached the page was a faint smudge.
 
-The measurement is taken on a blurred copy, because nobody reads against a
-single pixel - they read against the local average. That is also what lets a
-small light source, like a lit doorway, keep a bright core without failing.
+So it darkens in two zones instead.
 
-Size. A content script cannot fetch a file: the site's CSP blocks it, and
-web_accessible_resources would widen the extension's surface for the sake of
-one picture. So the image travels as a data URI inside a stylesheet that is
-injected into every page, and the byte count is a real cost. The audit caps it.
+The reading column is a narrow strip down the middle of the viewport; the rest
+of the page is margin, panels and chrome. A scrim over that middle band lets
+the flanks stay far brighter than a single global exposure would ever allow. On
+this artwork that is the whole game, because the composition puts the arcades,
+the doorway and the figure out at the edges and leaves the middle empty.
+
+Two floors, and both are enforced by the audit:
+
+  reading column   7:1   the project's floor, WCAG AAA for body text
+  anywhere else    4.5:1 WCAG AA, so text that strays outside the column
+                         is still readable rather than merely darker
+
+Everything is measured on a blurred copy, because nobody reads against a single
+pixel - they read against the local average. That is also what lets a small
+light source, like a lit doorway, keep a bright core without failing.
+
+The image travels as a data URI inside a stylesheet injected into every page -
+a content script cannot fetch a file, the site's CSP blocks it - so the byte
+count is a real cost and the audit caps it too.
 
 Needs Pillow: python -m pip install pillow
 """
@@ -37,9 +49,13 @@ except ImportError:
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 TEXT_LUMINANCE = 0.795        # #e8e9e9, the darkest body text any theme uses
-FLOOR = 7.0
+COLUMN_FLOOR = 7.0            # the project's floor, inside the reading column
+FLANK_FLOOR = 4.5             # WCAG AA, everywhere else
+COLUMN = (0.15, 0.85)         # how much of the width the reading column can span
+SCRIM_FULL = (0.18, 0.82)     # where the scrim is at full strength
+SCRIM_FEATHER = 0.10          # and how far it takes to fade out
 WIDTH = 1600
-MAX_BASE64 = 130000           # keep under the audit's cap with room to spare
+MAX_BASE64 = 130000
 
 
 def _to_linear(c):
@@ -47,17 +63,60 @@ def _to_linear(c):
     return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 
 
+def _to_srgb(v):
+    v = min(1.0, max(0.0, v))
+    return 12.92 * v if v <= 0.0031308 else 1.055 * (v ** (1 / 2.4)) - 0.055
+
+
 LINEAR = [_to_linear(i) for i in range(256)]
 
 
-def brightest_local_luminance(im):
+def _lut(factor):
+    return [int(round(_to_srgb(LINEAR[i] * factor) * 255)) for i in range(256)]
+
+
+def expose(im, factor):
+    """Scale exposure in linear light, not a grey wash laid over the top."""
+    return im.point(_lut(factor) * 3)
+
+
+def apply_scrim(im, strength):
+    """Darken the middle band, feathered so there is no visible vertical edge.
+
+    Applied column by column with a lookup table per column. Slower than a
+    single multiply, but it keeps the maths in linear light and the tool free
+    of a numpy dependency, which this repo does not otherwise have.
+    """
+    w, h = im.size
+    lo, hi = SCRIM_FULL
+    out = im.copy()
+    cache = {}
+    for x in range(w):
+        t = x / w
+        if t < lo - SCRIM_FEATHER or t > hi + SCRIM_FEATHER:
+            continue
+        if lo <= t <= hi:
+            k = strength
+        else:
+            a = ((t - (lo - SCRIM_FEATHER)) / SCRIM_FEATHER if t < lo
+                 else ((hi + SCRIM_FEATHER) - t) / SCRIM_FEATHER)
+            k = 1.0 + (strength - 1.0) * (a * a * (3 - 2 * a))   # smoothstep
+        key = round(k, 3)
+        if key not in cache:
+            cache[key] = _lut(key) * 3
+        strip = out.crop((x, 0, x + 1, h)).point(cache[key])
+        out.paste(strip, (x, 0))
+    return out
+
+
+def brightest(im, x0=0.0, x1=1.0):
     """Max relative luminance of a blurred copy - what a reader reads against."""
     blurred = im.convert("RGB").filter(ImageFilter.GaussianBlur(radius=9))
     px = blurred.load()
     w, h = blurred.size
     best = 0.0
     for y in range(0, h, 2):
-        for x in range(0, w, 2):
+        for x in range(int(w * x0), int(w * x1), 2):
             r, g, b = px[x, y]
             lum = 0.2126 * LINEAR[r] + 0.7152 * LINEAR[g] + 0.0722 * LINEAR[b]
             if lum > best:
@@ -69,39 +128,39 @@ def contrast(luminance):
     return (TEXT_LUMINANCE + 0.05) / (luminance + 0.05)
 
 
-def darken(im, factor):
-    """Scale exposure in linear light, not a grey wash over the top."""
-    lut = []
-    for i in range(256):
-        lin = min(1.0, max(0.0, LINEAR[i] * factor))
-        c = 12.92 * lin if lin <= 0.0031308 else 1.055 * (lin ** (1 / 2.4)) - 0.055
-        lut.append(int(round(min(1.0, max(0.0, c)) * 255)))
-    return im.point(lut * 3)
-
-
 def build(name, src_path):
     src = Image.open(src_path).convert("RGB")
     base = src.resize((WIDTH, int(src.size[1] * WIDTH / src.size[0])), Image.LANCZOS)
+    probe = base.resize((800, base.size[1] * 800 // WIDTH), Image.LANCZOS)
 
-    before = contrast(brightest_local_luminance(base.resize((WIDTH // 3, base.size[1] // 3))))
-    print("source %s  %dx%d  contrast %.2f:1" % (src_path, src.size[0], src.size[1], before))
+    print("source %dx%d, %.2f:1 untouched" % (src.size + (contrast(brightest(probe)),)))
+    print("\nexposure  scrim   reading column   anywhere else")
 
     chosen = None
-    for factor in (0.40, 0.34, 0.30, 0.24, 0.20, 0.17, 0.14, 0.12, 0.10, 0.085, 0.07):
-        candidate = darken(base, factor)
-        half = candidate.resize((candidate.size[0] // 2, candidate.size[1] // 2))
-        ratio = contrast(brightest_local_luminance(half))
-        print("  exposure %-5s -> %.2f:1%s" % (factor, ratio, "  ok" if ratio >= FLOOR else ""))
-        if ratio >= FLOOR:
-            chosen = (factor, candidate, ratio)
+    for exposure in (1.00, 0.85, 0.70, 0.55, 0.44, 0.34, 0.26, 0.20, 0.17):
+        lit = expose(probe, exposure)
+        for strength in (0.60, 0.50, 0.38, 0.30, 0.24, 0.18, 0.14, 0.10):
+            candidate = apply_scrim(lit, strength)
+            column = contrast(brightest(candidate, *COLUMN))
+            if column < COLUMN_FLOOR:
+                continue
+            flank = contrast(brightest(candidate))
+            ok = flank >= FLANK_FLOOR
+            print("  %-9s %-6s %6.2f:1        %6.2f:1%s"
+                  % (exposure, strength, column, flank, "  ok" if ok else ""))
+            if ok and chosen is None:
+                chosen = (exposure, strength, column, flank)
+            break
+        if chosen:
             break
 
     if not chosen:
-        sys.exit("Nothing cleared %.1f:1. The source may be too bright to use." % FLOOR)
+        sys.exit("No exposure cleared both floors. The source may be too bright.")
 
-    factor, img, ratio = chosen
-    # Heavy darkening drains the colour out; put a little back so a coloured
-    # light source still reads as coloured.
+    exposure, strength, column, flank = chosen
+    img = apply_scrim(expose(base, exposure), strength)
+    # Heavy darkening drains colour; put a little back so a coloured light
+    # source still reads as coloured.
     img = ImageEnhance.Color(img).enhance(1.25)
 
     encoded = None
@@ -109,19 +168,20 @@ def build(name, src_path):
         buf = io.BytesIO()
         img.save(buf, "JPEG", quality=quality, optimize=True, progressive=True)
         candidate = base64.b64encode(buf.getvalue()).decode("ascii")
-        print("  quality %d -> %.0f KB base64" % (quality, len(candidate) / 1024))
         if len(candidate) < MAX_BASE64:
             encoded = candidate
+            print("\n  quality %d -> %.0f KB base64" % (quality, len(candidate) / 1024))
             break
     if encoded is None:
         sys.exit("Could not get under %d base64 chars." % MAX_BASE64)
 
-    print("\n%s: exposure %s, %.2f:1, %dx%d, %.0f KB"
-          % (name, factor, ratio, img.size[0], img.size[1], len(encoded) / 1024))
+    print("%s: exposure %s, scrim %s, column %.2f:1, elsewhere %.2f:1"
+          % (name, exposure, strength, column, flank))
     return {
-        "name": name, "ratio": ratio, "factor": factor,
-        "width": img.size[0], "height": img.size[1], "uri":
-        "data:image/jpeg;base64," + encoded,
+        "name": name, "column": column, "flank": flank,
+        "exposure": exposure, "scrim": strength,
+        "width": img.size[0], "height": img.size[1],
+        "uri": "data:image/jpeg;base64," + encoded,
     }
 
 
@@ -130,18 +190,18 @@ def write_into_module(entry):
     path = os.path.join(ROOT, "src", "wallpapers.js")
     body = io.open(path, encoding="utf-8").read()
     pattern = re.compile(
-        r"(    " + re.escape(entry["name"]) + r": \{\n)"
-        r".*?"
-        r"(\n    \})", re.S)
+        r"(    " + re.escape(entry["name"]) + r": \{\n).*?(\n    \})", re.S)
     if not pattern.search(body):
         sys.exit("No block named %s in src/wallpapers.js - add one first." % entry["name"])
     replacement = (
         "\\1"
+        "      columnRatio: %.2f,\n"
         "      minRatio: %.2f,\n"
         "      width: %d,\n"
         "      height: %d,\n"
         "      uri: '%s'"
-        "\\2" % (entry["ratio"], entry["width"], entry["height"], entry["uri"])
+        "\\2" % (entry["column"], entry["flank"], entry["width"], entry["height"],
+                 entry["uri"])
     )
     io.open(path, "w", encoding="utf-8", newline="\n").write(pattern.sub(replacement, body))
     print("wrote src/wallpapers.js")

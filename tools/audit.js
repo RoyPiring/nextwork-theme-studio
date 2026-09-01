@@ -221,8 +221,16 @@ check('image wallpapers stay inline, small and legible', () => {
     }
     const kb = w.uri.length / 1024;
     if (kb > CAP_KB) fail(id + ' is ' + kb.toFixed(0) + ' KB (max ' + CAP_KB + ')');
-    if (!(w.minRatio >= 7)) {
-      fail(id + ' records a contrast of ' + w.minRatio + ', under the 7:1 floor');
+    /* Two floors. The reading column is a strip down the middle of the
+     * viewport and gets the project's 7:1; everywhere else has to clear WCAG
+     * AA so text that strays outside the column is still readable. A single
+     * global figure would force the whole picture down to the stricter one,
+     * which is what reduced the first version of this to a smudge. */
+    if (!(w.columnRatio >= 7)) {
+      fail(id + ' reading column is ' + w.columnRatio + ':1, under the 7:1 floor');
+    }
+    if (!(w.minRatio >= 4.5)) {
+      fail(id + ' is ' + w.minRatio + ':1 outside the column, under WCAG AA');
     }
   });
   /* Every wallpaper named by a scene has to actually exist, or the hero layer

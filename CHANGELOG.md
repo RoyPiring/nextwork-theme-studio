@@ -8,6 +8,24 @@ Versioning is [semver](https://semver.org/); the `version` field in
 development milestones from before the repository went public, kept because
 they record why several non-obvious parts of the code look the way they do.
 
+## [1.4.1] - 2026-09-01
+
+### Changed
+- The Concrete wallpaper is 3.2x brighter. Darkening the whole frame to clear
+  7:1 had taken it to 0.17 of source exposure, and what reached the page was a
+  smudge rather than a picture — the arches, the lit doorway and the figure
+  were all technically present and effectively invisible.
+
+  It now darkens in two zones. The reading column is a strip down the middle of
+  the viewport; the rest is margin and panels. Scrimming that middle band lets
+  the flanks run at 0.55 exposure instead of 0.17, which matters here because
+  the composition puts everything worth looking at out at the edges. It ships
+  at 7.44:1 in the reading column — the project's floor, WCAG AAA — and 4.90:1
+  everywhere else, which is WCAG AA, so text straying outside the column is
+  still readable rather than merely darker.
+- The wallpaper audit check enforces both floors separately. A single global
+  figure is what forced the picture down to the stricter one.
+
 ## [1.4.0] - 2026-09-01
 
 ### Added
@@ -195,7 +213,8 @@ First public release.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.1
 [1.4.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.0
 [1.3.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.3.0
 [1.2.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.2.0

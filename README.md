@@ -102,10 +102,19 @@ fetched at runtime either way. Toggle it with **Wallpaper** in the popup,
 independently of the colours.
 
 An image cannot be contrast-checked the way a hex fill can, so
-`tools/make-wallpaper.py` measures it instead: it finds the gentlest exposure
-cut that still clears 7:1 against body text, measured on a blurred copy because
-a reader reads against the local average rather than one pixel. The corridor
-came in at 2.40:1 untouched and ships at 7.32:1. The audit holds it to that.
+`tools/make-wallpaper.py` measures it instead — and it darkens in two zones,
+because one exposure dark enough for body text throws the picture away.
+
+The reading column is a strip down the middle of the viewport; the rest is
+margin and panels. Scrimming that middle band lets the flanks stay far brighter
+than a single exposure would allow, which on this artwork is the whole point:
+the composition puts the arcades, the doorway and the figure out at the edges.
+The corridor is 1.95:1 as painted, and ships at **7.44:1 in the reading column**
+(the project's floor, WCAG AAA) and **4.90:1 everywhere else** (WCAG AA, so text
+that strays outside the column is still readable). Both are measured on a
+blurred copy, because a reader reads against the local average rather than one
+pixel — which is also what lets the doorway keep a bright core. The audit holds
+it to both numbers.
 
 Body copy on nextwork.ai is read against the scenery rather than on top of a
 panel, which is the constraint that shapes every scene and the reason they read
