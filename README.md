@@ -95,9 +95,17 @@ Each theme has its own scene — an arcade, a ridge line, rooftops, bamboo, a
 skyline, a planet. One motif belongs to exactly one theme, and CI fails if two
 share.
 
-All of it is original SVG in `src/scenes.js`; there is no stock photography and
-nothing is fetched. Toggle it with **Wallpaper** in the popup, independently of
-the colours.
+Most of it is SVG generated from the theme's own palette in `src/scenes.js`.
+Concrete is the exception: it uses a raster image from `art/`, encoded inline in
+`src/wallpapers.js`, with the mist and dust drawn over the top. Nothing is
+fetched at runtime either way. Toggle it with **Wallpaper** in the popup,
+independently of the colours.
+
+An image cannot be contrast-checked the way a hex fill can, so
+`tools/make-wallpaper.py` measures it instead: it finds the gentlest exposure
+cut that still clears 7:1 against body text, measured on a blurred copy because
+a reader reads against the local average rather than one pixel. The corridor
+came in at 2.40:1 untouched and ships at 7.32:1. The audit holds it to that.
 
 Body copy on nextwork.ai is read against the scenery rather than on top of a
 panel, which is the constraint that shapes every scene and the reason they read
@@ -110,10 +118,12 @@ as watermarks. Why that is, and what CI checks because of it, is in
 manifest.json          MV3, matches *://*.nextwork.ai/*
 src/theme-engine.js    Palettes, contrast maths, CSS generation
 src/scenes.js          Motif generators and the scene per theme
+src/wallpapers.js      Raster wallpapers, encoded inline
 src/content.js         Injects the stylesheet, adopts it into shadow roots
 src/background.js      Keyboard shortcut and toolbar badge
 src/popup.*            Toolbar panel
 src/options.*          The editor
+art/                   Source images for the raster wallpapers
 assets/                Generated SVG layers, for looking at and editing
 tools/                 Audit gate, asset export, gallery, contact sheet, packaging
 docs/                  Architecture, decisions, browser guides, release process
@@ -130,6 +140,7 @@ node tools/audit.js           # the CI gate - run before every commit
 node tools/build.js           # per-browser packages into dist/
 node tools/export-scenes.js   # regenerate assets/*.svg from scenes.js
 node tools/gallery.js         # regenerate docs/img/themes.svg
+python tools/make-wallpaper.py concreteCorridor art/concrete-corridor.jpg
 node tools/contact-sheet.js   # render all 18 scenes at reading size
 ```
 
@@ -143,7 +154,8 @@ in it exists because that bug actually shipped at some point during development.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). That covers the artwork in `art/` as well as the
+code.
 
 ## Related
 

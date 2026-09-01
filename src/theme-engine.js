@@ -1080,10 +1080,19 @@
     if ((theme.backdrop || scene) && !shadow) {
       const imgs = [], sizes = [], positions = [], repeats = [];
       if (scene && scene.hero) {
-        imgs.push(svgUrl(scene.hero.svg));
-        sizes.push(scene.hero.size);
-        positions.push(scene.hero.position);
-        repeats.push('no-repeat');
+        /* A hero is normally generated SVG. It can instead name a painted
+         * wallpaper, which arrives already encoded as a data URI. */
+        const papers = (typeof root !== 'undefined' && root.NWT_WALLPAPERS) || {};
+        const paper = scene.hero.wallpaper && papers[scene.hero.wallpaper];
+        if (scene.hero.wallpaper && !paper) {
+          /* Named a wallpaper that is not loaded: skip the layer rather than
+           * emitting url(undefined) and painting the page with nothing. */
+        } else {
+          imgs.push(paper ? 'url("' + paper.uri + '")' : svgUrl(scene.hero.svg));
+          sizes.push(scene.hero.size);
+          positions.push(scene.hero.position);
+          repeats.push('no-repeat');
+        }
       }
       /* A wash is already a comma-separated list, so expand it layer by layer
        * or the size/position lists fall out of step and CSS cycles them. */

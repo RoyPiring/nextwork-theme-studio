@@ -4,9 +4,39 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is [semver](https://semver.org/); the `version` field in
 `manifest.json` is the source of truth.
 
-1.3.0 is the first public release. The 1.0.0 and 1.1.0 entries below are
+1.3.0 was the first public release. The 1.0.0 and 1.1.0 entries below are
 development milestones from before the repository went public, kept because
 they record why several non-obvious parts of the code look the way they do.
+
+## [1.4.0] - 2026-09-01
+
+### Added
+- Concrete is now a corridor. It uses a raster wallpaper — an arcade at night
+  looking toward a lit doorway — with mist along the floor and dust in the air
+  drifting over it on the two parallax bands. The picture is fixed; the layers
+  moving at different rates over it are what stop it reading as a desktop
+  background someone pasted in.
+- `src/wallpapers.js` carries raster wallpapers inline as data URIs. A content
+  script cannot fetch a file — the site's CSP blocks it, and
+  `web_accessible_resources` would widen the extension's surface for the sake
+  of one picture — so the bytes ride in the injected stylesheet. Only the theme
+  using one pays for it: Concrete's stylesheet is 74 KB, every other theme is
+  unchanged at 39 KB.
+- `tools/make-wallpaper.py` encodes a source image from `art/`. An image cannot
+  be contrast-checked the way a hex fill can, so it measures instead: it finds
+  the gentlest exposure cut that still clears 7:1 against body text, taken on a
+  blurred copy because a reader reads against the local average rather than a
+  single pixel — which is also what lets the doorway keep a bright core. The
+  corridor measured 2.40:1 as supplied and ships at 7.32:1.
+- An audit check for wallpapers: inline data URIs only, a 160 KB cap, the
+  recorded contrast has to clear the floor, and a scene cannot name a wallpaper
+  that does not exist. Sixteen checks now.
+
+### Fixed
+- The `importScripts` exemption in the no-network check listed filenames, so
+  adding a third library failed the audit. It now allows the call only when
+  every argument is a bare local filename, which is the property that made it
+  safe in the first place.
 
 ## [1.3.0] - 2026-09-01
 
@@ -165,7 +195,8 @@ First public release.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.0
 [1.3.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.3.0
 [1.2.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.2.0
 [1.1.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.1.0

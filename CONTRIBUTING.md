@@ -59,6 +59,13 @@ The shape of a scene is documented in the header comment at the top of
 `src/scenes.js`. Copy the `tokyoNight` entry and work from that rather than
 starting empty.
 
+A scene can use a raster image instead of a generated hero. Put the source in
+`art/`, add a block to `src/wallpapers.js`, and run
+`python tools/make-wallpaper.py <name> art/<file>` — it cuts the exposure until
+the image clears 7:1 against body text and records the measurement, which the
+audit then enforces. Keep the drifting layers as SVG: a still image on its own
+reads as a desktop background.
+
 `tools/contact-sheet.js` renders all of them on one page at reading size. Use
 it — a band that looks like a tasteful strip in a thumbnail can swallow the
 whole reading column at full height.

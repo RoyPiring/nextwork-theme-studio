@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 global.self = {};
+require('../src/wallpapers.js');
 require('../src/scenes.js');
 require('../src/theme-engine.js');
 const NWT = global.self.NWT;
@@ -105,8 +106,15 @@ ids.forEach(function (id, n) {
   out.push('<g clip-path="url(#clip' + n + ')">');
   out.push('<rect width="' + W + '" height="' + H + '" fill="' + p.canvas + '"/>');
 
-  /* Hero first - it is the sky or the far mass everything else sits against. */
-  if (scene && scene.hero) {
+  /* Hero first - it is the sky or the far mass everything else sits against.
+   * A painted hero goes in as an <image>; if a renderer strips data URIs the
+   * card still shows the palette underneath rather than a hole. */
+  const papers = global.self.NWT_WALLPAPERS || {};
+  const paper = scene && scene.hero && scene.hero.wallpaper && papers[scene.hero.wallpaper];
+  if (paper) {
+    out.push('<image x="0" y="0" width="' + W + '" height="' + H +
+             '" preserveAspectRatio="xMidYMax slice" href="' + paper.uri + '"/>');
+  } else if (scene && scene.hero) {
     const u = unwrap(scene.hero.svg);
     if (u && u.viewBox) {
       const b = boxFromSize(scene.hero.size, scene.hero.position);

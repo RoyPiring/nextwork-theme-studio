@@ -1,9 +1,12 @@
 /* ============================================================================
  * NextWork Theme Studio - scenery
  *
- * Hand-drawn SVG scenes, one per theme. Everything here is original artwork:
- * no stock photography, nothing downloaded, so the extension carries no one
- * else's copyright and every shape is picked from the theme's own palette.
+ * Generated SVG scenes, one per theme, drawn from the theme's own palette so
+ * nothing here carries anyone else's colours or copyright.
+ *
+ * One theme breaks the pattern. Concrete uses a painted wallpaper, which lives
+ * in src/wallpapers.js as an inline data URI; its scene supplies only the
+ * layers that drift over the top. Nothing is fetched at runtime either way.
  *
  * Each scene has up to three layers:
  *   hero  - a fixed centrepiece (the mountain, the planet, the branch)
@@ -594,6 +597,51 @@
    * an argument with the paragraph in front of it. */
   const HAZE = 11.2, FAR = 9.6, NEAR = 8.4;
 
+  /* concrete - mist lying along the floor. The architecture is fixed, so this
+   * is the layer carrying the motion: buildings do not drift, haze does. */
+  function floorMist(color, opacity) {
+    var id = uid(), out = '', i;
+    var pts = [[150, 116, 230], [440, 94, 160], [780, 124, 270], [1090, 102, 180],
+               [1430, 112, 220], [1720, 90, 150]];
+    for (i = 0; i < pts.length; i++) {
+      out += "<ellipse cx='" + pts[i][0] + "' cy='" + (200 - pts[i][1] * 0.3) +
+             "' rx='" + pts[i][2] + "' ry='" + pts[i][1] + "'/>";
+    }
+    return svg(1900, 200,
+      "<defs><radialGradient id='" + id + "'>" +
+      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
+      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
+      "</radialGradient></defs><g fill='url(#" + id + ")'>" + out + "</g>");
+  }
+
+  /* concrete - dust hanging in the air of the corridor, lit from the doorway.
+   *
+   * This is what the painting cannot do: the picture is fixed, so the motes
+   * and the mist are the only things that move, and the two bands panning at
+   * different rates are what stop it reading as a static desktop background.
+   *
+   * Sizes and heights are picked off a fixed table rather than Math.random, so
+   * the same stylesheet comes out of every build and the generated assets in
+   * assets/ do not churn on every run. */
+  function motes(color, opacity) {
+    var id = uid(), out = '', i;
+    var pts = [[70, 214, 3.0], [186, 96, 1.8], [305, 268, 2.4], [412, 150, 1.4],
+               [534, 62, 2.8], [648, 206, 1.6], [761, 128, 3.4], [880, 250, 1.9],
+               [995, 84, 2.2], [1108, 178, 1.3], [1230, 240, 2.9], [1344, 110, 1.7],
+               [1462, 196, 2.5], [1580, 58, 1.5], [1698, 232, 3.1], [1815, 144, 2.0],
+               [1932, 92, 1.6], [2054, 216, 2.7], [2160, 166, 1.4]];
+    for (i = 0; i < pts.length; i++) {
+      out += "<circle cx='" + pts[i][0] + "' cy='" + pts[i][1] + "' r='" +
+             (pts[i][2] * 4) + "' fill='url(#" + id + ")'/>";
+    }
+    return svg(2200, 300,
+      "<defs><radialGradient id='" + id + "'>" +
+      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
+      "<stop offset='45%' stop-color='" + color + "' stop-opacity='" + (opacity * 0.4).toFixed(3) + "'/>" +
+      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
+      "</radialGradient></defs>" + out);
+  }
+
   function planes(u, p, hue, target, distance) {
     const base = u.mix(u.toneOf(hue, target), p.canvas, distance || 0);
     return { top: u.mix(base, p.canvas, 0.30), bottom: base, base: base };
@@ -604,13 +652,29 @@
     /* ---- neutral darks ------------------------------------------------- */
 
     concrete: function (p, u) {
-      const far = planes(u, p, '#2b2f33', FAR, 0.35), near = planes(u, p, '#2b2f33', NEAR, 0);
+      /* The painting is the wallpaper and it does not move. Everything that
+       * does move is layered over it: mist along the floor on the slow band,
+       * dust in the air on the faster one. The parallax between the two is
+       * what keeps it from reading as a desktop background someone pasted in.
+       *
+       * The image is already darkened past the contrast floor at generation
+       * time (see src/wallpapers.js), so the tones listed here are only the
+       * drifting layers drawn on top of it. */
+      const haze = u.toneOf('#2b2f33', HAZE);
+      const dust = u.toneOf('#9fb4c4', 9.4);
       return {
-        motifs: ['arcade'],
-        hero: { svg: softGlow(u.toneOf('#2b2f33', HAZE), 0.55), size: '140% 70%', position: 'center bottom' },
-        far: { svg: archBand(far.top, far.bottom, 0.85), tile: 1650, height: '32vh', seconds: 320, blur: 3 },
-        near: { svg: archBand(near.top, near.bottom, 0.95), tile: 1650, height: '24vh', seconds: 175 },
-        areaColors: [far.bottom, near.bottom]
+        motifs: ['arcade', 'portal', 'stroller', 'motes'],
+        wallpaper: 'concreteCorridor',
+        hero: { wallpaper: 'concreteCorridor', size: 'cover', position: 'center bottom' },
+        far: {
+          svg: floorMist(haze, 0.55),
+          tile: 1900, height: '18vh', seconds: 300, blur: 2
+        },
+        near: {
+          svg: motes(dust, 0.5),
+          tile: 2200, height: '24vh', seconds: 140
+        },
+        areaColors: [haze, dust]
       };
     },
     graphite: function (p, u) {

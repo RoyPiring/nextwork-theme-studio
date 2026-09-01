@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 
 global.self = {};
+require('../src/wallpapers.js');
 require('../src/scenes.js');
 require('../src/theme-engine.js');
 const NWT = global.self.NWT;
@@ -39,8 +40,11 @@ Object.keys(NWT.PRESETS).forEach(function (id, n) {
 
   const layers = [];
   if (scene && scene.hero) {
+    const papers = global.self.NWT_WALLPAPERS || {};
+    const paper = scene.hero.wallpaper && papers[scene.hero.wallpaper];
     layers.push('<i class="l hero"></i>');
-    rules.push('.' + k + ' .hero { background-image:' + url(scene.hero.svg) +
+    rules.push('.' + k + ' .hero { background-image:' +
+      (paper ? 'url("' + paper.uri + '")' : url(scene.hero.svg)) +
       '; background-size:' + scene.hero.size + '; background-position:' + scene.hero.position +
       '; background-repeat:no-repeat; }');
   }

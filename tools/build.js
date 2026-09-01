@@ -116,7 +116,8 @@ function firefoxManifest() {
   /* Firefox MV3 has no service worker. The two libraries the background needs
    * are listed here instead of being pulled in with importScripts. */
   delete m.background.service_worker;
-  m.background.scripts = ['src/scenes.js', 'src/theme-engine.js', 'src/background.js'];
+  m.background.scripts = ['src/wallpapers.js', 'src/scenes.js',
+                          'src/theme-engine.js', 'src/background.js'];
   /* Chromium-only key; Firefox warns on it during review. */
   delete m.minimum_chrome_version;
   m.browser_specific_settings = {

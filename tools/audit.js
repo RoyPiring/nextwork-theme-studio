@@ -150,7 +150,10 @@ check('no network calls in extension code', () => {
   const offenders = [];
   srcFiles.forEach(f => {
     codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
-      if (/importScripts\('theme-engine|importScripts\('scenes/.test(line)) return;
+      /* The background pulls its two libraries in with importScripts on
+       * Chromium. Allow it only when every argument is a bare local filename -
+       * naming the files instead meant adding one broke the build. */
+      if (/^\s*importScripts\((?:\s*'[\w.-]+\.js'\s*,?)+\)\s*;?\s*$/.test(line)) return;
       if (banned.test(line)) offenders.push(rel(f) + ':' + (i + 1));
     });
   });
@@ -190,14 +193,54 @@ check('no eval or HTML injection', () => {
 
 /* ------------------------------------------------------------ themes */
 global.self = {};
+require(path.join(ROOT, 'src', 'wallpapers.js'));
 require(path.join(ROOT, 'src', 'scenes.js'));
 require(path.join(ROOT, 'src', 'theme-engine.js'));
-const NWT = global.self.NWT;
-const SCENES = global.self.NWT_SCENES;
+const sandbox = global.self;
+const NWT = sandbox.NWT;
+const SCENES = sandbox.NWT_SCENES;
 const settings = JSON.parse(JSON.stringify(NWT.DEFAULT_SETTINGS));
 const C = NWT.color.contrastRatio;
 
 const themeIds = Object.keys(NWT.PRESETS);
+
+/* The painted wallpapers are the one place a fill is not a hex value the
+ * contrast check can read, so they get their own gate: inline only, size
+ * capped because the bytes ride in every injected stylesheet, and a recorded
+ * contrast measurement that has to clear the same 7:1 floor as everything
+ * else. tools/make-wallpaper.py is what produces the number. */
+check('image wallpapers stay inline, small and legible', () => {
+  const papers = sandbox.NWT_WALLPAPERS || {};
+  const ids = Object.keys(papers);
+  if (!ids.length) return 'none';
+  const CAP_KB = 160;
+  ids.forEach(id => {
+    const w = papers[id];
+    if (!/^data:image\/(jpeg|png|webp);base64,/.test(w.uri || '')) {
+      fail(id + ' is not an inline data URI');
+    }
+    const kb = w.uri.length / 1024;
+    if (kb > CAP_KB) fail(id + ' is ' + kb.toFixed(0) + ' KB (max ' + CAP_KB + ')');
+    if (!(w.minRatio >= 7)) {
+      fail(id + ' records a contrast of ' + w.minRatio + ', under the 7:1 floor');
+    }
+  });
+  /* Every wallpaper named by a scene has to actually exist, or the hero layer
+   * is silently dropped and the theme loses its background. */
+  themeIds.forEach(id => {
+    const theme = NWT.getTheme(settings, id);
+    const p = NWT.buildPalette(theme);
+    const u = {
+      toneOf: (hex, t) => NWT.toneOf(hex, p.textPrimary, t),
+      mix: NWT.color.mix,
+      rgba: NWT.color.rgba
+    };
+    const scene = typeof SCENES[id] === 'function' ? SCENES[id](p, u) : SCENES[id];
+    const named = scene && scene.hero && scene.hero.wallpaper;
+    if (named && !papers[named]) fail(theme.name + ' names a missing wallpaper: ' + named);
+  });
+  return ids.length + ' wallpaper(s)';
+});
 
 check('every theme has scenery', () => {
   const missing = themeIds.filter(id => !SCENES[id]);

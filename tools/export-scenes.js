@@ -33,7 +33,10 @@ let count = 0;
 Object.keys(SCENES).forEach(function (theme) {
   ['hero', 'far', 'near'].forEach(function (layer) {
     const def = resolve(theme)[layer];
-    if (!def) return;
+    /* A hero can be a painted wallpaper instead of generated SVG. There is
+     * nothing to export in that case - the artwork already exists as a file
+     * outside the repo, and what ships is the encoded copy in wallpapers.js. */
+    if (!def || !def.svg) return;
     const file = path.join(outDir, theme + '-' + layer + '.svg');
     fs.writeFileSync(file, def.svg);
     count++;

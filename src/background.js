@@ -7,7 +7,7 @@
  * MV3 runs it as an event page, where it does not - there the same two files
  * are listed in manifest.background.scripts instead. One file, both worlds. */
 if (typeof importScripts === 'function') {
-  importScripts('scenes.js', 'theme-engine.js');
+  importScripts('wallpapers.js', 'scenes.js', 'theme-engine.js');
 }
 
 /* The badge shows the focus timer when one is running, because that is the
