@@ -20,8 +20,8 @@ they record why several non-obvious parts of the code look the way they do.
   script cannot fetch a file — the site's CSP blocks it, and
   `web_accessible_resources` would widen the extension's surface for the sake
   of one picture — so the bytes ride in the injected stylesheet. Only the theme
-  using one pays for it: Concrete's stylesheet is 74 KB, every other theme is
-  unchanged at 39 KB.
+  using one pays for it: Concrete's stylesheet is 78 KB, against 26-42 KB for
+  the themes without a wallpaper, which are unchanged.
 - `tools/make-wallpaper.py` encodes a source image from `art/`. An image cannot
   be contrast-checked the way a hex fill can, so it measures instead: it finds
   the gentlest exposure cut that still clears 7:1 against body text, taken on a
