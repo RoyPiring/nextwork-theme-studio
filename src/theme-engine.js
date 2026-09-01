@@ -1085,8 +1085,14 @@
         const papers = (typeof root !== 'undefined' && root.NWT_WALLPAPERS) || {};
         const paper = scene.hero.wallpaper && papers[scene.hero.wallpaper];
         if (scene.hero.wallpaper && !paper) {
-          /* Named a wallpaper that is not loaded: skip the layer rather than
-           * emitting url(undefined) and painting the page with nothing. */
+          /* Named a wallpaper that is not loaded. Skipping beats emitting
+           * url(undefined), but say so: silently dropping the background is
+           * indistinguishable from a stale build, and that cost real time. */
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[nwt] wallpaper "' + scene.hero.wallpaper +
+                         '" not found - is src/wallpapers.js loaded before ' +
+                         'theme-engine.js? Background layer skipped.');
+          }
         } else {
           imgs.push(paper ? 'url("' + paper.uri + '")' : svgUrl(scene.hero.svg));
           sizes.push(scene.hero.size);
