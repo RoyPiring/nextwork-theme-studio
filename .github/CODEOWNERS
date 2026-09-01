@@ -1,0 +1,7 @@
+# Default reviewer for everything.
+*       @OWNER
+
+# Colour and scenery changes need a look at the rendered result, not the diff.
+/src/theme-engine.js    @OWNER
+/src/scenes.js          @OWNER
+/tools/audit.js         @OWNER

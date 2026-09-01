@@ -147,6 +147,30 @@ check('every theme has scenery', () => {
   return themeIds.length + ' themes';
 });
 
+/* Reusing a silhouette across themes is what made eighteen wallpapers feel like
+ * three, so each motif belongs to exactly one scene and CI keeps it that way. */
+check('every motif is exclusive to one theme', () => {
+  const owner = {};
+  const clashes = [];
+  themeIds.forEach(id => {
+    const theme = NWT.getTheme(settings, id);
+    const p = NWT.buildPalette(theme);
+    const u = {
+      toneOf: (hex, t) => NWT.toneOf(hex, p.textPrimary, t),
+      mix: NWT.color.mix,
+      rgba: NWT.color.rgba
+    };
+    const scene = typeof SCENES[id] === 'function' ? SCENES[id](p, u) : SCENES[id];
+    if (!scene.motifs || !scene.motifs.length) fail(theme.name + ' declares no motifs');
+    scene.motifs.forEach(m => {
+      if (owner[m]) clashes.push('"' + m + '" in both ' + owner[m] + ' and ' + theme.name);
+      else owner[m] = theme.name;
+    });
+  });
+  if (clashes.length) fail('\n    ' + clashes.join('\n    '));
+  return Object.keys(owner).length + ' distinct motifs';
+});
+
 check('both stylesheet variants build for every theme', () => {
   themeIds.forEach(id => {
     const theme = NWT.getTheme(settings, id);

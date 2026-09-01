@@ -1,0 +1,10 @@
+# The extension itself has no dependencies. This keeps the pinned GitHub Action
+# SHAs current, which is the only supply-chain surface the project has.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"

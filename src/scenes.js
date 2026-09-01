@@ -384,15 +384,163 @@
       "</radialGradient></defs><rect width='900' height='900' fill='url(#" + id + ")'/>");
   }
 
+  /* ========================================================================
+   * SIGNATURE MOTIFS
+   *
+   * One motif belongs to exactly one theme. Sharing a shape across themes is
+   * what made the set feel like variations of a single wallpaper, so
+   * tools/audit.js now fails if two scenes declare the same motif.
+   * ======================================================================*/
+
+  /* slate - a run of pitched rooftops with chimneys */
+  function roofLine(top, bottom, opacity) {
+    var out = '', i, x = 0, w, h, id = uid();
+    for (i = 0; i < 14; i++) {
+      w = 90 + (i * 53) % 80;
+      h = 70 + (i * 37) % 70;
+      out += "<path d='M" + x + " 340 L" + x + " " + (340 - h) + " L" + (x + w / 2) + " " +
+             (340 - h - 46) + " L" + (x + w) + " " + (340 - h) + " L" + (x + w) + " 340 Z'/>";
+      if (i % 3 === 0) {
+        out += "<rect x='" + (x + w * 0.68) + "' y='" + (340 - h - 60) + "' width='16' height='40'/>";
+      }
+      x += w + 6;
+    }
+    return svg(x, 340, "<defs>" + vgrad(id, top, bottom) + "</defs>" +
+      "<g fill='url(#" + id + ")' opacity='" + opacity + "'>" + out + "</g>");
+  }
+
+  /* espresso - vapour rising off something hot */
+  function steamBand(color, opacity) {
+    var out = '', i, x, id = uid();
+    for (i = 0; i < 7; i++) {
+      x = i * 230 + (i % 3) * 40;
+      out += "<path d='M" + x + " 420 c -34 -70 34 -110 0 -180 c -30 -62 26 -96 4 -150' " +
+             "fill='none' stroke='url(#" + id + ")' stroke-width='" + (16 + (i % 3) * 7) +
+             "' stroke-linecap='round' opacity='" + (0.5 + (i % 4) * 0.14).toFixed(2) + "'/>";
+    }
+    return svg(1610, 420,
+      "<defs><linearGradient id='" + id + "' x1='0' y1='1' x2='0' y2='0'>" +
+      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
+      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
+      "</linearGradient></defs>" + out);
+  }
+
+  /* dark japandi - noren, the split fabric curtain hung in a doorway */
+  function norenBand(top, bottom, opacity) {
+    var out = '', i, x, id = uid();
+    for (i = 0; i < 9; i++) {
+      x = i * 180;
+      out += "<path d='M" + x + " 0 h150 v250 q-40 16 -75 0 q-35 -16 -75 0 z'/>";
+    }
+    return svg(1620, 260, "<defs>" + vgrad(id, top, bottom) + "</defs>" +
+      "<g fill='url(#" + id + ")' opacity='" + opacity + "'>" + out + "</g>");
+  }
+
+  /* concrete & blossom - board-formed concrete: panel seams and tie holes */
+  function formworkBand(top, bottom, opacity) {
+    var out = '', r, c, id = uid();
+    for (r = 0; r < 6; r++) {
+      out += "<rect x='0' y='" + (r * 80) + "' width='1600' height='3'/>";
+      for (c = 0; c < 8; c++) {
+        out += "<rect x='" + (c * 200) + "' y='" + (r * 80) + "' width='3' height='80'/>";
+        out += "<circle cx='" + (c * 200 + 100) + "' cy='" + (r * 80 + 40) + "' r='5'/>";
+      }
+    }
+    return svg(1600, 480, "<defs>" + vgrad(id, top, bottom) + "</defs>" +
+      "<g fill='url(#" + id + ")' opacity='" + opacity + "'>" + out + "</g>");
+  }
+
+  /* concrete & blossom - ikebana: a vessel, three stems, a few blooms */
+  function ikebana(stem, bloom) {
+    return svg(1200, 640,
+      "<g stroke='" + stem + "' stroke-width='7' fill='none' stroke-linecap='round'>" +
+      "<path d='M600 620 q-14 -190 -96 -290'/>" +
+      "<path d='M604 620 q22 -150 118 -226'/>" +
+      "<path d='M598 620 q-4 -110 -30 -170'/>" +
+      "</g>" +
+      "<g fill='" + bloom + "'>" +
+      "<circle cx='504' cy='330' r='17'/><circle cx='486' cy='356' r='11'/>" +
+      "<circle cx='722' cy='394' r='15'/><circle cx='744' cy='372' r='10'/>" +
+      "<circle cx='568' cy='450' r='12'/>" +
+      "</g>" +
+      "<path d='M556 620 q6 -66 44 -66 q38 0 44 66 z' fill='" + stem + "'/>");
+  }
+
+  /* galactica - dust lanes, drifting diagonally */
+  function nebulaBand(color, opacity) {
+    var out = '', i, id = uid();
+    var lanes = [[120, 90, 520, 60], [640, 150, 620, 84], [1180, 70, 480, 54]];
+    for (i = 0; i < lanes.length; i++) {
+      out += "<ellipse cx='" + lanes[i][0] + "' cy='" + lanes[i][1] + "' rx='" + lanes[i][2] +
+             "' ry='" + lanes[i][3] + "' fill='url(#" + id + ")' transform='rotate(-14 " +
+             lanes[i][0] + " " + lanes[i][1] + ")'/>";
+    }
+    return svg(1600, 300,
+      "<defs><radialGradient id='" + id + "' cx='50%' cy='50%' r='50%'>" +
+      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
+      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
+      "</radialGradient></defs>" + out);
+  }
+
+  /* palm forest - canopy hanging into frame from above */
+  function canopyBand(top, bottom, opacity) {
+    var out = '', i, x, id = uid();
+    for (i = 0; i < 12; i++) {
+      x = i * 140 + (i % 3) * 26;
+      out += "<ellipse cx='" + x + "' cy='" + (40 + (i % 4) * 34) + "' rx='" + (96 + (i % 3) * 30) +
+             "' ry='" + (58 + (i % 4) * 20) + "'/>";
+    }
+    return svg(1680, 300, "<defs>" + vgrad(id, top, bottom) + "</defs>" +
+      "<g fill='url(#" + id + ")' opacity='" + opacity + "'>" + out + "</g>");
+  }
+
+  /* hawaii morning - birds, high and small */
+  function birdBand(color, opacity) {
+    var out = '', i, x, y, s;
+    for (i = 0; i < 11; i++) {
+      x = (i * 173) % 1500 + 40;
+      y = (i * 97) % 260 + 30;
+      s = 0.6 + (i % 3) * 0.3;
+      out += "<path d='M0 0 q9 -8 18 0 q9 -8 18 0' fill='none' stroke='" + color +
+             "' stroke-width='3' stroke-linecap='round' transform='translate(" + x + "," + y +
+             ") scale(" + s.toFixed(2) + ")' opacity='" + (0.5 + (i % 3) * 0.2).toFixed(2) + "'/>";
+    }
+    return svg(1560, 320, "<g opacity='" + opacity + "'>" + out + "</g>");
+  }
+
+  /* hawaii ocean - a headland on the horizon */
+  function islandBand(top, bottom, opacity) {
+    var id = uid();
+    return svg(1600, 260, "<defs>" + vgrad(id, top, bottom) + "</defs>" +
+      "<g fill='url(#" + id + ")' opacity='" + opacity + "'>" +
+      "<path d='M120 260 q90 -128 210 -108 q104 18 150 108 z'/>" +
+      "<path d='M700 260 q64 -80 150 -70 q78 10 112 70 z'/>" +
+      "<path d='M1180 260 q112 -150 250 -120 q120 26 158 120 z'/>" +
+      "</g>");
+  }
+
+  /* hawaii morning - ripples on flat water */
+  function rippleBand(color, opacity) {
+    var out = '', i, y;
+    for (i = 0; i < 9; i++) {
+      y = 40 + i * 30;
+      out += "<path d='M0 " + y + " q200 -12 400 0 q200 12 400 0 q200 -12 400 0 q200 12 400 0' " +
+             "fill='none' stroke='" + color + "' stroke-width='" + (3 + (i % 3)) +
+             "' stroke-linecap='round' opacity='" + (0.28 + (i % 4) * 0.16).toFixed(2) + "'/>";
+    }
+    return svg(1600, 320, "<g opacity='" + opacity + "'>" + out + "</g>");
+  }
+
   /* ----------------------------------------------------------------- scenes */
   /* Each scene is a function of the palette, so it recolours with the theme.
    *
    *   u.toneOf(hue, target)  keeps the hue, solves the lightness that sits just
    *                          inside the contrast floor against body text
-   *   u.mix(a, b, t)         used to haze a plane toward the canvas by distance
+   *   u.mix(a, b, t)         hazes a plane toward the canvas by distance
    *
-   * Every mass is a gradient, never a flat fill, and every distant plane is
-   * hazed toward the sky. That is what separates depth from clip-art.
+   * `motifs` names the shapes a scene uses. No two scenes may share one -
+   * tools/audit.js enforces it - because reusing a silhouette is what made
+   * eighteen themes feel like three.
    *
    *   HAZE  faintest, for glows
    *   FAR   the slow plane, always hazed further
@@ -400,7 +548,6 @@
    */
   const HAZE = 10.5, FAR = 8.6, NEAR = 7.3;
 
-  /* Build the two stops of a mass: crown catches the sky, base stays deep. */
   function planes(u, p, hue, target, distance) {
     const base = u.mix(u.toneOf(hue, target), p.canvas, distance || 0);
     return { top: u.mix(base, p.canvas, 0.30), bottom: base, base: base };
@@ -410,64 +557,62 @@
 
     /* ---- neutral darks ------------------------------------------------- */
 
-    /* Brutalism: a concrete arcade behind a distant ridge of slabs. */
     concrete: function (p, u) {
       const far = planes(u, p, '#2b2f33', FAR, 0.35), near = planes(u, p, '#2b2f33', NEAR, 0);
       return {
+        motifs: ['arcade'],
         hero: { svg: softGlow(u.toneOf('#2b2f33', HAZE), 0.55), size: '140% 70%', position: 'center bottom' },
-        far: { svg: ridgeBand(far.top, far.bottom, 0.9, 52, 210, 0.4), tile: 1600, height: '30vh', seconds: 320, blur: 3 },
-        near: { svg: archBand(near.top, near.bottom, 0.95), tile: 1650, height: '26vh', seconds: 175 },
+        far: { svg: archBand(far.top, far.bottom, 0.85), tile: 1650, height: '32vh', seconds: 320, blur: 3 },
+        near: { svg: archBand(near.top, near.bottom, 0.95), tile: 1650, height: '24vh', seconds: 175 },
         areaColors: [far.bottom, near.bottom]
       };
     },
-    /* Three receding ridges - the classic layered-mountain wallpaper. */
     graphite: function (p, u) {
       const far = planes(u, p, '#2a2c2d', FAR, 0.40), near = planes(u, p, '#2a2c2d', NEAR, 0);
       return {
+        motifs: ['ridges'],
         hero: { svg: softGlow(u.toneOf('#2a2c2d', HAZE), 0.5, 84), size: '140% 72%', position: 'center bottom' },
         far: { svg: ridgeBand(far.top, far.bottom, 0.85, 70, 190, 0), tile: 1600, height: '38vh', seconds: 340, blur: 4 },
         near: { svg: ridgeBand(near.top, near.bottom, 0.95, 44, 250, 1.9), tile: 1600, height: '24vh', seconds: 180 },
         areaColors: [far.bottom, near.bottom]
       };
     },
-    /* A ridge behind low cloud sitting in the valley. */
     slate: function (p, u) {
       const far = planes(u, p, '#2b3340', FAR, 0.38), near = planes(u, p, '#2b3340', NEAR, 0);
       return {
+        motifs: ['rooftops'],
         hero: { svg: softGlow(u.toneOf('#2b3340', HAZE), 0.6, 84), size: '140% 72%', position: 'center bottom' },
-        far: { svg: ridgeBand(far.top, far.bottom, 0.9, 76, 195, 0.7), tile: 1600, height: '36vh', seconds: 320, blur: 4 },
-        near: { svg: cloudBank(u.toneOf('#2b3340', NEAR), 0.85, 1.15), tile: 1600, height: '22vh', seconds: 190, y: '72%' },
-        areaColors: [far.bottom, u.toneOf('#2b3340', NEAR)]
+        far: { svg: roofLine(far.top, far.bottom, 0.85), tile: 1450, height: '30vh', seconds: 330, blur: 3 },
+        near: { svg: roofLine(near.top, near.bottom, 0.95), tile: 1290, height: '22vh', seconds: 180 },
+        areaColors: [far.bottom, near.bottom]
       };
     },
-    /* Deep space: a nebula wash, stars, and one silhouetted horizon. */
     carbon: function (p, u) {
-      const near = planes(u, p, '#1a1c1e', NEAR, 0);
       return {
+        motifs: ['starfield'],
         hero: { svg: softGlow(u.toneOf('#22262b', HAZE), 0.7, 70), size: '150% 80%', position: 'center bottom' },
-        far: { svg: starField(p.textMuted, 0.75, 120, 3), tile: 1600, height: '58vh', seconds: 440, y: '4%' },
-        near: { svg: ridgeBand(near.top, near.bottom, 1, 40, 262, 0.4), tile: 1600, height: '20vh', seconds: 210 },
-        areaColors: [near.bottom]
+        far: { svg: starField(p.textMuted, 0.7, 120, 3), tile: 1600, height: '58vh', seconds: 440, y: '4%' },
+        near: { svg: starField(p.textSecondary, 0.5, 40, 11), tile: 1600, height: '34vh', seconds: 230, y: '30%' },
+        areaColors: []
       };
     },
-    /* Forest in fog: pale trees receding into a bank of it. */
     fog: function (p, u) {
       const far = planes(u, p, '#3a3e42', FAR, 0.42), near = planes(u, p, '#3a3e42', NEAR, 0);
       return {
+        motifs: ['pines'],
         hero: { svg: softGlow(u.toneOf('#3a3e42', HAZE), 0.5), size: '150% 74%', position: 'center bottom' },
         far: { svg: treeLine(far.top, far.bottom, 0.8, 1.2), tile: 1656, height: '34vh', seconds: 330, blur: 5 },
         near: { svg: treeLine(near.top, near.bottom, 0.95, 0.8), tile: 1656, height: '22vh', seconds: 185 },
         areaColors: [far.bottom, near.bottom]
       };
     },
-    /* Dusk: a low sun over two warm ridges. */
     espresso: function (p, u) {
-      const far = planes(u, p, '#332c26', FAR, 0.38), near = planes(u, p, '#332c26', NEAR, 0);
       return {
-        hero: { svg: disc(u.toneOf('#4a3d30', 8.2), 0.85, 30), size: '46% 46%', position: '68% 66%' },
-        far: { svg: ridgeBand(far.top, far.bottom, 0.9, 62, 200, 0.9), tile: 1600, height: '34vh', seconds: 310, blur: 3 },
-        near: { svg: ridgeBand(near.top, near.bottom, 0.95, 40, 254, 2.4), tile: 1600, height: '22vh', seconds: 175 },
-        areaColors: [far.bottom, near.bottom, u.toneOf('#4a3d30', 8.2)]
+        motifs: ['steam'],
+        hero: { svg: softGlow(u.toneOf('#3d332b', HAZE), 0.6, 90), size: '150% 76%', position: 'center bottom' },
+        far: { svg: steamBand(u.toneOf('#4a3d30', FAR), 0.8), tile: 1610, height: '52vh', seconds: 330, blur: 4 },
+        near: { svg: steamBand(u.toneOf('#4a3d30', NEAR), 0.9), tile: 1610, height: '38vh', seconds: 190 },
+        areaColors: [u.toneOf('#4a3d30', NEAR)]
       };
     },
 
@@ -476,6 +621,7 @@
     tokyoNight: function (p, u) {
       const far = planes(u, p, '#232746', 9.4, 0.30), near = planes(u, p, '#1c1f38', NEAR, 0);
       return {
+        motifs: ['skyline'],
         hero: { svg: softGlow(u.toneOf('#3a2246', HAZE), 0.95, 82), size: '150% 74%', position: 'center bottom' },
         far: { svg: skyline(far.top, far.bottom, '#8f7fd8', 0.9, true), tile: 2200, height: '36vh', seconds: 300, blur: 2 },
         near: { svg: skyline(near.top, near.bottom, p.accent, 0.95, false), tile: 1700, height: '24vh', seconds: 170 },
@@ -485,6 +631,7 @@
     wabiSabi: function (p, u) {
       const far = planes(u, p, '#2f2b1e', FAR, 0.40), near = planes(u, p, '#2f2b1e', NEAR, 0);
       return {
+        motifs: ['bamboo'],
         hero: { svg: softGlow(u.toneOf('#2f2b1e', HAZE), 0.5), size: '150% 74%', position: 'center bottom' },
         far: { svg: bambooBand(far.top, far.bottom, 0.8, 1.15), tile: 1620, height: '70vh', seconds: 340, blur: 4 },
         near: { svg: bambooBand(near.top, near.bottom, 0.92, 0.8), tile: 1620, height: '48vh', seconds: 190 },
@@ -494,15 +641,17 @@
     darkJapandi: function (p, u) {
       const far = planes(u, p, '#33261c', FAR, 0.30), near = planes(u, p, '#33261c', NEAR, 0);
       return {
+        motifs: ['shoji', 'noren'],
         hero: { svg: softGlow(u.toneOf('#33261c', HAZE), 0.55), size: '150% 74%', position: 'center bottom' },
         far: { svg: screenBand(far.bottom, 0.9), tile: 1600, height: '44vh', seconds: 360, blur: 1 },
-        near: { svg: petals(near.bottom, 0.8, 14, 4), tile: 1520, height: '38vh', seconds: 200, y: '52%' },
+        near: { svg: norenBand(near.top, near.bottom, 0.9), tile: 1620, height: '20vh', seconds: 200, y: '2%' },
         areaColors: [far.bottom, near.bottom]
       };
     },
     zenLobby: function (p, u) {
       const far = planes(u, p, '#33261a', FAR, 0.32), near = planes(u, p, '#33261a', NEAR, 0);
       return {
+        motifs: ['reeds', 'stones'],
         hero: { svg: softGlow(u.toneOf('#3a2c1e', HAZE), 0.65), size: '150% 76%', position: 'center bottom' },
         far: { svg: reedBand(far.bottom, 0.95), tile: 1610, height: '46vh', seconds: 320, blur: 2 },
         near: { svg: stoneBand(near.bottom, 0.95), tile: 1620, height: '15vh', seconds: 180 },
@@ -512,9 +661,10 @@
     concreteBlossom: function (p, u) {
       const far = planes(u, p, '#2f2e29', FAR, 0.34), near = planes(u, p, '#2f2e29', NEAR, 0);
       return {
-        hero: { svg: branch(near.bottom, u.toneOf('#3a3831', NEAR)), size: '128% auto', position: 'center top' },
-        far: { svg: archBand(far.top, far.bottom, 0.85), tile: 1650, height: '24vh', seconds: 310, blur: 3 },
-        near: { svg: petals(near.bottom, 0.9, 16, 2), tile: 1520, height: '44vh', seconds: 200, y: '38%' },
+        motifs: ['formwork', 'ikebana'],
+        hero: { svg: ikebana(near.bottom, u.toneOf('#3a3831', NEAR)), size: 'auto 62%', position: '72% bottom' },
+        far: { svg: formworkBand(far.top, far.bottom, 0.7), tile: 1600, height: '56vh', seconds: 340, blur: 2 },
+        near: { svg: formworkBand(near.top, near.bottom, 0.5), tile: 1120, height: '34vh', seconds: 195 },
         areaColors: [far.bottom, near.bottom]
       };
     },
@@ -525,10 +675,11 @@
       const body = u.toneOf('#1b2432', 9.6), rim = u.toneOf('#3c4c63', NEAR);
       const hull = u.toneOf('#1b2432', NEAR);
       return {
+        motifs: ['planet', 'fleet', 'nebula'],
         hero: { svg: planetArc(body, rim, 0.95), size: '150% 76%', position: 'center bottom' },
-        far: { svg: starField(p.textSecondary, 0.7, 120, 7), tile: 1600, height: '58vh', seconds: 460, y: '4%' },
+        far: { svg: nebulaBand(u.toneOf('#42506b', FAR), 0.8), tile: 1600, height: '46vh', seconds: 420, y: '8%', blur: 3 },
         near: { svg: fleetBand(hull, p.accent, 0.95), tile: 1700, height: '28vh', seconds: 240, y: '62%' },
-        areaColors: [body, rim, hull]
+        areaColors: [body, rim, hull, u.toneOf('#42506b', FAR)]
       };
     },
     tetris: function (p, u) {
@@ -536,6 +687,7 @@
             rose = u.toneOf('#6b3a55', NEAR), blue = u.toneOf('#2f4a7a', NEAR);
       const dim = [u.toneOf('#4a3a72', FAR), u.toneOf('#2f4a7a', FAR), u.toneOf('#6b3a55', FAR)];
       return {
+        motifs: ['tetrominoes', 'scanlines'],
         hero: { svg: scanlines(u.toneOf('#4a3a72', HAZE), 0.55), size: '100% 100%', position: 'center top' },
         far: { svg: tetrominoes(dim, 0.8, 46, true), tile: 1600, height: '56vh', seconds: 300, y: '6%', blur: 2 },
         near: { svg: blockStack([violet, blue, rose, cyan], 0.95, 52), tile: 1352, height: '20vh', seconds: 175 },
@@ -547,9 +699,9 @@
 
     mountFuji: function (p, u) {
       const rock = planes(u, p, '#bdcadf', NEAR, 0), ridge = planes(u, p, '#bdcadf', FAR, 0.30);
-      const pine = planes(u, p, '#aebbd2', NEAR, 0.10);
       const id = 'fuji';
       return {
+        motifs: ['fuji', 'clouds'],
         hero: {
           svg: svg(1600, 620,
             "<defs>" +
@@ -562,28 +714,29 @@
             "<path d='M0 620 L250 452 q30 -22 60 0 L560 620 z' fill='url(#" + id + "r)'/>" +
             "<path d='M1040 620 L1300 430 q30 -22 60 0 L1600 620 z' fill='url(#" + id + "r)'/>" +
             "<path d='M0 620 L470 236 q40 -34 80 0 L1080 620 z' fill='url(#" + id + ")'/>" +
-            /* snow reads lighter than the canvas, so it is safe by construction */
             "<path d='M448 258 q62 -54 124 -22 l58 62 q-42 -22 -76 4 q-34 26 -70 -6 q-24 -22 -36 -38z' fill='#fbfdff'/>"),
           size: '116% 56%', position: 'center bottom'
         },
-        far: { svg: cloudBank(u.toneOf('#c9d6ea', HAZE), 0.95, 1.05), tile: 1600, height: '20vh', seconds: 270, y: '38%', blur: 2 },
-        near: { svg: treeLine(pine.top, pine.bottom, 0.9, 0.72), tile: 1656, height: '16vh', seconds: 155 },
-        areaColors: [rock.bottom, ridge.bottom, pine.bottom]
+        far: { svg: cloudBank(u.toneOf('#c9d6ea', HAZE), 0.95, 1.0), tile: 1600, height: '18vh', seconds: 280, y: '30%', blur: 2 },
+        near: { svg: cloudBank(u.toneOf('#c9d6ea', FAR), 0.8, 1.5), tile: 1600, height: '22vh', seconds: 165, y: '70%' },
+        areaColors: [rock.bottom, ridge.bottom, u.toneOf('#c9d6ea', FAR)]
       };
     },
     palmForest: function (p, u) {
       const far = planes(u, p, '#b9cfb3', FAR, 0.35), near = planes(u, p, '#a7c2a0', NEAR, 0);
       return {
+        motifs: ['canopy'],
         hero: { svg: softGlow(u.toneOf('#b9cfb3', HAZE), 0.9, 92), size: '150% 70%', position: 'center bottom' },
-        far: { svg: treeLine(far.top, far.bottom, 0.85, 1.2), tile: 1656, height: '34vh', seconds: 290, blur: 4 },
-        near: { svg: treeLine(near.top, near.bottom, 0.95, 0.78), tile: 1656, height: '22vh', seconds: 165 },
+        far: { svg: canopyBand(far.top, far.bottom, 0.8), tile: 1680, height: '30vh', seconds: 300, y: '0%', blur: 4 },
+        near: { svg: canopyBand(near.top, near.bottom, 0.9), tile: 1400, height: '22vh', seconds: 170, y: '0%' },
         areaColors: [far.bottom, near.bottom]
       };
     },
     hawaiiOcean: function (p, u) {
       const sand = planes(u, p, '#e0cba4', NEAR, 0), palm = u.toneOf('#9fc4b2', NEAR);
-      const wave = u.toneOf('#a8cfdd', FAR), id = 'ocn';
+      const wave = u.toneOf('#a8cfdd', FAR), isle = planes(u, p, '#9fb9c4', FAR, 0.25), id = 'ocn';
       return {
+        motifs: ['shoreline', 'palms', 'headland'],
         hero: {
           svg: svg(1600, 560,
             "<defs><linearGradient id='" + id + "' x1='0' y1='0' x2='0' y2='1'>" +
@@ -594,15 +747,15 @@
             "<path d='M0 560 L0 430 q400 -70 800 -10 q400 60 800 -20 L1600 560 z' fill='url(#" + id + ")'/>"),
           size: '110% 48%', position: 'center bottom'
         },
-        far: { svg: cloudBank(u.toneOf('#bcd9e2', HAZE), 0.9, 1.1), tile: 1600, height: '20vh', seconds: 300, y: '44%', blur: 2 },
+        far: { svg: islandBand(isle.top, isle.bottom, 0.85), tile: 1600, height: '16vh', seconds: 310, y: '54%', blur: 3 },
         near: { svg: palmBand(palm, 0.95), tile: 1700, height: '32vh', seconds: 195 },
-        areaColors: [sand.bottom, wave, palm]
+        areaColors: [sand.bottom, wave, palm, isle.bottom]
       };
     },
     hawaiiMorning: function (p, u) {
-      const water = planes(u, p, '#d3b89c', NEAR, 0), palm = u.toneOf('#c9a888', NEAR);
-      const sky = u.toneOf('#f0c9a4', FAR), id = 'mrn';
+      const water = planes(u, p, '#d3b89c', NEAR, 0), sky = u.toneOf('#f0c9a4', FAR), id = 'mrn';
       return {
+        motifs: ['sunrise', 'birds', 'ripples'],
         hero: {
           svg: svg(1600, 620,
             "<defs><linearGradient id='" + id + "' x1='0' y1='0' x2='0' y2='1'>" +
@@ -618,15 +771,16 @@
             "<path d='M0 620 L0 452 q400 -46 800 -6 q400 40 800 -14 L1600 620 z' fill='url(#" + id + ")'/>"),
           size: '112% 54%', position: 'center bottom'
         },
-        far: { svg: cloudBank(u.toneOf('#f2d3b4', HAZE), 0.85, 1.1), tile: 1600, height: '20vh', seconds: 290, y: '50%', blur: 2 },
-        near: { svg: palmBand(palm, 0.95), tile: 1700, height: '32vh', seconds: 185 },
-        areaColors: [water.bottom, sky, palm]
+        far: { svg: birdBand(u.toneOf('#b08a6a', FAR), 0.85), tile: 1560, height: '26vh', seconds: 300, y: '14%' },
+        near: { svg: rippleBand(u.toneOf('#c9a888', NEAR), 0.8), tile: 1600, height: '22vh', seconds: 185, y: '82%' },
+        areaColors: [water.bottom, sky, u.toneOf('#c9a888', NEAR), u.toneOf('#b08a6a', FAR)]
       };
     },
     cherryBlossom: function (p, u) {
       const bark = u.toneOf('#c39aa8', NEAR), bloom = u.toneOf('#e8b9c9', FAR);
       const drift = u.toneOf('#e3aec1', NEAR), soft = u.toneOf('#eec8d5', HAZE);
       return {
+        motifs: ['branch', 'petals'],
         hero: { svg: branch(bark, bloom), size: '112% auto', position: 'center top' },
         far: { svg: petals(soft, 0.9, 26, 1), tile: 1520, height: '58vh', seconds: 320, y: '18%', blur: 2 },
         near: { svg: petals(drift, 0.85, 18, 5), tile: 1520, height: '40vh', seconds: 190, y: '46%' },

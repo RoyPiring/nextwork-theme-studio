@@ -35,6 +35,15 @@ Judging a palette from hex values does not work. Look at it.
 The contrast floor is not advisory. Article text on nextwork.ai sits directly on
 the page background, so scenery is read *through* body copy.
 
+## Adding scenery
+
+Every scene declares `motifs`, and no two scenes may share one — the audit fails
+if they do. If you want pine trees, Fog already has them; pick something else.
+That rule exists because five themes once shared the same ridge line and the set
+felt like three wallpapers instead of eighteen.
+
+`tools/contact-sheet.js` renders all of them on one page. Use it.
+
 ## Adding a theme
 
 Add an entry to `PRESETS` in `src/theme-engine.js` with nine colours, then a
