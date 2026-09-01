@@ -4,6 +4,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is [semver](https://semver.org/); the `version` field in
 `manifest.json` is the source of truth.
 
+## [1.2.0] - 2026-09-01
+
+### Added
+- Panels that escape the token layer are now measured and repainted at runtime.
+  Tooltips and side panels that are portalled away from their owner or built
+  after load cannot be reached from a stylesheet; this finds anything still
+  painting light on a dark theme and gives it the theme surface. Only touches
+  elements large enough to be a panel. Switch in Extras.
+- The focus timer can be locked. Locked, it cannot be dragged and clicks pass
+  straight through it, so it can never be in the way.
+- The focus timer only appears on project pages.
+
 ## [1.1.0] - 2026-09-01
 
 ### Added

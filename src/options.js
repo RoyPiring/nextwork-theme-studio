@@ -5,7 +5,7 @@
   const $ = id => document.getElementById(id);
   const DIALS = ['hue', 'saturation', 'contrast', 'brightness'];
   const OPTION_CHECKS = ['softenShadows', 'themeScrollbars', 'accentLinks',
-    'invertLogos', 'neutralizeGlows', 'patchStubborn', 'animateBackdrop', 'sceneBackdrop'];
+    'invertLogos', 'neutralizeGlows', 'patchStubborn', 'animateBackdrop', 'sceneBackdrop', 'rescuePanels'];
 
   let settings = null;
 

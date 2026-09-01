@@ -146,6 +146,7 @@
       state === 'over' ? 'over target' : state === 'running' ? 'running' : 'paused';
     $('focus-toggle').textContent = f.running ? 'Pause' : (NWT.focusElapsed(f) ? 'Resume' : 'Start');
     $('focusEnabled').checked = !!f.enabled;
+    $('focus-locked').checked = !!f.locked;
 
     [...$('focus-targets').querySelectorAll('button')].forEach(function (b) {
       b.setAttribute('aria-pressed', String(Number(b.dataset.min) === f.targetMin));
@@ -180,6 +181,10 @@
       } else {
         saveFocus({ running: true, startedAt: Date.now(), enabled: true });
       }
+    });
+
+    $('focus-locked').addEventListener('change', function () {
+      saveFocus({ locked: $('focus-locked').checked });
     });
 
     $('focus-reset').addEventListener('click', function () {

@@ -152,7 +152,7 @@
     let startX = 0, startY = 0, originX = 0, originY = 0, moved = false;
 
     el.addEventListener('pointerdown', function (e) {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || el.getAttribute('data-locked') === '1') return;
       const r = el.getBoundingClientRect();
       startX = e.clientX; startY = e.clientY;
       originX = r.left; originY = r.top;
@@ -201,11 +201,20 @@
     });
   }
 
+  /* The timer is for working through a project, so it only belongs on a
+   * project page - not the dashboard, the library or a marketing page. */
+  function onProjectPage() {
+    return /\/projects?\//.test(location.pathname);
+  }
+
   function renderHud(settings) {
     const focus = Object.assign({}, NWT.DEFAULT_SETTINGS.focus, settings.focus);
-    if (!settings.enabled || !focus.enabled) { removeHud(); return; }
+    if (!settings.enabled || !focus.enabled || !onProjectPage()) { removeHud(); return; }
     paintHud(focus);
     const el = hudEl();
+    if (focus.locked) el.setAttribute('data-locked', '1');
+    else el.removeAttribute('data-locked');
+    el.title = focus.locked ? 'Focus timer (locked)' : 'Drag to move; double-click to reset';
     makeDraggable(el);
     placeHud(el, focus);
     if (hudTimer) clearInterval(hudTimer);
@@ -222,6 +231,60 @@
     });
   });
 
+  /* ---- stray light panels ----------------------------------------------
+   * Some surfaces cannot be reached from a stylesheet: tooltips and side
+   * panels that are portalled out of their owner, built after load, or given
+   * their colour by a class the token layer has no name for. Five attempts at
+   * guessing selectors for those did not hold.
+   *
+   * So this measures instead of guessing. After the DOM settles it looks for
+   * panels that are still painting light on a dark theme and gives them the
+   * theme surface. It only ever touches something big enough to be a panel,
+   * and only when the colour it is painting is genuinely light. */
+  let rescueQueued = false;
+
+  function isLight(colour) {
+    const m = /rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?/.exec(colour || '');
+    if (!m) return false;
+    const alpha = m[4] === undefined ? 1 : parseFloat(m[4]);
+    if (alpha < 0.5) return false;                       /* see-through, not a panel */
+    const lum = (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) / 255;
+    return lum > 0.72;
+  }
+
+  function isDarkText(colour) {
+    const m = /rgba?\((\d+), (\d+), (\d+)/.exec(colour || '');
+    if (!m) return false;
+    return (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) / 255 < 0.35;
+  }
+
+  function rescueLightPanels(palette) {
+    const nodes = document.querySelectorAll('div,section,aside,dialog,article,nav,form,li,span');
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      if (el.dataset.nwtLit === '1' || el.id === HUD_ID) continue;
+      const r = el.getBoundingClientRect();
+      /* big enough to be a panel, not a chip or a badge */
+      if (r.width < 220 || r.height < 90) continue;
+      const cs = getComputedStyle(el);
+      if (!isLight(cs.backgroundColor)) continue;
+      el.dataset.nwtLit = '1';
+      el.style.setProperty('background-color', palette.surface, 'important');
+      /* only repaint text that would now be dark-on-dark */
+      if (isDarkText(cs.color)) el.style.setProperty('color', palette.text, 'important');
+      if (isLight(cs.borderTopColor)) el.style.setProperty('border-color', palette.border, 'important');
+    }
+  }
+
+  function scheduleRescue(palette) {
+    if (rescueQueued) return;
+    rescueQueued = true;
+    setTimeout(function () {
+      rescueQueued = false;
+      try { rescueLightPanels(palette); } catch (e) { /* never break the page */ }
+    }, 220);
+  }
+
   /* ---- real settings --------------------------------------------------- */
   function render(settings) {
     const s = Object.assign({}, NWT.DEFAULT_SETTINGS, settings || {});
@@ -237,7 +300,19 @@
     paintShadowRoots(shadowSheetFor(NWT.buildCSS(s, null, { shadow: true })));
     writeCache(true, css);
     renderHud(s);
+
+    const theme = NWT.getTheme(s);
+    if (theme.mode !== 'light' && s.options && s.options.rescuePanels !== false) {
+      lastPalette = { surface: NWT.buildPalette(theme).surfaceAlt,
+                      text: NWT.buildPalette(theme).textPrimary,
+                      border: NWT.buildPalette(theme).border };
+      scheduleRescue(lastPalette);
+    } else {
+      lastPalette = null;
+    }
   }
+
+  let lastPalette = null;
 
   chrome.storage.local.get(null, function (settings) {
     if (chrome.runtime.lastError) return;
@@ -269,6 +344,8 @@
     /* The app mounts components continuously, so newly created shadow roots
      * need the sheet too. Adopting is idempotent and cheap. */
     if (lastCSS && shadowSheet) paintShadowRoots(shadowSheet);
+    /* panels are built on demand, so re-check whenever the DOM changes */
+    if (lastCSS && lastPalette) scheduleRescue(lastPalette);
   });
   if (document.documentElement) {
     observer.observe(document.documentElement, { childList: true, subtree: true });

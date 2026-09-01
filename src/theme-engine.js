@@ -377,7 +377,8 @@
        * lands in the same relative place on a different window size. null
        * means "wherever the stylesheet puts it". */
       hudX: null,
-      hudY: null
+      hudY: null,
+      locked: false        /* locked: cannot be dragged, and clicks pass through */
     },
     options: {
       dimImages: 0,          /* 0-40 % - knocks the glare off bright screenshots */
@@ -388,7 +389,8 @@
       neutralizeGlows: true, /* the hero bloom is a hardcoded cream gradient */
       patchStubborn: true,   /* arbitrary bg-[#FDEEE2]-style classes */
       animateBackdrop: true, /* slow drift on themes that have a backdrop */
-      sceneBackdrop: true    /* hand-drawn scenery behind the page */
+      sceneBackdrop: true,   /* hand-drawn scenery behind the page */
+      rescuePanels: true     /* repaint panels that escape the token layer */
     }
   };
 
@@ -1032,6 +1034,9 @@
            ' box-shadow: 0 6px 24px rgba(0,0,0,.28); backdrop-filter: blur(6px);' +
            ' transition: opacity 120ms ease; }');
     L.push('#nwt-focus:hover { opacity: 1; }');
+    /* Locked means it stays put AND stops intercepting the pointer, so it can
+     * never be in the way of something underneath it. */
+    L.push('#nwt-focus[data-locked="1"] { cursor: default; pointer-events: none; }');
     L.push('#nwt-focus[data-dragging="1"] { cursor: grabbing; opacity: .9;' +
            ' box-shadow: 0 10px 34px rgba(0,0,0,.42); }');
     L.push('#nwt-focus .nwt-focus-label { font-size: clamp(8px, 0.55vw, 10px);' +
