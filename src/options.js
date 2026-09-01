@@ -174,7 +174,11 @@
         if (!/^#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(v.trim())) return;
         const norm = NWT.color.rgbToHex(NWT.color.hexToRgb(v));
         updateTheme(function (t) { t.colors[key] = norm; });
-        renderAll();
+        /* Not renderAll: that rebuilds these rows and removes the input the
+         * pointer is inside. Mirror the value across and refresh the rest. */
+        if (hex.value !== norm) hex.value = norm;
+        if (picker.value !== norm) picker.value = norm;
+        refreshPreview();
       }
       picker.addEventListener('input', function () { commit(picker.value); });
       hex.addEventListener('change', function () { commit(hex.value); });
@@ -252,9 +256,61 @@
     OPTION_CHECKS.forEach(function (k) { $(k).checked = !!o[k]; });
   }
 
-  function renderAll() {
+  /* Everything that is safe to re-run while an input is being dragged.
+   *
+   * renderAll() rebuilds the nine colour rows, which removes the colour input
+   * the pointer is currently inside, and dumps a freshly built stylesheet into
+   * the page. Neither can happen on every `input` event. */
+  function refreshPreview() {
     const theme = NWT.getTheme(settings);
     const p = NWT.buildPalette(theme);
+
+    dressUI(p);
+    document.documentElement.style.setProperty('--pv-backdrop', theme.backdrop || 'none');
+    paintPreviewScene(theme);
+    document.body.classList.toggle('is-light', theme.mode === 'light');
+    renderSidebar();
+    renderDials(theme);
+    renderRamp(p);
+    renderChecks(p);
+    writeCssDump();
+  }
+
+  /* The generated stylesheet is 70 KB and rebuilding it is the most expensive
+   * thing on this page, so it waits for the drag to stop like the dials do. */
+  const writeCssDump = NWT.debounce(function () {
+    const theme = NWT.getTheme(settings);
+    const css = NWT.buildCSS(settings, theme);
+    $('css-out').textContent = css;
+    $('css-size').textContent = (css.length / 1024).toFixed(1) + ' KB';
+  }, 180);
+
+  /* A scene's hero is a wallpaper now rather than generated SVG, so asking for
+   * hero.svg produced url("data:image/svg+xml,undefined") and the preview lost
+   * its background entirely. */
+  function paintPreviewScene(theme) {
+    const scenes = (self.NWT_SCENES || {});
+    const papers = (self.NWT_WALLPAPERS || {});
+    const scene = settings.options.sceneBackdrop ? scenes[theme.sceneKey || theme.id] : null;
+    const resolved = typeof scene === 'function'
+      ? scene(NWT.buildPalette(theme), {
+          toneOf: function (hex, t) { return NWT.toneOf(hex, NWT.buildPalette(theme).textPrimary, t); },
+          mix: NWT.color.mix, rgba: NWT.color.rgba
+        })
+      : scene;
+    const rs = document.documentElement.style;
+    const hero = resolved && resolved.hero;
+    const paper = hero && hero.wallpaper && papers[hero.wallpaper];
+    rs.setProperty('--pv-scene-hero',
+      paper ? 'url("' + paper.uri + '")' : (hero && hero.svg ? NWT.svgUrl(hero.svg) : 'none'));
+    rs.setProperty('--pv-scene-hero-size', hero ? hero.size : 'auto');
+    rs.setProperty('--pv-scene-hero-pos', hero ? hero.position : 'center');
+    rs.setProperty('--pv-scene-near',
+      resolved && resolved.near ? NWT.svgUrl(resolved.near.svg) : 'none');
+  }
+
+  function renderAll() {
+    const theme = NWT.getTheme(settings);
 
     $('enabled').checked = settings.enabled;
     $('theme-name').value = theme.name;
@@ -265,30 +321,9 @@
       : 'Saved automatically';
     $('customCSS').value = theme.customCSS || '';
 
-    dressUI(p);
-    /* The preview wears the theme's backdrop too, so a light theme is judged
-     * on the thing it is actually going to look like. */
-    document.documentElement.style.setProperty('--pv-backdrop', theme.backdrop || 'none');
-    /* Show the scenery in the preview too, otherwise you are picking a theme
-     * blind on the one thing you asked to see. */
-    const scenes = (self.NWT_SCENES || {});
-    const scene = settings.options.sceneBackdrop ? scenes[theme.sceneKey || theme.id] : null;
-    const rs = document.documentElement.style;
-    rs.setProperty('--pv-scene-hero', scene && scene.hero ? NWT.svgUrl(scene.hero.svg) : 'none');
-    rs.setProperty('--pv-scene-hero-size', scene && scene.hero ? scene.hero.size : 'auto');
-    rs.setProperty('--pv-scene-hero-pos', scene && scene.hero ? scene.hero.position : 'center');
-    rs.setProperty('--pv-scene-near', scene && scene.near ? NWT.svgUrl(scene.near.svg) : 'none');
-    document.body.classList.toggle('is-light', theme.mode === 'light');
-    renderSidebar();
     renderColors(theme);
-    renderDials(theme);
-    renderRamp(p);
-    renderChecks(p);
     renderOptions();
-
-    const css = NWT.buildCSS(settings, theme);
-    $('css-out').textContent = css;
-    $('css-size').textContent = (css.length / 1024).toFixed(1) + ' KB';
+    refreshPreview();
   }
 
   /* ---------------------------------------------------------- file bits */
@@ -406,7 +441,7 @@
         const overrides = Object.assign({}, settings.tuningOverrides);
         overrides[settings.themeId] = Object.assign({}, base, { [k]: value });
         settings.tuningOverrides = overrides;
-        renderAll();
+        refreshPreview();
         writeDials();
       });
     });

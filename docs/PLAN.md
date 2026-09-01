@@ -82,7 +82,7 @@ immediately so dragging still feels live.
 
 **Test.** Feed 40 synthetic input events and assert one write.
 
-### 5. The colour picker is destroyed while you are dragging it
+### 5. The colour picker is destroyed while you are dragging it  [done]
 
 **Cause.** `src/options.js` `renderColors` empties and rebuilds all nine rows on
 every change, including the `<input type="color">` currently being dragged.
