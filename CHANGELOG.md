@@ -8,6 +8,46 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.5.0] - 2026-09-01
+
+A correctness and performance pass. Two symptoms were reported: the page felt
+slow after a refresh, and components changed colour over time. Both are fixed,
+along with five things found while looking for them.
+
+### Added
+- A unit test suite in `tests/`, run by `npm test` and in CI ahead of the
+  audit. It uses node:test, so the project still has no dependencies. Twenty
+  one tests, including a small DOM and extension-API stand-in that lets the
+  content script be loaded and driven.
+- `docs/PLAN.md` records what was wrong, how it was found, and how to tell it
+  is fixed.
+
+### Fixed
+- The stylesheet was rewritten on every storage write. SVG ids came from a
+  counter that kept incrementing, so two calls with identical settings returned
+  different bytes and the check that skips redundant writes could never pass.
+  Every dial drag and every timer update swapped 70 KB of CSS and forced a full
+  restyle.
+- Panels kept a colour once they were given one. The rescue pass writes inline
+  styles and marks the element so it skips next time, and nothing removed
+  either, so switching theme left everything wearing the previous palette and
+  switching the theme off left it wearing the theme surface. There is an undo
+  now, and it runs when the palette changes.
+- A storage read whose answer was overtaken could still be applied. Each read
+  carries a token and drops itself if a newer one has started.
+- Dial changes wrote storage on every pixel of slider travel, and every write
+  reached every open tab. The preview still updates live; the write waits for
+  the drag to settle.
+- Committing a colour rebuilt the nine colour rows, which removed the input the
+  pointer was inside. The full render is split from a preview refresh.
+- The editor preview asked scenes for `hero.svg`, which stopped existing when
+  heroes became wallpapers, so it was setting a background to
+  `url("data:image/svg+xml,undefined")` and showing nothing.
+- Failures that said nothing: a refused clipboard, an unreadable import file,
+  and `chrome.runtime.lastError` unchecked in the popup and the background.
+- The mutation observer ran a full document walk per batch. It now walks only
+  the subtrees that were added.
+
 ## [2.4.0] - 2026-09-01
 
 ### Changed
@@ -403,7 +443,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.0
 [2.4.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.4.0
 [2.3.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.3.0
 [2.2.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.2.0

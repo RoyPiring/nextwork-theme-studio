@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Pineapple NextWork Theme Studio Mod",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "minimum_chrome_version": "121",
   "description": "Unofficial. Not affiliated with NextWork. 18 light and dark themes for nextwork.ai, with a live palette editor and generated scenery.",
   "permissions": [
