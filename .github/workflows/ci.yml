@@ -24,6 +24,9 @@ jobs:
           node-version: '20'
 
       # No dependencies, so there is no install step and no lockfile to audit.
+      - name: Unit tests
+        run: node --test "tests/*.test.js"
+
       - name: Run the audit gate
         run: node tools/audit.js
 

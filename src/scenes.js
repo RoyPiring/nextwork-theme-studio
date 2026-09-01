@@ -1167,5 +1167,24 @@
   /* The engine composites grain and vignette itself, so it needs the two
    * helpers that are not part of any single scene. */
   root.NWT_ATMOS = { grainTile: grainTile, vignette: vignette };
+  /* Every scene is wrapped so the SVG id counter restarts before it runs.
+   *
+   * Without this, resolving the same scene twice produced different id="nN"
+   * values, so two buildCSS calls with identical settings returned different
+   * bytes. The content script only rewrites its <style> element when the CSS
+   * has changed, and that check could therefore never pass: every storage
+   * write - every dial drag, every focus timer update - swapped a 70 KB
+   * stylesheet and forced the page to restyle from scratch.
+   *
+   * It also meant assets/ churned on every export for no reason. */
+  Object.keys(SCENES).forEach(function (id) {
+    const build = SCENES[id];
+    if (typeof build !== 'function') return;
+    SCENES[id] = function (p, u) {
+      UID = 0;
+      return build(p, u);
+    };
+  });
+
   root.NWT_SCENES = SCENES;
 })(typeof self !== 'undefined' ? self : this);

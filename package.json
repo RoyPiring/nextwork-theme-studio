@@ -5,6 +5,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
     "check": "node tools/audit.js",
     "build": "node tools/build.js",
     "assets": "node tools/export-scenes.js",
