@@ -11,6 +11,17 @@ Versioning is [semver](https://semver.org/); the `version` field in
   pill and a toolbar badge. Counts across tabs and survives a restart.
 
 ### Fixed
+- Eight bands across seven themes were invisible. The mask always faded the top
+  edge, which is right for a band on the floor and destroys one hanging from
+  the ceiling - it erased exactly the part meant to be seen. Palm Forest lost
+  both of its layers that way. The fade now follows the band's anchor.
+- Palm Forest has trees again: broadleaf crowns on trunks, distinct from Fog's
+  conifers and Hawaii's palms, with the canopy kept overhead.
+- Mount Fuji was cut off and bare. The hero ran at 116% width so its ridges ran
+  off the edge, and the cone ended in a hard diagonal. It now fits, and the
+  flanks wash back toward the sky so the mountain settles into the page.
+- The focus timer collided with the account avatar and pushed its label outside
+  the box. It sits lower now and sizes to its content.
 - Galactica's planet was a flat filled circle, so its limb drew a hard curved
   edge straight through the reading column. The body is now a radial gradient
   that fades at the limb, and the fleet moved below the text.

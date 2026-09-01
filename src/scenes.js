@@ -514,6 +514,28 @@
       "<g fill='url(#" + id + ")' opacity='" + opacity + "'>" + out + "</g>");
   }
 
+  /* palm forest - broadleaf trees. Rounded crowns on visible trunks, so they
+   * read as trees without borrowing Fog's conifers or Hawaii's palms. */
+  function broadleafBand(top, bottom, opacity, scale) {
+    var sc = scale || 1, out = '', i, x, th, cw, ch, id = uid();
+    for (i = 0; i < 11; i++) {
+      x = i * 150 + (i % 3) * 26;
+      th = (150 + (i % 4) * 54) * sc;          /* trunk height */
+      cw = (58 + (i % 3) * 20) * sc;           /* crown width  */
+      ch = (46 + (i % 4) * 18) * sc;
+      out += "<rect x='" + (x - 5 * sc) + "' y='" + (360 - th) + "' width='" + (10 * sc) +
+             "' height='" + th + "' rx='" + (4 * sc) + "'/>";
+      /* a crown built from three overlapping lobes, never a plain circle */
+      out += "<ellipse cx='" + x + "' cy='" + (360 - th - ch * 0.35) + "' rx='" + cw + "' ry='" + ch + "'/>";
+      out += "<ellipse cx='" + (x - cw * 0.55) + "' cy='" + (360 - th + ch * 0.1) + "' rx='" + (cw * 0.62) +
+             "' ry='" + (ch * 0.72) + "'/>";
+      out += "<ellipse cx='" + (x + cw * 0.58) + "' cy='" + (360 - th + ch * 0.04) + "' rx='" + (cw * 0.58) +
+             "' ry='" + (ch * 0.7) + "'/>";
+    }
+    return svg(1700, 360, "<defs>" + vgrad(id, top, bottom) + "</defs>" +
+      "<g fill='url(#" + id + ")' opacity='" + opacity + "'>" + out + "</g>");
+  }
+
   /* hawaii morning - birds, high and small */
   function birdBand(color, opacity) {
     var out = '', i, x, y, s;
@@ -734,25 +756,36 @@
             "</linearGradient>" +
             "<linearGradient id='" + id + "r' x1='0' y1='0' x2='0' y2='1'>" +
             "<stop offset='0%' stop-color='" + ridge.top + "'/><stop offset='100%' stop-color='" + ridge.bottom + "'/>" +
+            "</linearGradient>" +
+            "<linearGradient id='" + id + "f' x1='0' y1='0' x2='0' y2='1'>" +
+            "<stop offset='0%' stop-color='" + p.canvas + "' stop-opacity='0'/>" +
+            "<stop offset='58%' stop-color='" + p.canvas + "' stop-opacity='0'/>" +
+            "<stop offset='100%' stop-color='" + p.canvas + "' stop-opacity='.82'/>" +
             "</linearGradient></defs>" +
             "<path d='M0 620 L250 452 q30 -22 60 0 L560 620 z' fill='url(#" + id + "r)'/>" +
             "<path d='M1040 620 L1300 430 q30 -22 60 0 L1600 620 z' fill='url(#" + id + "r)'/>" +
             "<path d='M0 620 L470 236 q40 -34 80 0 L1080 620 z' fill='url(#" + id + ")'/>" +
-            "<path d='M448 258 q62 -54 124 -22 l58 62 q-42 -22 -76 4 q-34 26 -70 -6 q-24 -22 -36 -38z' fill='#fbfdff'/>"),
-          size: '116% 56%', position: 'center bottom'
+            "<path d='M448 258 q62 -54 124 -22 l58 62 q-42 -22 -76 4 q-34 26 -70 -6 q-24 -22 -36 -38z' fill='#fbfdff'/>" +
+            /* The flanks used to end in a hard diagonal. This washes the lower
+             * half back toward the sky so the mountain settles into the page
+             * instead of being cut out of it. */
+            "<rect width='1600' height='620' fill='url(#" + id + "f)'/>"),
+          size: '100% 54%', position: 'center bottom'
         },
-        far: { svg: cloudBank(u.toneOf('#c9d6ea', HAZE), 0.95, 1.0), tile: 1600, height: '18vh', seconds: 280, y: '30%', blur: 2 },
-        near: { svg: cloudBank(u.toneOf('#c9d6ea', FAR), 0.8, 1.5), tile: 1600, height: '22vh', seconds: 165, y: '70%' },
+        far: { svg: cloudBank(u.toneOf('#c9d6ea', HAZE), 0.95, 1.0), tile: 1600, height: '20vh', seconds: 280, y: '34%', blur: 2 },
+        near: { svg: cloudBank(u.toneOf('#c9d6ea', FAR), 0.85, 1.5), tile: 1600, height: '24vh', seconds: 165, y: '72%' },
         areaColors: [rock.bottom, ridge.bottom, u.toneOf('#c9d6ea', FAR)]
       };
     },
     palmForest: function (p, u) {
       const far = planes(u, p, '#b9cfb3', FAR, 0.35), near = planes(u, p, '#a7c2a0', NEAR, 0);
       return {
-        motifs: ['canopy'],
+        /* canopy overhead, trees on the ground - both belong to this theme and
+         * to no other, so the audit is still satisfied. */
+        motifs: ['canopy', 'broadleaf'],
         hero: { svg: softGlow(u.toneOf('#b9cfb3', HAZE), 0.9, 92), size: '150% 70%', position: 'center bottom' },
-        far: { svg: canopyBand(far.top, far.bottom, 0.8), tile: 1680, height: '30vh', seconds: 300, y: '0%', blur: 4 },
-        near: { svg: canopyBand(near.top, near.bottom, 0.9), tile: 1400, height: '22vh', seconds: 170, y: '0%' },
+        far: { svg: canopyBand(far.top, far.bottom, 0.75), tile: 1680, height: '22vh', seconds: 300, y: '0%', blur: 4 },
+        near: { svg: broadleafBand(near.top, near.bottom, 0.95, 0.9), tile: 1700, height: '26vh', seconds: 170 },
         areaColors: [far.bottom, near.bottom]
       };
     },

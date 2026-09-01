@@ -1007,10 +1007,14 @@
      * reads as part of the page furniture rather than something stuck on. The
      * rail is a 280px column at the right edge and its rows measure 232px with
      * 24px of inset, so the timer matches the rows rather than the column. */
-    L.push('#nwt-focus { position: fixed; top: 44px; right: 24px; width: 232px;' +
+    /* 76px clears the account avatar, which sits in the same corner. Width is
+     * content-driven with a floor and a ceiling rather than fixed, so a long
+     * time never pushes the label outside the box. */
+    L.push('#nwt-focus { position: fixed; top: 76px; right: 24px;' +
+           ' min-width: 168px; max-width: 232px;' +
            ' box-sizing: border-box; z-index: 2147483000;' +
-           ' display: flex; align-items: baseline; justify-content: space-between;' +
-           ' gap: 10px; padding: 11px 16px;' +
+           ' display: flex; align-items: baseline; justify-content: flex-start;' +
+           ' gap: 12px; padding: 10px 16px;' +
            ' border-radius: 12px; pointer-events: none; user-select: none;' +
            ' font: 700 21px/1 ui-monospace, "Cascadia Code", Consolas, monospace;' +
            ' font-variant-numeric: tabular-nums; letter-spacing: -0.01em;' +
@@ -1020,8 +1024,9 @@
     L.push('#nwt-focus .nwt-focus-label { font-size: 10px; font-weight: 600;' +
            ' letter-spacing: .1em; text-transform: uppercase; color: var(--nwt-text-muted); }');
     /* No right rail to align with on a narrow window, so tuck it back down. */
+    L.push('#nwt-focus .nwt-focus-time { flex: none; }');
     L.push('@media (max-width: 900px) { #nwt-focus { top: auto; bottom: 18px; right: 18px;' +
-           ' width: auto; font-size: 16px; padding: 9px 14px; border-radius: 999px; } }');
+           ' min-width: 0; font-size: 16px; padding: 9px 14px; border-radius: 999px; } }');
     L.push('#nwt-focus[data-state="running"] { border-color: ' + rgba(p.accent, 0.55) + '; }');
     L.push('#nwt-focus[data-state="running"] .nwt-focus-time { color: var(--nwt-accent); }');
     L.push('#nwt-focus[data-state="over"] { border-color: ' + p.status.warning[400] + '; }');
@@ -1102,7 +1107,20 @@
         /* Dissolve the top of every band. A band that just stops has a straight
          * horizontal edge, and on a page of text that edge reads as a rule -
          * which is exactly the "cutting through" artefact. */
-        const fade = 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 45%, rgba(0,0,0,0) 96%)';
+        /* The mask has to fade the edge that meets the page, and that depends
+         * on where the band is anchored. A fixed 'to top' fade is right for a
+         * band sitting on the floor and catastrophic for one hanging from the
+         * ceiling - it erases exactly the part meant to be seen, which is why
+         * the forest canopy had vanished. */
+        const anchor = layer.y || 'bottom';
+        const pct = /^(\d+)%$/.exec(anchor);
+        const atBottom = anchor === 'bottom' || (pct && +pct[1] >= 55);
+        const atTop = anchor === 'top' || (pct && +pct[1] <= 25);
+        const fade = atBottom
+          ? 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 45%, rgba(0,0,0,0) 96%)'
+          : atTop
+            ? 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 45%, rgba(0,0,0,0) 96%)'
+            : 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 28%, rgba(0,0,0,1) 72%, rgba(0,0,0,0) 100%)';
         L.push(rootSel + pseudo + ' {' +
                /* One tile wider than the viewport, so panning a full tile never
                 * exposes the trailing edge. */
