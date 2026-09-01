@@ -555,7 +555,11 @@
    *   FAR   the slow plane, always hazed further
    *   NEAR  the front plane, the most present thing on screen
    */
-  const HAZE = 10.5, FAR = 8.6, NEAR = 7.3;
+  /* Contrast targets. These are distances from body text, so a HIGHER number
+   * is a QUIETER shape. NEAR used to sit at 7.3 - right on the floor - which
+   * made every scene as loud as the guarantee permits. Scenery has to lose
+   * an argument with the paragraph in front of it. */
+  const HAZE = 11.2, FAR = 9.6, NEAR = 8.4;
 
   function planes(u, p, hue, target, distance) {
     const base = u.mix(u.toneOf(hue, target), p.canvas, distance || 0);
@@ -581,7 +585,7 @@
       return {
         motifs: ['ridges'],
         hero: { svg: softGlow(u.toneOf('#2a2c2d', HAZE), 0.5, 84), size: '140% 72%', position: 'center bottom' },
-        far: { svg: ridgeBand(far.top, far.bottom, 0.85, 70, 190, 0), tile: 1600, height: '38vh', seconds: 340, blur: 4 },
+        far: { svg: ridgeBand(far.top, far.bottom, 0.85, 70, 190, 0), tile: 1600, height: '34vh', seconds: 340, blur: 4 },
         near: { svg: ridgeBand(near.top, near.bottom, 0.95, 44, 250, 1.9), tile: 1600, height: '24vh', seconds: 180 },
         areaColors: [far.bottom, near.bottom]
       };
@@ -600,8 +604,8 @@
       return {
         motifs: ['starfield'],
         hero: { svg: softGlow(u.toneOf('#22262b', HAZE), 0.7, 70), size: '150% 80%', position: 'center bottom' },
-        far: { svg: starField(p.textMuted, 0.7, 120, 3), tile: 1600, height: '58vh', seconds: 440, y: '4%' },
-        near: { svg: starField(p.textSecondary, 0.5, 40, 11), tile: 1600, height: '34vh', seconds: 230, y: '30%' },
+        far: { svg: starField(p.textMuted, 0.7, 120, 3), tile: 1600, height: '34vh', seconds: 440, y: '4%' },
+        near: { svg: starField(p.textSecondary, 0.5, 40, 11), tile: 1600, height: '26vh', seconds: 230, y: '30%' },
         areaColors: []
       };
     },
@@ -619,8 +623,8 @@
       return {
         motifs: ['steam'],
         hero: { svg: softGlow(u.toneOf('#3d332b', HAZE), 0.6, 90), size: '150% 76%', position: 'center bottom' },
-        far: { svg: steamBand(u.toneOf('#4a3d30', FAR), 0.8), tile: 1610, height: '52vh', seconds: 330, blur: 4 },
-        near: { svg: steamBand(u.toneOf('#4a3d30', NEAR), 0.9), tile: 1610, height: '38vh', seconds: 190 },
+        far: { svg: steamBand(u.toneOf('#4a3d30', FAR), 0.8), tile: 1610, height: '34vh', seconds: 330, blur: 4 },
+        near: { svg: steamBand(u.toneOf('#4a3d30', NEAR), 0.9), tile: 1610, height: '26vh', seconds: 190 },
         areaColors: [u.toneOf('#4a3d30', NEAR)]
       };
     },
@@ -632,7 +636,7 @@
       return {
         motifs: ['skyline'],
         hero: { svg: softGlow(u.toneOf('#3a2246', HAZE), 0.95, 82), size: '150% 74%', position: 'center bottom' },
-        far: { svg: skyline(far.top, far.bottom, '#8f7fd8', 0.9, true), tile: 2200, height: '36vh', seconds: 300, blur: 2 },
+        far: { svg: skyline(far.top, far.bottom, '#8f7fd8', 0.9, true), tile: 2200, height: '34vh', seconds: 300, blur: 2 },
         near: { svg: skyline(near.top, near.bottom, p.accent, 0.95, false), tile: 1700, height: '24vh', seconds: 170 },
         areaColors: [far.bottom, near.bottom]
       };
@@ -642,8 +646,8 @@
       return {
         motifs: ['bamboo'],
         hero: { svg: softGlow(u.toneOf('#2f2b1e', HAZE), 0.5), size: '150% 74%', position: 'center bottom' },
-        far: { svg: bambooBand(far.top, far.bottom, 0.8, 1.15), tile: 1620, height: '70vh', seconds: 340, blur: 4 },
-        near: { svg: bambooBand(near.top, near.bottom, 0.92, 0.8), tile: 1620, height: '48vh', seconds: 190 },
+        far: { svg: bambooBand(far.top, far.bottom, 0.8, 1.15), tile: 1620, height: '34vh', seconds: 340, blur: 4 },
+        near: { svg: bambooBand(near.top, near.bottom, 0.92, 0.8), tile: 1620, height: '26vh', seconds: 190 },
         areaColors: [far.bottom, near.bottom]
       };
     },
@@ -652,7 +656,7 @@
       return {
         motifs: ['shoji', 'noren'],
         hero: { svg: softGlow(u.toneOf('#33261c', HAZE), 0.55), size: '150% 74%', position: 'center bottom' },
-        far: { svg: screenBand(far.bottom, 0.9), tile: 1600, height: '44vh', seconds: 360, blur: 1 },
+        far: { svg: screenBand(far.bottom, 0.45), tile: 1600, height: '34vh', seconds: 360, blur: 1 },
         near: { svg: norenBand(near.top, near.bottom, 0.9), tile: 1620, height: '20vh', seconds: 200, y: '2%' },
         areaColors: [far.bottom, near.bottom]
       };
@@ -662,7 +666,7 @@
       return {
         motifs: ['reeds', 'stones'],
         hero: { svg: softGlow(u.toneOf('#3a2c1e', HAZE), 0.65), size: '150% 76%', position: 'center bottom' },
-        far: { svg: reedBand(far.bottom, 0.95), tile: 1610, height: '46vh', seconds: 320, blur: 2 },
+        far: { svg: reedBand(far.bottom, 0.95), tile: 1610, height: '34vh', seconds: 320, blur: 2 },
         near: { svg: stoneBand(near.bottom, 0.95), tile: 1620, height: '15vh', seconds: 180 },
         areaColors: [far.bottom, near.bottom]
       };
@@ -671,9 +675,9 @@
       const far = planes(u, p, '#2f2e29', FAR, 0.34), near = planes(u, p, '#2f2e29', NEAR, 0);
       return {
         motifs: ['formwork', 'ikebana'],
-        hero: { svg: ikebana(near.bottom, u.toneOf('#3a3831', NEAR)), size: 'auto 62%', position: '72% bottom' },
-        far: { svg: formworkBand(far.top, far.bottom, 0.7), tile: 1600, height: '56vh', seconds: 340, blur: 2 },
-        near: { svg: formworkBand(near.top, near.bottom, 0.5), tile: 1120, height: '34vh', seconds: 195 },
+        hero: { svg: ikebana(near.bottom, u.toneOf('#3a3831', NEAR)), size: 'auto 34%', position: '92% bottom' },
+        far: { svg: formworkBand(far.top, far.bottom, 0.30), tile: 1600, height: '34vh', seconds: 340, blur: 2 },
+        near: { svg: formworkBand(near.top, near.bottom, 0.22), tile: 1120, height: '26vh', seconds: 195 },
         areaColors: [far.bottom, near.bottom]
       };
     },
@@ -686,8 +690,8 @@
       return {
         motifs: ['planet', 'fleet', 'nebula'],
         hero: { svg: planetArc(body, rim, 0.95), size: '150% 76%', position: 'center bottom' },
-        far: { svg: nebulaBand(u.toneOf('#42506b', FAR), 0.8), tile: 1600, height: '46vh', seconds: 420, y: '8%', blur: 3 },
-        near: { svg: fleetBand(hull, p.accent, 0.95), tile: 1700, height: '28vh', seconds: 240, y: '62%' },
+        far: { svg: nebulaBand(u.toneOf('#42506b', FAR), 0.8), tile: 1600, height: '34vh', seconds: 420, y: '8%', blur: 3 },
+        near: { svg: fleetBand(hull, p.accent, 0.95), tile: 1700, height: '26vh', seconds: 240, y: '62%' },
         areaColors: [body, rim, hull, u.toneOf('#42506b', FAR)]
       };
     },
@@ -698,7 +702,7 @@
       return {
         motifs: ['tetrominoes', 'scanlines'],
         hero: { svg: scanlines(u.toneOf('#4a3a72', HAZE), 0.55), size: '100% 100%', position: 'center top' },
-        far: { svg: tetrominoes(dim, 0.8, 46, true), tile: 1600, height: '56vh', seconds: 300, y: '6%', blur: 2 },
+        far: { svg: tetrominoes(dim, 0.8, 46, true), tile: 1600, height: '34vh', seconds: 300, y: '6%', blur: 2 },
         near: { svg: blockStack([violet, blue, rose, cyan], 0.95, 52), tile: 1352, height: '20vh', seconds: 175 },
         areaColors: dim.concat([cyan, violet, rose, blue])
       };
@@ -757,7 +761,7 @@
           size: '110% 48%', position: 'center bottom'
         },
         far: { svg: islandBand(isle.top, isle.bottom, 0.85), tile: 1600, height: '16vh', seconds: 310, y: '54%', blur: 3 },
-        near: { svg: palmBand(palm, 0.95), tile: 1700, height: '32vh', seconds: 195 },
+        near: { svg: palmBand(palm, 0.95), tile: 1700, height: '26vh', seconds: 195 },
         areaColors: [sand.bottom, wave, palm, isle.bottom]
       };
     },
@@ -791,8 +795,8 @@
       return {
         motifs: ['branch', 'petals'],
         hero: { svg: branch(bark, bloom), size: '112% auto', position: 'center top' },
-        far: { svg: petals(soft, 0.9, 26, 1), tile: 1520, height: '58vh', seconds: 320, y: '18%', blur: 2 },
-        near: { svg: petals(drift, 0.85, 18, 5), tile: 1520, height: '40vh', seconds: 190, y: '46%' },
+        far: { svg: petals(soft, 0.9, 26, 1), tile: 1520, height: '34vh', seconds: 320, y: '18%', blur: 2 },
+        near: { svg: petals(drift, 0.85, 18, 5), tile: 1520, height: '26vh', seconds: 190, y: '46%' },
         areaColors: [bark, bloom, drift, soft]
       };
     }

@@ -11,6 +11,12 @@ Versioning is [semver](https://semver.org/); the `version` field in
   pill and a toolbar badge. Counts across tabs and survives a restart.
 
 ### Fixed
+- Scenery reached into the reading column. Nine of eighteen scenes had bands
+  44-70vh tall, so a pattern sat directly behind body copy - worst with the
+  grid motifs, which read as ruled lines through the text. Bands are now capped
+  (far 34vh, near 26vh) and CI enforces it.
+- Scenery was as loud as the contrast floor permits. The tone targets sat right
+  on the limit; they are now backed off, so a scene reads without competing.
 - A horizontal line across the page: full-bleed gradients used
   `preserveAspectRatio="slice"`, which crops the outer ring where a gradient
   reaches zero opacity, so the background box edge still painted.

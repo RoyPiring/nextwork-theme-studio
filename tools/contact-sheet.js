@@ -64,7 +64,9 @@ Object.keys(NWT.PRESETS).forEach(function (id, n) {
   cards.push('<figure class="card ' + k + '">' + layers.join('') +
     '<div class="body">' +
       '<b>' + theme.name + '</b>' +
-      '<span class="t2">Body copy sits right here.</span>' +
+      '<span class="t2">Body copy sits right here, and this is roughly how much of ' +
+      'it there is on a real project page. If the scenery competes with these ' +
+      'two sentences, it is too loud - the paragraph has to win.</span>' +
       '<em class="cd">card</em><u class="ac">Action</u>' +
     '</div>' +
     '<figcaption>' + (theme.mode === 'light' ? 'light' : 'dark') + ' &middot; ' +
@@ -77,14 +79,17 @@ const html = `<!doctype html><meta charset="utf-8"><title>Scene contact sheet</t
   body { margin:0; padding:20px; background:#17181a; color:#e8e9e9;
          font:13px/1.45 ui-sans-serif, system-ui, sans-serif; }
   h1 { font-size:15px; margin:0 0 14px; }
-  .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; }
-  .card { position:relative; height:230px; margin:0; border-radius:10px;
-          overflow:hidden; border:1px solid #34383b; }
+  .grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; }
+  /* 70vh, not 230px. Scenery is sized in vh, so a short card makes a band that
+     swallows the reading column look like a tasteful strip along the bottom.
+     That is how nine over-tall scenes shipped. */
+  .card { position:relative; height:70vh; min-height:520px; margin:0;
+          border-radius:10px; overflow:hidden; border:1px solid #34383b; }
   .card .l { position:absolute; inset:0; }
   .body { position:relative; z-index:2; padding:12px; display:flex;
           flex-direction:column; align-items:flex-start; gap:6px; }
   .body b { font-size:15px; }
-  .body span { font-size:11px; }
+  .body span { font-size:12px; max-width:42ch; line-height:1.5; }
   .body em { font-style:normal; font-size:10px; padding:4px 8px; border-radius:6px; }
   .body u { text-decoration:none; font-size:10px; font-weight:700;
             padding:4px 10px; border-radius:6px; }

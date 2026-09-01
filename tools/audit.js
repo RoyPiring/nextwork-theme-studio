@@ -171,6 +171,35 @@ check('every motif is exclusive to one theme', () => {
   return Object.keys(owner).length + ' distinct motifs';
 });
 
+/* Scenery must stay out of the reading column. A band taller than this sits
+ * behind body copy, and a regular pattern there reads as ruled lines through
+ * the text. Caught late because the review sheet used 230px cards, where a
+ * 56vh band looks like a tasteful bottom texture. */
+check('scenery stays clear of the reading column', () => {
+  const CAP = { far: 34, near: 26 };
+  const over = [];
+  themeIds.forEach(id => {
+    const theme = NWT.getTheme(settings, id);
+    const p = NWT.buildPalette(theme);
+    const u = {
+      toneOf: (hex, t) => NWT.toneOf(hex, p.textPrimary, t),
+      mix: NWT.color.mix,
+      rgba: NWT.color.rgba
+    };
+    const scene = typeof SCENES[id] === 'function' ? SCENES[id](p, u) : SCENES[id];
+    ['far', 'near'].forEach(which => {
+      const layer = scene[which];
+      if (!layer) return;
+      const vh = parseInt(layer.height, 10);
+      if (vh > CAP[which]) {
+        over.push(theme.name + ' ' + which + ' is ' + vh + 'vh (max ' + CAP[which] + ')');
+      }
+    });
+  });
+  if (over.length) fail('\n    ' + over.join('\n    '));
+  return 'far <= ' + CAP.far + 'vh, near <= ' + CAP.near + 'vh';
+});
+
 check('both stylesheet variants build for every theme', () => {
   themeIds.forEach(id => {
     const theme = NWT.getTheme(settings, id);
