@@ -8,6 +8,29 @@ Versioning is [semver](https://semver.org/); the `version` field in
 development milestones from before the repository went public, kept because
 they record why several non-obvious parts of the code look the way they do.
 
+## [1.5.0] - 2026-09-01
+
+### Changed
+- The wallpaper is sized `100% auto` and pinned to the bottom instead of
+  `cover`. `cover` scales to height on a narrow window and crops inward from
+  the sides, which took off the figure at the left edge and the doorway at the
+  right - the two things worth looking at. Filling the width instead keeps both
+  in frame from ultrawide down to a narrow window.
+- Bare space above the image on a tall window is filled with the image's own
+  sky colour, measured at generation time and recorded as `sky`. Filling it
+  with the theme canvas drew a lighter band and a hard horizontal edge across
+  the top of the scene.
+- Wallpapers encode as WebP at 2560px rather than JPEG at 1600px. This artwork
+  is mostly smooth dark gradients, the worst case for JPEG, and it banded right
+  where the scene is darkest; it was also being upscaled on any wide screen.
+  WebP holds the gradients at roughly a third the size, so the same budget buys
+  the resolution. 72 KB.
+- The mist and the dust drift were pitched well under the contrast floor and
+  read as nothing. Both are now as bright as the gate allows, and both bands
+  run at 26vh.
+- `art/concrete-corridor.jpg` is stored at its full 2752x1536 rather than
+  pre-downscaled, so the encoder has something to work from.
+
 ## [1.4.4] - 2026-09-01
 
 ### Fixed
@@ -238,7 +261,8 @@ First public release.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.4.4...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.5.0
 [1.4.4]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.4
 [1.4.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.3
 [1.4.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v1.4.2

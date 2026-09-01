@@ -660,19 +660,25 @@
        * The image is already darkened past the contrast floor at generation
        * time (see src/wallpapers.js), so the tones listed here are only the
        * drifting layers drawn on top of it. */
-      const haze = u.toneOf('#2b2f33', HAZE);
-      const dust = u.toneOf('#9fb4c4', 9.4);
+      /* Both of these are listed in areaColors, so the audit holds them to the
+       * 7:1 floor. They were pitched well under it and read as nothing; these
+       * are as bright as the gate allows. */
+      const haze = u.toneOf('#2b2f33', 8.2);
+      const dust = u.toneOf('#9fb4c4', 7.3);
       return {
         motifs: ['arcade', 'portal', 'stroller', 'motes'],
         wallpaper: 'concreteCorridor',
-        hero: { wallpaper: 'concreteCorridor', size: 'cover', position: 'center bottom' },
+        /* 100% auto, not cover: the width always fills, so the figure at the
+         * left edge and the doorway at the right stay in frame at any window
+         * shape. See the sky fill in theme-engine for what covers the gap. */
+        hero: { wallpaper: 'concreteCorridor', size: '100% auto', position: 'center bottom' },
         far: {
-          svg: floorMist(haze, 0.55),
-          tile: 1900, height: '18vh', seconds: 300, blur: 2
+          svg: floorMist(haze, 0.8),
+          tile: 1900, height: '26vh', seconds: 300, blur: 2
         },
         near: {
-          svg: motes(dust, 0.5),
-          tile: 2200, height: '24vh', seconds: 140
+          svg: motes(dust, 0.85),
+          tile: 2200, height: '26vh', seconds: 140
         },
         areaColors: [haze, dust]
       };

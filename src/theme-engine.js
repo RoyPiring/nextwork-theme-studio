@@ -1079,11 +1079,13 @@
 
     if ((theme.backdrop || scene) && !shadow) {
       const imgs = [], sizes = [], positions = [], repeats = [];
+      let heroPaper = null;
       if (scene && scene.hero) {
         /* A hero is normally generated SVG. It can instead name a painted
          * wallpaper, which arrives already encoded as a data URI. */
         const papers = (typeof root !== 'undefined' && root.NWT_WALLPAPERS) || {};
         const paper = scene.hero.wallpaper && papers[scene.hero.wallpaper];
+        heroPaper = paper || null;
         if (scene.hero.wallpaper && !paper) {
           /* Named a wallpaper that is not loaded. Skipping beats emitting
            * url(undefined), but say so: silently dropping the background is
@@ -1108,6 +1110,21 @@
           repeats.push('no-repeat');
         });
       }
+      /* An image wallpaper is sized to the full viewport width and pinned to
+       * the bottom, so the things worth seeing - which on this artwork are out
+       * at the left and right edges - survive any window shape. `cover` would
+       * instead scale to height on a narrow window and crop inward from the
+       * sides, taking the edges off first.
+       *
+       * The cost is bare space above the image on a tall window. Filling that
+       * with the theme canvas draws a lighter band and a hard horizontal edge
+       * across the top of the scene, so it gets filled with the image's own
+       * sky colour instead, measured at generation time. The join disappears. */
+      if (heroPaper && heroPaper.sky) {
+        imgs.push('linear-gradient(' + heroPaper.sky + ', ' + heroPaper.sky + ')');
+        sizes.push('cover'); positions.push('center'); repeats.push('no-repeat');
+      }
+
       /* Grain and an edge falloff sit in FRONT of everything else. Perfectly
        * smooth vectors are what read as clip-art; a little noise and a soft
        * frame are what read as a photograph. */

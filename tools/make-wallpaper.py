@@ -54,8 +54,8 @@ FLANK_FLOOR = 4.5             # WCAG AA, everywhere else
 COLUMN = (0.15, 0.85)         # how much of the width the reading column can span
 SCRIM_FULL = (0.18, 0.82)     # where the scrim is at full strength
 SCRIM_FEATHER = 0.10          # and how far it takes to fade out
-WIDTH = 1600
-MAX_BASE64 = 130000
+WIDTH = 2560                  # upscaling a 1600px image on a wide screen was soft
+MAX_BASE64 = 140000
 
 
 def _to_linear(c):
@@ -128,6 +128,25 @@ def contrast(luminance):
     return (TEXT_LUMINANCE + 0.05) / (luminance + 0.05)
 
 
+def sky_colour(im):
+    """Average of the top rows.
+
+    The image is sized to the full viewport width and pinned to the bottom, so
+    on a tall window there is bare space above it. Filling that with the theme
+    canvas puts a lighter band and a hard horizontal edge across the top of the
+    scene. Filling it with the image's own sky instead makes the join
+    invisible, which is the whole reason this gets measured and recorded.
+    """
+    w, h = im.size
+    px = im.load()
+    r = g = b = n = 0
+    for y in range(0, max(1, h // 20)):
+        for x in range(0, w, 7):
+            p = px[x, y]
+            r += p[0]; g += p[1]; b += p[2]; n += 1
+    return "#%02x%02x%02x" % (r // n, g // n, b // n)
+
+
 def build(name, src_path):
     src = Image.open(src_path).convert("RGB")
     base = src.resize((WIDTH, int(src.size[1] * WIDTH / src.size[0])), Image.LANCZOS)
@@ -163,25 +182,32 @@ def build(name, src_path):
     # source still reads as coloured.
     img = ImageEnhance.Color(img).enhance(1.25)
 
+    # WebP, not JPEG. This artwork is mostly smooth dark gradients, which is
+    # the worst case for JPEG - it bands visibly right where the scene is
+    # darkest. WebP holds those gradients at roughly a third the size, so the
+    # same byte budget buys 2560px instead of 1600px and the picture stops
+    # looking soft on a wide screen.
     encoded = None
-    for quality in (78, 72, 66, 60, 52):
+    mime = "webp"
+    for quality in (90, 84, 78, 70, 62):
         buf = io.BytesIO()
-        img.save(buf, "JPEG", quality=quality, optimize=True, progressive=True)
+        img.save(buf, "WEBP", quality=quality, method=6)
         candidate = base64.b64encode(buf.getvalue()).decode("ascii")
         if len(candidate) < MAX_BASE64:
             encoded = candidate
-            print("\n  quality %d -> %.0f KB base64" % (quality, len(candidate) / 1024))
+            print("\n  webp quality %d -> %.0f KB base64" % (quality, len(candidate) / 1024))
             break
     if encoded is None:
         sys.exit("Could not get under %d base64 chars." % MAX_BASE64)
 
-    print("%s: exposure %s, scrim %s, column %.2f:1, elsewhere %.2f:1"
-          % (name, exposure, strength, column, flank))
+    sky = sky_colour(img)
+    print("%s: exposure %s, scrim %s, column %.2f:1, elsewhere %.2f:1, sky %s"
+          % (name, exposure, strength, column, flank, sky))
     return {
-        "name": name, "column": column, "flank": flank,
+        "name": name, "column": column, "flank": flank, "sky": sky,
         "exposure": exposure, "scrim": strength,
         "width": img.size[0], "height": img.size[1],
-        "uri": "data:image/jpeg;base64," + encoded,
+        "uri": "data:image/" + mime + ";base64," + encoded,
     }
 
 
@@ -197,11 +223,12 @@ def write_into_module(entry):
         "\\1"
         "      columnRatio: %.2f,\n"
         "      minRatio: %.2f,\n"
+        "      sky: '%s',\n"
         "      width: %d,\n"
         "      height: %d,\n"
         "      uri: '%s'"
-        "\\2" % (entry["column"], entry["flank"], entry["width"], entry["height"],
-                 entry["uri"])
+        "\\2" % (entry["column"], entry["flank"], entry["sky"], entry["width"],
+                 entry["height"], entry["uri"])
     )
     io.open(path, "w", encoding="utf-8", newline="\n").write(pattern.sub(replacement, body))
     print("wrote src/wallpapers.js")
