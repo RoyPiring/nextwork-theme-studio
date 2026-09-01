@@ -438,17 +438,26 @@
     if (wanted) scheduleRescue(wanted);
   }
 
-  chrome.storage.local.get(null, function (settings) {
-    if (chrome.runtime.lastError) return;
-    render(settings);
-  });
+  /* Every change starts its own read, so more than one can be in flight at
+   * once, and chrome.storage gives no ordering guarantee. Without a token the
+   * older snapshot can land last and the page renders settings the user has
+   * already moved past. */
+  let readSeq = 0;
+
+  function readAndRender() {
+    const mine = ++readSeq;
+    chrome.storage.local.get(null, function (settings) {
+      if (chrome.runtime.lastError) return;
+      if (mine !== readSeq) return;      /* a newer read is already in flight */
+      render(settings);
+    });
+  }
+
+  readAndRender();
 
   chrome.storage.onChanged.addListener(function (changes, area) {
     if (area !== 'local') return;
-    chrome.storage.local.get(null, function (settings) {
-      if (chrome.runtime.lastError) return;
-      render(settings);
-    });
+    readAndRender();
   });
 
   /* If the page ever nukes our node (head swaps during hydration), put it

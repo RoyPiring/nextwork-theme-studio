@@ -7,8 +7,14 @@
 
   let settings = null;
 
+  /* Same reasoning as the content script: the popup re-reads on every change,
+   * and two reads in flight can come back in either order. */
+  let readSeq = 0;
+
   function load(cb) {
+    const mine = ++readSeq;
     chrome.storage.local.get(null, function (stored) {
+      if (mine !== readSeq) return;
       settings = NWT.migrate(Object.assign({}, NWT.DEFAULT_SETTINGS, stored || {}));
       /* migrate() only reports; persisting is the caller's job. Without this
        * the same migration reruns on every open and clears the dials again. */

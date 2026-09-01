@@ -110,9 +110,17 @@ test('the newest settings win when two reads overlap', () => {
   const env = loadContentScript({ settings: { enabled: true, themeId: 'concrete' } });
   env.flush();
 
+  /* Start a read against espresso, then another against tokyoNight, and hold
+   * both. This is the shape the real thing takes: the listener fires on each
+   * change and starts its own read, so two are in flight at once. */
   env.chrome.storage.local.set({ themeId: 'espresso' });
+  env.flush({ deliverReads: false });
   env.chrome.storage.local.set({ themeId: 'tokyoNight' });
-  env.flush();
+  env.flush({ deliverReads: false });
+  assert.ok(env.reads.length >= 2, 'expected two reads in flight, got ' + env.reads.length);
+
+  /* Deliver them newest-first, so the older snapshot lands last. */
+  env.flush({ reverseReads: true });
 
   const css = env.doc.getElementById('nwt-theme').textContent;
   const tokyo = env.sandbox.self.NWT.buildPalette(

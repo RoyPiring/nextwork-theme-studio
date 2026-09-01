@@ -155,15 +155,18 @@ function loadContentScript(options) {
   const changeListeners = [];
   const observers = [];
   const timers = [];
+  const reads = [];
 
   const chrome = {
     runtime: { lastError: null, id: 'test', onMessage: { addListener() {} } },
     storage: {
       local: {
         get(_keys, cb) {
-          /* async, like the real one */
-          const snapshot = JSON.parse(JSON.stringify(stored));
-          timers.push(() => cb(snapshot));
+          /* Async, like the real one, and held separately so a test can
+           * deliver two overlapping reads out of order. That is the whole
+           * point: the API gives no ordering guarantee, and code that assumes
+           * one only fails under load. */
+          reads.push({ cb, snapshot: JSON.parse(JSON.stringify(stored)) });
         },
         set(patch, cb) {
           Object.assign(stored, JSON.parse(JSON.stringify(patch)));
@@ -228,17 +231,27 @@ function loadContentScript(options) {
   ['src/wallpapers.js', 'src/scenes.js', 'src/theme-engine.js', 'src/content.js']
     .forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f }));
 
-  /* Run everything queued, including anything queued while draining. */
-  function flush(rounds) {
-    for (let i = 0; i < (rounds || 12); i++) {
+  /* Run everything queued, including anything queued while draining.
+   * `reverseReads` delivers outstanding storage reads newest-first, which is
+   * the ordering the real API is free to choose and code often assumes it
+   * will not. */
+  function flush(opts) {
+    const o = opts || {};
+    for (let i = 0; i < (o.rounds || 12); i++) {
+      let pending = [];
+      if (o.deliverReads !== false) {
+        pending = reads.splice(0, reads.length);
+        if (o.reverseReads) pending.reverse();
+        pending.forEach(r => r.cb(r.snapshot));
+      }
       const batch = timers.splice(0, timers.length);
-      if (!batch.length) break;
       batch.forEach(fn => fn());
+      if (!pending.length && !batch.length) break;
     }
   }
 
   return {
-    doc, chrome, window: win, sandbox, flush, stored,
+    doc, chrome, window: win, sandbox, flush, stored, reads,
     /* Add a panel the rescue pass will consider. */
     addPanel(computed, rect) {
       const el = doc.createElement('div');

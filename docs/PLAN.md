@@ -56,7 +56,7 @@ theme change can be detected.
 **Test.** Rescue under palette A, switch to palette B, assert no element still
 carries A. Disable, assert no element carries an inline background.
 
-### 3. Two storage reads can land out of order
+### 3. Two storage reads can land out of order  [done]
 
 **Cause.** `content.js` and `popup.js` both answer a change by starting a fresh
 async `chrome.storage.local.get(null)`. Two changes in quick succession put two
