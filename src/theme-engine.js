@@ -1003,16 +1003,25 @@
     /* --- focus HUD --------------------------------------------------------
      * Styled here rather than in the content script so it wears the current
      * theme like everything else. */
-    L.push('#nwt-focus { position: fixed; left: 18px; bottom: 18px; z-index: 2147483000;' +
-           ' display: flex; align-items: baseline; gap: 8px; padding: 9px 14px;' +
-           ' border-radius: 999px; pointer-events: none; user-select: none;' +
-           ' font: 600 15px/1 ui-monospace, "Cascadia Code", Consolas, monospace;' +
-           ' font-variant-numeric: tabular-nums;' +
+    /* Sits above the step list in the right rail and matches its width, so it
+     * reads as part of the page furniture rather than something stuck on. The
+     * rail is a 280px column at the right edge and its rows measure 232px with
+     * 24px of inset, so the timer matches the rows rather than the column. */
+    L.push('#nwt-focus { position: fixed; top: 44px; right: 24px; width: 232px;' +
+           ' box-sizing: border-box; z-index: 2147483000;' +
+           ' display: flex; align-items: baseline; justify-content: space-between;' +
+           ' gap: 10px; padding: 11px 16px;' +
+           ' border-radius: 12px; pointer-events: none; user-select: none;' +
+           ' font: 700 21px/1 ui-monospace, "Cascadia Code", Consolas, monospace;' +
+           ' font-variant-numeric: tabular-nums; letter-spacing: -0.01em;' +
            ' background: ' + rgba(p.surfaceAlt, 0.92) + '; color: var(--nwt-text);' +
            ' border: 1px solid var(--nwt-border);' +
            ' box-shadow: 0 6px 24px rgba(0,0,0,.28); backdrop-filter: blur(6px); }');
-    L.push('#nwt-focus .nwt-focus-label { font-size: 10px; font-weight: 500;' +
-           ' letter-spacing: .08em; text-transform: uppercase; color: var(--nwt-text-muted); }');
+    L.push('#nwt-focus .nwt-focus-label { font-size: 10px; font-weight: 600;' +
+           ' letter-spacing: .1em; text-transform: uppercase; color: var(--nwt-text-muted); }');
+    /* No right rail to align with on a narrow window, so tuck it back down. */
+    L.push('@media (max-width: 1100px) { #nwt-focus { top: auto; bottom: 18px; right: 18px;' +
+           ' width: auto; font-size: 16px; padding: 9px 14px; border-radius: 999px; } }');
     L.push('#nwt-focus[data-state="running"] { border-color: ' + rgba(p.accent, 0.55) + '; }');
     L.push('#nwt-focus[data-state="running"] .nwt-focus-time { color: var(--nwt-accent); }');
     L.push('#nwt-focus[data-state="over"] { border-color: ' + p.status.warning[400] + '; }');
