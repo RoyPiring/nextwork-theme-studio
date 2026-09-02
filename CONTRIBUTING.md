@@ -22,6 +22,13 @@ or verify anything on a project page, and that is where most of the work is.
 [development](docs/maintenance/DEVELOPMENT.md) and
 [regenerating assets](docs/maintenance/ASSETS.md).
 
+## How a change gets merged
+
+Branch, pull request, two independent reviewers, then the maintainer merges.
+`main` is protected and rejects direct pushes. The full process, including how
+to run the reviewers, is in
+[docs/maintenance/CODE_REVIEW.md](docs/maintenance/CODE_REVIEW.md).
+
 ## Before you open a PR
 
 ```bash

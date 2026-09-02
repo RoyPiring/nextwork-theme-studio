@@ -22,6 +22,7 @@ the extension. Everything here is the longer version.
 
 | Guide | For |
 | --- | --- |
+| [Code review](maintenance/CODE_REVIEW.md) | How a change gets from a branch to `main` |
 | [Development](maintenance/DEVELOPMENT.md) | Running the tests, the audit and the tools |
 | [Releasing](maintenance/RELEASING.md) | Cutting a version and building the packages |
 | [Regenerating assets](maintenance/ASSETS.md) | Wallpapers, scenery, gallery and icon |
