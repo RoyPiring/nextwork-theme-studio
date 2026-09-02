@@ -163,3 +163,37 @@ test('a mutation walks only what was added, not the whole page', () => {
   assert.ok(walked.fromRoot === 0,
     'the whole document was walked ' + walked.fromRoot + ' time(s) for one added node');
 });
+
+test('a stacked pane keeps its background instead of showing the page behind', () => {
+  /* The stylesheet makes .bg-paper transparent so the scenery can show through
+   * the page ground. That is right for the actual ground and wrong for every
+   * copy of it that is a panel stacked over something else. In a split view the
+   * documentation pane sat over the project page, went transparent, and the
+   * page underneath showed through it.
+   *
+   * The stylesheet decides by class name, which is all CSS can do. This is the
+   * runtime correcting it by measurement. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'cherryBlossom' } });
+  env.flush();
+
+  /* The real page ground: .bg-paper with nothing positioned above it. */
+  const ground = env.doc.createElement('div');
+  ground.classList.add('bg-paper');
+  env.doc.body.appendChild(ground);
+
+  /* A pane stacked over it, carrying no positioning class of its own. */
+  const shell = env.doc.createElement('div');
+  shell._computed = { position: 'fixed' };
+  env.doc.body.appendChild(shell);
+  const pane = env.doc.createElement('div');
+  pane.classList.add('bg-paper');
+  shell.appendChild(pane);
+
+  env.mutate([{ addedNodes: [ground, shell] }]);
+  env.flush();
+
+  assert.ok(pane.style.getPropertyValue('background-color'),
+    'a pane inside a positioned ancestor should keep a background');
+  assert.strictEqual(ground.style.getPropertyValue('background-color'), '',
+    'the real page ground should stay transparent so the scenery shows');
+});

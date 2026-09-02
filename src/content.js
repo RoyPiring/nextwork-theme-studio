@@ -380,6 +380,50 @@
     return !!c && luminance(c) < 0.35;
   }
 
+  /* Put the background back on any page ground that turns out to be a stacked
+   * panel rather than the actual page ground.
+   *
+   * The stylesheet makes `.bg-paper` transparent so the scenery behind the
+   * page can show through it. That is right for the one element that really is
+   * the page ground, and wrong for every copy of it that is a panel stacked
+   * over something else: a split view puts the documentation pane over the
+   * project page, and a transparent pane lets the page underneath show through
+   * it. Which is what it looked like - the sidebar and a screenshot from the
+   * page behind, apparently floating in the middle of the documentation.
+   *
+   * The stylesheet decides by class name, which is all CSS can do, and the
+   * pane carried none of the ones it looks for. Here we can measure instead: a
+   * panel is anything with a positioned ancestor between it and the body. */
+  function isStacked(el) {
+    let node = el;
+    let hops = 0;
+    while (node && node !== document.body && hops < 40) {
+      let pos;
+      try { pos = getComputedStyle(node).position; } catch (e) { return false; }
+      if (pos === 'fixed' || pos === 'absolute' || pos === 'sticky') return true;
+      node = node.parentElement;
+      hops++;
+    }
+    return false;
+  }
+
+  function restoreStackedGrounds(palette) {
+    let nodes;
+    try { nodes = document.querySelectorAll('.bg-paper, .bg-brand-primary'); }
+    catch (e) { return; }
+    const work = [];
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      if (el.dataset.nwtGround === '1') continue;
+      if (!isStacked(el)) continue;
+      work.push(el);
+    }
+    work.forEach(function (el) {
+      el.dataset.nwtGround = '1';
+      el.style.setProperty('background-color', palette.ground, 'important');
+    });
+  }
+
   function rescueLightPanels(palette) {
     /* span and li are gone from this list: nothing 220x90 is a span, and they
      * were most of the nodes being measured. */
@@ -418,14 +462,30 @@
 
   function unrescue() {
     let nodes;
-    try { nodes = document.querySelectorAll('[data-nwt-lit]'); }
+    try { nodes = document.querySelectorAll('[data-nwt-lit], [data-nwt-ground]'); }
     catch (e) { return; }
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
       RESCUED.forEach(function (prop) { el.style.removeProperty(prop); });
       delete el.dataset.nwtLit;
-      if (el.removeAttribute) el.removeAttribute('data-nwt-lit');
+      delete el.dataset.nwtGround;
+      if (el.removeAttribute) {
+        el.removeAttribute('data-nwt-lit');
+        el.removeAttribute('data-nwt-ground');
+      }
     }
+  }
+
+  let groundPalette = null;
+  let groundQueued = false;
+
+  function scheduleGrounds(palette) {
+    if (groundQueued) return;
+    groundQueued = true;
+    setTimeout(function () {
+      groundQueued = false;
+      try { restoreStackedGrounds(palette); } catch (e) { /* never break the page */ }
+    }, 200);
   }
 
   function scheduleRescue(palette) {
@@ -446,6 +506,7 @@
       remove();
       removeHud();
       unrescue();                   /* inline styles outlive the stylesheet */
+      groundPalette = null;
       shadowSheetFor('');           /* neutralise the adopted copies in place */
       writeCache(false, '');
       return;
@@ -461,7 +522,8 @@
     const wanted = (theme.mode !== 'light' && s.options && s.options.rescuePanels !== false)
       ? (function () {
           const p = NWT.buildPalette(theme);
-          return { surface: p.surfaceAlt, text: p.textPrimary, border: p.border };
+          return { surface: p.surfaceAlt, text: p.textPrimary, border: p.border,
+                   ground: p.canvas };
         })()
       : null;
 
@@ -471,6 +533,12 @@
     if (changed) unrescue();
     lastPalette = wanted;
     if (wanted) scheduleRescue(wanted);
+
+    /* Separate from the rescue pass, and not gated on the theme being dark.
+     * The transparency this corrects is applied to every theme, and the split
+     * view that exposed it was on a light one. */
+    groundPalette = { ground: NWT.buildPalette(theme).canvas };
+    scheduleGrounds(groundPalette);
   }
 
   /* Every change starts its own read, so more than one can be in flight at
@@ -515,6 +583,7 @@
 
     /* panels are built on demand, so re-check whenever the DOM changes */
     if (lastPalette) scheduleRescue(lastPalette);
+    if (groundPalette) scheduleGrounds(groundPalette);
   });
   if (document.documentElement) {
     observer.observe(document.documentElement, { childList: true, subtree: true });

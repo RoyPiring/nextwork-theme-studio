@@ -57,6 +57,10 @@ class FakeElement {
     this._seq = ++nodeSeq;
     this.listeners = {};
   }
+  /* The real DOM has both; code walking ancestors uses parentElement. */
+  get parentElement() {
+    return this.parentNode && this.parentNode.nodeType === 1 ? this.parentNode : null;
+  }
   appendChild(child) {
     child.parentNode = this;
     this.children.push(child);
@@ -107,18 +111,27 @@ class FakeElement {
   }
   /* Only the shapes the content script uses: a comma list of tag names, or
    * '*', or an attribute selector. */
+  /* Tag names, .classes and [attributes], in a comma list. Enough for what the
+   * content script asks for, and it throws on anything else rather than
+   * quietly returning nothing. */
   querySelectorAll(sel) {
     const all = [];
     (function walk(node) {
       node.children.forEach(c => { all.push(c); walk(c); });
     })(this);
     if (sel === '*') return all;
-    if (sel.startsWith('[') && sel.endsWith(']')) {
-      const key = sel.slice(1, -1).replace(/^data-/, '').replace(/-(\w)/g, (_, c) => c.toUpperCase());
-      return all.filter(e => e.dataset[key] !== undefined);
-    }
-    const tags = sel.split(',').map(s => s.trim().toUpperCase());
-    return all.filter(e => tags.includes(e.tagName));
+    const parts = sel.split(',').map(s => s.trim()).filter(Boolean);
+    const match = (el, part) => {
+      if (part.startsWith('[') && part.endsWith(']')) {
+        const key = part.slice(1, -1).replace(/^data-/, '')
+          .replace(/-(\w)/g, (_, c) => c.toUpperCase());
+        return el.dataset[key] !== undefined;
+      }
+      if (part.startsWith('.')) return el.classList.contains(part.slice(1));
+      if (/^[a-zA-Z][\w-]*$/.test(part)) return el.tagName === part.toUpperCase();
+      throw new Error('harness: unsupported selector "' + part + '"');
+    };
+    return all.filter(el => parts.some(part => match(el, part)));
   }
 }
 

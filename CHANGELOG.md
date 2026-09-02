@@ -8,6 +8,20 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.5.2] - 2026-09-01
+
+### Fixed
+- In a split view, the page behind showed through the pane in front. The
+  stylesheet makes the page ground transparent so the scenery can show through
+  it, and decides what counts as the ground by class name, which is all CSS can
+  do. The documentation pane carried none of the names it looks for, so it went
+  transparent too and the project page underneath came through it.
+
+  The runtime now corrects that by measurement: anything with a positioned
+  ancestor between it and the body is a stacked panel, not the ground, and
+  keeps its background. This runs for every theme, not only the dark ones,
+  since the transparency it corrects applies to all of them.
+
 ## [2.5.1] - 2026-09-01
 
 ### Fixed
@@ -453,7 +467,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.5.1...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.5.2...HEAD
+[2.5.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.2
 [2.5.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.1
 [2.5.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.0
 [2.4.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.4.0
