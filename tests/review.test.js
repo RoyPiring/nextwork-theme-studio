@@ -280,3 +280,23 @@ test('links and in-project citations survive the broad path rule', () => {
   ].forEach(input => assert.strictEqual(redact(input), input,
     'redaction changed something it should not have: ' + input));
 });
+
+test('a path with a space in it is removed whole, not up to the space', () => {
+  /* Both reviewers found this independently. Every pattern rule ends its
+   * match at whitespace, so a directory with a space in the name - which
+   * OneDrive writes as a matter of course - published everything after it. */
+  const os = require('node:os');
+  const B = String.fromCharCode(92);
+  const u = os.userInfo().username;
+
+  [
+    ["ENOENT: open 'C:" + B + "Users" + B + u + B + "OneDrive - Acme Corp" + B + "keys.txt'", 'keys.txt'],
+    ["cannot read '/mnt/My Drive/creds.json'", 'creds.json'],
+    ['in ' + os.homedir() + B + 'secrets' + B + 'key.pem here', 'secrets'],
+    ['in ' + os.homedir() + '/secrets/key.pem here', 'key.pem'],
+    ['cwd ' + os.tmpdir() + B + 'nwt-review-ab', 'nwt-review']
+  ].forEach(([input, secret]) => {
+    const out = redact(input);
+    assert.ok(!out.includes(secret), 'a path tail leaked: ' + out);
+  });
+});

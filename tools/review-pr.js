@@ -89,6 +89,29 @@ const MAX_DIFF = 120000;        /* beyond this nobody has read the whole thing *
 function redact(text) {
   let t = String(text == null ? '' : text);
 
+  /* The two directories this machine actually uses, replaced as literal
+   * strings before any pattern runs.
+   *
+   * A pattern has to stop somewhere, and it stops at whitespace, so a path
+   * with a space in it loses only its prefix: "C:\Users\x\OneDrive - Acme
+   * Corp\clients\keys.txt" was published from the space onwards. Directory
+   * names with spaces are ordinary - OneDrive writes them - and a literal
+   * comparison does not care where the path ends. */
+  /* A quoted absolute path goes whole, wherever it ends. This runs first:
+   * errors quote the paths they complain about, and a quote is the only
+   * reliable end marker when the path contains a space. */
+  t = t.replace(/(['"`])((?:[A-Za-z]:[\\/]|\\\\|\/)[^'"`\n]*)\1/g, '$1[path]$1');
+
+  /* Then the two directories this machine actually uses, matched literally
+   * and carrying their tail with them. */
+  const quoteRe = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const tail = '[^\\s"\'`,)\\]]*';
+  [os.tmpdir(), os.homedir()].forEach(function (dir) {
+    if (dir && dir.length > 3) {
+      t = t.replace(new RegExp(quoteRe(dir) + tail, 'g'), '[path]');
+    }
+  });
+
   /* Absolute paths in any shape, whether or not they sit under the home
    * directory. Order matters: file:// URLs first, because the drive rule
    * below would otherwise eat the tail and leave a bare "file:///" behind.
@@ -108,23 +131,16 @@ function redact(text) {
   t = t.replace(/(?<![\w.:\/])\/[A-Za-z0-9_.-]+\/[^\s"'`,)\]]+/g, '[path]');
   /* Windows network shares, which no rule above matches. */
   t = t.replace(/\\\\[A-Za-z0-9_.-]+\\[^\s"'`,)\]]+/g, '[path]');
-  /* The scratch directory the reviewers run in. A reviewer that names its own
-   * working directory in an error would otherwise post it verbatim. */
-  const tmp = os.tmpdir();
-  if (tmp && tmp.length > 3) t = t.split(tmp).join('[path]');
   t = t.replace(/\/var\/folders\/[^\s"'`,)\]]+/g, '[path]');
 
-  /* The home directory and account name last, and only for bare mentions
-   * left over after whole paths have gone.
+  /* The account name last, and only for bare mentions left over after whole
+   * paths have gone.
    *
    * Doing it first was a leak. The path rules stop at "]", so once the name
    * inside a path had become "[user]" the match ended there: with the account
    * name "roy", "/home/roy/.aws/credentials" came out as
    * "[path]]/.aws/credentials" and published the tail. Paths are removed
    * whole first; whatever mentions the name outside a path is handled here. */
-  const home = os.homedir();
-  if (home && home.length > 3) t = t.split(home).join('[path]');
-
   let user = '';
   try { user = (os.userInfo().username || ''); } catch (e) { /* not available */ }
   if (user.length > 2) {
