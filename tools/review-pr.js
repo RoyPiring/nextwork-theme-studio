@@ -155,8 +155,8 @@ function redact(text) {
    * comment while the terminal copy kept them, so the record on the pull
    * request disagreed with the review. */
   t = t.split('\n').filter(function (l) {
-    return !/^\s*at\s+\S.*\($/.test(l) &&
-           !/^\s*at\s+\S+\s*\([^)]*\)\s*$/.test(l) &&
+    return !/^\s+at\s+\S.*\($/.test(l) &&
+           !/^\s+at\s+\S+\s*\([^)]*\)\s*$/.test(l) &&
            /* Indented, because a real frame always is. Unindented, the same
             * shape is a reviewer citing a location: "at src/theme.js:12:5". */
            !/^\s+at\s+\S+:\d+:\d+\s*$/.test(l) &&

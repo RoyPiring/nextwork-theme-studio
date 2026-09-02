@@ -300,3 +300,16 @@ test('a path with a space in it is removed whole, not up to the space', () => {
     assert.ok(!out.includes(secret), 'a path tail leaked: ' + out);
   });
 });
+
+test('an unindented citation with a parenthetical is kept', () => {
+  /* Two of the four frame patterns were anchored ^\s* while the other two
+   * used ^\s+, so a citation written without indentation was still deleted
+   * even though the rule says indentation is what separates the two. */
+  const out = redact([
+    'at buildPalette (theme-engine.js) the mix runs before the clamp',
+    '    at buildPalette (/home/someone/app/theme-engine.js:88:3)',
+    'VERDICT: BLOCK'
+  ].join('\n'));
+  assert.match(out, /the mix runs before the clamp/);
+  assert.ok(!out.includes('88:3'), 'an indented frame survived: ' + out);
+});
