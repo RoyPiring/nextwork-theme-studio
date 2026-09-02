@@ -605,6 +605,18 @@
       }
       return c;
     })();
+    /* Panels sit on top of the wallpaper, so a flat opaque fill reads as a slab
+     * pasted over the picture. These are translucent with a blur behind them
+     * instead, which lets the scene through as a soft wash and keeps the panel
+     * part of the page rather than on top of it.
+     *
+     * 0.72 is chosen against the worst point of every wallpaper: composited
+     * there, body text still measures 7.5:1. The floor sits near 0.60, so this
+     * keeps a margin. The blur only helps, by flattening whatever shows
+     * through, which the measurement does not credit. */
+    p.panelAlpha = 0.72;
+    p.panelFill = rgba(p.surface, p.panelAlpha);
+    p.panelEdge = rgba(p.textPrimary, 0.10);
     p.calloutText = ensureContrast(p.textPrimary, p.callout, 7);
     p.calloutTextSecondary = ensureContrast(p.textSecondary, p.callout, 4.5);
     return p;

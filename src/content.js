@@ -447,7 +447,12 @@
     }
     work.forEach(function (el) {
       el.dataset.nwtGround = '1';
-      el.style.setProperty('background-color', palette.ground, 'important');
+      /* Translucent with a blur behind it, not an opaque slab. The wallpaper
+       * reads through as a soft wash, so the panel belongs to the page instead
+       * of sitting on top of it. */
+      el.style.setProperty('background-color', palette.panelFill, 'important');
+      el.style.setProperty('backdrop-filter', 'blur(14px)', 'important');
+      el.style.setProperty('-webkit-backdrop-filter', 'blur(14px)', 'important');
     });
   }
 
@@ -485,7 +490,8 @@
    * visible: turning the theme off left panels wearing the theme surface, and
    * switching theme left them wearing the *previous* theme, because the stamp
    * made them skip. */
-  const RESCUED = ['background-color', 'color', 'border-color'];
+  const RESCUED = ['background-color', 'color', 'border-color',
+                   'backdrop-filter', '-webkit-backdrop-filter'];
 
   function unrescue() {
     let nodes;
@@ -550,7 +556,7 @@
       ? (function () {
           const p = NWT.buildPalette(theme);
           return { surface: p.surfaceAlt, text: p.textPrimary, border: p.border,
-                   ground: p.canvas };
+                   panelFill: p.panelFill };
         })()
       : null;
 
@@ -564,7 +570,7 @@
     /* Separate from the rescue pass, and not gated on the theme being dark.
      * The transparency this corrects is applied to every theme, and the split
      * view that exposed it was on a light one. */
-    groundPalette = { ground: NWT.buildPalette(theme).canvas };
+    groundPalette = { panelFill: NWT.buildPalette(theme).panelFill };
     scheduleGrounds(groundPalette);
   }
 

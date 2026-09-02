@@ -8,6 +8,22 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.6.0] - 2026-09-01
+
+### Changed
+- Panels blend with the wallpaper instead of covering it. 2.5.3 stopped them
+  being see-through by making them opaque, which fixed the readability and
+  replaced it with a flat slab of colour sitting on top of a soft picture.
+
+  They are translucent now, at 72% of the surface colour, with a blur behind
+  them, so the scene reads through as a wash and the panel belongs to the page
+  rather than sitting on it.
+
+  The opacity is measured, not picked. Composited against the worst point of
+  each wallpaper, body text still clears 7.5:1 on every theme; the floor is
+  near 0.60. The blur is not credited in that measurement, and it only helps,
+  since it flattens whatever shows through.
+
 ## [2.5.3] - 2026-09-01
 
 ### Fixed
@@ -480,7 +496,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.5.3...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.0
 [2.5.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.3
 [2.5.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.2
 [2.5.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.1

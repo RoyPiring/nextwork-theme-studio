@@ -119,6 +119,41 @@ test('the loading skeleton is visible against the page', () => {
   }
 });
 
+test('text still clears the floor on a translucent panel over its wallpaper', () => {
+  /* Panels are translucent so the wallpaper reads through them as a wash
+   * rather than being covered by a flat slab. That only holds if the worst
+   * point of the wallpaper, seen through the panel, still leaves body text
+   * readable. The measurement ignores the blur, which only helps. */
+  function lin(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function lum(hex) {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  }
+  function greyAt(target) {
+    let lo = 0, hi = 255;
+    for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (lin(m) < target) lo = m; else hi = m; }
+    const n = Math.round((lo + hi) / 2);
+    return '#' + [n, n, n].map(x => x.toString(16).padStart(2, '0')).join('');
+  }
+
+  for (const id of THEMES) {
+    const theme = NWT.getTheme(settings(), id);
+    const p = NWT.buildPalette(theme);
+    const paper = PAPERS[id];
+    assert.ok(p.panelAlpha < 1, id + ': panels are opaque, so they will read as a slab');
+
+    const lt = lum(p.textPrimary);
+    /* The luminance of the worst point in this wallpaper, from its measurement. */
+    const lw = theme.mode === 'light'
+      ? paper.minRatio * (lt + 0.05) - 0.05
+      : (lt + 0.05) / paper.minRatio - 0.05;
+    const behind = greyAt(Math.max(0, Math.min(1, lw)));
+    const composite = NWT.color.mix(behind, p.surface, p.panelAlpha);
+    const r = C(p.textPrimary, composite);
+    assert.ok(r >= 7, id + ': text on a panel over its wallpaper is ' + r.toFixed(2) + ':1');
+  }
+});
+
 test('toneOf lands on the ratio it was asked for, in both directions', () => {
   const light = '#e8e9e9';
   const dark = '#152a1d';

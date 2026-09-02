@@ -55,7 +55,10 @@ const correction = `
     return false;
   }
   document.querySelectorAll(GROUND).forEach(function (el) {
-    if (isPanel(el)) el.style.setProperty('background-color', ${JSON.stringify(palette.canvas)}, 'important');
+    if (!isPanel(el)) return;
+    el.style.setProperty('background-color', ${JSON.stringify(palette.panelFill)}, 'important');
+    el.style.setProperty('backdrop-filter', 'blur(14px)', 'important');
+    el.style.setProperty('-webkit-backdrop-filter', 'blur(14px)', 'important');
   });
 </script>`;
 
