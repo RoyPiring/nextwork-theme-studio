@@ -150,3 +150,21 @@ test('redaction leaves an ordinary review alone', () => {
   const review = 'tools/review-pr.js:42 — the guard is inverted.\n\nVERDICT: BLOCK';
   assert.strictEqual(redact(review), review);
 });
+
+test('redaction keeps links and issue URLs intact', () => {
+  /* An https:// URL contains a letter, a colon and a slash, which is also the
+   * shape of a Windows drive path. The first version matched from the "s" of
+   * https and turned every cited link into "http[path]". */
+  const review = [
+    'See https://github.com/owner/repo/issues/12 and',
+    'http://example.com/a/b for the reasoning.',
+    'VERDICT: PASS'
+  ].join('\n');
+  assert.strictEqual(redact(review), review);
+});
+
+test('a file:// URL is redacted whole, not left as a stub', () => {
+  const out = redact('opened file:///C:/Users/someone/secret.txt here');
+  assert.ok(!out.includes('Users'), 'the path survived: ' + out);
+  assert.ok(!out.includes('file:///'), 'a bare file:/// stub was left: ' + out);
+});

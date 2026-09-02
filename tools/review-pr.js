@@ -93,10 +93,16 @@ function redact(text) {
   }
 
   /* Absolute paths in any shape, whether or not they sit under the home
-   * directory: a Windows drive path, or a POSIX home path. */
-  t = t.replace(/[A-Za-z]:[\\/][^\s"'`,)\]]+/g, '[path]');
-  t = t.replace(/\/(?:home|Users)\/[^\s"'`,)\]]+/g, '[path]');
+   * directory. Order matters: file:// URLs first, because the drive rule
+   * below would otherwise eat the tail and leave a bare "file:///" behind.
+   *
+   * The drive rule refuses a letter that follows another letter. Without
+   * that, "https://example.com" matches from the s of https - a colon and a
+   * slash preceded by a letter is exactly a drive path - and every link in
+   * every review came out as "http[path]". */
   t = t.replace(/file:\/\/\/[^\s"'`,)\]]+/g, '[path]');
+  t = t.replace(/(?<![A-Za-z])[A-Za-z]:[\\/][^\s"'`,)\]]+/g, '[path]');
+  t = t.replace(/\/(?:home|Users)\/[^\s"'`,)\]]+/g, '[path]');
 
   /* Stack frames are all path and no finding. */
   t = t.split('\n').filter(l => !/^\s*at\s+\S/.test(l)).join('\n');
@@ -244,7 +250,8 @@ function verdictFromRun(run) {
     return { ok: false, verdict: 'BLOCK', output:
       (output || '(no output)') + '\n\n---\n\nCounted as a block: this reviewer ' +
       'exited with code ' + run.status + '. A verdict from a run that failed ' +
-      'describes a review that did not finish.' };
+      'describes a review that did not finish.',
+      stderr: stderr };
   }
   const v = parseVerdict(stdout);
   return {
