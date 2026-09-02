@@ -27,12 +27,18 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 
-/* The reviewers. Swapping one is a single entry here: give it a name, the
- * command, and the arguments that make it read a prompt non-interactively.
- * `{prompt}` is replaced with the built prompt. */
+/* The reviewers. Swapping one is a single entry here: a name, the command,
+ * and the arguments that put it in non-interactive mode.
+ *
+ * The prompt goes in on stdin, never as an argument. Windows caps a command
+ * line at about 32,000 characters, and a prompt carrying a diff passes that
+ * easily - the first run of this script failed with "The command line is too
+ * long" on a 15 KB diff. Both of these read stdin: `codex exec -` takes its
+ * instructions from it, and `gemini -p` appends its argument to it. */
 const REVIEWERS = [
-  { name: 'Codex',  cmd: 'codex',  args: ['exec', '{prompt}'] },
-  { name: 'Gemini', cmd: 'gemini', args: ['-p', '{prompt}'] }
+  { name: 'Codex',  cmd: 'codex',  args: ['exec', '-'] },
+  { name: 'Gemini', cmd: 'gemini',
+    args: ['-p', 'Follow the review instructions given above and end with the VERDICT line.'] }
 ];
 
 const VERDICT_LINE = /VERDICT:\s*(PASS|BLOCK)/i;
@@ -91,11 +97,20 @@ function prompt(pr, title, body, diff) {
   ].join('\n');
 }
 
+/* These CLIs install as .cmd shims on Windows, which cannot be executed
+ * without a shell - and a shell then re-splits the arguments, so anything
+ * containing a space has to be quoted back together. */
+function shellArg(a) {
+  return /[\s"&|<>^()]/.test(a) ? '"' + a.replace(/"/g, '\\"') + '"' : a;
+}
+
 function runReviewer(reviewer, text) {
-  const args = reviewer.args.map(a => a === '{prompt}' ? text : a);
+  const useShell = process.platform === 'win32';
+  const args = useShell ? reviewer.args.map(shellArg) : reviewer.args;
   const r = spawnSync(reviewer.cmd, args, {
     cwd: ROOT, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
-    shell: process.platform === 'win32'
+    shell: useShell,
+    input: text                     /* the prompt, never on the command line */
   });
 
   if (r.error) {
