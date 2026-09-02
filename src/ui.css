@@ -22,7 +22,15 @@
  * which shifts everything left of centre. Reserving the same space on both
  * sides keeps the grid centred whether the scrollbar is there or not. */
 html {
-  width: 336px;
+  /* The three toggles across the top did not fit, so the Focus switch was cut
+   * off at the right edge. Between the body padding and the gutter reserved on
+   * each side, 336 left the row 284px of the 342 it wanted.
+   *
+   * Widening alone would have meant a much bigger popup, so the row was put on
+   * a diet as well and the window opened up a little: 360 gives it 308, and it
+   * now asks for 295. Measured at every step rather than reasoned about, since
+   * the arithmetic here is padding on padding. */
+  width: 360px;
   scrollbar-gutter: stable both-edges;
   background: var(--ui-canvas);
 }
@@ -101,14 +109,25 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 /* ---- labelled switch pair ---- */
 .switch-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .switch-item {
-  flex: 1; display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; padding: 7px 10px;
+  /* Label above, switch below. Side by side they compete for the same line,
+   * and "Wallpaper" plus a 36px switch times three does not fit across a
+   * popup: first it overflowed and cut the Focus toggle off, then it fitted
+   * by ellipsising every label to "Th...". Stacked, the label gets the whole
+   * width of its tile and the row needs about a third less. */
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 7px; padding: 8px 10px;
   background: var(--ui-surface); border: 1px solid var(--ui-border);
   border-radius: 9px; cursor: pointer;
   transition: border-color 120ms ease;
 }
 .switch-item:hover { border-color: var(--ui-text-muted); }
-.switch-label { font-size: 12px; font-weight: 600; }
+.switch-label {
+  font-size: 12px; font-weight: 600;
+  /* a backstop only - if this ever ellipsises, the row has outgrown the popup
+   * again and the width above is what needs revisiting */
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .switch-item .switch { width: 36px; height: 21px; }
 .switch-item .switch span::after { width: 13px; height: 13px; }
 .switch-item .switch input:checked + span::after { transform: translateX(15px); }
@@ -151,6 +170,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 /* ---- theme cards ---- */
 .themes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .theme-head { margin-bottom: -2px; }
+/* Sits next to a section label, so it should read as one. As a full bordered
+ * button it had the same weight as Start and Reset and pulled the eye away
+ * from the themes, which are the point of that part of the panel. */
+#random-theme {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 9px; font-size: 11px; font-weight: 600;
+  border-radius: 999px; background: transparent;
+  border: 1px solid transparent; color: var(--ui-text-muted);
+}
+#random-theme svg { flex: none; opacity: .9; }
+#random-theme:hover {
+  color: var(--ui-text); background: var(--ui-surface-alt);
+  border-color: var(--ui-border);
+}
 .theme {
   position: relative;
   border: 1px solid var(--ui-border);
