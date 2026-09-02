@@ -16,11 +16,22 @@
 
 * { box-sizing: border-box; }
 
+/* The width is pinned here rather than on body, and the scrollbar gutter is
+ * reserved on both edges. There are enough themes that the popup scrolls, and
+ * a scrollbar that eats only the right edge takes its width out of one side,
+ * which shifts everything left of centre. Reserving the same space on both
+ * sides keeps the grid centred whether the scrollbar is there or not. */
+html {
+  width: 336px;
+  scrollbar-gutter: stable both-edges;
+  background: var(--ui-canvas);
+}
+
 body {
   margin: 0;
-  /* Pin the width. Without it the popup is sized by the widest row, which was
+  /* Without a pinned width the popup is sized by the widest row, which was
    * the focus chips, and everything else had to live with that. */
-  width: 336px;
+  width: 100%;
   background: var(--ui-canvas);
   color: var(--ui-text);
   font: 13px/1.5 ui-sans-serif, system-ui, "Segoe UI", sans-serif;
@@ -139,6 +150,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 
 /* ---- theme cards ---- */
 .themes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.theme-head { margin-bottom: -2px; }
 .theme {
   position: relative;
   border: 1px solid var(--ui-border);

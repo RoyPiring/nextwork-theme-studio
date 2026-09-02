@@ -8,6 +8,32 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.8.0] - 2026-09-02
+
+### Added
+
+- A "Surprise me" button above the theme grid, which picks a theme at random.
+  It never picks the one already showing, since a button that sometimes does
+  nothing reads as broken rather than as a coincidence.
+
+### Changed
+
+- Espresso's smoke is drawn as a soft mass instead of a line. It was six
+  curved strokes at 1.8px, and at that width a long curve reads as loose
+  thread lying on the page rather than as vapour. Smoke has no edge, so it is
+  now overlapping blurred puffs.
+- Dark Japandi has blue stars in place of the same drawn smoke, so the
+  backdrop reads as night sky rather than as more of the room.
+- The Galactica fleet is black, smaller, and twice as many. The ships were
+  pale blue, which put them in front of the nebula; as silhouettes they sit
+  inside it, and a handful of large craft now reads as a fleet.
+
+### Fixed
+
+- The popup is centred. There are enough themes that it scrolls, and the
+  scrollbar took its width out of the right edge only, shifting the grid off
+  centre. The gutter is now reserved on both edges.
+
 ## [2.7.0] - 2026-09-02
 
 ### Added

@@ -281,3 +281,76 @@ test('placeholder text is readable on every theme', () => {
       id + ': placeholder should read quieter than body text');
   });
 });
+
+/* --------------------------------------------------------------- scenery */
+
+function sceneFor(id) {
+  const theme = NWT.getTheme(settings(), id);
+  const p = NWT.buildPalette(theme);
+  const u = {
+    toneOf: (hex, t) => NWT.toneOf(hex, p.textPrimary, t),
+    mix: NWT.color.mix,
+    rgba: NWT.color.rgba
+  };
+  const def = SCENES[id];
+  return { scene: typeof def === 'function' ? def(p, u) : def, palette: p };
+}
+
+test('the themes that drew smoke as a thin line no longer do', () => {
+  /* Espresso and Dark Japandi drew vapour as six curved strokes at 1.8px.
+   * At that width a long curve does not read as smoke, it reads as a loose
+   * thread lying on top of the page.
+   *
+   * Only these two. A hairline is not wrong in itself: Hawaii Ocean draws its
+   * gulls at the same width, and a gull is a line. What did not work was
+   * drawing something with no edges as though it had one. */
+  ['espresso', 'darkJapandi'].forEach(id => {
+    const near = sceneFor(id).scene.near;
+    const hairlines = (near.svg.match(/stroke-width='1\.8'/g) || []).length;
+    assert.strictEqual(hairlines, 0,
+      id + ' still draws ' + hairlines + ' hairline strokes');
+  });
+});
+
+test('espresso carries smoke as a soft mass', () => {
+  const near = sceneFor('espresso').scene.near;
+  assert.ok(/feGaussianBlur/.test(near.svg),
+    'smoke with a hard edge is not smoke');
+  assert.ok((near.svg.match(/<ellipse/g) || []).length >= 8,
+    'it should be built from overlapping puffs');
+});
+
+test('dark japandi has blue stars rather than warm smoke', () => {
+  const near = sceneFor('darkJapandi').scene.near;
+  const dots = (near.svg.match(/<circle/g) || []).length;
+  assert.ok(dots >= 40, 'a night sky needs more than a handful of dots, got ' + dots);
+  const stop = /stop-color='(#[0-9a-f]{6})'/i.exec(near.svg);
+  assert.ok(stop, 'expected a colour on the star gradient');
+  const [, hex] = stop;
+  const r = parseInt(hex.slice(1, 3), 16), b = parseInt(hex.slice(5, 7), 16);
+  assert.ok(b > r, 'the stars should read blue, got ' + hex);
+});
+
+test('the galactica fleet is black, smaller and twice the size of fleet', () => {
+  const { scene } = sceneFor('galactica');
+  const svg = scene.near.svg;
+  const hull = /<g fill='(#[0-9a-f]{6})'/i.exec(svg);
+  assert.ok(hull, 'expected a hull colour');
+  /* Silhouettes against the nebula, not pale shapes in front of it. */
+  const lum = ['1', '3', '5'].map(i => parseInt(hull[1].slice(+i, +i + 2), 16))
+    .reduce((a, b) => a + b, 0) / 3;
+  assert.ok(lum < 60, 'the hulls should be near black, got ' + hull[1]);
+
+  /* Every ship is at least one shape, and a third of them are haulers which
+   * are two, so counting hulls is the honest way to count ships. */
+  const ships = (svg.match(/<(path|ellipse|rect)/g) || []).length;
+  assert.ok(ships > 30, 'a fleet of 26 should draw more than 30 shapes, got ' + ships);
+
+  /* Smaller: nothing in it should approach the sparse-layer size cap. */
+  let widest = 0;
+  (svg.match(/r[xy]?=['"]([\d.]+)/g) || []).forEach(m => {
+    widest = Math.max(widest, parseFloat(m.split(/['"]/)[1]) * 2);
+  });
+  assert.ok(widest < scene.near.tile * 0.05,
+    'the ships should be small, widest was ' + widest.toFixed(0));
+});

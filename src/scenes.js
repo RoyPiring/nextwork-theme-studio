@@ -776,16 +776,53 @@
   }
 
   /* A rising curl of smoke. */
-  function smoke(color, opacity, seed) {
-    var pts = scatter(6, MOTIF_W, MOTIF_H, seed), out = '', i;
+  /* Smoke as a body rather than a line.
+   *
+   * The version this replaces drew six curved strokes at 1.8px, which does
+   * not read as vapour at all - it reads as loose thread lying on top of the
+   * page. Smoke has no outline; it is a soft mass with no edge. So this is
+   * overlapping blurred ellipses instead, each paired with a smaller offset
+   * one so a puff is never a plain oval.
+   *
+   * Radii stay under a sixth of the tile, which is the cap a sparse layer has
+   * to keep so nothing large enough to sit behind a paragraph gets drawn. */
+  function fog(color, opacity, seed) {
+    var pts = scatter(9, MOTIF_W, MOTIF_H, seed), out = '', i, id = uid();
     for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], s = 30 + pts[i][2] * 40;
-      out += "<path d='M" + x + " " + y + " q" + (s * 0.6) + " -" + (s * 0.5) + " 0 -" + s +
-             " q-" + (s * 0.6) + " -" + (s * 0.5) + " 0 -" + (s * 1.9) +
-             "' fill='none' stroke-width='1.8' stroke-linecap='round'/>";
+      var x = pts[i][0], y = pts[i][1], s = 90 + pts[i][2] * 90;
+      out += "<ellipse cx='" + x + "' cy='" + y + "' rx='" + s.toFixed(1) +
+             "' ry='" + (s * 0.54).toFixed(1) + "' opacity='" +
+             (0.34 + (i % 3) * 0.15).toFixed(2) + "'/>";
+      out += "<ellipse cx='" + (x + s * 0.52).toFixed(1) + "' cy='" +
+             (y - s * 0.26).toFixed(1) + "' rx='" + (s * 0.62).toFixed(1) +
+             "' ry='" + (s * 0.38).toFixed(1) + "' opacity='" +
+             (0.22 + (i % 4) * 0.11).toFixed(2) + "'/>";
     }
-    return motifBand(out, color, opacity);
+    return svg(MOTIF_W, MOTIF_H,
+      "<defs><filter id='" + id + "' x='-30%' y='-30%' width='160%' height='160%'>" +
+      "<feGaussianBlur stdDeviation='34'/></filter></defs>" +
+      "<g fill='" + color + "' filter='url(#" + id + ")' opacity='" + opacity + "'>" +
+      out + "</g>");
   }
+
+  /* Stars: small, crisp and unevenly bright, which is what separates a night
+   * sky from a scattering of identical dots. */
+  function stars(color, opacity, seed) {
+    var pts = scatter(54, MOTIF_W, MOTIF_H, seed), out = '', i, id = uid();
+    for (i = 0; i < pts.length; i++) {
+      var r = 1.1 + pts[i][2] * 2.6;
+      out += "<circle cx='" + pts[i][0] + "' cy='" + pts[i][1] + "' r='" + r.toFixed(1) +
+             "' fill='url(#" + id + ")' opacity='" + (0.4 + (i % 5) * 0.15).toFixed(2) + "'/>";
+    }
+    return svg(MOTIF_W, MOTIF_H,
+      "<defs><radialGradient id='" + id + "'>" +
+      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
+      "<stop offset='40%' stop-color='" + color + "' stop-opacity='" +
+      (opacity * 0.7).toFixed(3) + "'/>" +
+      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
+      "</radialGradient></defs>" + out);
+  }
+
 
   /* Seed heads on a stalk. */
   function seeds(color, opacity, seed) {
@@ -818,10 +855,11 @@
 
   /* A drifting fleet: hulls of a few different builds, plus the odd running
    * light in a second colour so it is not one flat silhouette. */
-  function fleet(color, accent, opacity, seed) {
-    var pts = scatter(13, MOTIF_W, MOTIF_H, seed), out = '', i;
+  function fleet(color, accent, opacity, seed, count, scale) {
+    var pts = scatter(count || 13, MOTIF_W, MOTIF_H, seed), out = '', i;
+    var k = scale || 1;
     for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], s = 11 + pts[i][2] * 15, kind = i % 3;
+      var x = pts[i][0], y = pts[i][1], s = (11 + pts[i][2] * 15) * k, kind = i % 3;
       if (kind === 0) {
         /* a wedge */
         out += "<path d='M" + x + " " + y + " l" + (s * 2.3).toFixed(1) + " -" +
@@ -1024,7 +1062,9 @@
       return {
         motifs: ['espresso'],
         hero: { wallpaper: 'espresso', size: '100% auto', position: 'center bottom' },
-        near: { svg: smoke(drift, 0.75, 199), tile: 2400, height: '100vh', seconds: 478, sparse: true },
+        /* Steam off a hot cup, as a soft mass. The drawn-line version read as
+         * thread on the page rather than as vapour. */
+        near: { svg: fog(drift, 0.55, 199), tile: 2400, height: '100vh', seconds: 478, sparse: true },
         areaColors: [],
         sparseColors: [drift]
       };
@@ -1053,11 +1093,14 @@
     },
 
     darkJapandi: function (p, u) {
-      const drift = u.toneOf('#caa189', 4.8);
+      /* Stars rather than the drawn smoke this used to carry, and blue
+       * rather than the warm tone the rest of the theme runs on, so they read
+       * as night sky through the window instead of as more of the room. */
+      const drift = u.toneOf('#8fb6e8', 4.8);
       return {
         motifs: ['darkJapandi'],
         hero: { wallpaper: 'darkJapandi', size: '100% auto', position: 'center bottom' },
-        near: { svg: smoke(drift, 0.71, 307), tile: 2400, height: '100vh', seconds: 627, sparse: true },
+        near: { svg: stars(drift, 0.85, 307), tile: 2400, height: '100vh', seconds: 627, sparse: true },
         areaColors: [],
         sparseColors: [drift]
       };
@@ -1086,11 +1129,14 @@
     },
 
     galactica: function (p, u) {
-      const drift = u.toneOf('#cddaeb', 4.8);
+      /* Black hulls, so the ships read as silhouettes against the nebula
+       * rather than as pale shapes floating in front of it. Smaller and twice
+       * as many, which turns a handful of large craft into a fleet. */
+      const drift = u.mix('#000000', p.canvas, 0.12);
       return {
         motifs: ['galactica'],
         hero: { wallpaper: 'galactica', size: '100% auto', position: 'center bottom' },
-        near: { svg: fleet(drift, u.toneOf('#e2a24a', 4.8), 0.85, 419), tile: 2400, height: '100vh', seconds: 547, sparse: true },
+        near: { svg: fleet(drift, u.toneOf('#e2a24a', 4.8), 0.85, 419, 26, 0.6), tile: 2400, height: '100vh', seconds: 547, sparse: true },
         areaColors: [],
         sparseColors: [drift]
       };

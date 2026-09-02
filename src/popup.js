@@ -157,6 +157,16 @@
     writeDials();
   }
 
+  /* Somewhere other than where you already are. Picking from the full list
+   * would land on the current theme now and then, which reads as the button
+   * being broken rather than as a coincidence. */
+  function randomThemeId() {
+    const ids = allThemes().map(function (e) { return e.id; })
+      .filter(function (id) { return id !== settings.themeId; });
+    if (!ids.length) return settings.themeId;
+    return ids[Math.floor(Math.random() * ids.length)];
+  }
+
   /* ---- focus ---- */
   function focusState() {
     return Object.assign({}, NWT.DEFAULT_SETTINGS.focus, settings.focus);
@@ -230,6 +240,11 @@
     $('focus-size').addEventListener('input', function () {
       $('focus-size-out').textContent = $('focus-size').value + '%';
       writeSize();
+    });
+
+    $('random-theme').addEventListener('click', function () {
+      save({ themeId: randomThemeId() });
+      renderAll();
     });
 
     $('focus-locked').addEventListener('change', function () {
