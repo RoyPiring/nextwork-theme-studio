@@ -37,11 +37,20 @@ test('two verdicts is a refusal, not a guess', () => {
   assert.match(r.reason, /2 VERDICT lines/);
 });
 
-test('a reply that does not end with the verdict blocks', () => {
-  /* Trailing prose after the verdict means the reviewer kept going, and what
-   * it decided in the end is not knowable from the line it passed through. */
-  const r = parseVerdict('VERDICT: PASS\nActually, one more thing worries me.');
+test('a trailer after the verdict does not change it', () => {
+  /* These CLIs print token counts, update notices and warnings after their
+   * answer. An earlier version demanded the verdict be the final line, which
+   * turned every clean review into a block and made the gate unusable. */
+  assert.strictEqual(
+    parseVerdict('Looks fine.\n\nVERDICT: PASS\ntokens used: 5310').verdict, 'PASS');
+  assert.strictEqual(
+    parseVerdict('VERDICT: BLOCK\n\n[notice] a new version is available').verdict, 'BLOCK');
+});
+
+test('a verdict line that is neither PASS nor BLOCK blocks', () => {
+  const r = parseVerdict('VERDICT: probably fine');
   assert.strictEqual(r.verdict, 'BLOCK');
+  assert.match(r.reason, /neither PASS nor BLOCK/);
 });
 
 test('silence, noise and nonsense all block', () => {
@@ -61,7 +70,7 @@ test('silence, noise and nonsense all block', () => {
 test('the reason a block happened is always reported', () => {
   /* Whoever re-runs this has to be able to tell "the reviewer found a bug"
    * from "the reviewer never ran", and those look identical without it. */
-  ['', 'no verdict here', 'VERDICT: PASS\ntrailing'].forEach(input => {
+  ['', 'no verdict here', 'VERDICT: maybe'].forEach(input => {
     const r = parseVerdict(input);
     assert.strictEqual(r.verdict, 'BLOCK');
     assert.ok(r.reason && r.reason.length > 0,

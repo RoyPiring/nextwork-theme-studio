@@ -66,7 +66,9 @@ const ROOT = path.join(__dirname, '..');
  * no longer authenticate - and correctly blocked rather than passing. */
 const REVIEWERS = [
   { name: 'Codex',  cmd: 'codex',  args: ['exec', '-s', 'read-only', '-'] },
-  { name: 'Claude', cmd: 'claude', args: ['-p'] }
+  { name: 'Claude', cmd: 'claude',
+    args: ['-p', '--permission-mode', 'plan', '--disallowed-tools',
+           'Bash,Read,Write,Edit,WebFetch,WebSearch'] }
 ];
 
 const MAX_COMMENT = 60000;      /* GitHub refuses a comment body over 65,536 */
@@ -91,19 +93,19 @@ function parseVerdict(output) {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   if (!lines.length) return { verdict: 'BLOCK', reason: 'the reviewer said nothing' };
 
-  const stated = lines.filter(l => /^VERDICT:/i.test(l));
+  const stated = lines.filter(l => /^VERDICT\b/i.test(l));
   if (stated.length === 0) {
     return { verdict: 'BLOCK', reason: 'no VERDICT line was found in this reply' };
   }
   if (stated.length > 1) {
-    return { verdict: 'BLOCK',
-             reason: 'this reply contains ' + stated.length + ' VERDICT lines, so which one is meant cannot be known' };
+    return { verdict: 'BLOCK', reason: 'this reply contains ' + stated.length +
+             ' VERDICT lines, so which one is meant cannot be known' };
   }
-  const last = lines[lines.length - 1];
-  const m = /^VERDICT:\s*(PASS|BLOCK)$/i.exec(last);
+  const m = /^VERDICT:\s*(PASS|BLOCK)$/i.exec(stated[0]);
   if (!m) {
     return { verdict: 'BLOCK',
-             reason: 'the reply does not end with a bare VERDICT line' };
+             reason: 'the VERDICT line reads "' + stated[0].slice(0, 60) +
+                     '", which is neither PASS nor BLOCK' };
   }
   return { verdict: m[1].toUpperCase(), reason: null };
 }
@@ -191,7 +193,15 @@ function verdictFromRun(run) {
       'This reviewer could not be run: ' + run.error.message +
       '\n\nA reviewer that cannot run is treated as a block, not as a pass.' };
   }
-  const output = ((run.stdout || '') + (run.stderr || '')).trim();
+  /* The verdict is read from stdout alone. stderr carries warnings, update
+   * notices and telemetry, and mixing them in let a stray diagnostic line
+   * decide a review. It is still shown, because it explains failures. */
+  const stdout = String(run.stdout || '').trim();
+  const stderr = String(run.stderr || '').trim();
+  const output = stderr
+    ? stdout + '\n\n<details><summary>stderr</summary>\n\n```\n' +
+      stderr.slice(0, 4000) + '\n```\n</details>'
+    : stdout;
 
   /* Any non-zero exit blocks, printed output or not. A reviewer that crashed
    * part way through may well have printed a verdict before it fell over, and
@@ -202,7 +212,7 @@ function verdictFromRun(run) {
       'exited with code ' + run.status + '. A verdict from a run that failed ' +
       'describes a review that did not finish.' };
   }
-  const v = parseVerdict(output);
+  const v = parseVerdict(stdout);
   return {
     ok: v.verdict === 'PASS',
     verdict: v.verdict,
@@ -237,7 +247,7 @@ function comment(pr, head, reviewer, result, dryRun) {
 
   if (dryRun) {
     console.log('\n----- would post to PR #' + pr + ' -----\n' + body + '\n');
-    return;
+    return true;
   }
 
   /* Through a file, not --body. A reviewer that quotes the diff back produces
@@ -251,9 +261,11 @@ function comment(pr, head, reviewer, result, dryRun) {
     fs.writeFileSync(tmp, trimmed, 'utf8');
     sh('gh', ['pr', 'comment', String(pr), '--body-file', tmp]);
     console.log('  posted ' + reviewer.name + ' review to PR #' + pr);
+    return true;
   } catch (e) {
     console.log('  could not post ' + reviewer.name + ' review: ' +
                 String(e.message).split('\n')[0]);
+    return false;
   } finally {
     try { fs.unlinkSync(tmp); } catch (e) { /* nothing to clean up */ }
   }
@@ -299,8 +311,8 @@ function main() {
     console.log('  running ' + reviewer.name + ' (' + reviewer.cmd + ')...');
     const result = runReviewer(reviewer, text);
     console.log('  ' + reviewer.name + ': ' + result.verdict);
-    comment(pr, head, reviewer, result, dryRun);
-    results.push({ reviewer: reviewer, result: result });
+    const posted = comment(pr, head, reviewer, result, dryRun);
+    results.push({ reviewer: reviewer, result: result, posted: posted });
   });
 
   console.log('\n--- verdicts ---');
@@ -310,6 +322,11 @@ function main() {
   results.filter(r => !r.result.ok)
          .forEach(r => problems.push(r.reviewer.name + ' blocked'));
 
+  /* A review nobody can read is not a review. Passing while the findings
+   * failed to reach the pull request would hand over an empty record. */
+  results.filter(r => !r.posted)
+         .forEach(r => problems.push(r.reviewer.name + "'s review could not be posted"));
+
   /* A cut diff means nobody read the whole change, so a pass on the visible
    * part is not a pass on the change. Split the pull request. */
   if (truncated) {
@@ -318,11 +335,14 @@ function main() {
 
   /* Re-read the head. If the branch moved while the reviewers were working,
    * these verdicts describe code that is no longer what would be merged. */
-  let headNow = head;
+  let headNow = null;
   try {
     headNow = JSON.parse(sh('gh', ['pr', 'view', pr, '--json', 'headRefOid'])).headRefOid;
-  } catch (e) { /* keep the original and let the comparison pass */ }
-  if (headNow !== head) {
+  } catch (e) { /* below: not knowing is not the same as knowing it is fine */ }
+  if (headNow === null) {
+    problems.push('the head commit could not be re-read, so whether the branch ' +
+                  'moved during review is unknown');
+  } else if (headNow !== head) {
     problems.push('the branch moved during review (' + head.slice(0, 9) + ' → ' +
                   headNow.slice(0, 9) + '), so these verdicts describe older code');
   }

@@ -54,18 +54,37 @@ The reviewers are configured at the top of `tools/review-pr.js`:
 | Reviewer | Command | Why this one |
 | --- | --- | --- |
 | Codex | `codex exec` | Reads the diff cold, with no memory of writing it. |
-| Gemini | `gemini -p` | A different vendor and model family, so the two are unlikely to miss the same thing. |
+| Claude | `claude -p` | A second read with no memory of writing the code, running with its tools switched off. |
 
 Swapping a reviewer is one entry in that list.
 
-Two rules the script enforces, both deliberate:
+Gemini held the second slot until Google withdrew the free tier for
+individuals, at which point the CLI could no longer authenticate. It blocked
+rather than passing, which is the behaviour below working correctly.
+
+### Reviewing a pull request from outside the project
+
+The title, description and diff are written by whoever opened the pull request,
+and they are fed to an agent running on your machine whose reply is then posted
+publicly under your account. Reviewers run with their tools switched off and
+the untrusted text is fenced and labelled, but a prompt is not a security
+boundary. For a pull request from someone outside the project, read it
+yourself, or run this in a throwaway container with no credentials.
+
+Rules the script enforces, all deliberate:
 
 - **A reviewer that cannot run counts as a block.** If the command is missing,
   errors, or answers without a verdict, that is a `BLOCK`. A gate that opens
   when its checker is broken is not a gate.
-- **A diff over 120,000 characters is truncated** and the reviewers are told so.
-  Split the pull request instead. A review of part of a change is not a review
-  of the change.
+- **A diff over 120,000 characters fails the run.** Nobody read the whole
+  change, so a pass on the visible part is not a pass on the change. Split the
+  pull request.
+- **Verdicts are tied to a commit.** The head is recorded, printed in each
+  comment, and re-read at the end. If the branch moved during the review, or
+  the head cannot be re-read, the run fails: those verdicts describe code that
+  is not what would be merged.
+- **A review that could not be posted fails the run.** Passing while the
+  findings never reached the pull request would hand over an empty record.
 
 ## 4. Fix and re-run
 
