@@ -168,3 +168,40 @@ test('a file:// URL is redacted whole, not left as a stub', () => {
   assert.ok(!out.includes('Users'), 'the path survived: ' + out);
   assert.ok(!out.includes('file:///'), 'a bare file:/// stub was left: ' + out);
 });
+
+test('stderr never reaches the text that gets posted', () => {
+  /* CODE_REVIEW.md promises stderr is never published. That promise rests on
+   * one assignment, so it gets a test rather than trust. */
+  const r = verdictFromRun({
+    status: 1, stdout: 'VERDICT: PASS', stderr: 'Error at /home/someone/.aws/creds'
+  });
+  assert.ok(!r.output.includes('someone'), 'stderr leaked into the posted text');
+  assert.ok(!r.output.includes('.aws'), 'stderr leaked into the posted text');
+  /* It is still handed back separately, for the terminal. */
+  assert.match(r.stderr, /\.aws/);
+});
+
+test('a finding that starts with "at" is not mistaken for a stack frame', () => {
+  /* The first filter dropped any line beginning with "at", which silently
+   * deleted findings from the public comment while the terminal kept them. */
+  const review = [
+    'at tools/scenes.js:40 the guard is inverted',
+    'at least two callers depend on the old behaviour',
+    'VERDICT: BLOCK'
+  ].join('\n');
+  const out = redact(review);
+  assert.match(out, /the guard is inverted/);
+  assert.match(out, /at least two callers/);
+});
+
+test('real stack frames are still dropped', () => {
+  const out = redact([
+    'Something failed',
+    '    at doThing (/home/someone/app/x.js:12:3)',
+    '    at Module._compile (node:internal/modules/cjs/loader:1)',
+    'VERDICT: BLOCK'
+  ].join('\n'));
+  assert.ok(!out.includes('doThing'), 'a frame survived: ' + out);
+  assert.ok(!out.includes('Module._compile'), 'a frame survived: ' + out);
+  assert.match(out, /Something failed/);
+});
