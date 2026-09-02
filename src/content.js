@@ -375,6 +375,24 @@
     return luminance(c) > 0.72;
   }
 
+  /* WCAG relative luminance, which is not the same thing as the weighted
+   * average above: sRGB channels are gamma-encoded, so they have to be
+   * linearised before they can be summed. The cheap version is fine for the
+   * light/dark question isLight asks, and badly wrong for a ratio, where it
+   * compresses the mid-tones and reads 1.5 where the real answer is 2.4. */
+  function relLuminance(c) {
+    const ch = function (v) {
+      const x = v / 255;
+      return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b);
+  }
+
+  function ratio(a, b) {
+    const x = relLuminance(a), y = relLuminance(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+
   function isDarkText(colour) {
     const c = parseColour(colour);
     return !!c && luminance(c) < 0.35;
@@ -491,9 +509,20 @@
    * CSS cannot tell the two cases apart, so this measures. White text keeps
    * being white wherever it sits on something dark; only the copies that ended
    * up on a light background are repointed. */
+  /* Where the site writes its own text colour rather than taking ours. All of
+   * these are pale on a light theme, because they were chosen for a dark page:
+   * text-brand-25 lands at 1.00:1 against the canvas, which is the same colour
+   * as the background. Bounded by selector so this stays cheap; the decision
+   * is made by measurement below. */
+  const INK_SELECTOR = [
+    '[class*="text-white"]', '[class*="text-paper"]', '[class*="text-warm-white"]',
+    '[class*="text-leather"]', '[class*="text-brand-"]', '[class*="text-gray-"]',
+    '[class*="text-sand-"]', 'h1', 'h2', 'h3'
+  ].join(', ');
+
   function rescueInvisibleText(palette) {
     let nodes;
-    try { nodes = document.querySelectorAll('[class*="text-white"]'); }
+    try { nodes = document.querySelectorAll(INK_SELECTOR); }
     catch (e) { return; }
     const work = [];
     for (let i = 0; i < nodes.length; i++) {
@@ -501,14 +530,32 @@
       if (el.dataset.nwtInk === '1') continue;
       let cs;
       try { cs = getComputedStyle(el); } catch (e) { continue; }
-      if (!isLight(cs.color)) continue;            /* not light text, leave it */
-      const behind = effectiveBackground(el);
-      if (behind && !isLight(behind)) continue;    /* light on dark is correct */
-      work.push(el);
+      const ink = parseColour(cs.color);
+      if (!ink || ink.a < 0.5) continue;
+      const behind = parseColour(effectiveBackground(el) || palette.pageBg);
+      if (!behind) continue;
+      /* Readability, not lightness. A pale blue-grey heading on cream is not
+       * "light text" by any threshold, and it is still unreadable.
+       *
+       * The floor is deliberately below the WCAG one. This pass is for text
+       * that has effectively vanished, not for holding the site to a contrast
+       * standard: the pale ramp stops land at 1.00 to 1.60 against a light
+       * canvas, while text that is meant to read as de-emphasised sits nearer
+       * 2.5. Repointing that too would make every disabled control look
+       * enabled, which trades one visual bug for another. */
+      if (ratio(ink, behind) >= 2.2) continue;
+      /* Pick whichever of the two candidates the background can actually
+       * carry, so this is right on a dark card as well as a light page. */
+      const dark = parseColour(palette.ink);
+      const light = parseColour(palette.inkAlt);
+      const pick = (dark && light)
+        ? (ratio(dark, behind) >= ratio(light, behind) ? palette.ink : palette.inkAlt)
+        : palette.ink;
+      work.push({ el: el, colour: pick });
     }
-    work.forEach(function (el) {
-      el.dataset.nwtInk = '1';
-      el.style.setProperty('color', palette.ink, 'important');
+    work.forEach(function (w) {
+      w.el.dataset.nwtInk = '1';
+      w.el.style.setProperty('color', w.colour, 'important');
     });
   }
 
@@ -627,8 +674,11 @@
           const base = { surface: p.surfaceAlt, text: p.textPrimary, border: p.border,
                          panelFill: p.panelFill, panelEdge: p.panelEdge,
                          panelShadow: p.panelShadow };
-          if (theme.mode === 'light') base.ink = p.textPrimary;
-          else base.panels = true;
+          /* Both candidates travel, so the pass can choose per element. */
+          base.ink = p.textPrimary;
+          base.inkAlt = p.canvas;
+          base.pageBg = p.canvas;
+          if (theme.mode !== 'light') base.panels = true;
           return base;
         })()
       : null;

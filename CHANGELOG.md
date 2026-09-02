@@ -8,6 +8,21 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.6.3] - 2026-09-02
+
+### Fixed
+
+- Text that vanished into the page on the five light themes. The site writes
+  its headings and suggestion chips with the pale end of its own colour ramps,
+  which were picked for a dark page: on a light theme `text-brand-25` measures
+  1.00:1 against the canvas, meaning it is the same colour as the background.
+  The correction for those classes existed but only ran on dark themes.
+- The correction now decides by measuring contrast rather than by guessing from
+  a class name, and it repoints in whichever direction the background needs, so
+  it is right on a dark card as well as on a light page. Text the site dims on
+  purpose keeps its dimming; the floor is set below the WCAG one so a disabled
+  control still looks disabled.
+
 ## [2.6.2] - 2026-09-01
 
 ### Fixed

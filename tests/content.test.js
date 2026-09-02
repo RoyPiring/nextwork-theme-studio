@@ -258,3 +258,72 @@ test('white text on a light theme is repointed, but only where it sits on light'
   assert.strictEqual(button.style.getPropertyValue('color'), '',
     'white text on a dark button is correct and must be left alone');
 });
+
+test('pale text is repointed by readability, in whichever direction the background needs', () => {
+  /* text-white was only half the problem. The site also writes its headings and
+   * chips with the pale end of its own ramps, and those were chosen for a dark
+   * page: on a light theme text-brand-25 lands at 1.00:1 against the canvas,
+   * which is to say it is the same colour as the background.
+   *
+   * Lightness is the wrong test for this. A pale blue-grey heading on cream is
+   * not "light text" by any threshold and is still unreadable. So this measures
+   * contrast, and picks whichever ink the background can actually carry, which
+   * makes it correct on a dark card as well as on a light page. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'hawaiiMorning' } });
+  env.flush();
+
+  const CREAM = 'rgb(253, 244, 236)';
+  const CARD = 'rgb(24, 24, 27)';
+  env.doc.body._computed = { backgroundColor: CREAM };
+
+  const make = (tag, cls, computed) => {
+    const el = env.doc.createElement(tag);
+    if (cls) el.classList.add(cls);
+    el._computed = computed;
+    env.doc.body.appendChild(el);
+    return el;
+  };
+
+  /* The welcome heading: pale ramp text on the pale page ground. */
+  const heading = make('h1', 'text-brand-25',
+    { color: CREAM, backgroundColor: 'rgba(0, 0, 0, 0)' });
+  /* The same class where it was meant to be read, on a dark card. */
+  const onCard = make('span', 'text-brand-25', { color: CREAM, backgroundColor: CARD });
+  /* Dark text that ended up on a dark card. The other direction. */
+  const dark = make('span', 'text-gray-900',
+    { color: 'rgb(40, 40, 40)', backgroundColor: CARD });
+
+  env.mutate([{ addedNodes: [heading, onCard, dark] }]);
+  env.flush();
+
+  const ink = el => el.style.getPropertyValue('color');
+  const lum = c => {
+    const m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(c) ||
+              /^#(..)(..)(..)$/.exec(c);
+    if (!m) return null;
+    const n = i => c[0] === '#' ? parseInt(m[i], 16) : +m[i];
+    return (0.2126 * n(1) + 0.7152 * n(2) + 0.0722 * n(3)) / 255;
+  };
+
+  assert.ok(ink(heading), 'the welcome heading was left the same colour as the page');
+  assert.ok(lum(ink(heading)) < 0.5,
+    'a heading on a cream page needs dark ink, got ' + ink(heading));
+
+  assert.strictEqual(ink(onCard), '',
+    'pale text on a dark card is readable and must be left alone');
+
+  assert.ok(ink(dark), 'dark text on a dark card was left unreadable');
+  assert.ok(lum(ink(dark)) > 0.5,
+    'text on a dark card needs light ink, got ' + ink(dark));
+
+  /* Text the site dims on purpose. It measures 2.48:1 on this theme, which is
+   * low, and low is the point: a disabled control is supposed to look
+   * disabled. Raising the floor to the WCAG 4.5 would swallow this case and
+   * light every dimmed label back up. */
+  const dimmed = make('span', 'text-gray-400',
+    { color: 'rgb(185, 151, 126)', backgroundColor: CREAM });
+  env.mutate([{ addedNodes: [dimmed] }]);
+  env.flush();
+  assert.strictEqual(ink(dimmed), '',
+    'deliberately dimmed text is readable enough and must keep its dimming');
+});
