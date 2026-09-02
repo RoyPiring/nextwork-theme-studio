@@ -89,17 +89,17 @@ const MAX_DIFF = 120000;        /* beyond this nobody has read the whole thing *
 function redact(text) {
   let t = String(text == null ? '' : text);
 
-  /* The two directories this machine actually uses, replaced as literal
-   * strings before any pattern runs.
+  /* The order here is the whole design, and it was arrived at by getting it
+   * wrong three times.
    *
    * A pattern has to stop somewhere, and it stops at whitespace, so a path
-   * with a space in it loses only its prefix: "C:\Users\x\OneDrive - Acme
-   * Corp\clients\keys.txt" was published from the space onwards. Directory
-   * names with spaces are ordinary - OneDrive writes them - and a literal
-   * comparison does not care where the path ends. */
-  /* A quoted absolute path goes whole, wherever it ends. This runs first:
-   * errors quote the paths they complain about, and a quote is the only
-   * reliable end marker when the path contains a space. */
+   * containing a space used to lose only its prefix: a home directory under
+   * "OneDrive - Acme Corp" published everything after the space. Directory
+   * names with spaces are ordinary; OneDrive writes them.
+   *
+   * So a quoted absolute path goes first, and goes whole. Errors quote the
+   * paths they complain about, and a quote is the only reliable end marker
+   * when the path itself contains spaces. */
   t = t.replace(/(['"`])((?:[A-Za-z]:[\\/]|\\\\|\/)[^'"`\n]*)\1/g, '$1[path]$1');
 
   /* Then the two directories this machine actually uses, matched literally
