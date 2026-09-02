@@ -110,3 +110,43 @@ test('a spawn that never started blocks', () => {
   assert.strictEqual(r.verdict, 'BLOCK');
   assert.match(r.output, /could not be run/);
 });
+
+/* --- what reaches a public pull request --------------------------------- */
+
+const { redact } = require('../tools/review-pr.js');
+
+test('nothing from this machine reaches a posted review', () => {
+  /* An early run posted a reviewer crash to a public pull request, complete
+   * with a home directory and an account name in every stack frame. */
+  const os = require('node:os');
+  const home = os.homedir();
+  const user = os.userInfo().username;
+  /* Built from a char code so this file never itself contains a Windows path
+   * ending in a backslash, which is awkward to write and easy to get wrong. */
+  const bs = String.fromCharCode(92);
+
+  const out = redact([
+    'Error: something failed',
+    '    at doThing (' + home + '/project/tools/x.js:12:3)',
+    '    at Module._compile (node:internal/modules/cjs/loader:1)',
+    'See ' + ['C:', 'Users', user, 'AppData', 'Roaming', 'npm', 'x.js'].join(bs),
+    'Also /home/' + user + '/.config/secret and file:///C:/Users/' + user + '/x',
+    'VERDICT: BLOCK'
+  ].join('\n'));
+
+  assert.ok(!out.includes(home), 'the home directory survived redaction');
+  if (user.length > 2) {
+    assert.ok(!out.includes(user), 'the account name survived redaction');
+  }
+  assert.ok(!/[A-Za-z]:[\\/]/.test(out), 'a drive path survived redaction');
+  assert.ok(!out.includes('/home/'), 'a POSIX home path survived redaction');
+  assert.ok(!/^\s*at\s/m.test(out), 'a stack frame survived redaction');
+  /* The finding itself has to survive, or redaction has eaten the review. */
+  assert.match(out, /Error: something failed/);
+  assert.match(out, /VERDICT: BLOCK/);
+});
+
+test('redaction leaves an ordinary review alone', () => {
+  const review = 'tools/review-pr.js:42 — the guard is inverted.\n\nVERDICT: BLOCK';
+  assert.strictEqual(redact(review), review);
+});

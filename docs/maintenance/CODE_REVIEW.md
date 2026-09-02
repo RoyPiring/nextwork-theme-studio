@@ -86,6 +86,19 @@ Rules the script enforces, all deliberate:
 - **A review that could not be posted fails the run.** Passing while the
   findings never reached the pull request would hand over an empty record.
 
+### What gets published, and what does not
+
+The full review is printed in your terminal. The comment on the pull request
+is a short public note, capped at 1,000 characters, and everything in it is
+stripped of this machine first: home directory, account name, absolute paths
+in any shape, and stack frames, which are all path and no finding. stderr is
+never published at all.
+
+This is not tidiness. The repository is public, and an early run posted a
+reviewer's crash to it complete with a home directory and an account name in
+every stack frame. Read the full review in the terminal; the comment exists so
+the pull request carries a record that a review happened and what it decided.
+
 ## 4. Fix and re-run
 
 Address the findings, push, and run `review-pr.js` again. Each run posts fresh

@@ -69,8 +69,40 @@ const REVIEWERS = [
            'Bash,Read,Write,Edit,NotebookEdit,Glob,Grep,Task,Agent,WebFetch,WebSearch'] }
 ];
 
-const MAX_COMMENT = 60000;      /* GitHub refuses a comment body over 65,536 */
+/* A posted review is a short public note, not a transcript. The full text is
+ * printed in the terminal for whoever is running this; the comment carries
+ * enough to act on and no more. Early runs posted 34 KB of reviewer output to
+ * a public pull request, some of it stack traces naming this machine. */
+const MAX_COMMENT = 1000;
 const MAX_DIFF = 120000;        /* beyond this nobody has read the whole thing */
+
+/* Anything published gets stripped of the machine it was produced on. The
+ * reviewers are local CLIs, and a crash from one of them prints absolute paths
+ * that carry a home directory and an account name into a public repository. */
+function redact(text) {
+  let t = String(text == null ? '' : text);
+
+  const home = os.homedir();
+  if (home && home.length > 3) t = t.split(home).join('~');
+
+  let user = '';
+  try { user = (os.userInfo().username || ''); } catch (e) { /* not available */ }
+  if (user.length > 2) {
+    t = t.split(user).join('[user]');
+    t = t.split(user.toLowerCase()).join('[user]');
+  }
+
+  /* Absolute paths in any shape, whether or not they sit under the home
+   * directory: a Windows drive path, or a POSIX home path. */
+  t = t.replace(/[A-Za-z]:[\\/][^\s"'`,)\]]+/g, '[path]');
+  t = t.replace(/\/(?:home|Users)\/[^\s"'`,)\]]+/g, '[path]');
+  t = t.replace(/file:\/\/\/[^\s"'`,)\]]+/g, '[path]');
+
+  /* Stack frames are all path and no finding. */
+  t = t.split('\n').filter(l => !/^\s*at\s+\S/.test(l)).join('\n');
+
+  return t.replace(/\n{3,}/g, '\n\n').trim();
+}
 
 function sh(cmd, args, opts) {
   return execFileSync(cmd, args, Object.assign({
@@ -201,10 +233,9 @@ function verdictFromRun(run) {
    * decide a review. It is still shown, because it explains failures. */
   const stdout = String(run.stdout || '').trim();
   const stderr = String(run.stderr || '').trim();
-  const output = stderr
-    ? stdout + '\n\n<details><summary>stderr</summary>\n\n```\n' +
-      stderr.slice(0, 4000) + '\n```\n</details>'
-    : stdout;
+  /* stderr stays out of anything published. It is where the stack traces
+   * live, and a stack trace is a list of absolute paths from this machine. */
+  const output = stdout;
 
   /* Any non-zero exit blocks, printed output or not. A reviewer that crashed
    * part way through may well have printed a verdict before it fell over, and
@@ -219,6 +250,7 @@ function verdictFromRun(run) {
   return {
     ok: v.verdict === 'PASS',
     verdict: v.verdict,
+    stderr: stderr,
     output: v.reason ? output + '\n\n---\n\nCounted as a block: ' + v.reason + '.' : output
   };
 }
@@ -235,33 +267,36 @@ function runReviewer(reviewer, text) {
 
 function comment(pr, head, reviewer, result, dryRun) {
   const mark = result.verdict === 'PASS' ? '✅' : '⛔';
-  const body = [
+  const header = [
     '## ' + mark + ' ' + reviewer.name + ' review — ' + result.verdict,
     '',
-    '_Automated review from `' + reviewer.cmd + '` via `tools/review-pr.js`,',
-    'against commit `' + head.slice(0, 9) + '`. This is a review, not an',
-    "approval. Approving and merging are the maintainer's, and only the",
-    "maintainer's._",
+    '_Automated review against `' + head.slice(0, 9) + '`. Not an approval;',
+    "approving and merging are the maintainer's._",
     '',
     '---',
-    '',
-    result.output
+    ''
   ].join('\n');
+
+  /* The public note is short and carries nothing from this machine. Whoever
+   * ran this already has the whole review in front of them. */
+  const room = MAX_COMMENT - header.length - 90;
+  const clean = redact(result.output);
+  const body = header + (clean.length > room
+    ? clean.slice(0, room).replace(/\s+\S*$/, '') +
+      '\n\n_Shortened. Run `node tools/review-pr.js ' + pr + '` for the whole review._'
+    : clean);
 
   if (dryRun) {
     console.log('\n----- would post to PR #' + pr + ' -----\n' + body + '\n');
     return true;
   }
 
-  /* Through a file, not --body. A reviewer that quotes the diff back produces
-   * a body far past the command-line limit. --body-file has no such ceiling. */
-  const trimmed = body.length > MAX_COMMENT
-    ? body.slice(0, MAX_COMMENT) + '\n\n_[review truncated for length]_'
-    : body;
+  /* Through a file, not --body, so nothing depends on the command-line
+   * length limit even if the cap above is ever raised. */
   const tmp = path.join(os.tmpdir(),
     'nwt-review-' + reviewer.name.toLowerCase() + '-' + process.pid + '.md');
   try {
-    fs.writeFileSync(tmp, trimmed, 'utf8');
+    fs.writeFileSync(tmp, body, 'utf8');
     sh('gh', ['pr', 'comment', String(pr), '--body-file', tmp]);
     console.log('  posted ' + reviewer.name + ' review to PR #' + pr);
     return true;
@@ -318,8 +353,7 @@ function main() {
   }
   if (selfModified) {
     console.log('WARNING: running a modified copy of this script, by request.');
-    console.log('The reviewers below are the ones this branch defines.
-');
+    console.log('The reviewers below are the ones this branch defines.');
   }
   const pr = argv.find(a => /^\d+$/.test(a));
   if (!pr) {
@@ -373,6 +407,12 @@ function main() {
     console.log('  running ' + reviewer.name + ' (' + reviewer.cmd + ')...');
     const result = runReviewer(reviewer, text);
     console.log('  ' + reviewer.name + ': ' + result.verdict);
+    /* The whole review, here, where it is not published. The comment on the
+     * pull request is a short public note; this is the thing to act on. */
+    console.log('\n' + '-'.repeat(70));
+    console.log(result.output.trim());
+    if (result.stderr) console.log('\n[stderr]\n' + result.stderr);
+    console.log('-'.repeat(70) + '\n');
     const posted = comment(pr, head, reviewer, result, dryRun);
     results.push({ reviewer: reviewer, result: result, posted: posted });
   });
@@ -420,6 +460,6 @@ function main() {
   console.log('who reads the findings and merges if satisfied.');
 }
 
-module.exports = { parseVerdict, verdictFromRun };
+module.exports = { parseVerdict, verdictFromRun, redact };
 
 if (require.main === module) main();
