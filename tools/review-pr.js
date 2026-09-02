@@ -23,25 +23,22 @@
  * checker is broken is not a gate.
  *
  * ---------------------------------------------------------------------------
- * A warning about running this on someone else's pull request
+ * Why this refuses pull requests from forks
  *
- * The title, description and diff are written by whoever opened the pull
- * request, and they are fed to a coding agent running on this machine. That
- * agent can read files and run commands. A hostile pull request can therefore
- * try to talk the reviewer into reading something private and printing it into
- * a comment, which this script would then post publicly under the maintainer's
- * account.
+ * The title, description and diff become the prompt for an agent running on
+ * this machine, whose reply is then posted publicly using the maintainer's
+ * credentials. Text written by someone else therefore gets to talk to an agent
+ * that is inside the repository.
  *
- * Three things reduce that, none of which eliminates it:
+ * Fencing that text, labelling it as data, and switching the agents' tools off
+ * all narrow the opening. None of them closes it, because a prompt is not a
+ * security boundary and a tool blocklist is only as complete as the list.
  *
- *   - Reviewers run read-only where their CLI supports it.
- *   - Untrusted text is fenced and labelled as data, with an instruction not
- *     to act on anything inside it.
- *   - The prompt forbids reading outside the diff or running commands.
- *
- * For a pull request from outside the project, review it by reading it, or run
- * this in a throwaway container with no credentials. This is a real limit of
- * the design and not a theoretical one.
+ * So this does not try. A pull request from a fork is refused outright. Branch
+ * pull requests come from people who already have push access, where the agent
+ * is reading text from someone who could commit directly anyway. An outside
+ * pull request gets read by a person, or reviewed in a container with no
+ * credentials.
  * ---------------------------------------------------------------------------
  */
 'use strict';
@@ -68,7 +65,7 @@ const REVIEWERS = [
   { name: 'Codex',  cmd: 'codex',  args: ['exec', '-s', 'read-only', '-'] },
   { name: 'Claude', cmd: 'claude',
     args: ['-p', '--permission-mode', 'plan', '--disallowed-tools',
-           'Bash,Read,Write,Edit,WebFetch,WebSearch'] }
+           'Bash,Read,Write,Edit,NotebookEdit,Glob,Grep,Task,Agent,WebFetch,WebSearch'] }
 ];
 
 const MAX_COMMENT = 60000;      /* GitHub refuses a comment body over 65,536 */
@@ -82,12 +79,17 @@ function sh(cmd, args, opts) {
 
 /* ------------------------------------------------------------------ verdict */
 
-/* The verdict is the last non-blank line and nothing else.
+/* Exactly one line whose whole content is the verdict.
  *
- * Searching the whole reply for the first match is wrong in a way that fails
- * open: a review that discusses "VERDICT: PASS" while arguing for a block
- * would be recorded as a pass. Two verdicts anywhere is also a refusal rather
- * than a guess about which was meant. */
+ * Two earlier versions were wrong in opposite directions. Taking the first
+ * match anywhere failed open: a review arguing for a block while quoting the
+ * words "VERDICT: PASS" was recorded as a pass. Demanding the last line then
+ * failed closed, because these CLIs print trailers after their answer, so
+ * every clean review came back blocked.
+ *
+ * Requiring exactly one anchored line does neither. A quoted verdict is
+ * either mid-sentence, and not anchored, or it is a second verdict line, and
+ * two is an ambiguity to refuse rather than a coin to toss. */
 function parseVerdict(output) {
   const text = String(output == null ? '' : output);
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -284,7 +286,8 @@ function main() {
 
   let meta;
   try {
-    meta = JSON.parse(sh('gh', ['pr', 'view', pr, '--json', 'title,body,state,headRefOid']));
+    meta = JSON.parse(sh('gh', ['pr', 'view', pr, '--json',
+      'title,body,state,headRefOid,isCrossRepository,headRepositoryOwner']));
   } catch (e) {
     console.error('Could not read PR #' + pr + '. Is `gh` signed in?');
     process.exit(2);
@@ -294,6 +297,22 @@ function main() {
     process.exit(2);
   }
   const head = meta.headRefOid;
+
+  /* A pull request from a fork is written by someone without push access,
+   * and its text becomes the prompt for an agent running here under the
+   * maintainer's credentials. Fencing the text and switching off tools
+   * narrows that; neither closes it, because a prompt is not a boundary.
+   * So this refuses rather than pretending. Read an outside pull request
+   * yourself, or run this in a container with no credentials. */
+  if (meta.isCrossRepository) {
+    console.error('PR #' + pr + ' comes from a fork (' +
+      ((meta.headRepositoryOwner && meta.headRepositoryOwner.login) || 'unknown') + ').');
+    console.error('This gate does not review pull requests from outside the');
+    console.error('repository: their text becomes the prompt for an agent');
+    console.error('running here. Read it yourself, or review it in a');
+    console.error('throwaway container. See docs/maintenance/CODE_REVIEW.md.');
+    process.exit(2);
+  }
 
   let diff = sh('gh', ['pr', 'diff', pr]);
   const truncated = diff.length > MAX_DIFF;
