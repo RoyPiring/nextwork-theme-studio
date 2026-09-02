@@ -105,6 +105,11 @@ function redact(text) {
   t = t.replace(/file:\/\/\/[^\s"'`,)\]]+/g, '[path]');
   t = t.replace(/(?<![A-Za-z])[A-Za-z]:[\\/][^\s"'`,)\]]+/g, '[path]');
   t = t.replace(/\/(?:home|Users)\/[^\s"'`,)\]]+/g, '[path]');
+  /* The scratch directory the reviewers run in. A reviewer that names its own
+   * working directory in an error would otherwise post it verbatim. */
+  const tmp = os.tmpdir();
+  if (tmp && tmp.length > 3) t = t.split(tmp).join('[path]');
+  t = t.replace(/\/var\/folders\/[^\s"'`,)\]]+/g, '[path]');
 
   /* Stack frames are all path and no finding. Matched narrowly: a frame is
    * "at name (somewhere)" or "at somewhere:12:3", not any line that happens
@@ -115,8 +120,10 @@ function redact(text) {
   t = t.split('\n').filter(function (l) {
     return !/^\s*at\s+\S.*\($/.test(l) &&
            !/^\s*at\s+\S+\s*\([^)]*\)\s*$/.test(l) &&
-           !/^\s*at\s+\S+:\d+:\d+\s*$/.test(l) &&
-           !/^\s*at\s+\S*\[path\]\S*\s*$/.test(l);
+           /* Indented, because a real frame always is. Unindented, the same
+            * shape is a reviewer citing a location: "at src/theme.js:12:5". */
+           !/^\s+at\s+\S+:\d+:\d+\s*$/.test(l) &&
+           !/^\s+at\s+\S*\[path\]\S*\s*$/.test(l);
   }).join('\n');
 
   return t.replace(/\n{3,}/g, '\n\n').trim();
@@ -239,7 +246,16 @@ function prompt(pr, head, title, body, diff, truncated, marker) {
  * without a shell - and a shell then re-splits the arguments, so anything
  * containing a space has to be quoted back together. */
 function shellArg(a) {
-  return /[\s"&|<>^()]/.test(a) ? '"' + a.replace(/"/g, '\\"') + '"' : a;
+  /* cmd.exe does not honour a backslash-escaped quote, and expands %VAR%.
+   * No reviewer entry contains either today, so this refuses rather than
+   * producing a command line that means something other than it reads.
+   * Swapping in a reviewer whose arguments need one is the change that would
+   * otherwise trip it, and that is the one place this is easy to get wrong. */
+  if (/["%]/.test(a)) {
+    throw new Error('a reviewer argument contains " or %, which cannot be ' +
+                    'quoted safely for cmd.exe: ' + a);
+  }
+  return /[\s&|<>^()]/.test(a) ? '"' + a + '"' : a;
 }
 
 /* Decide a verdict from what the process did. Separated from spawning so it
@@ -368,6 +384,8 @@ function comment(pr, head, reviewer, result, dryRun) {
  * The check compares this file against the copy on origin/main. The escape
  * hatch exists for exactly one case, the pull request that changes this file,
  * and says plainly in the output that it was used. */
+let selfCheckError = null;
+
 function selfIsTrusted() {
   try {
     const here = fs.readFileSync(__filename, 'utf8');
@@ -378,7 +396,12 @@ function selfIsTrusted() {
     const normalise = t => t.split('\r\n').join('\n');
     return normalise(here) === normalise(onMain);
   } catch (e) {
-    return false;    /* cannot tell, so not trusted */
+    /* Could not read one side. Not trusted, because not knowing is not the
+     * same as knowing it is fine - but the caller says which of the two it
+     * was, since "the branch supplied its own reviewer" is the wrong thing
+     * to tell someone whose clone simply has no origin/main. */
+    selfCheckError = String(e.message || e).split('\n')[0];
+    return false;
   }
 }
 
@@ -388,12 +411,21 @@ function main() {
   const selfModified = argv.includes('--reviewing-this-script');
 
   if (!selfIsTrusted() && !selfModified) {
-    console.error('This copy of review-pr.js differs from the one on origin/main.');
-    console.error('');
-    console.error('Running it would let the branch under review supply its own');
-    console.error('reviewer. Run it from a clean checkout of main instead - the');
-    console.error('diff is fetched from GitHub, so the branch does not need to');
-    console.error('be checked out.');
+    if (selfCheckError) {
+      console.error('Could not compare this script against origin/main:');
+      console.error('  ' + selfCheckError);
+      console.error('');
+      console.error('That is usually a clone with no origin/main ref rather');
+      console.error('than anything sinister. Run `git fetch origin main` and');
+      console.error('try again.');
+    } else {
+      console.error('This copy of review-pr.js differs from the one on origin/main.');
+      console.error('');
+      console.error('Running it would let the branch under review supply its own');
+      console.error('reviewer. Run it from a clean checkout of main instead - the');
+      console.error('diff is fetched from GitHub, so the branch does not need to');
+      console.error('be checked out.');
+    }
     console.error('');
     console.error('If this pull request is the one changing review-pr.js, pass');
     console.error('--reviewing-this-script, and read the diff yourself first.');

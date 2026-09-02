@@ -205,3 +205,26 @@ test('real stack frames are still dropped', () => {
   assert.ok(!out.includes('Module._compile'), 'a frame survived: ' + out);
   assert.match(out, /Something failed/);
 });
+
+test('a cited location is kept, an indented stack frame is dropped', () => {
+  /* "at src/theme.js:12:5" is the shape the prompt asks reviewers to use when
+   * citing a line. Indented, the same shape is a stack frame. Indentation is
+   * what separates them, so it is what the filter uses. */
+  const out = redact([
+    'at src/theme.js:12:5 the ratio is computed before the mix',
+    'at tools/audit.js:88:1',
+    '    at doThing (/home/someone/app/x.js:12:3)',
+    '    at run (/home/someone/app/y.js:4:1)',
+    'VERDICT: BLOCK'
+  ].join('\n'));
+  assert.match(out, /the ratio is computed before the mix/);
+  assert.match(out, /tools\/audit\.js:88:1/, 'an unindented citation was dropped');
+  assert.ok(!out.includes('doThing'), 'an indented frame survived');
+  assert.ok(!out.includes('run ('), 'an indented frame survived');
+});
+
+test('the directory the reviewers run in is not published', () => {
+  const os = require('node:os');
+  const out = redact('failed to start in ' + os.tmpdir() + '/nwt-review-ab12cd');
+  assert.ok(!out.includes(os.tmpdir()), 'the scratch directory leaked: ' + out);
+});

@@ -62,14 +62,23 @@ Gemini held the second slot until Google withdrew the free tier for
 individuals, at which point the CLI could no longer authenticate. It blocked
 rather than passing, which is the behaviour below working correctly.
 
-### Reviewing a pull request from outside the project
+### Two refusals, and what they mean
 
-The title, description and diff are written by whoever opened the pull request,
-and they are fed to an agent running on your machine whose reply is then posted
-publicly under your account. Reviewers run with their tools switched off and
-the untrusted text is fenced and labelled, but a prompt is not a security
-boundary. For a pull request from someone outside the project, read it
-yourself, or run this in a throwaway container with no credentials.
+The script exits without reviewing anything in two cases. Both print why.
+
+**A pull request from a fork.** Refused outright. Its text would become the
+prompt for an agent running on your machine, whose reply is posted publicly
+under your account. Reviewers run in an empty directory with their tools off
+and the untrusted text fenced, but a prompt is not a security boundary. Read an
+outside pull request yourself, or review it on a throwaway machine with no
+credentials attached. There is no flag to force it.
+
+**This script differs from the copy on `origin/main`.** Refused, because
+running it would let the branch supply its own reviewer. Run it from a clean
+`main`. The one pull request that legitimately changes this file passes
+`--reviewing-this-script`; the run says so in its output. If the message says
+it could not compare rather than that they differ, the clone has no
+`origin/main` ref: `git fetch origin main` and try again.
 
 Rules the script enforces, all deliberate:
 
