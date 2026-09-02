@@ -99,7 +99,15 @@ function redact(text) {
    * every review came out as "http[path]". */
   t = t.replace(/file:\/\/\/[^\s"'`,)\]]+/g, '[path]');
   t = t.replace(/(?<![A-Za-z])[A-Za-z]:[\\/][^\s"'`,)\]]+/g, '[path]');
-  t = t.replace(/\/(?:home|Users)\/[^\s"'`,)\]]+/g, '[path]');
+  /* Any POSIX absolute path of two or more segments, not just the home ones.
+   * Naming the directories that matter is a denylist, and the ones that got
+   * named were the ones already thought of: a module resolution error quoting
+   * /opt/..., or a container reading /root/.config/..., went out verbatim.
+   * A reviewer citing a file in this project writes "tools/x.js" without a
+   * leading slash, so this does not eat citations. */
+  t = t.replace(/(?<![\w.:\/])\/[A-Za-z0-9_.-]+\/[^\s"'`,)\]]+/g, '[path]');
+  /* Windows network shares, which no rule above matches. */
+  t = t.replace(/\\\\[A-Za-z0-9_.-]+\\[^\s"'`,)\]]+/g, '[path]');
   /* The scratch directory the reviewers run in. A reviewer that names its own
    * working directory in an error would otherwise post it verbatim. */
   const tmp = os.tmpdir();

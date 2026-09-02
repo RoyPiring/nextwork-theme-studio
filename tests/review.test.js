@@ -252,3 +252,31 @@ test('a path containing the account name is removed whole, tail and all', () => 
     if (user.length > 2) assert.ok(!out.includes(user), 'the account name leaked: ' + out);
   });
 });
+
+test('any absolute path is removed, not just the ones already thought of', () => {
+  /* Naming home directories was a denylist. A module resolution error quoting
+   * /opt/..., or a container reading /root/.config/..., went out verbatim. */
+  const B = String.fromCharCode(92);
+  [
+    ["Cannot find module '/opt/homebrew/lib/node_modules/x/cli.js'", 'homebrew'],
+    ["ENOENT, open '/root/.config/codex/auth.json'", 'auth.json'],
+    ['failed on ' + B + B + 'server' + B + 'share' + B + 'secret.txt', 'secret.txt'],
+    ['read /etc/passwd today', 'passwd']
+  ].forEach(([input, secret]) => {
+    const out = redact(input);
+    assert.ok(!out.includes(secret), 'a path leaked: ' + out);
+    assert.match(out, /\[path\]/);
+  });
+});
+
+test('links and in-project citations survive the broad path rule', () => {
+  /* The broad rule matched from the second slash of "https://", so the first
+   * version of it turned every link into "https:[path]". */
+  [
+    'see https://github.com/owner/repo/issues/12 ok',
+    'and http://example.com/a/b too',
+    'tools/review-pr.js:42 the guard is inverted',
+    'see docs/maintenance/CODE_REVIEW.md for the rule'
+  ].forEach(input => assert.strictEqual(redact(input), input,
+    'redaction changed something it should not have: ' + input));
+});
