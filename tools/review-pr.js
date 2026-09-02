@@ -214,7 +214,7 @@ function prompt(pr, head, title, body, diff, truncated) {
     '',
     diff,
     '===== UNTRUSTED PULL REQUEST CONTENT ENDS ====='
-  ].filter(l => l !== '').join('\n');
+  ].filter(l => l !== null).join('\n');
 }
 
 /* ------------------------------------------------------------------ running */
