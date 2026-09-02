@@ -115,8 +115,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
    * by ellipsising every label to "Th...". Stacked, the label gets the whole
    * width of its tile and the row needs about a third less. */
   flex: 1 1 0; min-width: 0;
-  display: flex; flex-direction: column; align-items: flex-start;
-  gap: 7px; padding: 8px 10px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 7px; padding: 8px 10px; text-align: center;
   background: var(--ui-surface); border: 1px solid var(--ui-border);
   border-radius: 9px; cursor: pointer;
   transition: border-color 120ms ease;

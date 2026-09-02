@@ -8,7 +8,7 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
-## [2.8.2] - 2026-09-02
+## [2.8.3] - 2026-09-02
 
 ### Changed
 
@@ -18,8 +18,9 @@ record why several non-obvious parts of the code look the way they do.
   dark green and black, so a flood fill inward from the border that may only
   cross pale unsaturated pixels stops exactly on his outline.
 - The three toggles at the top of the popup stack their label above their
-  switch. Side by side they did not fit, so the Focus switch was cut off at
-  the right edge; stacked, each label gets the full width of its tile.
+  switch, both centred in the tile. Side by side they did not fit, so the
+  Focus switch was cut off at the right edge; stacked, each label gets the
+  full width of its tile.
 - "Surprise me" reads as a quiet control next to the section label instead of
   a second bordered button competing with Start and Reset.
 
