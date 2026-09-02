@@ -64,7 +64,8 @@ const ROOT = path.join(__dirname, '..');
 const REVIEWERS = [
   { name: 'Codex',  cmd: 'codex',  args: ['exec', '-s', 'read-only', '-'] },
   { name: 'Claude', cmd: 'claude',
-    args: ['-p', '--permission-mode', 'plan', '--disallowed-tools',
+    args: ['-p', '--restricted', '--strict-mcp-config',
+           '--permission-mode', 'plan', '--disallowed-tools',
            'Bash,Read,Write,Edit,NotebookEdit,Glob,Grep,Task,Agent,WebFetch,WebSearch'] }
 ];
 
@@ -275,9 +276,51 @@ function comment(pr, head, reviewer, result, dryRun) {
 
 /* --------------------------------------------------------------------- main */
 
+/* This script is the reviewer. If it is run from the branch under review,
+ * the pull request supplies its own reviewer, and can rewrite it to skip the
+ * reviewers, post a fabricated pass, or do anything else with the credentials
+ * to hand. The diff comes from `gh pr diff`, over the network, so there is no
+ * reason to have the branch checked out at all: run this from a clean main.
+ *
+ * The check compares this file against the copy on origin/main. The escape
+ * hatch exists for exactly one case, the pull request that changes this file,
+ * and says plainly in the output that it was used. */
+function selfIsTrusted() {
+  try {
+    const here = fs.readFileSync(__filename, 'utf8');
+    const onMain = sh('git', ['show', 'origin/main:tools/review-pr.js']);
+    /* Split and rejoin rather than compare raw: one side may have come
+     * through git with different line endings, which is not a difference in
+     * the code. */
+    const normalise = t => t.split('\r\n').join('\n');
+    return normalise(here) === normalise(onMain);
+  } catch (e) {
+    return false;    /* cannot tell, so not trusted */
+  }
+}
+
 function main() {
   const argv = process.argv.slice(2);
   const dryRun = argv.includes('--dry-run');
+  const selfModified = argv.includes('--reviewing-this-script');
+
+  if (!selfIsTrusted() && !selfModified) {
+    console.error('This copy of review-pr.js differs from the one on origin/main.');
+    console.error('');
+    console.error('Running it would let the branch under review supply its own');
+    console.error('reviewer. Run it from a clean checkout of main instead - the');
+    console.error('diff is fetched from GitHub, so the branch does not need to');
+    console.error('be checked out.');
+    console.error('');
+    console.error('If this pull request is the one changing review-pr.js, pass');
+    console.error('--reviewing-this-script, and read the diff yourself first.');
+    process.exit(2);
+  }
+  if (selfModified) {
+    console.log('WARNING: running a modified copy of this script, by request.');
+    console.log('The reviewers below are the ones this branch defines.
+');
+  }
   const pr = argv.find(a => /^\d+$/.test(a));
   if (!pr) {
     console.error('usage: node tools/review-pr.js <pr-number> [--dry-run]');
