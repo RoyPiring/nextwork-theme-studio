@@ -112,6 +112,18 @@ from the root.
 
 ---
 
+## Reproducing the split-view bleed
+
+`node tools/split-repro.js` builds the smallest layout that produces it: a
+fixed shell holding a pane, over a page with content in it. The pane is
+see-through and the page behind is legible through it. Run it again with
+`--fixed` and the same check the content script runs is applied, so the pane
+goes solid.
+
+Worth keeping because the cause is not obvious from the symptom. The page
+ground is deliberately transparent so the scenery shows through it, and CSS can
+only decide what counts as the ground by class name.
+
 ## Later, and only if they start costing something
 
 - `buildCSS` is about 620 lines doing a dozen jobs. The seams are already marked

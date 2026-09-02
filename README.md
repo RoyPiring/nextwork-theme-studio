@@ -181,6 +181,7 @@ node tools/build.js           # build a folder for each browser
 node tools/export-scenes.js   # save the drifting layers as SVG files
 node tools/gallery.js         # rebuild the picture at the top of this README
 node tools/contact-sheet.js   # view all 18 scenes on one page
+node tools/split-repro.js     # reproduce the split-view bleed-through
 python tools/make-wallpaper.py --all art   # rebuild every wallpaper
 ```
 
