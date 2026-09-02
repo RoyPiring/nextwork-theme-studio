@@ -70,3 +70,34 @@ test('the reason a block happened is always reported', () => {
   /* A real pass carries no reason, because there is nothing to explain. */
   assert.strictEqual(parseVerdict('ok\n\nVERDICT: PASS').reason, null);
 });
+
+/* --- how the process exited, as opposed to what it said ------------------ */
+
+const { verdictFromRun } = require('../tools/review-pr.js');
+
+test('a clean exit with a clean verdict passes', () => {
+  assert.strictEqual(
+    verdictFromRun({ status: 0, stdout: 'Looks fine.\n\nVERDICT: PASS', stderr: '' }).verdict,
+    'PASS');
+});
+
+test('a non-zero exit blocks even when a verdict was printed', () => {
+  /* A reviewer that crashes part way through may have printed a verdict
+   * before falling over. That verdict describes a review that never
+   * finished, so the exit code decides, not the text. */
+  const r = verdictFromRun({ status: 1, stdout: 'VERDICT: PASS', stderr: 'segfault' });
+  assert.strictEqual(r.verdict, 'BLOCK');
+  assert.match(r.output, /exited with code 1/);
+});
+
+test('a non-zero exit with nothing printed blocks and says so', () => {
+  const r = verdictFromRun({ status: 127, stdout: '', stderr: '' });
+  assert.strictEqual(r.verdict, 'BLOCK');
+  assert.match(r.output, /no output/);
+});
+
+test('a spawn that never started blocks', () => {
+  const r = verdictFromRun({ error: new Error('spawn codex ENOENT') });
+  assert.strictEqual(r.verdict, 'BLOCK');
+  assert.match(r.output, /could not be run/);
+});
