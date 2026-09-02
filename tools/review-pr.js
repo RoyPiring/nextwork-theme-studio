@@ -194,9 +194,12 @@ function prompt(pr, head, title, body, diff, truncated) {
     'rather than inventing work. Do not comment on style the surrounding code',
     'already settles.',
     '',
+    /* null, not '': the filter at the end drops the placeholder when the diff
+     * was not cut. It used to drop every '' instead, which is every blank
+     * line in the prompt, so reviewers got one unseparated block of text. */
     truncated
       ? 'NOTE: this diff was too large to include in full and has been cut. Say so, and block.'
-      : '',
+      : null,
     'Your reply must END with one line, exactly, and nothing after it:',
     '',
     '  VERDICT: PASS',
