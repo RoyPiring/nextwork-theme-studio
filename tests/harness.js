@@ -57,6 +57,14 @@ class FakeElement {
     this._seq = ++nodeSeq;
     this.listeners = {};
   }
+  /* className and classList are two views of the same thing in a browser.
+   * Keeping them as separate fields here meant an element built with
+   * className was invisible to a .class selector, which is a bug in the
+   * harness that would read as a bug in the code under test. */
+  get className() { return [...this.classList.set].join(' '); }
+  set className(v) {
+    this.classList.set = new Set(String(v == null ? '' : v).split(/\s+/).filter(Boolean));
+  }
   /* The real DOM has both; code walking ancestors uses parentElement. */
   get parentElement() {
     return this.parentNode && this.parentNode.nodeType === 1 ? this.parentNode : null;
@@ -82,8 +90,14 @@ class FakeElement {
     while (n.parentNode) n = n.parentNode;
     return n.ownerDocument || n;
   }
-  setAttribute(k, v) { this.attributes[k] = String(v); }
-  getAttribute(k) { return k in this.attributes ? this.attributes[k] : null; }
+  setAttribute(k, v) {
+    if (k === 'class') { this.className = v; return; }
+    this.attributes[k] = String(v);
+  }
+  getAttribute(k) {
+    if (k === 'class') return this.className || null;
+    return k in this.attributes ? this.attributes[k] : null;
+  }
   removeAttribute(k) { delete this.attributes[k]; }
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
   removeEventListener() {}
@@ -124,6 +138,7 @@ class FakeElement {
   /* Tag names, .classes and [attributes], in a comma list. Enough for what the
    * content script asks for, and it throws on anything else rather than
    * quietly returning nothing. */
+  querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
   querySelectorAll(sel) {
     const all = [];
     (function walk(node) {

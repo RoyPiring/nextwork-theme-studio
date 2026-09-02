@@ -105,7 +105,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 /* ---- focus panel ---- */
 .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
   color: var(--ui-text-muted); font-weight: 600; }
-.focus { gap: 8px; }
+.focus { gap: 10px; }
+/* Two groups, because the panel has two jobs and the tiles for them looked
+ * identical: picking a session length and pressing Start sat in the same flat
+ * run of buttons as the settings for where the pill is drawn. Boxing each one
+ * and naming it makes which-does-what readable at a glance. */
+.focus-group {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 9px 10px 10px; border: 1px solid var(--ui-border);
+  border-radius: 10px; background: var(--ui-surface-alt);
+}
+.group-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ui-text-muted); font-weight: 600;
+}
+.focus-group .field { gap: 4px; }
 .focus-clock {
   font: 700 30px/1 ui-monospace, "Cascadia Code", Consolas, monospace;
   font-variant-numeric: tabular-nums; letter-spacing: -0.02em;

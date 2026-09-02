@@ -505,3 +505,46 @@ test('oklab and oklch are read, since the canvas hands them back unchanged', () 
     'the alpha has to survive, or a faint colour reads as solid');
   assert.strictEqual(fromOklab('rgb(1, 2, 3)'), null, 'anything else is left to the canvas');
 });
+
+test('the timer shows while building a project, not while browsing', () => {
+  /* A project being built is /projects/<id>. The gate used to be an unanchored
+   * /projects?/, which also matched the index and anything with "project"
+   * further along the path, so the pill turned up on pages that are for
+   * looking around rather than working. */
+  const focus = { enabled: true };
+  const shows = p => {
+    const env = loadContentScript({ pathname: p,
+      settings: { enabled: true, themeId: 'concrete', focus: focus } });
+    env.flush();
+    return !!env.doc.getElementById('nwt-focus');
+  };
+
+  assert.ok(shows('/projects/291fe0ff-09fa-42b0-9be4-4d38914f2c14'),
+    'a project build page is the whole point');
+  assert.ok(!shows('/'), 'the home page is not a project');
+  assert.ok(!shows('/projects'), 'the index is browsing, not building');
+  assert.ok(!shows('/projects/'), 'still the index with a trailing slash');
+  assert.ok(!shows('/explore/learnlists/all'), 'the library is browsing');
+  assert.ok(!shows('/portfolio/refreshed_maroon_timid_jujube'), 'a portfolio is not a project');
+  assert.ok(!shows('/blog/my-projects/recap'),
+    'the word appearing further along a path does not make it a project page');
+});
+
+test('the timer is drawn at the size that was asked for, within reason', () => {
+  const at = scale => {
+    const env = loadContentScript({ pathname: '/projects/abc',
+      settings: { enabled: true, themeId: 'concrete',
+                  focus: { enabled: true, hudScale: scale } } });
+    env.flush();
+    const el = env.doc.getElementById('nwt-focus');
+    return el && el.style.getPropertyValue('--nwt-hud-scale');
+  };
+
+  assert.strictEqual(at(1.6), '1.6', 'the chosen size should reach the pill');
+  assert.strictEqual(at(undefined), '1', 'no setting means the size it always was');
+  /* This arrives from storage, so it is not to be trusted. A pill at fifty
+   * times its size would cover the page with no obvious way back. */
+  assert.strictEqual(at(50), '3', 'an absurd size is clamped');
+  assert.strictEqual(at(0), '1', 'zero would make it invisible');
+  assert.strictEqual(at('nonsense'), '1', 'so would a value that is not a number');
+});

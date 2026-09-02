@@ -183,6 +183,8 @@
     $('focus-toggle').textContent = f.running ? 'Pause' : (NWT.focusElapsed(f) ? 'Resume' : 'Start');
     $('focusEnabled').checked = !!f.enabled;
     $('focus-locked').checked = !!f.locked;
+    $('focus-size').value = String(Math.round((f.hudScale || 1) * 100));
+    $('focus-size-out').textContent = $('focus-size').value + '%';
 
     [...$('focus-targets').querySelectorAll('button')].forEach(function (b) {
       b.setAttribute('aria-pressed', String(Number(b.dataset.min) === f.targetMin));
@@ -217,6 +219,17 @@
       } else {
         saveFocus({ running: true, startedAt: Date.now(), enabled: true });
       }
+    });
+
+    /* Same reason the tuning dials are held back: a range input fires on every
+     * pixel of travel, and each write reaches every open tab. The readout
+     * updates on every event so the drag still feels live. */
+    const writeSize = NWT.debounce(function () {
+      saveFocus({ hudScale: Number($('focus-size').value) / 100 });
+    }, 140);
+    $('focus-size').addEventListener('input', function () {
+      $('focus-size-out').textContent = $('focus-size').value + '%';
+      writeSize();
     });
 
     $('focus-locked').addEventListener('change', function () {

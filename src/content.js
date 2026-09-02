@@ -315,7 +315,20 @@
    * same-origin subframe used to draw its own. */
   function onProjectPage() {
     if (!TOP_FRAME) return false;
-    return /\/projects?\//.test(location.pathname);
+    /* A project being built is /projects/<id>. The pattern used to be an
+     * unanchored /projects?/, which also matched the index and anything with
+     * "project" further along the path, so the timer turned up on pages that
+     * are for browsing rather than building. Requiring a segment after it is
+     * what separates the two. */
+    return /^\/projects?\/[^/]+/.test(location.pathname);
+  }
+
+  /* Clamped rather than trusted: this comes from storage, and a pill drawn at
+   * fifty times its size would cover the page with no obvious way back. */
+  function hudScale(focus) {
+    const n = Number(focus.hudScale);
+    if (!isFinite(n) || n <= 0) return 1;
+    return Math.max(0.6, Math.min(3, n));
   }
 
   function renderHud(settings) {
@@ -323,6 +336,7 @@
     if (!settings.enabled || !focus.enabled || !onProjectPage()) { removeHud(); return; }
     paintHud(focus);
     const el = hudEl();
+    el.style.setProperty('--nwt-hud-scale', String(hudScale(focus)));
     if (focus.locked) el.setAttribute('data-locked', '1');
     else el.removeAttribute('data-locked');
     el.title = focus.locked ? 'Focus timer (locked)' : 'Drag to move; double-click to reset';

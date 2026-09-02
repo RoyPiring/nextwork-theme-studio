@@ -378,6 +378,9 @@
        * means "wherever the stylesheet puts it". */
       hudX: null,
       hudY: null,
+      /* How big the on-page pill is drawn, as a multiplier on the sizes the
+       * stylesheet works out. 1 is the size it has always been. */
+      hudScale: 1,
       locked: false        /* locked: cannot be dragged, and clicks pass through */
     },
     options: {
@@ -1169,11 +1172,18 @@
     L.push('#nwt-focus { position: fixed; top: 76px; right: 24px;' +
            ' box-sizing: border-box; z-index: 2147483000;' +
            ' display: flex; align-items: baseline; justify-content: flex-start;' +
-           ' gap: clamp(7px, 0.7vw, 12px);' +
-           ' padding: clamp(6px, 0.6vw, 10px) clamp(10px, 1vw, 16px);' +
-           ' border-radius: clamp(9px, 0.8vw, 12px); touch-action: none;' +
+           ' gap: calc(clamp(7px, 0.7vw, 12px) * var(--nwt-hud-scale, 1));' +
+           ' padding: calc(clamp(6px, 0.6vw, 10px) * var(--nwt-hud-scale, 1))' +
+           ' calc(clamp(10px, 1vw, 16px) * var(--nwt-hud-scale, 1));' +
+           ' min-width: calc(92px * var(--nwt-hud-scale, 1));' +
+           ' border-radius: calc(clamp(9px, 0.8vw, 12px) * var(--nwt-hud-scale, 1));' +
+           ' touch-action: none;' +
            ' pointer-events: auto; cursor: grab; user-select: none;' +
-           ' font: 700 clamp(14px, 1.15vw, 21px)/1 ui-monospace, "Cascadia Code", Consolas, monospace;' +
+           /* Written out rather than as the font shorthand, because the size
+            * is a calc() and the shorthand is fussier to read at a glance. */
+           ' font-family: ui-monospace, "Cascadia Code", Consolas, monospace;' +
+           ' font-weight: 700; line-height: 1;' +
+           ' font-size: calc(clamp(14px, 1.15vw, 21px) * var(--nwt-hud-scale, 1));' +
            ' font-variant-numeric: tabular-nums; letter-spacing: -0.01em;' +
            ' background: ' + rgba(p.surfaceAlt, 0.92) + '; color: var(--nwt-text);' +
            ' border: 1px solid var(--nwt-border);' +
@@ -1185,7 +1195,8 @@
     L.push('#nwt-focus[data-locked="1"] { cursor: default; pointer-events: none; }');
     L.push('#nwt-focus[data-dragging="1"] { cursor: grabbing; opacity: .9;' +
            ' box-shadow: 0 10px 34px rgba(0,0,0,.42); }');
-    L.push('#nwt-focus .nwt-focus-label { font-size: clamp(8px, 0.55vw, 10px);' +
+    L.push('#nwt-focus .nwt-focus-label {' +
+           ' font-size: calc(clamp(8px, 0.55vw, 10px) * var(--nwt-hud-scale, 1));' +
            ' font-weight: 600; letter-spacing: .1em; text-transform: uppercase;' +
            ' color: var(--nwt-text-muted); }');
     /* No right rail to align with on a narrow window, so tuck it back down. */

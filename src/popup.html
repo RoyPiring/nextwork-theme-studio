@@ -67,22 +67,35 @@
       <span class="tiny muted" id="focus-state">paused</span>
     </div>
 
-    <div class="focus-clock" id="focus-clock">25:00</div>
+    <div class="focus-group">
+      <span class="group-label">Session</span>
+      <div class="focus-clock" id="focus-clock">25:00</div>
 
-    <div class="chips" id="focus-targets" role="group" aria-label="Session length">
-      <button type="button" data-min="15">15m</button>
-      <button type="button" data-min="25">25m</button>
-      <button type="button" data-min="45">45m</button>
-      <button type="button" data-min="60">60m</button>
-      <button type="button" data-min="0" title="Count up with no end">Open</button>
+      <div class="chips" id="focus-targets" role="group" aria-label="Session length">
+        <button type="button" data-min="15">15m</button>
+        <button type="button" data-min="25">25m</button>
+        <button type="button" data-min="45">45m</button>
+        <button type="button" data-min="60">60m</button>
+        <button type="button" data-min="0" title="Count up with no end">Open</button>
+      </div>
+
+      <div class="row" style="gap:8px">
+        <button class="primary grow" id="focus-toggle">Start</button>
+        <button id="focus-reset" title="Reset the timer">Reset</button>
+      </div>
     </div>
 
-    <div class="row" style="gap:8px">
-      <button class="primary grow" id="focus-toggle">Start</button>
-      <button id="focus-reset" title="Reset the timer">Reset</button>
+    <div class="focus-group">
+      <span class="group-label">On the page</span>
+      <div class="field">
+        <div class="row between">
+          <label for="focus-size">Timer size</label><output id="focus-size-out"></output>
+        </div>
+        <input type="range" id="focus-size" min="80" max="220" step="10">
+      </div>
+      <label class="check tiny"><input type="checkbox" id="focus-locked"> Lock in place</label>
+      <p class="tiny muted" id="focus-note">Shows while you are building a project. Drag to move, double-click to reset.</p>
     </div>
-    <label class="check tiny"><input type="checkbox" id="focus-locked"> Lock in place</label>
-    <p class="tiny muted" id="focus-note">Project pages only. Drag to move, double-click to reset.</p>
   </section>
 
   <footer>

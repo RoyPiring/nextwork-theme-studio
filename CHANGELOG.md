@@ -8,6 +8,27 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.7.0] - 2026-09-02
+
+### Added
+
+- The focus timer can be resized. The pill was fixed at a size that read as
+  small on a large screen, so there is now a size control in the popup, from
+  80% to 220%. Type, padding, gap and corner all scale together, so it grows
+  in width as well as height rather than just getting taller text.
+
+### Changed
+
+- The focus panel is split into two named groups. Picking a session length and
+  pressing Start sat in the same flat run of tiles as the settings for how the
+  pill is drawn, so nothing said which tile did what. "Session" holds the
+  clock, the lengths and the start and reset controls; "On the page" holds the
+  size, the lock and the note about where it appears.
+- The timer now appears only while a project is actually being built. The page
+  test was an unanchored `/projects?/`, which also matched the project index
+  and any path with "project" further along it, so the timer turned up on
+  pages meant for browsing. It now requires a project id after `/projects/`.
+
 ## [2.6.6] - 2026-09-02
 
 ### Fixed
