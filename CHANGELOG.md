@@ -8,6 +8,16 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.5.1] - 2026-09-01
+
+### Fixed
+- The loading skeleton was invisible. It was aliased to the alternate surface,
+  which on a light theme is barely a step away from the page: 1.08:1 on Cherry
+  Blossom, 1.06:1 on Hawaii Ocean. So while NextWork loaded its content, the
+  page looked blank rather than loading, and the wait read as a failure. The
+  skeleton is now solved against the canvas and clears 1.45:1 on every theme.
+  Not a text ratio, because it is not text; it just has to read as a shape.
+
 ## [2.5.0] - 2026-09-01
 
 A correctness and performance pass. Two symptoms were reported: the page felt
@@ -443,7 +453,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.5.1...HEAD
+[2.5.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.1
 [2.5.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.0
 [2.4.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.4.0
 [2.3.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.3.0

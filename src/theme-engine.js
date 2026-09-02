@@ -593,6 +593,18 @@
     p.calloutBorder = lightTheme
       ? mix(p.callout, p.accent, 0.30)
       : mix(p.callout, p.textMuted, 0.28);
+    /* Skeletons are the loading state, and they were being aliased to
+     * surfaceAlt, which on a light theme is barely a step away from the
+     * canvas. At about 1.07:1 they are invisible, so a page that is loading
+     * normally looks like a page that has failed. This is not text, so it does
+     * not want a text ratio; it wants to be clearly a shape. */
+    p.skeleton = (function () {
+      let c = p.surfaceAlt;
+      for (let i = 0; i < 24 && contrastRatio(c, p.canvas) < 1.45; i++) {
+        c = mix(c, p.textMuted, 0.12);
+      }
+      return c;
+    })();
     p.calloutText = ensureContrast(p.textPrimary, p.callout, 7);
     p.calloutTextSecondary = ensureContrast(p.textSecondary, p.callout, 4.5);
     return p;
@@ -831,7 +843,7 @@
       'border-error': p.status.error[400],
       'border-error_subtle': p.status.error[200],
       /* misc named surfaces */
-      'skeleton': p.surfaceAlt,
+      'skeleton': p.skeleton,
       'graysecondary-200': p.border,
       'graywarm-50': p.surface,
       'graywarm-200': p.border,

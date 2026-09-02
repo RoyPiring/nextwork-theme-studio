@@ -415,6 +415,9 @@ check('contrast floor holds for every theme', () => {
      * NextWork's dark navy in place and then darken the heading with the rest
      * of the page, which put dark text on a near-black slab. */
     checks.push(['callout text', C(p.calloutText, p.callout), 7]);
+    /* Not a text ratio. A skeleton just has to read as a shape, and at 1.07:1
+     * it did not, so a loading page looked like an empty one. */
+    checks.push(['loading skeleton', C(p.skeleton, p.canvas), 1.4]);
     checks.push(['callout secondary text', C(p.calloutTextSecondary, p.callout), 4.5]);
     (scene.areaColors || []).forEach(c => {
       checks.push(['scenery ' + c, C(p.textPrimary, c), 7]);

@@ -108,6 +108,17 @@ test('callout text is measured against the callout, not the page', () => {
   }
 });
 
+test('the loading skeleton is visible against the page', () => {
+  /* It was aliased to surfaceAlt, which on a light theme is barely a step from
+   * the canvas: about 1.07:1, which is invisible. A page that was loading
+   * normally looked like a page that had failed to load at all. */
+  for (const id of THEMES) {
+    const p = NWT.buildPalette(NWT.getTheme(settings(), id));
+    const r = C(p.skeleton, p.canvas);
+    assert.ok(r >= 1.4, id + ': skeleton is ' + r.toFixed(2) + ':1 against the canvas');
+  }
+});
+
 test('toneOf lands on the ratio it was asked for, in both directions', () => {
   const light = '#e8e9e9';
   const dark = '#152a1d';
