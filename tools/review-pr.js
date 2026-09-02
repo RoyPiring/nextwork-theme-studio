@@ -64,7 +64,12 @@ const ROOT = path.join(__dirname, '..');
  * slot until Google withdrew the free individual tier, at which point it could
  * no longer authenticate - and correctly blocked rather than passing. */
 const REVIEWERS = [
-  { name: 'Codex',  cmd: 'codex',  args: ['exec', '-s', 'read-only', '-'] },
+  /* --skip-git-repo-check because the scratch directory below is
+   * deliberately not a repository. Without it codex declines to start and
+   * says nothing, which the gate reads as a block - correctly, but for a
+   * reason that looks like a finding. */
+  { name: 'Codex',  cmd: 'codex',
+    args: ['exec', '-s', 'read-only', '--skip-git-repo-check', '-'] },
   { name: 'Claude', cmd: 'claude',
     args: ['-p', '--restricted', '--strict-mcp-config',
            '--permission-mode', 'plan', '--disallowed-tools',

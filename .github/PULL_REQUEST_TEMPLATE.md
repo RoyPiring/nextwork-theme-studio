@@ -31,4 +31,4 @@ node tools/review-pr.js <this PR number>
 - [ ] Their findings were fixed, not argued away
 
 The reviewers do not approve and do not merge. The maintainer reads the
-findings and merges. See [docs/maintenance/CODE_REVIEW.md](../docs/maintenance/CODE_REVIEW.md).
+findings and merges. See [docs/maintenance/CODE_REVIEW.md](https://github.com/RoyPiring/nextwork-theme-studio/blob/main/docs/maintenance/CODE_REVIEW.md).
