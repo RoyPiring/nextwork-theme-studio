@@ -18,7 +18,9 @@ Most of what this extension styles is behind a login. Without a nextwork.ai
 account you can see the marketing pages themed correctly. You cannot reproduce
 or verify anything on a project page, and that is where most of the work is.
 
-What is queued and what is known broken is in [docs/PLAN.md](docs/PLAN.md).
+[docs/](docs/) holds the longer guides, including
+[development](docs/maintenance/DEVELOPMENT.md) and
+[regenerating assets](docs/maintenance/ASSETS.md).
 
 ## Before you open a PR
 

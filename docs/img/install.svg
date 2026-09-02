@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="230" viewBox="0 0 960 230" role="img" aria-label="Install in five steps: download the folder, open the extensions page, turn on developer mode, load unpacked, open nextwork.ai">
+<title>Install in five steps</title>
+<defs>
+<style>
+.h { font: 600 15px ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; fill: #eceef0; }
+.p { font: 13px ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; fill: #a8afb5; }
+.n { font: 700 16px ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; fill: #241a0c; }
+.c { font: 600 12px ui-monospace, "Cascadia Code", Consolas, monospace; fill: #f0bf6a; }
+</style>
+</defs>
+<rect width="960" height="230" rx="14" fill="#0e0f10"/>
+
+<g transform="translate(28,44)">
+  <circle cx="18" cy="18" r="18" fill="#f0bf6a"/>
+  <text x="18" y="24" text-anchor="middle" class="n">1</text>
+  <text x="0" y="66" class="h">Download</text>
+  <text x="0" y="88" class="p">Get the folder from</text>
+  <text x="0" y="106" class="p">the green Code button.</text>
+</g>
+<path d="M196 62 h30" stroke="#3a3f42" stroke-width="2" stroke-linecap="round"/>
+<path d="M220 56 l7 6 -7 6" fill="none" stroke="#3a3f42" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+<g transform="translate(248,44)">
+  <circle cx="18" cy="18" r="18" fill="#f0bf6a"/>
+  <text x="18" y="24" text-anchor="middle" class="n">2</text>
+  <text x="0" y="66" class="h">Open extensions</text>
+  <text x="0" y="88" class="c">chrome://extensions</text>
+  <text x="0" y="106" class="p">Brave: menu, Extensions.</text>
+</g>
+<path d="M436 62 h30" stroke="#3a3f42" stroke-width="2" stroke-linecap="round"/>
+<path d="M460 56 l7 6 -7 6" fill="none" stroke="#3a3f42" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+<g transform="translate(488,44)">
+  <circle cx="18" cy="18" r="18" fill="#f0bf6a"/>
+  <text x="18" y="24" text-anchor="middle" class="n">3</text>
+  <text x="0" y="66" class="h">Developer mode</text>
+  <text x="0" y="88" class="p">Turn the switch on,</text>
+  <text x="0" y="106" class="p">top right of the page.</text>
+</g>
+<path d="M664 62 h30" stroke="#3a3f42" stroke-width="2" stroke-linecap="round"/>
+<path d="M688 56 l7 6 -7 6" fill="none" stroke="#3a3f42" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+<g transform="translate(716,44)">
+  <circle cx="18" cy="18" r="18" fill="#f0bf6a"/>
+  <text x="18" y="24" text-anchor="middle" class="n">4</text>
+  <text x="0" y="66" class="h">Load unpacked</text>
+  <text x="0" y="88" class="p">Pick the folder that</text>
+  <text x="0" y="106" class="p">holds manifest.json.</text>
+</g>
+
+<g transform="translate(28,168)">
+  <circle cx="18" cy="16" r="18" fill="#7fc98a"/>
+  <text x="18" y="22" text-anchor="middle" class="n">5</text>
+  <text x="52" y="14" class="h">Open nextwork.ai</text>
+  <text x="52" y="34" class="p">The colours change straight away. Nothing to build, nothing to compile. Press Alt+Shift+D to toggle the theme.</text>
+</g>
+</svg>

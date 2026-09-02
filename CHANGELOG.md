@@ -4,655 +4,385 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is [semver](https://semver.org/); the `version` field in
 `manifest.json` is the source of truth.
 
-1.3.0 is the first version published to a public repository. Everything below
-it predates that and was never released; those entries are kept because they
-record why several non-obvious parts of the code look the way they do.
+1.3.0 is the first version published to a public repository. Entries below it
+were never released.
 
 ## [2.8.3] - 2026-09-02
 
 ### Changed
+- The label and switch in each toggle tile are centred.
 
-- The icon is now the character himself, cut straight out of the Cherry
-  Blossom wallpaper, rather than a drawn version of him. `tools/make-icon.py`
-  does the cutting: the background there is a pale even wash and he is gold,
-  dark green and black, so a flood fill inward from the border that may only
-  cross pale unsaturated pixels stops exactly on his outline.
+## [2.8.2] - 2026-09-02
+
+### Changed
+- The extension icon is the pineapple character cut out of the Cherry Blossom
+  artwork by `tools/make-icon.py`, replacing the drawn version added in 2.8.1.
 - The three toggles at the top of the popup stack their label above their
-  switch, both centred in the tile. Side by side they did not fit, so the
-  Focus switch was cut off at the right edge; stacked, each label gets the
-  full width of its tile.
-- "Surprise me" reads as a quiet control next to the section label instead of
-  a second bordered button competing with Start and Reset.
+  switch, so no label is cut off.
+- "Surprise me" restyled as a quiet control beside the section label.
 
 ## [2.8.1] - 2026-09-02
 
 ### Changed
-
-- New extension icon: the pineapple in sunglasses who walks through every
-  wallpaper, rather than the light and dark split circle, which said nothing
-  about this extension in particular.
-- The icon is drawn by `tools/make-icon.py` so it can be regenerated. Detail
-  is dropped as the icon shrinks rather than scaled down into mud: the crown
-  goes at 32px and the lattice at 16px, where only the silhouette is left.
-  The mark now has no tile behind it, which buys back the fifth of the width
-  that a rounded square was spending on margin, and at 16px that is the
-  difference between having fronds and not.
+- New extension icon: the pineapple character from the wallpapers, replacing
+  the light and dark split circle.
 
 ## [2.8.0] - 2026-09-02
 
 ### Added
-
-- A "Surprise me" button above the theme grid, which picks a theme at random.
-  It never picks the one already showing, since a button that sometimes does
-  nothing reads as broken rather than as a coincidence.
+- "Surprise me" button above the theme grid. It picks a theme at random, never
+  the one already showing.
 
 ### Changed
-
-- Espresso's smoke is drawn as a soft mass instead of a line. It was six
-  curved strokes at 1.8px, and at that width a long curve reads as loose
-  thread lying on the page rather than as vapour. Smoke has no edge, so it is
-  now overlapping blurred puffs.
-- Dark Japandi has blue stars in place of the same drawn smoke, so the
-  backdrop reads as night sky rather than as more of the room.
-- The Galactica fleet is black, smaller, and twice as many. The ships were
-  pale blue, which put them in front of the nebula; as silhouettes they sit
-  inside it, and a handful of large craft now reads as a fleet.
+- Espresso's smoke is drawn as soft blurred puffs instead of thin curved lines.
+- Dark Japandi drifts blue stars instead of smoke.
+- The Galactica fleet is black, smaller, and twice as many ships.
 
 ### Fixed
-
-- The popup is centred. There are enough themes that it scrolls, and the
-  scrollbar took its width out of the right edge only, shifting the grid off
-  centre. The gutter is now reserved on both edges.
+- The popup grid is centred. The scrollbar gutter is now reserved on both
+  edges instead of taking its width from the right side only.
 
 ## [2.7.0] - 2026-09-02
 
 ### Added
-
-- The focus timer can be resized. The pill was fixed at a size that read as
-  small on a large screen, so there is now a size control in the popup, from
-  80% to 220%. Type, padding, gap and corner all scale together, so it grows
-  in width as well as height rather than just getting taller text.
+- A size control for the focus timer, from 80% to 220%. Text, padding and
+  corners scale together, so the pill grows in width as well as height.
 
 ### Changed
-
-- The focus panel is split into two named groups. Picking a session length and
-  pressing Start sat in the same flat run of tiles as the settings for how the
-  pill is drawn, so nothing said which tile did what. "Session" holds the
-  clock, the lengths and the start and reset controls; "On the page" holds the
-  size, the lock and the note about where it appears.
-- The timer now appears only while a project is actually being built. The page
-  test was an unanchored `/projects?/`, which also matched the project index
-  and any path with "project" further along it, so the timer turned up on
-  pages meant for browsing. It now requires a project id after `/projects/`.
+- The focus panel is split into two named groups: "Session" for the clock and
+  session lengths, "On the page" for size, lock and placement.
+- The focus timer appears only on project pages, not on the project index or
+  other pages containing the word.
 
 ## [2.6.6] - 2026-09-02
 
 ### Fixed
-
-- The suggestion bubbles on the home page stayed the colour of the pill they
-  sit in. Their text is written in `oklab`, which Tailwind v4 emits and the
-  canvas round-trip does not resolve: `fillStyle` accepts the string and hands
-  the same string straight back, so the parse failed, the colour read as
-  unknown, and the text was skipped rather than measured. Read properly it is
-  1.05:1 against its own pill. `oklab` and `oklch` are now converted directly.
-- A gradient is no longer mistaken for artwork. The guard added in 2.6.5
-  stepped back from any painted background, and the bubbles carry a faint
-  gradient for their glassy edge, so it was skipping them for a reason that
-  did not apply. It now steps back only from an actual picture: a `url()` or
-  an `image-set()`. The project cards are that case, with the title over a
-  `.webp`, so they stay protected.
+- Suggestion bubbles on the home page were the same colour as the pill behind
+  them. Their text is written in `oklab`, which is now converted correctly
+  instead of being read as an unknown colour and skipped.
+- Gradients are no longer treated as artwork, so elements with a decorative
+  gradient are corrected again. Only real pictures are skipped.
 
 ## [2.6.5] - 2026-09-02
 
 ### Fixed
-
-- Project card titles turned black on the light themes and disappeared into
-  their own artwork. The titles are white text over a dark painting inside a
-  pale card, and the correction added in 2.6.3 can only read a background
-  colour: it read the pale card, decided a white title was unreadable, and
-  darkened it onto the dark half of the picture. A readable title was made
-  unreadable, which is worse than the problem the correction exists to solve.
-- Text over a picture is now left alone. There is no measuring this case,
-  because the colour that can be read is not the colour the reader sees, so
-  the correction now asks what is stacked underneath the words and steps back
-  whenever the answer is artwork. It catches art painted as a background, art
-  placed as an `<img>`, and art positioned behind text it does not contain.
-  The extension's own wallpaper does not count, since the palette is already
-  solved against it.
+- Project card titles turned black and disappeared into their artwork on light
+  themes. Text sitting over a picture is now left alone, since its background
+  cannot be measured.
 
 ## [2.6.4] - 2026-09-02
 
 ### Fixed
-
-- The suggestion chips and the composer on the home page stayed the colour of
-  the page on light themes, even though the heading beside them was corrected.
-  They are `nw-*` web components, and both a document stylesheet and
-  `querySelectorAll` stop at a shadow boundary, so everything inside them was
-  out of reach. The correction now reaches into the shadow roots the extension
-  already knows about, and so does the undo that runs when the theme is
-  switched off.
-- Placeholder text is now held to a readability floor. It is the only thing
-  telling a reader what a field is for, so it counts as content; the site's own
-  stops were picked for a dark page and land near 2.5:1 on a light one. It
-  still reads quieter than body text.
-- Text that is dim because a control is switched off is now identified by
-  asking the DOM rather than by inferring it from a low contrast ratio. The
-  ratio could not tell a disabled label from a suggestion chip, because they
-  measure about the same and only one of them is content.
+- Suggestion chips and the composer on the home page kept the page colour on
+  light themes. The correction now reaches inside the site's web components.
+- Placeholder text is held to a readability floor while still reading quieter
+  than body text.
+- Text dimmed because a control is disabled keeps its dimming, identified from
+  the DOM rather than from its contrast.
 
 ## [2.6.3] - 2026-09-02
 
 ### Fixed
-
-- Text that vanished into the page on the five light themes. The site writes
-  its headings and suggestion chips with the pale end of its own colour ramps,
-  which were picked for a dark page: on a light theme `text-brand-25` measures
-  1.00:1 against the canvas, meaning it is the same colour as the background.
-  The correction for those classes existed but only ran on dark themes.
-- The correction now decides by measuring contrast rather than by guessing from
-  a class name, and it repoints in whichever direction the background needs, so
-  it is right on a dark card as well as on a light page. Text the site dims on
-  purpose keeps its dimming; the floor is set below the WCAG one so a disabled
-  control still looks disabled.
+- Headings and chips that vanished into the page on the five light themes. The
+  correction now measures contrast rather than matching class names, and
+  repoints text in whichever direction its background needs.
 
 ## [2.6.2] - 2026-09-01
 
 ### Fixed
-- White text vanished on the light themes. The NextWork home page is dark by
-  design, so its welcome heading and its suggestion chips are written as white
-  text. The stylesheet leaves --color-white alone on purpose, because the same
-  class is used on dark cards where remapping it would erase the text there.
-  That is right on a dark theme and exactly wrong on a light one: the page
-  turns pale and the heading stays white.
-
-  CSS cannot tell the two cases apart, so the runtime measures instead. White
-  text keeps being white wherever it sits on something dark; only the copies
-  that ended up on a light background are repointed.
-- The light and dark corrections now share one palette, one scheduler and one
-  undo. Giving the light one its own schedule meant it ran once at render and
-  never again, because the observer only fires the pass when a palette is set.
+- White text vanished on light themes. White text is now repointed only where
+  it sits on a light background, and left alone on dark cards.
+- The light and dark corrections share one palette, one scheduler and one undo,
+  so both re-run when the page changes.
 
 ## [2.6.1] - 2026-09-01
 
 ### Fixed
-- Panels were invisible on the light themes. Measured against the colour each
-  wallpaper fades into, a translucent near-white panel on a near-white sky
-  separates by 1.06 on Mount Fuji and 1.07 on Hawaii Morning, which is to say
-  not at all. The dark themes managed 1.13 to 1.18, weak but present.
-
-  Opacity was the wrong lever: an opaque near-white panel on a near-white sky
-  is still near-white. Panels now carry a solved border and a soft shadow,
-  drawn as a ring so they do not change the size of an element on a page we do
-  not own. The border clears 1.45:1 against the panel on every theme, and the
-  fill stays translucent so the blend is kept.
+- Panels were invisible on light themes. Panels now carry a measured border and
+  a soft shadow, drawn as a ring so element sizes are unchanged. The border
+  clears 1.45:1 against the panel on every theme.
 
 ## [2.6.0] - 2026-09-01
 
 ### Changed
-- Panels blend with the wallpaper instead of covering it. 2.5.3 stopped them
-  being see-through by making them opaque, which fixed the readability and
-  replaced it with a flat slab of colour sitting on top of a soft picture.
-
-  They are translucent now, at 72% of the surface colour, with a blur behind
-  them, so the scene reads through as a wash and the panel belongs to the page
-  rather than sitting on it.
-
-  The opacity is measured, not picked. Composited against the worst point of
-  each wallpaper, body text still clears 7.5:1 on every theme; the floor is
-  near 0.60. The blur is not credited in that measurement, and it only helps,
-  since it flattens whatever shows through.
+- Panels are translucent at 72% with a blur behind them, so the wallpaper reads
+  through as a wash instead of being covered by a flat slab. Body text still
+  clears 7.5:1 against the worst point of every wallpaper.
 
 ## [2.5.3] - 2026-09-01
 
 ### Fixed
-- Cards let the wallpaper through. The step list on a project page is the same
-  class as the page ground, with nothing positioned above it, so the check
-  added in 2.5.2 walked straight past it and left it transparent. The mountain
-  showed through the middle of the list.
-
-  What separates a card from the ground is that a card is inset. The test is
-  now three ways to be a panel, any one of which is enough: something
-  positioned sits above it, it is nested inside another element wearing the
-  same class, or it is narrower than the page.
+- Cards let the wallpaper through. An element now counts as a panel if any one
+  of three things is true: something positioned sits above it, it is nested
+  inside another element with the same class, or it is narrower than the page.
 
 ## [2.5.2] - 2026-09-01
 
 ### Fixed
-- In a split view, the page behind showed through the pane in front. The
-  stylesheet makes the page ground transparent so the scenery can show through
-  it, and decides what counts as the ground by class name, which is all CSS can
-  do. The documentation pane carried none of the names it looks for, so it went
-  transparent too and the project page underneath came through it.
-
-  The runtime now corrects that by measurement: anything with a positioned
-  ancestor between it and the body is a stacked panel, not the ground, and
-  keeps its background. This runs for every theme, not only the dark ones,
-  since the transparency it corrects applies to all of them.
+- In a split view, the page behind showed through the pane in front. Anything
+  with a positioned ancestor keeps its background.
 
 ## [2.5.1] - 2026-09-01
 
 ### Fixed
-- The loading skeleton was invisible. It was aliased to the alternate surface,
-  which on a light theme is barely a step away from the page: 1.08:1 on Cherry
-  Blossom, 1.06:1 on Hawaii Ocean. So while NextWork loaded its content, the
-  page looked blank rather than loading, and the wait read as a failure. The
-  skeleton is now solved against the canvas and clears 1.45:1 on every theme.
-  Not a text ratio, because it is not text; it just has to read as a shape.
+- The loading skeleton was invisible on light themes, so a loading page looked
+  blank. It is now measured against the page and clears 1.45:1 everywhere.
 
 ## [2.5.0] - 2026-09-01
 
-A correctness and performance pass. Two symptoms were reported: the page felt
-slow after a refresh, and components changed colour over time. Both are fixed,
-along with five things found while looking for them.
-
 ### Added
-- A unit test suite in `tests/`, run by `npm test` and in CI ahead of the
-  audit. It uses node:test, so the project still has no dependencies. Twenty
-  one tests, including a small DOM and extension-API stand-in that lets the
-  content script be loaded and driven.
-- `docs/PLAN.md` records what was wrong, how it was found, and how to tell it
-  is fixed.
+- A unit test suite in `tests/`, run by `npm test` and in CI. It uses
+  `node:test`, so the project still has no dependencies.
 
 ### Fixed
-- The stylesheet was rewritten on every storage write. SVG ids came from a
-  counter that kept incrementing, so two calls with identical settings returned
-  different bytes and the check that skips redundant writes could never pass.
-  Every dial drag and every timer update swapped 70 KB of CSS and forced a full
-  restyle.
-- Panels kept a colour once they were given one. The rescue pass writes inline
-  styles and marks the element so it skips next time, and nothing removed
-  either, so switching theme left everything wearing the previous palette and
-  switching the theme off left it wearing the theme surface. There is an undo
-  now, and it runs when the palette changes.
-- A storage read whose answer was overtaken could still be applied. Each read
-  carries a token and drops itself if a newer one has started.
-- Dial changes wrote storage on every pixel of slider travel, and every write
-  reached every open tab. The preview still updates live; the write waits for
-  the drag to settle.
-- Committing a colour rebuilt the nine colour rows, which removed the input the
-  pointer was inside. The full render is split from a preview refresh.
-- The editor preview asked scenes for `hero.svg`, which stopped existing when
-  heroes became wallpapers, so it was setting a background to
-  `url("data:image/svg+xml,undefined")` and showing nothing.
-- Failures that said nothing: a refused clipboard, an unreadable import file,
-  and `chrome.runtime.lastError` unchecked in the popup and the background.
-- The mutation observer ran a full document walk per batch. It now walks only
-  the subtrees that were added.
+- The stylesheet was rewritten on every storage write, forcing a full restyle.
+  Identical settings now produce identical output.
+- Panels kept the colours of whichever theme was active when they first
+  appeared. There is now an undo that runs when the palette changes.
+- A storage read whose answer was overtaken could still be applied. Reads now
+  drop themselves if a newer one has started.
+- Dragging a dial wrote to storage on every pixel of travel. The preview stays
+  live; the write waits for the drag to settle.
+- Committing a colour in the editor removed the input the pointer was inside.
+- The editor preview showed no wallpaper.
+- Silent failures now report: a refused clipboard, an unreadable import file,
+  and unchecked extension errors in the popup and background.
+- The mutation observer walked the whole document on every change. It now walks
+  only what was added.
 
 ## [2.4.0] - 2026-09-01
 
 ### Changed
-- Removed the fog band that ran along the bottom of every theme. It sat over
-  the part of the picture where the character stands.
-- Vignette down from 0.34 to 0.14 on dark themes and 0.10 to 0.05 on light
-  ones. A vignette darkens the corners, and the corner is exactly where that
-  character is, so it was quietly dimming the one thing worth seeing.
-- Galactica drifts a mixed fleet: wedges, saucers and haulers rather than one
-  repeated hull, with running lights in a second colour.
-- Mount Fuji drifts white cloud shapes, each built from a different number of
-  lobes so no two silhouettes match.
-- Carbon drifts plain points of light. The comet tails were too busy for what
-  is behind them.
-- The popup has a fixed width. Without one the browser sized it to the widest
-  row, which was the focus chips, and everything else had to live with that.
-  The chips are an even grid now instead of five different widths in a flex
-  row, the clock is smaller, and the labels under it are shorter.
+- Removed the fog band along the bottom of every theme, which covered the part
+  of the picture where the character stands.
+- Reduced the vignette from 0.34 to 0.14 on dark themes and 0.10 to 0.05 on
+  light ones, so the corners are no longer dimmed.
+- Galactica drifts a mixed fleet of wedges, saucers and haulers with running
+  lights.
+- Mount Fuji drifts cloud shapes, each built from a different number of lobes.
+- Carbon drifts plain points of light instead of comet tails.
+- The popup has a fixed width, an even grid of focus chips, a smaller clock and
+  shorter labels.
 
 ### Fixed
-- `tools/export-scenes.js` clears its output directory first. A layer that
-  stopped being generated stayed in `assets/` and in git as a file nothing
-  produced, and the freshness check in CI could not see it because it only
-  compares files still being written. Removing the fog band left eighteen
-  such orphans.
+- `tools/export-scenes.js` clears its output directory first, so layers that
+  are no longer generated do not linger in `assets/`.
 
 ## [2.3.0] - 2026-09-01
 
 ### Changed
-- The drifting layer is the thing that belongs in each picture instead of an
-  abstract speck. Gulls over both beaches, petals over the blossom themes,
-  ships over the space scene, tetrominoes over the arcade, comets over the star
-  field, fireworks over the neon city, smoke over the fire-lit rooms, clouds
-  over the mountain.
-- Motifs cover the whole viewport rather than a strip along the bottom. That is
-  safe because they are sparse, so the audit stopped capping their height and
-  started measuring what they actually cover: shape count and the size of the
-  largest one.
-- Motifs take the WCAG AA floor rather than the AAA one the solid bands take. A
-  handful of small shapes spread over a page is not a fill a paragraph is read
-  against, and holding them to 7:1 made every one of them invisible on the dark
-  themes. The wallpaper flanks were in the same trap in 1.4.1.
-- Wallpaper saturation raised from 1.25 to 1.8. Pushing the exposure far enough
-  to clear the contrast floor drains the colour, and the result read as a heavy
-  grey filter over the picture rather than as the picture. Colour is close to
-  independent of the luminance the floor constrains: measured across this set,
-  1.8x moves the worst contrast by about 0.2 on the darkest theme and not at
-  all on the lightest.
+- Each drifting layer now suits its picture: gulls over the beaches, petals
+  over the blossom themes, ships over the space scene, tetrominoes over the
+  arcade, comets over the star field, fireworks over the neon city, smoke over
+  the fire-lit rooms, clouds over the mountain.
+- Motifs cover the whole viewport instead of a strip along the bottom. The
+  audit measures shape count and largest shape rather than capping height.
+- Motifs are held to the WCAG AA floor rather than AAA, which had made them
+  invisible on dark themes.
+- Wallpaper saturation raised from 1.25 to 1.8, so the pictures keep their
+  colour instead of reading as a grey filter.
 
 ### Fixed
-- The measurement now happens after saturation rather than before it, so the
-  numbers recorded in src/wallpapers.js describe the image that actually
-  ships.
+- Wallpaper contrast is measured after saturation, so the recorded numbers
+  describe the image that ships.
 
 ## [2.2.0] - 2026-09-01
 
 ### Changed
-- Every theme now has its own drift, not one of seven shared kinds. Eighteen
-  different pictures with the same dust over them wasted the difference. Dust,
-  ash, snow, star points, mist wisps, ember sparks, neon bokeh, seed fluff,
-  smoke curls, lantern glow, blossom petals, meteor streaks, falling blocks,
-  ocean glints, leaf fall, sun flares, wind streaks and cherry petals, one
-  each, tinted from its own palette.
-- Hawaii Ocean is cropped 30% off the top. Its source was drawn with the same
-  leafy border as Palm Forest, so the two looked like the same picture wherever
-  the top of the image showed. Cropping it also drops the shared green from the
-  colour that fills above the image. Structural similarity between the two fell
-  from 0.669 to 0.556.
-- The image pipeline takes a per-source crop, so a shared border in the artwork
-  can be handled without repainting anything.
+- Every theme has its own drifting motif, tinted from its own palette, instead
+  of sharing one of seven kinds.
+- Hawaii Ocean is cropped 30% off the top so it no longer resembles Palm
+  Forest.
+- The image pipeline accepts a per-source crop.
 
 ## [2.1.0] - 2026-09-01
 
 ### Fixed
-- The callout panel. NextWork puts some sections on a dark navy block, which is
-  fine on a dark theme where it reads as one more surface. Light themes left it
-  alone, so a near-black slab sat in the middle of a pale page, and the heading
-  inside it went dark along with the rest of the page and disappeared into its
-  own background.
-
-  Every theme now has its own callout colour, tinted with that theme accent so
-  it belongs to the palette instead of fighting it, and its own text colour
-  measured against the panel rather than against the page. Text clears 7:1 on
-  all eighteen, and the audit checks it.
+- The callout panel was a near-black slab on light themes, with its heading
+  invisible inside it. Every theme now has its own callout colour tinted with
+  its accent, and text measured against the panel. Text clears 7:1 on all 18,
+  and the audit checks it.
 
 ### Changed
-- Each theme picks the drift that suits its picture instead of all eighteen
-  sharing mist and dust. Blossom themes get petals, forests get leaves, the
-  fire-lit rooms get embers, night skies get stars, the retro theme gets
-  falling blocks, and the cold scenes get fine snow. Seven kinds in all, each
-  tinted from its own palette.
-
-  Nothing here falls. The engine only pans a band sideways, so rain and snow
-  drawn as streaks look wrong; everything drifting is material air would
-  actually carry.
-- Pinned actions moved to checkout 7.0.1 and setup-node 7.0.0, applied directly
-  rather than through the two Dependabot pull requests, whose merge base no
-  longer existed. Both are closed and their branches deleted.
+- Each theme picks the drift that suits its picture: petals, leaves, embers,
+  stars, falling blocks or fine snow.
+- Pinned CI actions to checkout 7.0.1 and setup-node 7.0.0.
 
 ## [2.0.0] - 2026-09-01
 
 Renamed to Pineapple NextWork Theme Studio Mod.
 
-### Fixed
-- Nothing has been moving. The scoping pass added in 1.4.x prefixed keyframe
-  selectors as well as element selectors, producing `html from`, which is not a
-  valid keyframe selector. Browsers discard the whole block, so every parallax
-  band in every theme has been sitting still since then, while the code that
-  set the speeds, the wrap distance and the reduced-motion opt-out all looked
-  correct. Keyframe bodies are now lifted out before scoping and put back
-  after.
-- The audit only checked that a stylesheet was non-empty, which is why the
-  above passed for four releases. It now also rejects a scoped keyframe
-  selector, unbalanced braces, and an empty background layer list.
-
 ### Added
-- All 18 themes have a picture now, not just Concrete. Each one keeps mist and
-  dust drifting over the top at staggered speeds, so no two themes animate in
-  step.
-- Wallpapers handle light and dark themes. A dark theme has light text, so its
-  picture has to be dark and the brightest part is what fails. A light theme is
-  the exact opposite. `tools/make-wallpaper.py` now picks the direction from
-  the palette, and flips the measurement to match.
-- Each wallpaper carries a thumbnail for the README gallery. Embedding the full
-  images there made that one file 794 KB; it is 93 KB with thumbnails.
+- All 18 themes have a picture, not just Concrete, with mist and dust drifting
+  over each at staggered speeds.
+- Wallpapers handle light and dark themes, with the direction and measurement
+  taken from the palette.
+- Each wallpaper carries a thumbnail for the README gallery, which cut that
+  file from 794 KB to 93 KB.
+
+### Fixed
+- Nothing had been moving since 1.4.x. The scoping pass was prefixing keyframe
+  selectors, which browsers discard. Keyframe bodies are now lifted out before
+  scoping and put back after.
+- The audit rejects scoped keyframe selectors, unbalanced braces and empty
+  background layer lists.
 
 ### Changed
-- The top of every wallpaper fades to transparent, and the colour it fades into
-  is measured and recorded so the stylesheet fills the space above it with the
-  same value. Before this, shrinking the window left the picture sitting on a
-  visible horizontal edge, which is exactly what makes an image look pasted on
-  rather than part of the page.
-- `tools/theme-info.js` reports each theme's mode and text colour, so the image
-  pipeline reads the palette instead of hard-coding colours that live in
-  `PRESETS`.
-- `SECURITY.md` listed `activeTab` and the wrong host pattern in its capability
-  table, and contradicted itself four lines later. Both rows now match the
-  manifest.
-- Decision 8 said all artwork is generated SVG, which stopped being true in
-  1.4.0. It now states the rule and the exception, and what an image has to
-  prove before it can ship.
+- The top of every wallpaper fades to transparent, and the space above it is
+  filled with the picture's own measured sky colour, so there is no visible
+  horizontal edge.
+- `tools/theme-info.js` reports each theme's mode and text colour.
+- Corrected the capability table in `SECURITY.md` to match the manifest.
+- Corrected decision 8, which said all artwork is generated SVG.
 
 ## [1.5.0] - 2026-09-01
 
 ### Changed
 - The wallpaper is sized `100% auto` and pinned to the bottom instead of
-  `cover`. `cover` scales to height on a narrow window and crops inward from
-  the sides, which took off the figure at the left edge and the doorway at the
-  right - the two things worth looking at. Filling the width instead keeps both
-  in frame from ultrawide down to a narrow window.
-- Bare space above the image on a tall window is filled with the image's own
-  sky colour, measured at generation time and recorded as `sky`. Filling it
-  with the theme canvas drew a lighter band and a hard horizontal edge across
-  the top of the scene.
-- Wallpapers encode as WebP at 2560px rather than JPEG at 1600px. This artwork
-  is mostly smooth dark gradients, the worst case for JPEG, and it banded right
-  where the scene is darkest; it was also being upscaled on any wide screen.
-  WebP holds the gradients at roughly a third the size, so the same budget buys
-  the resolution. 72 KB.
-- The mist and the dust drift were pitched well under the contrast floor and
-  read as nothing. Both are now as bright as the gate allows, and both bands
-  run at 26vh.
-- `art/concrete-corridor.jpg` is stored at its full 2752x1536 rather than
-  pre-downscaled, so the encoder has something to work from.
+  `cover`, which had cropped the figure and the doorway on narrow windows.
+- Space above the image is filled with its own measured sky colour.
+- Wallpapers encode as WebP at 2560px instead of JPEG at 1600px, which holds
+  the gradients at roughly a third the size. 72 KB.
+- The mist and dust are now as bright as the contrast gate allows, both at
+  26vh.
+- `art/concrete-corridor.jpg` is stored at full resolution.
 
 ## [1.4.4] - 2026-09-01
 
 ### Fixed
-- The contact sheet wrote into `_review/`, and Chromium reserves names starting
-  with an underscore at an extension root. Since CONTRIBUTING tells you to load
-  the repo root unpacked, running that tool made the extension refuse to load
-  with an error naming the directory but not the cause. It is `review/` now,
-  and the audit fails on any underscore-prefixed name at the root.
+- The contact sheet wrote into `_review/`, and a leading underscore at an
+  extension root makes Chromium refuse to load it. It is `review/` now, and the
+  audit fails on any underscore-prefixed name at the root.
 
 ## [1.4.3] - 2026-09-01
 
 ### Fixed
 - Warn instead of failing silently when a scene names a wallpaper that is not
-  loaded. The layer was skipped with no error, which is indistinguishable from
-  a stale build from the outside and cost real debugging time.
+  loaded.
 
 ## [1.4.2] - 2026-09-01
 
 ### Fixed
 - List both `https://nextwork.ai/*` and `https://*.nextwork.ai/*` in the
-  content script matches. A wildcard host is documented to cover the bare host
-  too, so 1.3.0 narrowed it to the one pattern - but that put whether the
-  extension runs at all on a spec detail you cannot verify from the extensions
-  page. Explicit is worth the extra line.
+  content script matches.
 
 ## [1.4.1] - 2026-09-01
 
 ### Changed
-- The Concrete wallpaper is 3.2x brighter. Darkening the whole frame to clear
-  7:1 had taken it to 0.17 of source exposure, and what reached the page was a
-  smudge rather than a picture: the arches, the lit doorway and the figure
-  were all technically present and effectively invisible.
-
-  It now darkens in two zones. The reading column is a strip down the middle of
-  the viewport; the rest is margin and panels. Scrimming that middle band lets
-  the flanks run at 0.55 exposure instead of 0.17, which matters here because
-  the composition puts everything worth looking at out at the edges. It ships
-  at 7.44:1 in the reading column: the project's floor, WCAG AAA, and 4.90:1
-  everywhere else, which is WCAG AA, so text straying outside the column is
-  still readable rather than merely darker.
-- The wallpaper audit check enforces both floors separately. A single global
-  figure is what forced the picture down to the stricter one.
+- The Concrete wallpaper is 3.2x brighter. It darkens in two zones: the reading
+  column is scrimmed so the flanks can run at 0.55 exposure instead of 0.17. It
+  ships at 7.44:1 in the reading column and 4.90:1 elsewhere.
+- The wallpaper audit enforces the reading-column and edge floors separately.
 
 ## [1.4.0] - 2026-09-01
 
 ### Added
-- Concrete is now a corridor. It uses a raster wallpaper: an arcade at night
-  looking toward a lit doorway, with mist along the floor and dust in the air
-  drifting over it on the two parallax bands. The picture is fixed; the layers
-  moving at different rates over it are what stop it reading as a desktop
-  background someone pasted in.
-- `src/wallpapers.js` carries raster wallpapers inline as data URIs. A content
-  script cannot fetch a file: the site's CSP blocks it, and
-  `web_accessible_resources` would widen the extension's surface for the sake
-  of one picture. So the bytes ride in the injected stylesheet. Only the theme
-  using one pays for it: Concrete's stylesheet is 78 KB, against 26-42 KB for
-  the themes without a wallpaper, which are unchanged.
-- `tools/make-wallpaper.py` encodes a source image from `art/`. An image cannot
-  be contrast-checked the way a hex fill can, so it measures instead: it finds
-  the gentlest exposure cut that still clears 7:1 against body text, taken on a
-  blurred copy because a reader reads against the local average rather than a
-  single pixel, which is also what lets the doorway keep a bright core. The
-  corridor measured 2.40:1 as supplied and ships at 7.32:1.
-- An audit check for wallpapers: inline data URIs only, a 160 KB cap, the
-  recorded contrast has to clear the floor, and a scene cannot name a wallpaper
-  that does not exist. Sixteen checks now.
+- Concrete uses a raster wallpaper, with mist and dust drifting over it.
+- `src/wallpapers.js` carries raster wallpapers inline as data URIs, since a
+  content script cannot fetch a file. Only the theme using one pays for it.
+- `tools/make-wallpaper.py` finds the gentlest exposure cut that still clears
+  7:1 against body text, measured on a blurred copy.
+- An audit check for wallpapers: inline data URIs only, a 160 KB cap, recorded
+  contrast above the floor, and no scene naming a missing wallpaper.
 
 ### Fixed
-- The `importScripts` exemption in the no-network check listed filenames, so
-  adding a third library failed the audit. It now allows the call only when
-  every argument is a bare local filename, which is the property that made it
-  safe in the first place.
+- The `importScripts` exemption in the no-network check now allows the call
+  only when every argument is a bare local filename.
 
 ## [1.3.0] - 2026-09-01
 
-First release prepared for a public repository. Most of this is the result of
-reviewing the project as an outsider would read it.
+First release prepared for a public repository.
 
 ### Fixed
-- **The packaged archives were not loadable.** The Windows build path used
-  PowerShell's `Compress-Archive`, which writes backslashes as path separators
-  into the zip index. Every entry came out as one flat filename, so the
-  manifest's reference to `src/content.js` resolved to nothing and the archives
-  failed to install everywhere while the build still reported success. The
-  build now uses `tar`, and reads each archive back before claiming it worked.
-- Selectors inside a single-line `@media` block were never given the `html`
-  prefix the rest of the sheet gets, so they lost every specificity tie. The
-  narrow-window rule that moves the focus timer out from under the account menu
-  had never once applied.
-- Panel repair could not read the colours it was written to catch. It matched
-  `rgb()` only, and this is a Tailwind v4 site, so computed colours arrive as
-  `oklch()` and every test answered "not light". Colours now round-trip through
-  a canvas first.
-- A stale settings schema cleared the four dials on every popup open, because
-  the migration ran on a copy that was never written back.
-- The toolbar badge counted down in minutes but nothing ever ticked it, so it
-  froze at the starting number. It now shows that a session is running and
-  leaves the live count to the pill on the page.
+- The packaged archives were not loadable. The Windows build wrote backslashes
+  into the zip index, so every entry came out as one flat filename and the
+  archives failed to install while the build reported success. The build now
+  uses `tar` and reads each archive back before reporting success.
+- Selectors inside a single-line `@media` block were not given the `html`
+  prefix, so the rule that moves the focus timer out from under the account
+  menu had never applied.
+- Panel repair matched `rgb()` only, and this is a Tailwind v4 site, so
+  computed colours arrive as `oklch()`. Colours now round-trip through a canvas.
+- A stale settings schema cleared the four dials on every popup open.
+- The toolbar badge froze at its starting number. It now shows that a session
+  is running and leaves the live count to the pill on the page.
 
 ### Security
-- Removed the `activeTab` permission. It was requested and never used: the
-  popup's reload button calls `chrome.tabs.reload()`, which needs no
-  permission. `storage` is now the only one.
-- Imported themes are validated instead of merged. Colours must be `#rrggbb`,
-  dials are clamped, unknown keys are dropped, and custom CSS containing
-  `url()`, `@import`, `image-set()` or `expression()` is refused, any of which
-  could have made a live request from a page you are signed into.
-- The zero-flash cache no longer trusts the page. It stored generated CSS in
-  the site's own `localStorage` and injected whatever it found there at
-  `document_start`; it now stores a theme id, checks it against the bundled
-  presets, and builds the stylesheet itself.
+- Removed the `activeTab` permission, which was never used. `storage` is now
+  the only one.
+- Imported themes are validated rather than merged. Colours must be `#rrggbb`,
+  dials are clamped, unknown keys dropped, and custom CSS containing `url()`,
+  `@import`, `image-set()` or `expression()` is refused.
+- The zero-flash cache stores a theme id and builds the stylesheet itself,
+  instead of injecting CSS found in the site's own `localStorage`.
 - Host access narrowed to `https://*.nextwork.ai/*`.
 
 ### Changed
-- The audit walks `src/` recursively, strips comments before scanning rather
-  than skipping any line that starts with one, covers `optional_permissions`,
-  `web_accessible_resources` and `externally_connectable`, checks the files the
-  HTML pages load, and compares the manifest and package versions. Fifteen
-  checks, up from thirteen.
-- The focus HUD, the panel repair pass and the boot cache are confined to the
-  top frame. With `all_frames` on, every same-origin subframe drew its
-  own timer.
+- The audit walks `src/` recursively, strips comments before scanning, covers
+  `optional_permissions`, `web_accessible_resources` and
+  `externally_connectable`, checks files the HTML pages load, and compares the
+  manifest and package versions. Fifteen checks, up from thirteen.
+- The focus timer, panel repair and boot cache are confined to the top frame,
+  so subframes no longer each draw their own timer.
 - Shadow-root adoption and the mutation sweep are coalesced, and the repair
-  pass reads every element before writing to any of them rather than forcing a
-  layout per node.
-- `themes/` is gone. Ten hand-maintained JSON files duplicated palettes whose
-  source of truth is `PRESETS`, nothing read them, and they shipped inside
-  every package.
-- `tools/gallery.js` renders every theme into `docs/img/themes.svg` for the
-  README, and CI fails if it drifts from the code that generates it.
+  pass reads every element before writing to any of them.
+- Removed `themes/`: ten hand-maintained JSON files duplicating `PRESETS` that
+  nothing read and that shipped in every package.
+- `tools/gallery.js` renders every theme into `docs/img/themes.svg`, and CI
+  fails if it drifts from the code.
 
 ## [1.2.0] - 2026-09-01
 
 ### Added
 - Per-browser packages. `node tools/build.js` writes a loadable folder for
-  Chrome, Brave, Edge, Firefox and Safari into `dist/`, each carrying the
-  install guide for its own extensions page, plus a zip for the stores.
-- Firefox build: MV3 there has no service worker, so the background runs as an
-  event page with its libraries listed in the manifest. `src/background.js`
-  calls `importScripts` only where it exists, so one file serves both engines.
-- Safari: source laid out for `safari-web-extension-converter`, with the Xcode
-  steps written down. It cannot be loaded as a folder and is unverified -
-  converting it needs a Mac.
-- Panels that escape the token layer are now measured and repainted at runtime.
-  Tooltips and side panels that are portalled away from their owner or built
-  after load cannot be reached from a stylesheet; this finds anything still
-  painting light on a dark theme and gives it the theme surface. Only touches
-  elements large enough to be a panel. Switch in Extras.
-- The focus timer can be locked. Locked, it cannot be dragged and clicks pass
-  straight through it, so it can never be in the way.
-- The focus timer only appears on project pages.
+  Chrome, Brave, Edge, Firefox and Safari into `dist/`, each with its own
+  install guide, plus a zip for the stores.
+- Firefox build, which runs the background as an event page rather than a
+  service worker. One file serves both engines.
+- Safari source laid out for `safari-web-extension-converter`, with the Xcode
+  steps written down. Converting it needs a Mac.
+- Panels that escape the token layer are measured and repainted at runtime.
+  Switchable in Extras.
+- The focus timer can be locked, so it cannot be dragged and clicks pass
+  through it.
+- The focus timer appears only on project pages.
 
 ## [1.1.0] - 2026-09-01
 
 ### Added
 - The focus timer can be dragged anywhere and remembers where it was put, as a
-  fraction of the viewport so it holds its place when the window resizes.
-  Double-click returns it to the corner. It is clamped on screen at all times.
+  fraction of the viewport. Double-click returns it to the corner.
 - Focus timer: 15/25/45/60-minute sessions or open-ended count-up, an on-page
   pill and a toolbar badge. Counts across tabs and survives a restart.
 
 ### Fixed
-- The Your Work overlay let the page bleed through it. The page ground is made
-  transparent so scenery shows, but NextWork paints `.bg-paper` on sticky
-  headers and modal panels too, so those went see-through as well. Positioned
-  elements are panels rather than ground, and now keep their surface.
+- The Your Work overlay let the page bleed through it. Positioned elements
+  count as panels and keep their surface.
 - The focus timer overlapped the account avatar and could be pushed off-screen.
-- Eight bands across seven themes were invisible. The mask always faded the top
-  edge, which is right for a band on the floor and destroys one hanging from
-  the ceiling - it erased exactly the part meant to be seen. Palm Forest lost
-  both of its layers that way. The fade now follows the band's anchor.
+- Eight bands across seven themes were invisible, because the mask always faded
+  the top edge. The fade now follows the band's anchor.
 - Palm Forest has trees again: broadleaf crowns on trunks, distinct from Fog's
-  conifers and Hawaii's palms, with the canopy kept overhead.
-- Mount Fuji was cut off and bare. The hero ran at 116% width so its ridges ran
-  off the edge, and the cone ended in a hard diagonal. It now fits, and the
-  flanks wash back toward the sky so the mountain settles into the page.
-- The focus timer collided with the account avatar and pushed its label outside
-  the box. It sits lower now and sizes to its content.
-- Galactica's planet was a flat filled circle, so its limb drew a hard curved
-  edge straight through the reading column. The body is now a radial gradient
-  that fades at the limb, and the fleet moved below the text.
-- Article headings stayed near-black on a dark page. The body is a Tailwind
-  Typography `.prose` container with its own eighteen `--tw-prose-*` variables,
-  declared on the class itself and unrelated to NextWork's tokens, so every
-  override missed them. All eighteen are now mapped, plus the `invert` set.
-- The box at the bottom of the Steps list. Those scroll fades exist to blend a
-  list into a cream page; on a themed page they can only paint a slab that does
-  not match what is behind them, so they are removed rather than recoloured.
-- Panels using Tailwind `from-white` gradient utilities painted a white sheet no
-  token could reach; the gradient stops are now themed.
-- Scenery reached into the reading column. Nine of eighteen scenes had bands
-  44-70vh tall, so a pattern sat directly behind body copy - worst with the
-  grid motifs, which read as ruled lines through the text. Bands are now capped
-  (far 34vh, near 26vh) and CI enforces it.
-- Scenery was as loud as the contrast floor permits. The tone targets sat right
-  on the limit; they are now backed off, so a scene reads without competing.
-- A horizontal line across the page: full-bleed gradients used
-  `preserveAspectRatio="slice"`, which crops the outer ring where a gradient
-  reaches zero opacity, so the background box edge still painted.
+  conifers and Hawaii's palms.
+- Mount Fuji was cut off and bare. It now fits, and the flanks wash back toward
+  the sky.
+- Article headings stayed near-black on a dark page. All eighteen
+  `--tw-prose-*` variables are now mapped, plus the `invert` set.
+- Removed the scroll fades at the bottom of the Steps list, which could only
+  paint a slab that did not match what was behind them.
+- Panels using Tailwind `from-white` gradient utilities painted a white sheet.
+  The gradient stops are now themed.
+- Scenery reached into the reading column. Bands are capped at 34vh far and
+  26vh near, and CI enforces it.
+- Scenery was as loud as the contrast floor permits. The tone targets are
+  backed off.
+- A horizontal line across the page, caused by full-bleed gradients cropping
+  their outer ring.
 - Tooltips, menus and dialogs kept a white background with light text. They are
-  rendered on demand and portalled away from their owner, so they missed the
-  token pass; they are now themed by role.
+  now themed by role.
 - The assistant slide-over arrived as a white sheet over the page.
-- The logo came back pale blue instead of white. `invert()` rotates hue as well
-  as value, and their mark is a warm near-black. Driving it to black first and
-  then inverting lands on neutral white whatever the source colour is.
-- The giant footer wordmark read as a billboard. It ships at 6% opacity, which
-  is far heavier as light-on-dark than as dark-on-light; it is now halved so it
-  stays a watermark.
+- The logo came back pale blue instead of white. It is driven to black first
+  and then inverted.
+- The giant footer wordmark is halved in opacity so it stays a watermark.
 
 ## [1.0.0] - 2026-09-01
 
@@ -660,11 +390,11 @@ First working version. Never published.
 
 ### Added
 - 18 themes: 13 dark and 5 light, each with a layered backdrop.
-- Live editor with nine palette colours, four relative dials, a WCAG contrast
-  readout, the generated neutral ramp, a component preview, and custom CSS.
+- Live editor with nine palette colours, four dials, a WCAG contrast readout,
+  the generated neutral ramp, a component preview and custom CSS.
 - Hand-drawn SVG scenery per theme, with parallax and a wallpaper toggle
   independent of the colour scheme. One exclusive motif per theme.
-- Theme export/import as JSON.
+- Theme export and import as JSON.
 - `Alt+Shift+D` to toggle.
 - `tools/audit.js` as the CI gate; `tools/export-scenes.js` and
   `tools/contact-sheet.js` for working on scenery.
@@ -674,7 +404,16 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.6.2...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.8.3...HEAD
+[2.8.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.3
+[2.8.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.2
+[2.8.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.1
+[2.8.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.0
+[2.7.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.7.0
+[2.6.6]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.6
+[2.6.5]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.5
+[2.6.4]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.4
+[2.6.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.3
 [2.6.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.2
 [2.6.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.1
 [2.6.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.0
