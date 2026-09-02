@@ -418,6 +418,10 @@ check('contrast floor holds for every theme', () => {
     /* Not a text ratio. A skeleton just has to read as a shape, and at 1.07:1
      * it did not, so a loading page looked like an empty one. */
     checks.push(['loading skeleton', C(p.skeleton, p.canvas), 1.4]);
+    /* Panels are translucent so they blend with the wallpaper. On a light
+     * theme that leaves the border doing all the work of saying where the
+     * panel is. */
+    checks.push(['panel edge', C(p.panelEdge, p.surface), 1.45]);
     checks.push(['callout secondary text', C(p.calloutTextSecondary, p.callout), 4.5]);
     (scene.areaColors || []).forEach(c => {
       checks.push(['scenery ' + c, C(p.textPrimary, c), 7]);

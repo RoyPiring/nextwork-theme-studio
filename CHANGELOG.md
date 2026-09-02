@@ -8,6 +8,20 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.6.1] - 2026-09-01
+
+### Fixed
+- Panels were invisible on the light themes. Measured against the colour each
+  wallpaper fades into, a translucent near-white panel on a near-white sky
+  separates by 1.06 on Mount Fuji and 1.07 on Hawaii Morning, which is to say
+  not at all. The dark themes managed 1.13 to 1.18, weak but present.
+
+  Opacity was the wrong lever: an opaque near-white panel on a near-white sky
+  is still near-white. Panels now carry a solved border and a soft shadow,
+  drawn as a ring so they do not change the size of an element on a page we do
+  not own. The border clears 1.45:1 against the panel on every theme, and the
+  fill stays translucent so the blend is kept.
+
 ## [2.6.0] - 2026-09-01
 
 ### Changed
@@ -496,7 +510,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.6.1...HEAD
+[2.6.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.1
 [2.6.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.0
 [2.5.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.3
 [2.5.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.2

@@ -154,6 +154,18 @@ test('text still clears the floor on a translucent panel over its wallpaper', ()
   }
 });
 
+test('a panel has an edge that separates it from its own surface', () => {
+  /* On a light theme the fill does no work: a translucent near-white panel on
+   * a near-white sky separates by about 1.06, and making it opaque does not
+   * help, because an opaque near-white panel on a near-white sky is still
+   * near-white. The border is what tells a reader where the panel starts. */
+  for (const id of THEMES) {
+    const p = NWT.buildPalette(NWT.getTheme(settings(), id));
+    const r = C(p.panelEdge, p.surface);
+    assert.ok(r >= 1.45, id + ': panel edge is ' + r.toFixed(2) + ':1 against the panel');
+  }
+});
+
 test('toneOf lands on the ratio it was asked for, in both directions', () => {
   const light = '#e8e9e9';
   const dark = '#152a1d';

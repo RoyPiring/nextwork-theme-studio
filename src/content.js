@@ -453,6 +453,13 @@
       el.style.setProperty('background-color', palette.panelFill, 'important');
       el.style.setProperty('backdrop-filter', 'blur(14px)', 'important');
       el.style.setProperty('-webkit-backdrop-filter', 'blur(14px)', 'important');
+      /* The edge as a ring rather than a border, because a border would add to
+       * the element's box and shift the layout of a page we do not own. On a
+       * light theme this ring is the only thing separating the panel from the
+       * wallpaper: the fill alone measures about 1.06 against the sky. */
+      el.style.setProperty('box-shadow',
+        '0 0 0 1px ' + palette.panelEdge + ', 0 12px 32px ' + palette.panelShadow,
+        'important');
     });
   }
 
@@ -491,7 +498,7 @@
    * switching theme left them wearing the *previous* theme, because the stamp
    * made them skip. */
   const RESCUED = ['background-color', 'color', 'border-color',
-                   'backdrop-filter', '-webkit-backdrop-filter'];
+                   'backdrop-filter', '-webkit-backdrop-filter', 'box-shadow'];
 
   function unrescue() {
     let nodes;
@@ -556,7 +563,7 @@
       ? (function () {
           const p = NWT.buildPalette(theme);
           return { surface: p.surfaceAlt, text: p.textPrimary, border: p.border,
-                   panelFill: p.panelFill };
+                   panelFill: p.panelFill, panelEdge: p.panelEdge, panelShadow: p.panelShadow };
         })()
       : null;
 
@@ -570,7 +577,10 @@
     /* Separate from the rescue pass, and not gated on the theme being dark.
      * The transparency this corrects is applied to every theme, and the split
      * view that exposed it was on a light one. */
-    groundPalette = { panelFill: NWT.buildPalette(theme).panelFill };
+    groundPalette = (function () {
+      const gp = NWT.buildPalette(theme);
+      return { panelFill: gp.panelFill, panelEdge: gp.panelEdge, panelShadow: gp.panelShadow };
+    })();
     scheduleGrounds(groundPalette);
   }
 

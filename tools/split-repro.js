@@ -59,6 +59,8 @@ const correction = `
     el.style.setProperty('background-color', ${JSON.stringify(palette.panelFill)}, 'important');
     el.style.setProperty('backdrop-filter', 'blur(14px)', 'important');
     el.style.setProperty('-webkit-backdrop-filter', 'blur(14px)', 'important');
+    el.style.setProperty('box-shadow',
+      '0 0 0 1px ${palette.panelEdge}, 0 12px 32px ${palette.panelShadow}', 'important');
   });
 </script>`;
 

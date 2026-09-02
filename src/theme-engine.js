@@ -616,7 +616,24 @@
      * through, which the measurement does not credit. */
     p.panelAlpha = 0.72;
     p.panelFill = rgba(p.surface, p.panelAlpha);
-    p.panelEdge = rgba(p.textPrimary, 0.10);
+
+    /* A panel also needs an edge, and on a light theme that is the only thing
+     * doing the work. Measured against the colour each wallpaper fades into,
+     * a translucent near-white panel on a near-white sky separates by about
+     * 1.06 - which is to say not at all. Raising the opacity does not help,
+     * because an opaque near-white panel on a near-white sky is still
+     * near-white. What tells a reader where the panel starts is its border.
+     *
+     * Solved rather than picked, so it holds on every palette. */
+    p.panelEdge = (function () {
+      let c = mix(p.border, p.textMuted, 0.3);
+      for (let i = 0; i < 24 && contrastRatio(c, p.surface) < 1.5; i++) {
+        c = mix(c, p.textPrimary, 0.12);
+      }
+      return c;
+    })();
+    p.panelShadow = rgba(lightTheme ? mix(p.textPrimary, '#000000', 0.4) : '#000000',
+                         lightTheme ? 0.10 : 0.30);
     p.calloutText = ensureContrast(p.textPrimary, p.callout, 7);
     p.calloutTextSecondary = ensureContrast(p.textSecondary, p.callout, 4.5);
     return p;
