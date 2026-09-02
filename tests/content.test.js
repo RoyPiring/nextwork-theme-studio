@@ -432,3 +432,76 @@ test('a title over artwork is left alone, in both ways a picture gets there', ()
   assert.ok(onPage.style.getPropertyValue('color'),
     'a heading on the bare page is still measurable and must still be fixed');
 });
+
+test('a bubble in oklab on a gradient pill is corrected, a title over a photo is not', () => {
+  /* Both halves of this were live bugs on the home page, and they pull in
+   * opposite directions, so they are pinned together.
+   *
+   * The suggestion bubbles write their text in oklab, which Tailwind v4 emits
+   * and the canvas round-trip does not resolve: fillStyle takes the string and
+   * hands the same string back, so the parse fails, the colour reads as
+   * unknown and the text is skipped. Measured properly the bubble text is
+   * 1.05:1 against its own pill.
+   *
+   * They also carry a faint gradient for their glassy edge. Treating any
+   * background-image as artwork bailed on them, which is how the first attempt
+   * at protecting the card titles stopped the bubbles being fixed at all. A
+   * gradient is decoration on a surface we can still measure; a url() is a
+   * photograph whose colours we cannot know. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'cherryBlossom' } });
+  env.flush();
+  env.doc.body._computed = { backgroundColor: 'rgb(253, 244, 246)' };
+
+  /* The bubble: oklab text on a pill that paints a gradient. */
+  const pill = env.doc.createElement('button');
+  pill._rect = { left: 100, top: 40, width: 220, height: 44 };
+  pill._computed = {
+    backgroundColor: 'rgb(251, 233, 238)',
+    backgroundImage: 'linear-gradient(to right bottom, rgba(58, 32, 41, 0.07), rgba(0, 0, 0, 0.18))'
+  };
+  env.doc.body.appendChild(pill);
+  const bubble = env.doc.createElement('span');
+  bubble.classList.add('text-brand-50');
+  bubble._rect = { left: 120, top: 50, width: 180, height: 24 };
+  bubble._computed = { color: 'oklab(0.931099 0.020047 -0.00207967 / 0.8)',
+                       backgroundColor: 'rgba(0, 0, 0, 0)' };
+  pill.appendChild(bubble);
+
+  /* The card: a white title over an actual photograph. */
+  const card = env.doc.createElement('a');
+  card._rect = { left: 500, top: 40, width: 240, height: 180 };
+  card._computed = { backgroundColor: 'rgb(255, 255, 255)' };
+  env.doc.body.appendChild(card);
+  const photo = env.doc.createElement('div');
+  photo._rect = { left: 500, top: 40, width: 240, height: 180 };
+  photo._computed = { backgroundImage: 'url("https://nextwork.ai/courses/static/pyramid.webp")' };
+  card.appendChild(photo);
+  const title = env.doc.createElement('h3');
+  title.classList.add('text-white');
+  title._rect = { left: 520, top: 100, width: 200, height: 30 };
+  title._computed = { color: 'rgb(255, 255, 255)', backgroundColor: 'rgba(0, 0, 0, 0)' };
+  card.appendChild(title);
+
+  env.mutate([{ addedNodes: [pill, card] }]);
+  env.flush();
+
+  assert.ok(bubble.style.getPropertyValue('color'),
+    'the bubble text is 1.05:1 against its own pill and must be corrected');
+  assert.strictEqual(title.style.getPropertyValue('color'), '',
+    'a title over a photograph must still be left alone');
+});
+
+test('oklab and oklch are read, since the canvas hands them back unchanged', () => {
+  const env = loadContentScript({ settings: {} });
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'src', 'content.js'), 'utf8');
+  const fromOklab = eval('(' + /function fromOklab\(value\)[\s\S]*?\n  \}/.exec(src)[0] + ')');
+  const rgb = c => { const r = fromOklab(c); return r ? [r.r, r.g, r.b] : null; };
+  assert.deepStrictEqual(rgb('oklch(1 0 0)'), [255, 255, 255], 'white');
+  assert.deepStrictEqual(rgb('oklab(0 0 0)'), [0, 0, 0], 'black');
+  /* The colour the suggestion bubbles actually use. */
+  assert.deepStrictEqual(rgb('oklab(0.931099 0.020047 -0.00207967 / 0.8)'), [244, 227, 233]);
+  assert.strictEqual(fromOklab('oklab(0.931099 0.020047 -0.00207967 / 0.8)').a, 0.8,
+    'the alpha has to survive, or a faint colour reads as solid');
+  assert.strictEqual(fromOklab('rgb(1, 2, 3)'), null, 'anything else is left to the canvas');
+});

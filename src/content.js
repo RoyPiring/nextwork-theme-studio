@@ -382,9 +382,63 @@
     } catch (e) { return null; }
   }
 
+  /* oklab and oklch, which the canvas will not convert for us.
+   *
+   * fillStyle accepts them and hands the same string straight back rather
+   * than resolving it to rgb, so the round-trip above looks like it worked
+   * and the parse below then fails. The colour reads as unknown, and unknown
+   * means the text is skipped - which is why the suggestion bubbles were
+   * never even considered. Tailwind v4 emits these, so this is not an edge
+   * case on a site built with it. */
+  function fromOklab(value) {
+    const m = /^ok(lab|lch)\(\s*([\d.%-]+)[\s,]+([\d.%-]+)[\s,]+([\d.%-]+)\s*(?:[,/]\s*([\d.%]+)\s*)?\)$/i
+      .exec(String(value).trim());
+    if (!m) return null;
+    const num = function (t, scale) {
+      if (t === undefined || t === null) return null;
+      const n = parseFloat(t);
+      if (!isFinite(n)) return null;
+      return /%$/.test(t) ? n / 100 * scale : n;
+    };
+    const Lv = num(m[2], 1);
+    if (Lv === null) return null;
+    let A, B;
+    if (m[1].toLowerCase() === 'lch') {
+      const C = num(m[3], 0.4), H = num(m[4], 360);
+      if (C === null || H === null) return null;
+      A = C * Math.cos(H * Math.PI / 180);
+      B = C * Math.sin(H * Math.PI / 180);
+    } else {
+      A = num(m[3], 0.4); B = num(m[4], 0.4);
+      if (A === null || B === null) return null;
+    }
+    let alpha = m[5] === undefined ? 1 : num(m[5], 1);
+    if (alpha === null) alpha = 1;
+
+    /* Oklab to linear sRGB, then gamma encode. */
+    const l_ = Lv + 0.3963377774 * A + 0.2158037573 * B;
+    const m_ = Lv - 0.1055613458 * A - 0.0638541728 * B;
+    const s_ = Lv - 0.0894841775 * A - 1.2914855480 * B;
+    const l = l_ * l_ * l_, mm = m_ * m_ * m_, ss = s_ * s_ * s_;
+    const lin = [
+       4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * ss,
+      -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * ss,
+      -0.0041960863 * l - 0.7034186147 * mm + 1.7076147010 * ss
+    ];
+    const out = lin.map(function (v) {
+      const e = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+      return Math.max(0, Math.min(255, Math.round(e * 255)));
+    });
+    return { r: out[0], g: out[1], b: out[2], a: alpha };
+  }
+
   function parseColour(value) {
+    const ok = fromOklab(value);
+    if (ok) return ok;
     const norm = normalise(value);
     if (!norm) return null;
+    const ok2 = fromOklab(norm);
+    if (ok2) return ok2;
     let m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(norm);
     if (m) {
       return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16), a: 1 };
@@ -581,6 +635,23 @@
    *
    * Our own wallpaper does not count. It lives on the root, and the palette is
    * already solved against it. */
+  /* A picture, as opposed to any background-image at all.
+   *
+   * The first cut of this treated the two as the same thing and bailed on
+   * anything painted, which turned out to cover the suggestion bubbles: they
+   * carry a faint linear-gradient for their glassy edge, so the correction
+   * decided they were artwork and left them the colour of the page.
+   *
+   * A gradient is decoration on a surface we can still measure. A url() is a
+   * photograph whose colours we cannot know. The project cards are the second
+   * kind - the title sits over a .webp, with a gradient scrim between - so
+   * this keeps them protected while letting the bubbles through. */
+  function isPicture(backgroundImage) {
+    if (!backgroundImage || backgroundImage === 'none') return false;
+    return /(^|[\s,(])(url|image-set|-webkit-image-set|element|paint|cross-fade)\(/i
+      .test(backgroundImage);
+  }
+
   function overArtwork(el) {
     /* Asking what is stacked under this point answers it directly, and only
      * counts a picture that really is under these words rather than one
@@ -609,7 +680,7 @@
         if (node === document.body || node === document.documentElement) break;
         let cs;
         try { cs = getComputedStyle(node); } catch (e) { continue; }
-        if (cs.backgroundImage && cs.backgroundImage !== 'none') return true;
+        if (isPicture(cs.backgroundImage)) return true;
       }
       return false;
     }
@@ -622,7 +693,7 @@
       if (node === document.body || node === document.documentElement) break;
       let cs;
       try { cs = getComputedStyle(node); } catch (e) { return true; }
-      if (cs.backgroundImage && cs.backgroundImage !== 'none') return true;
+      if (isPicture(cs.backgroundImage)) return true;
       node = node.parentElement;
     }
     return false;

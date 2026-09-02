@@ -8,6 +8,23 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.6.6] - 2026-09-02
+
+### Fixed
+
+- The suggestion bubbles on the home page stayed the colour of the pill they
+  sit in. Their text is written in `oklab`, which Tailwind v4 emits and the
+  canvas round-trip does not resolve: `fillStyle` accepts the string and hands
+  the same string straight back, so the parse failed, the colour read as
+  unknown, and the text was skipped rather than measured. Read properly it is
+  1.05:1 against its own pill. `oklab` and `oklch` are now converted directly.
+- A gradient is no longer mistaken for artwork. The guard added in 2.6.5
+  stepped back from any painted background, and the bubbles carry a faint
+  gradient for their glassy edge, so it was skipping them for a reason that
+  did not apply. It now steps back only from an actual picture: a `url()` or
+  an `image-set()`. The project cards are that case, with the title over a
+  `.webp`, so they stay protected.
+
 ## [2.6.5] - 2026-09-02
 
 ### Fixed
