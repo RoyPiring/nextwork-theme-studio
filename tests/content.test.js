@@ -375,3 +375,60 @@ test('text inside a web component is reached too', () => {
   assert.strictEqual(label.style.getPropertyValue('color'), '',
     'turning the theme off must clear the colour inside the component too');
 });
+
+test('a title over artwork is left alone, in both ways a picture gets there', () => {
+  /* The project cards are a dark painting inside a pale card, with a white
+   * title over the painting. effectiveBackground can only read a background
+   * colour, so it reads the pale card, calls the white title unreadable and
+   * turns it black - onto the dark half of the artwork. That takes a title
+   * that was perfectly readable and makes it unreadable, which is worse than
+   * the problem this pass exists to solve.
+   *
+   * There is no measuring out of it: the colour that can be read is not the
+   * colour the reader sees. So text over a picture is left alone. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'palmForest' } });
+  env.flush();
+  env.doc.body._computed = { backgroundColor: 'rgb(240, 245, 238)' };
+
+  const card = (left, useImgElement) => {
+    const box = env.doc.createElement('div');
+    box._rect = { left: left, top: 0, width: 240, height: 180 };
+    box._computed = { backgroundColor: 'rgb(255, 255, 255)' };
+    env.doc.body.appendChild(box);
+    if (useImgElement) {
+      /* The picture as an <img> stacked behind the words. */
+      const art = env.doc.createElement('img');
+      art._rect = { left: left, top: 0, width: 240, height: 180 };
+      box.appendChild(art);
+    } else {
+      /* The picture as a CSS background on the card itself. */
+      box._computed.backgroundImage = 'url("data:image/webp;base64,AA")';
+    }
+    const title = env.doc.createElement('h3');
+    title.classList.add('text-white');
+    title._computed = { color: 'rgb(255, 255, 255)', backgroundColor: 'rgba(0, 0, 0, 0)' };
+    title._rect = { left: left + 20, top: 60, width: 200, height: 30 };
+    box.appendChild(title);
+    return title;
+  };
+
+  const overImg = card(0, true);
+  const overBackground = card(300, false);
+
+  /* And a heading on the bare page, which is the case that must still work. */
+  const onPage = env.doc.createElement('h1');
+  onPage.classList.add('text-white');
+  onPage._computed = { color: 'rgb(255, 255, 255)', backgroundColor: 'rgba(0, 0, 0, 0)' };
+  onPage._rect = { left: 0, top: 400, width: 600, height: 40 };
+  env.doc.body.appendChild(onPage);
+
+  env.mutate([{ addedNodes: [overImg, overBackground, onPage] }]);
+  env.flush();
+
+  assert.strictEqual(overImg.style.getPropertyValue('color'), '',
+    'a title over an <img> must keep the colour that was chosen for the artwork');
+  assert.strictEqual(overBackground.style.getPropertyValue('color'), '',
+    'a title over a background picture must be left alone too');
+  assert.ok(onPage.style.getPropertyValue('color'),
+    'a heading on the bare page is still measurable and must still be fixed');
+});

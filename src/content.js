@@ -566,6 +566,67 @@
     return false;
   }
 
+  /* Text sitting over a picture.
+   *
+   * effectiveBackground can only read a background *colour*, and a project
+   * card is a dark painting inside a pale card. Measuring the title against
+   * the card says white-on-white, so a white title that was perfectly
+   * readable gets turned black and lands on the dark half of the artwork.
+   * That is a readable title made unreadable, which is worse than the thing
+   * this pass exists to fix.
+   *
+   * There is no measuring our way out of it: the colour we can read is not
+   * the colour the reader sees. So the rule is to leave it alone. Bailing
+   * costs a bit of pale text somewhere; guessing costs a title.
+   *
+   * Our own wallpaper does not count. It lives on the root, and the palette is
+   * already solved against it. */
+  function overArtwork(el) {
+    /* Asking what is stacked under this point answers it directly, and only
+     * counts a picture that really is under these words rather than one
+     * elsewhere on the page. Ancestors contain the point too, so a card
+     * painting its art as a background shows up here the same as one using an
+     * <img>, and so does art that is positioned behind the text without being
+     * an ancestor at all. */
+    const scope = (el.getRootNode && typeof el.getRootNode().elementsFromPoint === 'function')
+      ? el.getRootNode() : document;
+    if (typeof scope.elementsFromPoint === 'function') {
+      let rect;
+      try { rect = el.getBoundingClientRect(); } catch (e) { return true; }
+      if (!rect || !rect.width || !rect.height) return true;    /* not laid out yet */
+      let stack;
+      try { stack = scope.elementsFromPoint(rect.left + rect.width / 2,
+                                            rect.top + rect.height / 2); }
+      catch (e) { return true; }
+      if (!stack || !stack.length) return true;                 /* off screen */
+      for (let i = 0; i < stack.length; i++) {
+        const node = stack[i];
+        if (node === el || (el.contains && el.contains(node))) continue;
+        const tag = node.tagName;
+        if (tag === 'IMG' || tag === 'PICTURE' || tag === 'VIDEO' || tag === 'CANVAS') return true;
+        /* Our own wallpaper lives on the root and the palette is already
+         * solved against it, so stop before we reach it. */
+        if (node === document.body || node === document.documentElement) break;
+        let cs;
+        try { cs = getComputedStyle(node); } catch (e) { continue; }
+        if (cs.backgroundImage && cs.backgroundImage !== 'none') return true;
+      }
+      return false;
+    }
+
+    /* No way to ask, so fall back to walking up. Less precise: a decorative
+     * gradient on some far ancestor will stop us correcting text it is
+     * nowhere near. That is the safe direction to be wrong in. */
+    let node = el, hops = 0;
+    while (node && hops++ < 12) {
+      if (node === document.body || node === document.documentElement) break;
+      let cs;
+      try { cs = getComputedStyle(node); } catch (e) { return true; }
+      if (cs.backgroundImage && cs.backgroundImage !== 'none') return true;
+      node = node.parentElement;
+    }
+    return false;
+  }
   function rescueInvisibleText(palette) {
     const work = [];
     eachRoot(function (root) {
@@ -576,6 +637,7 @@
       const el = nodes[i];
       if (looksDisabled(el)) continue;
       if (el.dataset.nwtInk === '1') continue;
+      if (overArtwork(el)) continue;
       let cs;
       try { cs = getComputedStyle(el); } catch (e) { continue; }
       const ink = parseColour(cs.color);

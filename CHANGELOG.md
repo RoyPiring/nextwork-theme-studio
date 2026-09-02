@@ -8,6 +8,24 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.6.5] - 2026-09-02
+
+### Fixed
+
+- Project card titles turned black on the light themes and disappeared into
+  their own artwork. The titles are white text over a dark painting inside a
+  pale card, and the correction added in 2.6.3 can only read a background
+  colour: it read the pale card, decided a white title was unreadable, and
+  darkened it onto the dark half of the picture. A readable title was made
+  unreadable, which is worse than the problem the correction exists to solve.
+- Text over a picture is now left alone. There is no measuring this case,
+  because the colour that can be read is not the colour the reader sees, so
+  the correction now asks what is stacked underneath the words and steps back
+  whenever the answer is artwork. It catches art painted as a background, art
+  placed as an `<img>`, and art positioned behind text it does not contain.
+  The extension's own wallpaper does not count, since the palette is already
+  solved against it.
+
 ## [2.6.4] - 2026-09-02
 
 ### Fixed

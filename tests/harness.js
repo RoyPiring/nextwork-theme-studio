@@ -72,6 +72,16 @@ class FakeElement {
     if (i >= 0) this.parentNode.children.splice(i, 1);
     this.parentNode = null;
   }
+  contains(node) {
+    let n = node;
+    while (n) { if (n === this) return true; n = n.parentNode; }
+    return false;
+  }
+  getRootNode() {
+    let n = this;
+    while (n.parentNode) n = n.parentNode;
+    return n.ownerDocument || n;
+  }
   setAttribute(k, v) { this.attributes[k] = String(v); }
   getAttribute(k) { return k in this.attributes ? this.attributes[k] : null; }
   removeAttribute(k) { delete this.attributes[k]; }
@@ -165,6 +175,22 @@ class FakeDocument {
     return found;
   }
   querySelectorAll(sel) { return this.documentElement.querySelectorAll(sel); }
+  /* What is stacked under a point, deepest first. The content script asks this
+   * to find out whether a picture sits behind some text, which is not a thing
+   * a background colour can tell it. */
+  elementsFromPoint(x, y) {
+    const hits = [];
+    (function walk(node, depth) {
+      node.children.forEach(function (c) {
+        const r = c._rect;
+        if (r && x >= r.left && x <= r.left + r.width &&
+                 y >= r.top && y <= r.top + r.height) hits.push({ el: c, depth: depth });
+        walk(c, depth + 1);
+      });
+    })(this.documentElement, 0);
+    hits.sort(function (a, b) { return b.depth - a.depth; });
+    return hits.map(function (h) { return h.el; });
+  }
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
 }
 
