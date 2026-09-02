@@ -8,6 +8,20 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.8.1] - 2026-09-02
+
+### Changed
+
+- New extension icon: the pineapple in sunglasses who walks through every
+  wallpaper, rather than the light and dark split circle, which said nothing
+  about this extension in particular.
+- The icon is drawn by `tools/make-icon.py` so it can be regenerated. Detail
+  is dropped as the icon shrinks rather than scaled down into mud: the crown
+  goes at 32px and the lattice at 16px, where only the silhouette is left.
+  The mark now has no tile behind it, which buys back the fifth of the width
+  that a rounded square was spending on margin, and at 16px that is the
+  difference between having fronds and not.
+
 ## [2.8.0] - 2026-09-02
 
 ### Added
