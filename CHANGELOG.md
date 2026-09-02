@@ -8,6 +8,26 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.6.4] - 2026-09-02
+
+### Fixed
+
+- The suggestion chips and the composer on the home page stayed the colour of
+  the page on light themes, even though the heading beside them was corrected.
+  They are `nw-*` web components, and both a document stylesheet and
+  `querySelectorAll` stop at a shadow boundary, so everything inside them was
+  out of reach. The correction now reaches into the shadow roots the extension
+  already knows about, and so does the undo that runs when the theme is
+  switched off.
+- Placeholder text is now held to a readability floor. It is the only thing
+  telling a reader what a field is for, so it counts as content; the site's own
+  stops were picked for a dark page and land near 2.5:1 on a light one. It
+  still reads quieter than body text.
+- Text that is dim because a control is switched off is now identified by
+  asking the DOM rather than by inferring it from a low contrast ratio. The
+  ratio could not tell a disabled label from a suggestion chip, because they
+  measure about the same and only one of them is content.
+
 ## [2.6.3] - 2026-09-02
 
 ### Fixed

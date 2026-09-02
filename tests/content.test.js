@@ -316,14 +316,62 @@ test('pale text is repointed by readability, in whichever direction the backgrou
   assert.ok(lum(ink(dark)) > 0.5,
     'text on a dark card needs light ink, got ' + ink(dark));
 
-  /* Text the site dims on purpose. It measures 2.48:1 on this theme, which is
-   * low, and low is the point: a disabled control is supposed to look
-   * disabled. Raising the floor to the WCAG 4.5 would swallow this case and
-   * light every dimmed label back up. */
-  const dimmed = make('span', 'text-gray-400',
+  /* Text a control dims because it is switched off. A disabled button is
+   * supposed to look disabled, so this keeps its dimming. The first cut told
+   * it apart from real content by sitting the trigger under the ratio such
+   * text lands at, which does not work: a suggestion chip measures about the
+   * same as a disabled label, and one of them is content. The DOM already
+   * states which is which, so it gets asked. */
+  const off = make('span', 'text-gray-400',
     { color: 'rgb(185, 151, 126)', backgroundColor: CREAM });
-  env.mutate([{ addedNodes: [dimmed] }]);
+  off.setAttribute('disabled', '');
+  /* The same colour on a chip that is not disabled: a real suggestion the
+   * reader is meant to be able to read. */
+  const chip = make('span', 'text-gray-400',
+    { color: 'rgb(185, 151, 126)', backgroundColor: CREAM });
+  env.mutate([{ addedNodes: [off, chip] }]);
   env.flush();
-  assert.strictEqual(ink(dimmed), '',
-    'deliberately dimmed text is readable enough and must keep its dimming');
+
+  assert.strictEqual(ink(off), '',
+    'a disabled control must keep its dimming');
+  assert.ok(ink(chip),
+    'an enabled chip at the same colour is content and must be readable');
+});
+
+test('text inside a web component is reached too', () => {
+  /* The suggestion chips and the composer on the home page are nw-* custom
+   * elements. A document stylesheet stops at a shadow boundary and so does
+   * querySelectorAll, so the welcome heading beside them could be corrected
+   * while everything inside them stayed the colour of the page. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'mountFuji' } });
+  env.flush();
+
+  const CANVAS = 'rgb(242, 245, 250)';
+  env.doc.body._computed = { backgroundColor: CANVAS };
+
+  /* A component with an open shadow root, which is how the site ships them. */
+  const host = env.doc.createElement('nw-suggestion');
+  host._computed = { backgroundColor: CANVAS };
+  env.doc.body.appendChild(host);
+  const root = env.doc.createElement('#shadow-root');
+  root.host = host;
+  host.shadowRoot = root;
+
+  const label = env.doc.createElement('span');
+  label.classList.add('text-brand-50');
+  label._computed = { color: 'rgb(255, 255, 255)', backgroundColor: CANVAS };
+  root.appendChild(label);
+
+  env.mutate([{ addedNodes: [host] }]);
+  env.flush();
+
+  assert.ok(label.style.getPropertyValue('color'),
+    'text inside a shadow root was left the colour of the page');
+
+  /* And the undo has to get back in there, or switching the theme off leaves
+   * an inline !important colour behind with no stylesheet to match it. */
+  env.chrome.storage.local.set({ enabled: false });
+  env.flush();
+  assert.strictEqual(label.style.getPropertyValue('color'), '',
+    'turning the theme off must clear the colour inside the component too');
 });

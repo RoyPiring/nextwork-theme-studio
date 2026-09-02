@@ -634,6 +634,16 @@
     })();
     p.panelShadow = rgba(lightTheme ? mix(p.textPrimary, '#000000', 0.4) : '#000000',
                          lightTheme ? 0.10 : 0.30);
+    /* Placeholder text is content: it is the only thing telling a reader what
+     * a field is for, and a composer that says nothing is a composer nobody
+     * types into. The site's own placeholder stops were chosen against a dark
+     * page and land near 2.5:1 on a light one, and even our muted tone drifts
+     * under the floor on the cooler palettes. It should still read as quieter
+     * than body text, which at 4.5 against 13-and-up it comfortably does.
+     *
+     * Disabled keeps its dimming and is deliberately not routed through here:
+     * a control that is switched off is supposed to look switched off. */
+    p.placeholder = ensureContrast(p.textMuted, p.surface, 4.5);
     p.calloutText = ensureContrast(p.textPrimary, p.callout, 7);
     p.calloutTextSecondary = ensureContrast(p.textSecondary, p.callout, 4.5);
     return p;
@@ -739,6 +749,7 @@
     L.push('  --nwt-text: ' + p.textPrimary + ';');
     L.push('  --nwt-text-secondary: ' + p.textSecondary + ';');
     L.push('  --nwt-text-muted: ' + p.textMuted + ';');
+    L.push('  --nwt-placeholder: ' + p.placeholder + ';');
     L.push('  --nwt-accent: ' + p.accent + ';');
     L.push('  --nwt-accent-text: ' + p.accentText + ';');
 
@@ -829,8 +840,8 @@
       'text-quaternary': p.textMuted,
       'text-quaternary_on-brand': p.textMuted,
       'text-disabled': midGray,
-      'text-placeholder': p.textMuted,
-      'text-placeholder_subtle': midGray,
+      'text-placeholder': p.placeholder,
+      'text-placeholder_subtle': p.placeholder,
       'text-brand-primary': p.textPrimary,
       'text-brand-secondary': p.textPrimary,
       'text-brand-secondary_hover': p.textPrimary,
@@ -967,7 +978,7 @@
     L.push(CALLOUT + ' p, ' + CALLOUT + ' li, ' + CALLOUT + ' span { color: ' + p.calloutTextSecondary + '; }');
 
     L.push('input, textarea, select { background-color: var(--nwt-surface-alt); color: var(--nwt-text); border-color: var(--nwt-border); }');
-    L.push('::placeholder { color: var(--nwt-text-muted); }');
+    L.push('::placeholder { color: var(--nwt-placeholder); }');
 
     /* --- foreground fix-ups ----------------------------------------------
      * These tokens mean "background" above, so their text-* utilities have to

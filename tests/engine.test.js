@@ -264,3 +264,20 @@ test('the focus timer keeps counting past zero', () => {
   assert.ok(NWT.focusRemaining(over) < 0, 'an overrun should read negative, not clamp to zero');
   assert.ok(NWT.formatDuration(NWT.focusRemaining(over)).length > 0);
 });
+
+test('placeholder text is readable on every theme', () => {
+  /* A placeholder is the only thing telling a reader what a field is for, so
+   * it is content, not decoration. The site's own stops were chosen against a
+   * dark page and land near 2.5:1 on a light one; the composer on the home
+   * page was the visible symptom. Nothing else can correct this, because
+   * ::placeholder is a pseudo-element and no inline style reaches it. */
+  Object.keys(NWT.PRESETS).forEach(id => {
+    const p = NWT.buildPalette(NWT.getTheme({ themeId: id }, id));
+    const onSurface = C(p.placeholder, p.surface);
+    assert.ok(onSurface >= 4.5,
+      id + ': placeholder is ' + onSurface.toFixed(2) + ':1 on its field');
+    /* And still quieter than body text, or it is not a placeholder. */
+    assert.ok(C(p.textPrimary, p.surface) > onSurface,
+      id + ': placeholder should read quieter than body text');
+  });
+});

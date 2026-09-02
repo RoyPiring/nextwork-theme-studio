@@ -100,8 +100,37 @@
    * are done turns the re-sweep after every mutation into a cheap walk. */
   const adoptedRoots = new WeakSet();
 
+  /* The same roots again, in something we can iterate.
+   *
+   * A document stylesheet stops at a shadow boundary and so does
+   * querySelectorAll, which is why the welcome heading could be corrected and
+   * the suggestion chips next to it could not: the chips are nw-* components,
+   * and everything inside them was out of reach. adopt() already sees every
+   * root we discover, so keeping a list here costs nothing.
+   *
+   * WeakRef where it exists, so a component that unmounts can be collected
+   * rather than pinned by this list for the life of the page. */
+  const RootRef = typeof WeakRef === 'function' ? WeakRef : null;
+  const knownRoots = [];
+
+  /* Run fn over the document and every live shadow root, compacting away the
+   * ones whose host has since been removed. */
+  function eachRoot(fn) {
+    fn(document);
+    let live = 0;
+    for (let i = 0; i < knownRoots.length; i++) {
+      const root = RootRef ? knownRoots[i].deref() : knownRoots[i];
+      if (!root) continue;
+      if (root.host && root.host.isConnected === false) continue;
+      knownRoots[live++] = knownRoots[i];
+      try { fn(root); } catch (e) { /* one bad root must not stop the rest */ }
+    }
+    knownRoots.length = live;
+  }
+
   function adopt(root, sheet) {
     if (adoptedRoots.has(root)) return;
+    knownRoots.push(RootRef ? new RootRef(root) : root);
     try {
       const current = root.adoptedStyleSheets || [];
       if (current.indexOf(sheet) === -1) root.adoptedStyleSheets = current.concat(sheet);
@@ -520,13 +549,32 @@
     '[class*="text-sand-"]', 'h1', 'h2', 'h3'
   ].join(', ');
 
+  /* Text a control dims because it is switched off. This was previously
+   * approximated by keeping the trigger below the ratio such text tends to
+   * land at, which also let genuinely unreadable content through: the
+   * suggestion chips measure about the same as a disabled label, and one of
+   * them is content and the other is not. The DOM says which is which. */
+  function looksDisabled(el) {
+    let node = el, hops = 0;
+    while (node && hops++ < 12) {
+      if (node.getAttribute) {
+        if (node.getAttribute('disabled') !== null) return true;
+        if (node.getAttribute('aria-disabled') === 'true') return true;
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+
   function rescueInvisibleText(palette) {
-    let nodes;
-    try { nodes = document.querySelectorAll(INK_SELECTOR); }
-    catch (e) { return; }
     const work = [];
+    eachRoot(function (root) {
+    let nodes;
+    try { nodes = root.querySelectorAll(INK_SELECTOR); }
+    catch (e) { return; }
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
+      if (looksDisabled(el)) continue;
       if (el.dataset.nwtInk === '1') continue;
       let cs;
       try { cs = getComputedStyle(el); } catch (e) { continue; }
@@ -542,8 +590,10 @@
        * standard: the pale ramp stops land at 1.00 to 1.60 against a light
        * canvas, while text that is meant to read as de-emphasised sits nearer
        * 2.5. Repointing that too would make every disabled control look
-       * enabled, which trades one visual bug for another. */
-      if (ratio(ink, behind) >= 2.2) continue;
+       * enabled, which trades one visual bug for another. Disabled is asked
+       * of the DOM rather than guessed from the ratio, so the floor here can
+       * be the real readability one. */
+      if (ratio(ink, behind) >= 4.5) continue;
       /* Pick whichever of the two candidates the background can actually
        * carry, so this is right on a dark card as well as a light page. */
       const dark = parseColour(palette.ink);
@@ -553,6 +603,7 @@
         : palette.ink;
       work.push({ el: el, colour: pick });
     }
+    });
     work.forEach(function (w) {
       w.el.dataset.nwtInk = '1';
       w.el.style.setProperty('color', w.colour, 'important');
@@ -597,8 +648,9 @@
                    'backdrop-filter', '-webkit-backdrop-filter', 'box-shadow'];
 
   function unrescue() {
+    eachRoot(function (root) {
     let nodes;
-    try { nodes = document.querySelectorAll('[data-nwt-lit], [data-nwt-ground], [data-nwt-ink]'); }
+    try { nodes = root.querySelectorAll('[data-nwt-lit], [data-nwt-ground], [data-nwt-ink]'); }
     catch (e) { return; }
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
@@ -612,6 +664,7 @@
         el.removeAttribute('data-nwt-ink');
       }
     }
+    });
   }
 
   let groundPalette = null;
