@@ -103,6 +103,7 @@ of 7:1 where the text sits.
 | [Architecture](docs/ARCHITECTURE.md) | How the recolouring works |
 | [Decisions](docs/DECISIONS.md) | Choices that are hard to reverse |
 | [Browser support](docs/BROWSERS.md) | Differences between browsers |
+| [Code review](docs/maintenance/CODE_REVIEW.md) | How changes get merged |
 | [Development](docs/maintenance/DEVELOPMENT.md) | Running tests and tools |
 | [Releasing](docs/maintenance/RELEASING.md) | Cutting a version |
 | [Regenerating assets](docs/maintenance/ASSETS.md) | Wallpapers, scenery, icon |
