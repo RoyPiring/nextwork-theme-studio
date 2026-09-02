@@ -89,16 +89,6 @@ const MAX_DIFF = 120000;        /* beyond this nobody has read the whole thing *
 function redact(text) {
   let t = String(text == null ? '' : text);
 
-  const home = os.homedir();
-  if (home && home.length > 3) t = t.split(home).join('~');
-
-  let user = '';
-  try { user = (os.userInfo().username || ''); } catch (e) { /* not available */ }
-  if (user.length > 2) {
-    t = t.split(user).join('[user]');
-    t = t.split(user.toLowerCase()).join('[user]');
-  }
-
   /* Absolute paths in any shape, whether or not they sit under the home
    * directory. Order matters: file:// URLs first, because the drive rule
    * below would otherwise eat the tail and leave a bare "file:///" behind.
@@ -115,6 +105,24 @@ function redact(text) {
   const tmp = os.tmpdir();
   if (tmp && tmp.length > 3) t = t.split(tmp).join('[path]');
   t = t.replace(/\/var\/folders\/[^\s"'`,)\]]+/g, '[path]');
+
+  /* The home directory and account name last, and only for bare mentions
+   * left over after whole paths have gone.
+   *
+   * Doing it first was a leak. The path rules stop at "]", so once the name
+   * inside a path had become "[user]" the match ended there: with the account
+   * name "roy", "/home/roy/.aws/credentials" came out as
+   * "[path]]/.aws/credentials" and published the tail. Paths are removed
+   * whole first; whatever mentions the name outside a path is handled here. */
+  const home = os.homedir();
+  if (home && home.length > 3) t = t.split(home).join('[path]');
+
+  let user = '';
+  try { user = (os.userInfo().username || ''); } catch (e) { /* not available */ }
+  if (user.length > 2) {
+    t = t.split(user).join('[user]');
+    t = t.split(user.toLowerCase()).join('[user]');
+  }
 
   /* Stack frames are all path and no finding. Matched narrowly: a frame is
    * "at name (somewhere)" or "at somewhere:12:3", not any line that happens

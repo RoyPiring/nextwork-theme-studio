@@ -228,3 +228,27 @@ test('the directory the reviewers run in is not published', () => {
   const out = redact('failed to start in ' + os.tmpdir() + '/nwt-review-ab12cd');
   assert.ok(!out.includes(os.tmpdir()), 'the scratch directory leaked: ' + out);
 });
+
+test('a path containing the account name is removed whole, tail and all', () => {
+  /* The account name used to be replaced before the path rules ran. Those
+   * rules stop at "]", so once the name inside a path had become "[user]" the
+   * match ended there and the rest of the path was published:
+   * "/home/roy/.aws/credentials" came out as "[path]]/.aws/credentials". */
+  const os = require('node:os');
+  const user = os.userInfo().username;
+  const B = String.fromCharCode(92);
+
+  [
+    'opened /home/' + user + '/.aws/credentials now',
+    'in ' + os.homedir() + '/secrets/key.pem here',
+    'see C:' + B + 'Users' + B + user + B + '.ssh' + B + 'id_rsa ok',
+    'cwd was ' + os.tmpdir() + '/nwt-review-ab12'
+  ].forEach(input => {
+    const out = redact(input);
+    assert.ok(!out.includes('.aws'), 'a path tail leaked: ' + out);
+    assert.ok(!out.includes('secrets'), 'a path tail leaked: ' + out);
+    assert.ok(!out.includes('id_rsa'), 'a path tail leaked: ' + out);
+    assert.ok(!out.includes('nwt-review'), 'a path tail leaked: ' + out);
+    if (user.length > 2) assert.ok(!out.includes(user), 'the account name leaked: ' + out);
+  });
+});
