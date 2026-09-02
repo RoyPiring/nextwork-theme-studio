@@ -8,6 +8,19 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.5.3] - 2026-09-01
+
+### Fixed
+- Cards let the wallpaper through. The step list on a project page is the same
+  class as the page ground, with nothing positioned above it, so the check
+  added in 2.5.2 walked straight past it and left it transparent. The mountain
+  showed through the middle of the list.
+
+  What separates a card from the ground is that a card is inset. The test is
+  now three ways to be a panel, any one of which is enough: something
+  positioned sits above it, it is nested inside another element wearing the
+  same class, or it is narrower than the page.
+
 ## [2.5.2] - 2026-09-01
 
 ### Fixed
@@ -467,7 +480,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.5.2...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.5.3...HEAD
+[2.5.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.3
 [2.5.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.2
 [2.5.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.1
 [2.5.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.0

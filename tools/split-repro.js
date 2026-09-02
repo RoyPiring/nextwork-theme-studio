@@ -40,17 +40,22 @@ const css = NWT.buildCSS(settings);
  * between it and the body is a panel stacked over something, not the ground. */
 const correction = `
 <script>
-  function isStacked(el) {
-    let node = el, hops = 0;
+  var GROUND = '.bg-paper, .bg-brand-primary';
+  function isPanel(el) {
+    var node = el.parentElement, hops = 0;
     while (node && node !== document.body && hops < 40) {
-      const pos = getComputedStyle(node).position;
+      var pos = getComputedStyle(node).position;
       if (pos === 'fixed' || pos === 'absolute' || pos === 'sticky') return true;
+      if (node.matches && node.matches(GROUND)) return true;
       node = node.parentElement; hops++;
     }
+    var page = document.documentElement.clientWidth;
+    var w = el.getBoundingClientRect().width;
+    if (page > 0 && w > 0 && w < page * 0.92) return true;
     return false;
   }
-  document.querySelectorAll('.bg-paper, .bg-brand-primary').forEach(function (el) {
-    if (isStacked(el)) el.style.setProperty('background-color', ${JSON.stringify(palette.canvas)}, 'important');
+  document.querySelectorAll(GROUND).forEach(function (el) {
+    if (isPanel(el)) el.style.setProperty('background-color', ${JSON.stringify(palette.canvas)}, 'important');
   });
 </script>`;
 
@@ -72,6 +77,16 @@ const page = `<!doctype html><meta charset="utf-8"><title>Split view: ${themeId}
 <div class="bg-paper" id="ground">
   <div class="col">
     <h1>Build a Stage-Gate Lifecycle Tracker</h1>
+
+    <!-- An inset card that is also .bg-paper, with nothing positioned above
+         it. This is the second shape of the same bug: it is a panel, but the
+         positioned-ancestor test does not see it, so it stayed transparent and
+         the wallpaper showed through the step list. -->
+    <div class="bg-paper" id="card" style="border-radius:14px;padding:18px;margin:22px 0">
+      <div>Step #0: Before We Start</div>
+      <div>Step #1: Start the Local Control Plane</div>
+      <div>Step #2: Freeze the Contract</div>
+    </div>
     <div class="steps">
       Secret Mission: Present the Two-Audience Walkthrough<br>
       Before you go: Clean Up Your Resources<br>

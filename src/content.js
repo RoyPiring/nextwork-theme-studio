@@ -394,28 +394,55 @@
    * The stylesheet decides by class name, which is all CSS can do, and the
    * pane carried none of the ones it looks for. Here we can measure instead: a
    * panel is anything with a positioned ancestor between it and the body. */
-  function isStacked(el) {
-    let node = el;
+  const GROUND_SELECTOR = '.bg-paper, .bg-brand-primary';
+
+  /* Is this a panel, or is it the page ground?
+   *
+   * The stylesheet strips the background off anything matching GROUND_SELECTOR
+   * so the wallpaper can show through the page. Exactly one thing on the page
+   * wants that. Everything else wearing the same class is a card or a pane,
+   * and stripping its background lets the wallpaper show through the middle of
+   * a component - a step list with a mountain behind the text.
+   *
+   * Three ways to be a panel, and any one of them is enough:
+   *
+   *   1. Something positioned sits between it and the body. That is a pane laid
+   *      over the page, like the documentation in a split view.
+   *   2. It is inside another element wearing the same class. The ground does
+   *      not contain the ground.
+   *   3. It is narrower than the page. The ground spans the window; a card is
+   *      inset, and that is the shape the first two tests missed.
+   */
+  function isPanel(el) {
+    let node = el.parentElement;
     let hops = 0;
     while (node && node !== document.body && hops < 40) {
       let pos;
-      try { pos = getComputedStyle(node).position; } catch (e) { return false; }
+      try { pos = getComputedStyle(node).position; } catch (e) { break; }
       if (pos === 'fixed' || pos === 'absolute' || pos === 'sticky') return true;
+      try { if (node.matches && node.matches(GROUND_SELECTOR)) return true; }
+      catch (e) { /* older engines */ }
       node = node.parentElement;
       hops++;
     }
+    try {
+      const page = document.documentElement.clientWidth;
+      const w = el.getBoundingClientRect().width;
+      /* Inset by more than a scrollbar's worth on each side. */
+      if (page > 0 && w > 0 && w < page * 0.92) return true;
+    } catch (e) { /* fall through */ }
     return false;
   }
 
-  function restoreStackedGrounds(palette) {
+  function restorePanelBackgrounds(palette) {
     let nodes;
-    try { nodes = document.querySelectorAll('.bg-paper, .bg-brand-primary'); }
+    try { nodes = document.querySelectorAll(GROUND_SELECTOR); }
     catch (e) { return; }
     const work = [];
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
       if (el.dataset.nwtGround === '1') continue;
-      if (!isStacked(el)) continue;
+      if (!isPanel(el)) continue;
       work.push(el);
     }
     work.forEach(function (el) {
@@ -484,7 +511,7 @@
     groundQueued = true;
     setTimeout(function () {
       groundQueued = false;
-      try { restoreStackedGrounds(palette); } catch (e) { /* never break the page */ }
+      try { restorePanelBackgrounds(palette); } catch (e) { /* never break the page */ }
     }, 200);
   }
 

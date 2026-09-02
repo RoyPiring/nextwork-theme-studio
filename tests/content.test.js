@@ -176,9 +176,10 @@ test('a stacked pane keeps its background instead of showing the page behind', (
   const env = loadContentScript({ settings: { enabled: true, themeId: 'cherryBlossom' } });
   env.flush();
 
-  /* The real page ground: .bg-paper with nothing positioned above it. */
+  /* The real page ground: .bg-paper, full width, nothing positioned above it. */
   const ground = env.doc.createElement('div');
   ground.classList.add('bg-paper');
+  ground._rect = { left: 0, top: 0, width: 1440, height: 2000 };
   env.doc.body.appendChild(ground);
 
   /* A pane stacked over it, carrying no positioning class of its own. */
@@ -187,6 +188,7 @@ test('a stacked pane keeps its background instead of showing the page behind', (
   env.doc.body.appendChild(shell);
   const pane = env.doc.createElement('div');
   pane.classList.add('bg-paper');
+  pane._rect = { left: 720, top: 0, width: 720, height: 900 };
   shell.appendChild(pane);
 
   env.mutate([{ addedNodes: [ground, shell] }]);
@@ -196,4 +198,31 @@ test('a stacked pane keeps its background instead of showing the page behind', (
     'a pane inside a positioned ancestor should keep a background');
   assert.strictEqual(ground.style.getPropertyValue('background-color'), '',
     'the real page ground should stay transparent so the scenery shows');
+});
+
+test('an inset card keeps its background, the full-width ground does not', () => {
+  /* The second shape of the same bug. A step list is .bg-paper with nothing
+   * positioned above it, so the positioned-ancestor test walked past it and it
+   * stayed transparent, putting the wallpaper behind the text inside a
+   * component. What separates it from the real ground is that it is inset. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'mountFuji' } });
+  env.flush();
+
+  const ground = env.doc.createElement('div');
+  ground.classList.add('bg-paper');
+  ground._rect = { left: 0, top: 0, width: 1440, height: 2000 };
+  env.doc.body.appendChild(ground);
+
+  const card = env.doc.createElement('div');
+  card.classList.add('bg-paper');
+  card._rect = { left: 400, top: 200, width: 640, height: 300 };
+  env.doc.body.appendChild(card);
+
+  env.mutate([{ addedNodes: [ground, card] }]);
+  env.flush();
+
+  assert.ok(card.style.getPropertyValue('background-color'),
+    'an inset card should keep a background');
+  assert.strictEqual(ground.style.getPropertyValue('background-color'), '',
+    'the full-width ground should stay transparent so the wallpaper shows');
 });

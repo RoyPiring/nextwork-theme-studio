@@ -138,6 +138,8 @@ class FakeElement {
 class FakeDocument {
   constructor() {
     this.documentElement = new FakeElement('html', this);
+    /* The panel test compares an element's width against the page width. */
+    this.documentElement.clientWidth = 1440;
     this.head = new FakeElement('head', this);
     this.body = new FakeElement('body', this);
     this.documentElement.appendChild(this.head);
