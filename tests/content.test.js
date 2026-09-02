@@ -226,3 +226,35 @@ test('an inset card keeps its background, the full-width ground does not', () =>
   assert.strictEqual(ground.style.getPropertyValue('background-color'), '',
     'the full-width ground should stay transparent so the wallpaper shows');
 });
+
+test('white text on a light theme is repointed, but only where it sits on light', () => {
+  /* NextWork's home page is dark by design, so its hero is written as white
+   * text. The stylesheet leaves --color-white alone on purpose, because
+   * text-white is also used on dark cards. On a light theme that means the
+   * page goes pale, the heading stays white, and it disappears. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'hawaiiMorning' } });
+  env.flush();
+
+  /* The page itself is light, which is the whole premise. */
+  env.doc.body._computed = { backgroundColor: 'rgb(253, 244, 236)' };
+
+  /* A hero heading on the light page ground. */
+  const hero = env.doc.createElement('h1');
+  hero.classList.add('text-white');
+  hero._computed = { color: 'rgb(255, 255, 255)', backgroundColor: 'rgba(0, 0, 0, 0)' };
+  env.doc.body.appendChild(hero);
+
+  /* White text on a genuinely dark button. This must not be touched. */
+  const button = env.doc.createElement('button');
+  button.classList.add('text-white');
+  button._computed = { color: 'rgb(255, 255, 255)', backgroundColor: 'rgb(24, 24, 27)' };
+  env.doc.body.appendChild(button);
+
+  env.mutate([{ addedNodes: [hero, button] }]);
+  env.flush();
+
+  assert.ok(hero.style.getPropertyValue('color'),
+    'white text on a light background should be repointed');
+  assert.strictEqual(button.style.getPropertyValue('color'), '',
+    'white text on a dark button is correct and must be left alone');
+});

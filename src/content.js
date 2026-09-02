@@ -463,6 +463,55 @@
     });
   }
 
+  /* The background an element is actually read against: its own if it paints
+   * one, otherwise the nearest ancestor that does. */
+  function effectiveBackground(el) {
+    let node = el;
+    let hops = 0;
+    while (node && hops < 40) {
+      let bg;
+      try { bg = getComputedStyle(node).backgroundColor; } catch (e) { return null; }
+      const c = parseColour(bg);
+      if (c && c.a >= 0.5) return bg;
+      node = node.parentElement;
+      hops++;
+    }
+    return null;
+  }
+
+  /* White text on a light theme.
+   *
+   * NextWork's home page is dark by design, so its hero and its suggestion
+   * chips are written as white text. The stylesheet deliberately leaves
+   * --color-white alone, because `text-white` is also used on dark cards where
+   * remapping it would erase it. That is the right call on a dark theme and
+   * exactly wrong on a light one: the page ground turns pale, the text stays
+   * white, and the welcome heading disappears into it.
+   *
+   * CSS cannot tell the two cases apart, so this measures. White text keeps
+   * being white wherever it sits on something dark; only the copies that ended
+   * up on a light background are repointed. */
+  function rescueInvisibleText(palette) {
+    let nodes;
+    try { nodes = document.querySelectorAll('[class*="text-white"]'); }
+    catch (e) { return; }
+    const work = [];
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      if (el.dataset.nwtInk === '1') continue;
+      let cs;
+      try { cs = getComputedStyle(el); } catch (e) { continue; }
+      if (!isLight(cs.color)) continue;            /* not light text, leave it */
+      const behind = effectiveBackground(el);
+      if (behind && !isLight(behind)) continue;    /* light on dark is correct */
+      work.push(el);
+    }
+    work.forEach(function (el) {
+      el.dataset.nwtInk = '1';
+      el.style.setProperty('color', palette.ink, 'important');
+    });
+  }
+
   function rescueLightPanels(palette) {
     /* span and li are gone from this list: nothing 220x90 is a span, and they
      * were most of the nodes being measured. */
@@ -502,16 +551,18 @@
 
   function unrescue() {
     let nodes;
-    try { nodes = document.querySelectorAll('[data-nwt-lit], [data-nwt-ground]'); }
+    try { nodes = document.querySelectorAll('[data-nwt-lit], [data-nwt-ground], [data-nwt-ink]'); }
     catch (e) { return; }
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
       RESCUED.forEach(function (prop) { el.style.removeProperty(prop); });
       delete el.dataset.nwtLit;
       delete el.dataset.nwtGround;
+      delete el.dataset.nwtInk;
       if (el.removeAttribute) {
         el.removeAttribute('data-nwt-lit');
         el.removeAttribute('data-nwt-ground');
+        el.removeAttribute('data-nwt-ink');
       }
     }
   }
@@ -533,7 +584,12 @@
     rescueQueued = true;
     setTimeout(function () {
       rescueQueued = false;
-      try { rescueLightPanels(palette); } catch (e) { /* never break the page */ }
+      try {
+        if (palette.panels) rescueLightPanels(palette);
+      } catch (e) { /* never break the page */ }
+      try {
+        if (palette.ink) rescueInvisibleText(palette);
+      } catch (e) { /* never break the page */ }
     }, 220);
   }
 
@@ -559,11 +615,21 @@
     renderHud(s);
 
     const theme = NWT.getTheme(s);
-    const wanted = (theme.mode !== 'light' && s.options && s.options.rescuePanels !== false)
+    /* One palette, one scheduler, one undo, whichever pass is wanted.
+     *
+     * A dark theme needs light panels repainted; a light theme needs white
+     * text repointed. Those are the same problem seen from either side. Giving
+     * the light one its own schedule meant it never re-ran on a mutation,
+     * because the observer only fires the pass when a palette is set. */
+    const wanted = (s.options && s.options.rescuePanels !== false)
       ? (function () {
           const p = NWT.buildPalette(theme);
-          return { surface: p.surfaceAlt, text: p.textPrimary, border: p.border,
-                   panelFill: p.panelFill, panelEdge: p.panelEdge, panelShadow: p.panelShadow };
+          const base = { surface: p.surfaceAlt, text: p.textPrimary, border: p.border,
+                         panelFill: p.panelFill, panelEdge: p.panelEdge,
+                         panelShadow: p.panelShadow };
+          if (theme.mode === 'light') base.ink = p.textPrimary;
+          else base.panels = true;
+          return base;
         })()
       : null;
 

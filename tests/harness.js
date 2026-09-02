@@ -122,6 +122,11 @@ class FakeElement {
     if (sel === '*') return all;
     const parts = sel.split(',').map(s => s.trim()).filter(Boolean);
     const match = (el, part) => {
+      if (part.startsWith('[class*=')) {
+        const want = part.slice(part.indexOf('"') + 1, part.lastIndexOf('"'));
+        return (el.className || '').toString().indexOf(want) !== -1 ||
+               [...el.classList.set].some(c => c.indexOf(want) !== -1);
+      }
       if (part.startsWith('[') && part.endsWith(']')) {
         const key = part.slice(1, -1).replace(/^data-/, '')
           .replace(/-(\w)/g, (_, c) => c.toUpperCase());

@@ -8,6 +8,23 @@ Versioning is [semver](https://semver.org/); the `version` field in
 it predates that and was never released; those entries are kept because they
 record why several non-obvious parts of the code look the way they do.
 
+## [2.6.2] - 2026-09-01
+
+### Fixed
+- White text vanished on the light themes. The NextWork home page is dark by
+  design, so its welcome heading and its suggestion chips are written as white
+  text. The stylesheet leaves --color-white alone on purpose, because the same
+  class is used on dark cards where remapping it would erase the text there.
+  That is right on a dark theme and exactly wrong on a light one: the page
+  turns pale and the heading stays white.
+
+  CSS cannot tell the two cases apart, so the runtime measures instead. White
+  text keeps being white wherever it sits on something dark; only the copies
+  that ended up on a light background are repointed.
+- The light and dark corrections now share one palette, one scheduler and one
+  undo. Giving the light one its own schedule meant it ran once at render and
+  never again, because the observer only fires the pass when a palette is set.
+
 ## [2.6.1] - 2026-09-01
 
 ### Fixed
@@ -510,7 +527,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.6.1...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.6.2...HEAD
+[2.6.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.2
 [2.6.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.1
 [2.6.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.6.0
 [2.5.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.5.3
