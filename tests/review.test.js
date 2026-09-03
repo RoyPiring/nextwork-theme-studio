@@ -305,3 +305,63 @@ test('an unindented citation with a parenthetical is kept', () => {
   assert.match(out, /the mix runs before the clamp/);
   assert.ok(!out.includes('88:3'), 'an indented frame survived: ' + out);
 });
+
+/* ------------------------------------------------------------ running them */
+
+const { startReviewer } = require('../tools/review-pr.js');
+
+/* A reviewer is a name and a command, so a test can supply its own. These run
+ * node rather than the real CLIs: what is being checked is the running, not
+ * the reviewing. */
+function fake(name, script) {
+  return { name: name, cmd: process.execPath, args: ['-e', script] };
+}
+
+test('the reviewers run at the same time, not one after the other', async () => {
+  /* Run in turn, a review took as long as both put together, and the wait grew
+   * with the diff until it was long enough to discourage asking. */
+  /* Single quotes inside: an argument carrying a double quote is refused
+   * outright on Windows, which is the quoting guard doing its job. */
+  const sleep = "setTimeout(() => console.log('VERDICT: PASS'), 700)";
+  const started = Date.now();
+  const both = await Promise.all([
+    startReviewer(fake('A', sleep), ''),
+    startReviewer(fake('B', sleep), '')
+  ]);
+  const elapsed = Date.now() - started;
+
+  both.forEach((r, i) => {
+    assert.equal(r.status, 0, 'reviewer ' + i + ' did not exit cleanly');
+    assert.match(r.stdout, /VERDICT: PASS/);
+  });
+  assert.ok(elapsed < 1300,
+    'two 700ms reviewers took ' + elapsed + 'ms, which is one after the other');
+});
+
+test('what a reviewer is given arrives on its stdin', async () => {
+  /* The prompt carries a diff, which is far past the command-line limit on
+   * Windows, so it never goes in as an argument. */
+  const echo = "let s='';process.stdin.on('data',d=>s+=d)" +
+               ".on('end',()=>console.log('got:'+s.length))";
+  const run = await startReviewer(fake('A', echo), 'x'.repeat(5000));
+  assert.match(run.stdout, /got:5000/);
+});
+
+test('a reviewer that is not installed blocks rather than throwing', async () => {
+  /* How it comes back differs by platform: without a shell the spawn itself
+   * errors, and under one the shell runs, says it cannot find the command and
+   * exits non-zero. Both have to block, and it is the blocking that matters. */
+  const run = await startReviewer(
+    { name: 'Missing', cmd: 'definitely-not-a-real-command-xyz', args: [] }, '');
+  assert.ok(run.error || run.status !== 0,
+    'a missing command should not look like a clean run');
+  assert.equal(verdictFromRun(run).verdict, 'BLOCK');
+});
+
+test('a reviewer that exits non-zero keeps what it printed', async () => {
+  const run = await startReviewer(
+    fake('A', "console.log('VERDICT: PASS');process.exit(3)"), '');
+  assert.equal(run.status, 3);
+  assert.equal(verdictFromRun(run).verdict, 'BLOCK',
+    'a run that failed part way through is not a pass');
+});

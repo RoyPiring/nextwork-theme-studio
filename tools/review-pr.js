@@ -41,7 +41,7 @@
  */
 'use strict';
 
-const { execFileSync, spawnSync } = require('node:child_process');
+const { execFileSync, spawn } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -319,19 +319,68 @@ function scratchDir() {
   return dir;
 }
 
-function runReviewer(reviewer, text) {
+/* One reviewer, run to completion, as the object verdictFromRun reads.
+ *
+ * Started rather than waited on, so the reviewers can run at the same time.
+ * They have nothing to say to each other: each gets the same diff, works in a
+ * scratch directory of its own, and reaches its own verdict. Run one after the
+ * other, a review took as long as both of them put together, and the wait grew
+ * with the diff until it was long enough to discourage asking. */
+function startReviewer(reviewer, text) {
   const useShell = process.platform === 'win32';
   const args = useShell ? reviewer.args.map(shellArg) : reviewer.args;
+  /* The command is quoted too, not only its arguments. Under a shell the whole
+   * line is one string, so a command whose path contains a space is split at
+   * it and the first word run as the program. The reviewers are named plainly
+   * enough that this never showed, which is exactly how it would have waited
+   * for the one that is not. */
+  const cmd = useShell ? shellArg(reviewer.cmd) : reviewer.cmd;
   const cwd = scratchDir();
-  try {
-    return verdictFromRun(spawnSync(reviewer.cmd, args, {
-      cwd: cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
-      shell: useShell,
-      input: text                   /* the prompt, never on the command line */
-    }));
-  } finally {
-    try { fs.rmSync(cwd, { recursive: true, force: true }); } catch (e) { /* leave it */ }
-  }
+
+  return new Promise(function (resolve) {
+    let child;
+    try {
+      child = spawn(cmd, args, {
+        cwd: cwd, shell: useShell, stdio: ['pipe', 'pipe', 'pipe']
+      });
+    } catch (error) {
+      cleanUp(cwd);
+      resolve({ error: error });
+      return;
+    }
+
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const finish = run => {
+      if (settled) return;
+      settled = true;
+      cleanUp(cwd);
+      resolve(run);
+    };
+
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', d => { stdout += d; });
+    child.stderr.on('data', d => { stderr += d; });
+
+    /* A command that is not installed fails here rather than exiting. */
+    child.on('error', error => finish({ error: error }));
+    child.on('close', code => finish({ status: code, stdout: stdout, stderr: stderr }));
+
+    /* The prompt goes in on stdin, never on the command line. A broken pipe
+     * here is the child having already gone; its exit says what happened. */
+    child.stdin.on('error', () => {});
+    child.stdin.end(text);
+  });
+}
+
+function cleanUp(dir) {
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
+}
+
+function runReviewer(reviewer, text) {
+  return startReviewer(reviewer, text).then(verdictFromRun);
 }
 
 function comment(pr, head, reviewer, result, dryRun) {
@@ -422,7 +471,7 @@ function selfIsTrusted() {
   }
 }
 
-function main() {
+async function main() {
   const argv = process.argv.slice(2);
   const dryRun = argv.includes('--dry-run');
   const selfModified = argv.includes('--reviewing-this-script');
@@ -504,14 +553,29 @@ function main() {
   console.log('head ' + head.slice(0, 9) + ' · ' + diff.length +
               ' characters of diff · ' + REVIEWERS.length + ' reviewers\n');
 
+  /* Both at once, and each says so as it lands, so a long wait still shows
+   * progress. */
+  console.log('  running ' + REVIEWERS.map(r => r.name + ' (' + r.cmd + ')').join(' and ') +
+              ', together...\n');
+  const started = Date.now();
+
+  const done = await Promise.all(REVIEWERS.map(function (reviewer) {
+    return runReviewer(reviewer, text).then(function (result) {
+      console.log('  ' + reviewer.name + ' finished after ' +
+                  Math.round((Date.now() - started) / 1000) + 's: ' + result.verdict);
+      return result;
+    });
+  }));
+
+  /* Printed and posted in the order the reviewers are declared, whichever
+   * finished first, so two runs of the same review read the same. */
   const results = [];
-  REVIEWERS.forEach(function (reviewer) {
-    console.log('  running ' + reviewer.name + ' (' + reviewer.cmd + ')...');
-    const result = runReviewer(reviewer, text);
-    console.log('  ' + reviewer.name + ': ' + result.verdict);
+  REVIEWERS.forEach(function (reviewer, i) {
+    const result = done[i];
     /* The whole review, here, where it is not published. The comment on the
      * pull request is a short public note; this is the thing to act on. */
     console.log('\n' + '-'.repeat(70));
+    console.log(reviewer.name);
     console.log(result.output.trim());
     if (result.stderr) console.log('\n[stderr]\n' + result.stderr);
     console.log('-'.repeat(70) + '\n');
@@ -562,6 +626,11 @@ function main() {
   console.log('who reads the findings and merges if satisfied.');
 }
 
-module.exports = { parseVerdict, verdictFromRun, redact };
+module.exports = { parseVerdict, verdictFromRun, redact, startReviewer };
 
-if (require.main === module) main();
+if (require.main === module) {
+  main().catch(function (e) {
+    console.error(String((e && e.message) || e));
+    process.exit(2);
+  });
+}
