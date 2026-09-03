@@ -94,15 +94,12 @@
    * tools/audit.js enforces it - because reusing a silhouette is what made
    * eighteen themes feel like three.
    *
-   *   HAZE  faintest, for glows
-   *   FAR   the slow plane, always hazed further
-   *   NEAR  the front plane, the most present thing on screen
+   * Each scene asks for its own tone against body text, and asks for a quiet
+   * one. The named distances that used to sit here belonged to the drawn
+   * planes, which every theme replaced with a photograph; scenery still has to
+   * lose an argument with the paragraph in front of it, and the audit's
+   * contrast floor is what holds it to that.
    */
-  /* Contrast targets. These are distances from body text, so a HIGHER number
-   * is a QUIETER shape. NEAR used to sit at 7.3 - right on the floor - which
-   * made every scene as loud as the guarantee permits. Scenery has to lose
-   * an argument with the paragraph in front of it. */
-  const HAZE = 11.2, FAR = 9.6, NEAR = 8.4;
 
   /* ---- drifting motifs -------------------------------------------------
    * One per theme, and each is the thing that belongs in that picture rather
