@@ -16,7 +16,27 @@ function codeOnly(body) {
   return body
     .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
     .split('\n')
-    .map(line => line.replace(/\/\/.*$/, ''));
+    .map(withoutLineComment);
+}
+
+/* The line with any trailing // comment removed.
+ *
+ * Cutting at the first // took the tail off every line holding a URL, since
+ * one contains "//" of its own. The checks that look for a remote address
+ * then saw "var s = 'https:" and found nothing - in a string being the one
+ * place a remote address would actually be written.
+ *
+ * A // only begins a comment when the quotes before it are closed. Where they
+ * are not, it is inside a string and the line is kept whole. */
+function withoutLineComment(line) {
+  for (let i = 0; i + 1 < line.length; i++) {
+    if (line[i] !== '/' || line[i + 1] !== '/') continue;
+    const before = line.slice(0, i);
+    if (["'", '"', '`'].every(q => (before.split(q).length - 1) % 2 === 0)) {
+      return before;
+    }
+  }
+  return line;
 }
 
 /* Whether what comes before a keyword on its own line leaves it standing as a
@@ -153,7 +173,10 @@ function isText(bytes) {
 function importsOnlyLocalFiles(line) {
   const call = /^\s*importScripts\(([^()]*)\)\s*;?\s*$/.exec(line);
   if (!call) return false;
-  const args = call[1].split(',').map(a => a.trim()).filter(Boolean);
+  const args = call[1].split(',').map(a => a.trim());
+  /* A trailing comma is allowed in a call, so one empty at the end is fine.
+   * Dropping every empty instead would have accepted a gap anywhere. */
+  if (args.length > 1 && args[args.length - 1] === '') args.pop();
   return args.length > 0 && args.every(a => /^'[\w.-]+\.js'$/.test(a));
 }
 

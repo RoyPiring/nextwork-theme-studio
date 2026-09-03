@@ -305,3 +305,29 @@ test('a file that is not valid UTF-8 is not text', () => {
   assert.equal(isText(Buffer.from('café — ok\n', 'utf8')), true,
     'ordinary accented text should still read as text');
 });
+
+test('a URL in a string survives comment stripping', () => {
+  /* Cutting at the first // took the tail off every line holding a URL, and
+   * the checks looking for a remote address then saw "var s = 'https:" and
+   * found nothing - in a string being the one place one would be written. */
+  const line = "  var s = 'https://example.com/x' + d;";
+  assert.equal(codeOnly(line)[0], line, 'the URL was cut at its own slashes');
+  assert.match(codeOnly(line)[0], /https?:\/\//,
+    'a check looking for a remote address could not see it');
+});
+
+test('a real trailing comment is still removed', () => {
+  assert.equal(codeOnly('  code(); // a note')[0], '  code(); ');
+  assert.equal(codeOnly("  var s = 'a'; // a note")[0], "  var s = 'a'; ");
+  assert.equal(codeOnly('  // leading')[0], '  ');
+  assert.equal(codeOnly("  // don't")[0], '  ',
+    'an apostrophe inside a comment should not keep the comment');
+});
+
+test('a gap between importScripts arguments is not a filename', () => {
+  /* A trailing comma is allowed in a call; a gap anywhere else is not code,
+   * and dropping every empty would have accepted one. */
+  assert.equal(importsOnlyLocalFiles("importScripts('a.js',);"), true);
+  assert.equal(importsOnlyLocalFiles("importScripts('a.js',,);"), false);
+  assert.equal(importsOnlyLocalFiles("importScripts(,'a.js');"), false);
+});

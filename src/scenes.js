@@ -83,14 +83,6 @@
       "</radialGradient></defs><rect width='1400' height='900' fill='url(#" + id + ")'/>");
   }
 
-  /* ========================================================================
-   * SIGNATURE MOTIFS
-   *
-   * One motif belongs to exactly one theme. Sharing a shape across themes is
-   * what made the set feel like variations of a single wallpaper, so
-   * tools/audit.js now fails if two scenes declare the same motif.
-   * ======================================================================*/
-
   /* ----------------------------------------------------------------- scenes */
   /* Each scene is a function of the palette, so it recolours with the theme.
    *
@@ -409,11 +401,10 @@
       "</radialGradient></defs>" + out);
   }
 
-  /* Every theme now has a painted wallpaper as its fixed backdrop, and the two
-   * parallax bands carry the motion over the top: mist along the floor on the
-   * slow one, dust in the air on the faster one. The picture does not move, so
-   * without those two it reads as a desktop background someone pasted behind
-   * the text.
+  /* Every theme has a painted wallpaper as its fixed backdrop, and one
+   * drifting band carries the motion over the top - fog, stars, petals or
+   * whatever suits the picture. The wallpaper does not move, so without that
+   * band it reads as a desktop background someone pasted behind the text.
    *
    * `motifs` used to name the silhouette a generated scene drew, and existed so
    * no two scenes could reuse one. Each theme now has its own photograph, so
