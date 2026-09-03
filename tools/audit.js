@@ -471,7 +471,10 @@ check('shipped code runs in strict mode', () => {
     if (!code.length) return true;                 /* nothing to leak */
     /* The outermost wrapper may open first; the directive is then the first
      * statement of its body. Anything else before the directive is code. */
-    const start = /^[!+~-]?\s*\(?\s*function\b[^{]*\{?\s*$/.test(code[0]) ? 1 : 0;
+    /* An opening parenthesis is required. Without it this matched a plain
+     * `function helper() {` declaration, so a file whose first function was
+     * strict could still run sloppy code after it and pass. */
+    const start = /^[!+~-]?\s*\(\s*function\b/.test(code[0]) ? 1 : 0;
     return /^['"]use strict['"]\s*;?$/.test(code[start] || '');
   }
 
