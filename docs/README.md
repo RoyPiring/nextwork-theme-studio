@@ -30,5 +30,6 @@ the extension. Everything here is the longer version.
 ## Contributing
 
 [CONTRIBUTING.md](../CONTRIBUTING.md) covers how to add a theme and what the
-checks expect. [SECURITY.md](../SECURITY.md) covers what the extension can and
+checks expect. [SUPPORT.md](../SUPPORT.md) covers where to ask and what to
+include in a report. [SECURITY.md](../SECURITY.md) covers what the extension can and
 cannot do.

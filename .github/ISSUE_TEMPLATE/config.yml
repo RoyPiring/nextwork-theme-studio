@@ -3,6 +3,9 @@ contact_links:
   - name: Question about how it works
     url: https://github.com/RoyPiring/nextwork-theme-studio/discussions
     about: Ask here rather than opening an issue.
+  - name: Where to get help
+    url: https://github.com/RoyPiring/nextwork-theme-studio/blob/main/SUPPORT.md
+    about: What to check first, and what to include in a report.
   - name: Security concern
     url: https://github.com/RoyPiring/nextwork-theme-studio/security/policy
     about: How to report something sensitive.
