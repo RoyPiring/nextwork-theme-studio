@@ -1,6 +1,13 @@
 /* A small DOM and extension-API stand-in, so src/content.js can be loaded and
  * driven in a test.
  *
+ * One limitation worth knowing. The sandbox is given the host's Object, Array,
+ * RegExp and friends, and then vm.createContext runs the source in a new
+ * realm. A literal created inside that realm is not an instanceof the host
+ * constructor of the same name. Nothing here relies on cross-realm
+ * instanceof, and the code under test does not use it, but a test that starts
+ * to would fail for a reason that has nothing to do with the code.
+ *
  * This is not a browser. It implements the handful of things the content
  * script actually touches, and nothing else, which keeps it short enough to
  * read and to trust. Anything the script starts using that is missing here

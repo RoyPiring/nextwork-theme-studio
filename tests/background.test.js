@@ -128,6 +128,16 @@ test('the badge is painted at startup, before anything changes', () => {
     'the badge was not painted when the browser started');
 });
 
+test('a fresh install gets the default theme by name', () => {
+  /* Every other install test supplies a theme id, so removing the default
+   * would leave a fresh install with no theme and still pass them. */
+  const env = loadBackground({ settings: {} });
+  env.install();
+  env.flush();
+  assert.strictEqual(env.stored.themeId, 'concrete',
+    'a fresh install did not get the default theme');
+});
+
 test('seeding keeps what the user already chose', () => {
   const env = loadBackground({ settings: { themeId: 'tokyoNight', enabled: false } });
   env.install();
