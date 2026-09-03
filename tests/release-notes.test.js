@@ -99,3 +99,64 @@ test('a heading shown inside a fenced example is not mistaken for one', () => {
   assert.match(notesFor(doc, '3.0.0'), /the real 3\.0\.0 note/,
     'the section was cut short at its own example');
 });
+
+test('a heading inside a fence is not mistaken for one', () => {
+  /* A fence can hold a line shaped exactly like a heading, indented or not.
+   * A changelog that shows the reader how an entry is written contains one. */
+  const doc = [
+    '# Changelog',
+    '',
+    '## [3.0.0]',
+    'An entry is written like this:',
+    '',
+    '```',
+    '## [2.0.0]',
+    '```',
+    '',
+    '- the real 3.0.0 note',
+    '',
+    '## [2.0.0]',
+    '- the real 2.0.0 note',
+    '',
+    '[3.0.0]: https://example.com/3',
+    '[2.0.0]: https://example.com/2'
+  ].join('\n');
+  assert.equal(notesFor(doc, '2.0.0'), '- the real 2.0.0 note',
+    'it started at the example instead of the heading');
+  assert.match(notesFor(doc, '3.0.0'), /the real 3\.0\.0 note/,
+    'the section was cut short at its own example');
+  assert.match(notesFor(doc, '3.0.0'), /## \[2\.0\.0\]/,
+    'the example was dropped from the section that shows it');
+});
+
+test('a tilde fence counts as a fence', () => {
+  const doc = [
+    '## [1.0.0]',
+    '~~~',
+    '## [0.9.0]',
+    '~~~',
+    '- the real 1.0.0 note',
+    '',
+    '## [0.9.0]',
+    '- the real 0.9.0 note'
+  ].join('\n');
+  assert.equal(notesFor(doc, '0.9.0'), '- the real 0.9.0 note');
+});
+
+test('a fenced link definition at the end is content, not the link list', () => {
+  /* The walk back from the end of the file stops at a fence, so an example
+   * showing how the links are written stays part of the section. */
+  const doc = [
+    '## [1.0.0]',
+    '- the real 1.0.0 note',
+    '',
+    'The links go at the bottom:',
+    '',
+    '```',
+    '[1.0.0]: https://example.com/1',
+    '```'
+  ].join('\n');
+  const notes = notesFor(doc, '1.0.0');
+  assert.match(notes, /the real 1\.0\.0 note/);
+  assert.match(notes, /\[1\.0\.0\]: https/, 'the fenced example was cut off');
+});

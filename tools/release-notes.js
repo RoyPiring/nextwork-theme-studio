@@ -21,19 +21,37 @@ function notesFor(changelog, version) {
   const want = String(version).replace(/^v/, '');
   const lines = changelog.split(/\r?\n/);
 
+  /* Which lines sit inside a fenced block.
+   *
+   * A fence can hold anything, including a line shaped exactly like a heading
+   * or a link definition, and none of it is markup. A changelog that shows the
+   * reader how an entry is written contains exactly that. */
+  const fenced = lines.map(() => false);
+  let fence = null;
+  lines.forEach((line, i) => {
+    const rail = /^\s{0,3}(```+|~~~+)/.exec(line);
+    if (fence) {
+      fenced[i] = true;             /* the closing rail belongs to it too */
+      if (rail && rail[1][0] === fence[0] && rail[1].length >= fence.length) {
+        fence = null;
+      }
+    } else if (rail) {
+      fence = rail[1];
+      fenced[i] = true;
+    }
+  });
+
   /* Compared as a string, not compiled into a pattern. The version arrives
    * from the command line, and escaping only the dots left every other
    * metacharacter to be interpreted: a version containing one would either
    * match the wrong section or throw. A heading has a fixed shape, so there
    * was nothing here that needed a regular expression.
    *
-   * Matched at column 0 and not trimmed first. A heading cannot be indented,
-   * but a fenced example inside an earlier section can contain a line that
-   * looks like one, and trimming would let that example end the search at the
-   * wrong place. This is the same anchor the loop below uses to find the next
-   * heading. */
+   * Matched at column 0 and not trimmed. A heading cannot be indented, so an
+   * indented line that reads like one is example text, and a line inside a
+   * fence is not markup at all. */
   const wanted = '## [' + want + ']';
-  const start = lines.findIndex(l => l.indexOf(wanted) === 0);
+  const start = lines.findIndex((l, i) => !fenced[i] && l.indexOf(wanted) === 0);
   if (start === -1) return null;
 
   /* Up to the next version heading, or the link list at the bottom.
@@ -44,6 +62,7 @@ function notesFor(changelog, version) {
    * first of those as the end would cut the notes short. */
   let linkList = lines.length;
   for (let i = lines.length - 1; i >= 0; i--) {
+    if (fenced[i]) break;
     const line = lines[i].trim();
     if (line === '') continue;
     if (/^\[[^\]]+\]:\s*\S+$/.test(line)) { linkList = i; continue; }
@@ -52,7 +71,7 @@ function notesFor(changelog, version) {
 
   let end = linkList;
   for (let i = start + 1; i < end; i++) {
-    if (/^## \[/.test(lines[i])) { end = i; break; }
+    if (!fenced[i] && /^## \[/.test(lines[i])) { end = i; break; }
   }
   return lines.slice(start + 1, end).join('\n').trim();
 }

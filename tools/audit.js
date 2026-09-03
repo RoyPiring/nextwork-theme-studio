@@ -141,9 +141,15 @@ const toolFiles = jsUnder(path.join(ROOT, 'tools'));
 /* Strip comments before scanning, rather than skipping any line that starts
  * with one. The old test skipped the whole line, so `/* *\/ fetch(url)` was
  * invisible, and a trailing `// see fetch()` produced a false failure. */
+/* Comments removed, and nothing else moved.
+ *
+ * A block comment becomes blank space of the same shape rather than one
+ * space, so a comment spanning several lines does not pull everything below
+ * it upwards. Checks report the line they found something on, and those
+ * numbers have to match the file the reader is about to open. */
 function codeOnly(body) {
   return body
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
     .split('\n')
     .map(line => line.replace(/\/\/.*$/, ''));
 }
@@ -504,28 +510,34 @@ check('no function is declared twice in the same file', () => {
    * survivor, which is luck rather than design. */
   const clashes = [];
   srcFiles.forEach(f => {
+    /* Read as one string rather than line by line. A declaration can be
+     * written with its name on the following line, and two of those would
+     * each look like half a declaration to a scan that stopped at the
+     * newline. Several on one line are found for the same reason.
+     *
+     * Statement position only, which leaves the name in a function
+     * expression such as "x = function name()" alone: that name binds
+     * inside the function rather than beside its neighbours. */
+    const code = codeOnly(fs.readFileSync(f, 'utf8')).join('\n');
+    const decl = /(^|[{};])\s*function\s+([A-Za-z_]\w*)\s*\(/gm;
     const seen = {};
-    codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
-      /* Every declaration on the line, not only the first. Two on one line
-       * is unusual, but a rule a second copy can hide from is not a rule.
-       * Statement position only, so the name in a function expression such
-       * as "x = function name()" is left alone: that name binds inside the
-       * function rather than beside its neighbours. */
-      const decl = /(^|[{};])\s*function\s+([A-Za-z_]\w*)\s*\(/g;
-      let m;
-      while ((m = decl.exec(line)) !== null) {
-        const name = m[2];
-        if (seen[name]) {
-          clashes.push(rel(f) + ': ' + name +
-            ' at lines ' + seen[name] + ' and ' + (i + 1));
-        } else {
-          seen[name] = i + 1;
-        }
-        /* Step back one: the delimiter this match consumed may be the one
-         * the next match needs. */
-        decl.lastIndex = m.index + m[0].length - 1;
+    let m;
+    while ((m = decl.exec(code)) !== null) {
+      const name = m[2];
+      /* The line the name is on, which is not always where the match
+       * started: it may have begun at a delimiter on an earlier line. */
+      const start = m.index + m[0].lastIndexOf(name);
+      const line = code.slice(0, start).split('\n').length;
+      if (seen[name]) {
+        clashes.push(rel(f) + ': ' + name +
+          ' at lines ' + seen[name] + ' and ' + line);
+      } else {
+        seen[name] = line;
       }
-    });
+      /* Back one: the delimiter this match consumed may be the one the
+       * next match needs. */
+      decl.lastIndex = m.index + m[0].length - 1;
+    }
   });
   if (clashes.length) fail('\n    ' + clashes.join('\n    '));
   return srcFiles.length + ' files';
