@@ -140,9 +140,6 @@ function jsUnder(dir) {
 const srcFiles = jsUnder(path.join(ROOT, 'src'));
 const toolFiles = jsUnder(path.join(ROOT, 'tools'));
 
-/* Strip comments before scanning, rather than skipping any line that starts
- * with one. The old test skipped the whole line, so `/* *\/ fetch(url)` was
- * invisible, and a trailing `// see fetch()` produced a false failure. */
 check('all JavaScript parses', () => {
   srcFiles.concat(toolFiles).forEach(f => {
     try {
@@ -151,6 +148,29 @@ check('all JavaScript parses', () => {
       fail(rel(f) + ': ' + String(e.stderr).split('\n')[0]);
     }
   });
+  return srcFiles.length + toolFiles.length + ' files';
+});
+
+/* A source file has to be readable as text, and parsing is not enough to say
+ * it is: a NUL byte inside a comment or a string parses perfectly well, and
+ * git then reports the whole file as "Binary files differ". A file that cannot
+ * be shown in a diff cannot be reviewed, which is the one thing every other
+ * check here depends on. */
+check('every source file is text', () => {
+  const bad = [];
+  srcFiles.concat(toolFiles).forEach(f => {
+    const bytes = fs.readFileSync(f);
+    if (bytes.includes(0)) {
+      bad.push(rel(f) + ': has a NUL byte, so a diff shows it as binary');
+      return;
+    }
+    try {
+      new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (e) {
+      bad.push(rel(f) + ': is not valid UTF-8');
+    }
+  });
+  if (bad.length) fail('\n    ' + bad.join('\n    '));
   return srcFiles.length + toolFiles.length + ' files';
 });
 
@@ -482,7 +502,7 @@ check('shipped code runs in strict mode', () => {
   return srcFiles.length + ' files';
 });
 
-check('no function is declared twice in the same file', () => {
+check('no function is declared twice in the same scope', () => {
   /* A second declaration of the same name silently replaces the first, and
    * every call then reaches whichever came last regardless of what it was
    * written against. Two pairs had accumulated this way, each with different

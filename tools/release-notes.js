@@ -40,9 +40,12 @@ function notesFor(changelog, version) {
           /^\s*$/.test(rail[2])) {
         fence = null;
       }
-    } else if (rail) {
-      /* An opening rail may be followed by a language, so its tail is not
-       * checked here. */
+    } else if (rail && !(rail[1][0] === '`' && rail[2].indexOf('`') !== -1)) {
+      /* An opening rail may be followed by a language, so its tail is mostly
+       * free. A backtick rail is the exception: its tail may not contain a
+       * backtick, because otherwise an ordinary sentence carrying an inline
+       * code span would open a block that never closes, and every heading
+       * below it would be read as example text. */
       fence = rail[1];
       fenced[i] = true;
     }

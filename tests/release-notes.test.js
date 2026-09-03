@@ -159,3 +159,36 @@ test('a fenced link definition at the end is content, not the link list', () => 
   assert.match(notes, /the real 1\.0\.0 note/);
   assert.match(notes, /\[1\.0\.0\]: https/, 'the fenced example was cut off');
 });
+
+test('a version carrying pattern characters matches nothing', () => {
+  /* The version arrives from the command line. Compiled into a pattern with
+   * only the dots escaped, every other metacharacter stayed live: these either
+   * selected the wrong section or threw. */
+  const doc = [
+    '## [2.9.0]',
+    '- the real note',
+    '',
+    '[2.9.0]: https://example.com/1'
+  ].join('\n');
+  assert.equal(notesFor(doc, '2.9.0'), '- the real note', 'the ordinary case broke');
+  ['.*', '2.9.0]|(', '.', '2.9.0)', '[2.9.0]', '2!9!0', '^'].forEach(v => {
+    assert.doesNotThrow(() => notesFor(doc, v), 'threw on ' + JSON.stringify(v));
+    assert.equal(notesFor(doc, v), null, JSON.stringify(v) + ' matched a section');
+  });
+});
+
+test('an inline code span does not open a fence', () => {
+  /* Three backticks only open a block when nothing on the line closes them.
+   * Treating a sentence with a code span in it as a fence would swallow every
+   * heading below it, and the whole changelog would go missing. */
+  const doc = [
+    '## [2.0.0]',
+    '```build``` is now ``` on its own line',
+    '- the real 2.0.0 note',
+    '',
+    '## [1.0.0]',
+    '- the real 1.0.0 note'
+  ].join('\n');
+  assert.equal(notesFor(doc, '1.0.0'), '- the real 1.0.0 note',
+    'a code span hid the sections below it');
+});

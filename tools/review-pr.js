@@ -369,9 +369,12 @@ function comment(pr, head, reviewer, result, dryRun) {
    * In a directory of its own rather than under a predictable name in the
    * shared temporary directory, where anything else on the machine could have
    * placed a symlink at that path first. */
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nwt-review-'));
-  const tmp = path.join(dir, 'review.md');
+  let dir = null;
   try {
+    /* Inside the try: making the directory can fail on its own, and a review
+     * run should lose one comment rather than stop. */
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nwt-review-'));
+    const tmp = path.join(dir, 'review.md');
     fs.writeFileSync(tmp, body, 'utf8');
     sh('gh', ['pr', 'comment', String(pr), '--body-file', tmp]);
     console.log('  posted ' + reviewer.name + ' review to PR #' + pr);
@@ -381,7 +384,9 @@ function comment(pr, head, reviewer, result, dryRun) {
                 String(e.message).split('\n')[0]);
     return false;
   } finally {
-    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
+    if (dir) {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
+    }
   }
 }
 

@@ -193,3 +193,22 @@ test('importScripts reaching anywhere else is not', () => {
     'one bad argument is enough');
   assert.equal(importsOnlyLocalFiles("fetch('a.js');"), false);
 });
+
+test('the line the extension actually ships is the one that is allowed', () => {
+  /* The exemption is the single hole in "no network calls", so it is pinned to
+   * the real file rather than to an example of it. If background.js starts
+   * loading something a different way, this fails here rather than passing an
+   * audit that no longer describes the code. */
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const body = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'background.js'), 'utf8');
+  const calls = body.split('\n').filter(l => /^\s*importScripts\(/.test(l));
+
+  assert.equal(calls.length, 1, 'expected exactly one importScripts call');
+  assert.equal(importsOnlyLocalFiles(calls[0]), true,
+    'the call the extension ships is no longer covered by the exemption');
+
+  /* And the same line reaching anywhere else would not be. */
+  assert.equal(importsOnlyLocalFiles(calls[0].replace("'scenes.js'", 'name')), false);
+});
