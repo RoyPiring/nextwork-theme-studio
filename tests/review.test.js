@@ -439,3 +439,27 @@ test('a cap of nothing is taken at its word', () => {
     assert.ok(run.error, 'a cap of zero let output through');
   });
 });
+
+test('the cap counts bytes, not characters', async () => {
+  /* maxBuffer counted bytes, and bytes are what is being held. Counting the
+   * decoded string counts characters instead: 30,000 of these is 90 KB of
+   * output but only 30,000 characters, so a 64 KB cap measured in characters
+   * would not notice. */
+  const wide = "console.log('\u20ac'.repeat(30000))";
+  const run = await startReviewer(fake('Wide', wide), '', 64 * 1024);
+
+  assert.ok(run.error, 'ninety kilobytes went through a sixty-four kilobyte cap');
+  assert.match(run.error.message, /printed more than 64 KB/);
+});
+
+test('text that straddles two chunks is still decoded correctly', async () => {
+  /* The buffers are joined once at the end. Decoded as each arrives, a
+   * character split across two of them comes back as replacement characters. */
+  const wide = "console.log('\u20ac'.repeat(20000));console.log('VERDICT: PASS')";
+  const run = await startReviewer(fake('Wide', wide), '');
+
+  assert.equal(run.status, 0);
+  assert.ok(!run.stdout.includes('\ufffd'), 'a character was split and lost');
+  assert.equal((run.stdout.match(/\u20ac/g) || []).length, 20000);
+  assert.equal(verdictFromRun(run).verdict, 'PASS');
+});

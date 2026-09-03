@@ -361,8 +361,6 @@ function startReviewer(reviewer, text, limit) {
       return;
     }
 
-    let stdout = '';
-    let stderr = '';
     let settled = false;
     const finish = run => {
       if (settled) return;
@@ -376,25 +374,36 @@ function startReviewer(reviewer, text, limit) {
      * exceeded. Collecting the output by hand loses that unless it is put
      * back: a reviewer stuck in a loop would otherwise be drained into memory
      * until this process runs out of it, and a gate that dies is worse than
-     * one that blocks. */
-    child.stdout.setEncoding('utf8');
-    child.stderr.setEncoding('utf8');
+     * one that blocks.
+     *
+     * Counted in bytes, over the buffers as they arrive, because that is what
+     * is being held. Counting the decoded string counts characters instead,
+     * and a reviewer printing anything but ASCII takes several bytes per
+     * character - so a cap of 32 MB would have let through three times that
+     * before noticing. */
+    const chunks = { out: [], err: [] };
+    let bytes = 0;
     const take = (chunk, onto) => {
       if (settled) return;
-      if (stdout.length + stderr.length + chunk.length > cap) {
+      bytes += chunk.length;
+      if (bytes > cap) {
         killTree(child);
+        /* Nothing more is wanted from it, and an attached pipe keeps this
+         * process alive on the chance that more arrives. */
+        child.stdout.destroy();
+        child.stderr.destroy();
         /* What it printed before it went loud comes back with the failure.
          * A reviewer that wrote a whole review and then would not stop is
          * still worth reading, and spawnSync handed back the truncated
          * output alongside its error for the same reason. */
         finish({
-          status: null, stdout: stdout, stderr: stderr,
+          status: null, stdout: text_(chunks.out), stderr: text_(chunks.err),
           error: new Error('it printed more than ' + describeSize(cap) +
                            ', and was stopped')
         });
         return;
       }
-      if (onto === 'out') stdout += chunk; else stderr += chunk;
+      chunks[onto].push(chunk);
     };
     child.stdout.on('data', d => take(d, 'out'));
     child.stderr.on('data', d => take(d, 'err'));
@@ -407,7 +416,7 @@ function startReviewer(reviewer, text, limit) {
      * it behind. */
     child.on('close', code => {
       cleanUp(cwd);
-      finish({ status: code, stdout: stdout, stderr: stderr });
+      finish({ status: code, stdout: text_(chunks.out), stderr: text_(chunks.err) });
     });
 
     /* The prompt goes in on stdin, never on the command line. A broken pipe
@@ -415,6 +424,12 @@ function startReviewer(reviewer, text, limit) {
     child.stdin.on('error', () => {});
     child.stdin.end(text);
   });
+}
+
+/* The buffers as text, decoded once at the end. Decoding each chunk as it
+ * arrives splits a character that straddles two of them. */
+function text_(list) {
+  return Buffer.concat(list).toString('utf8');
 }
 
 function cleanUp(dir) {
@@ -435,7 +450,14 @@ function killTree(child) {
       return;
     } catch (e) { /* already gone, or taskkill is unavailable */ }
   }
-  try { child.kill(); } catch (e) { /* already gone */ }
+  /* Asked first, and then insisted upon. SIGTERM can be caught or ignored,
+   * and a reviewer that ignores it carries on printing with its pipes still
+   * attached to this process. */
+  try { child.kill('SIGTERM'); } catch (e) { /* already gone */ }
+  const insist = setTimeout(function () {
+    try { child.kill('SIGKILL'); } catch (e) { /* it went after all */ }
+  }, 2000);
+  if (insist.unref) insist.unref();
 }
 
 /* A size as a person would say it, so a small cap does not read as "0 MB". */
