@@ -29,13 +29,20 @@ function notesFor(changelog, version) {
   const fenced = lines.map(() => false);
   let fence = null;
   lines.forEach((line, i) => {
-    const rail = /^\s{0,3}(```+|~~~+)/.exec(line);
+    const rail = /^\s{0,3}(```+|~~~+)(.*)$/.exec(line);
     if (fence) {
       fenced[i] = true;             /* the closing rail belongs to it too */
-      if (rail && rail[1][0] === fence[0] && rail[1].length >= fence.length) {
+      /* A rail closes the block only if it is the same character, at least as
+       * long as the one that opened it, and has nothing but space after it.
+       * A rail with anything else on the line is a line of the example, and
+       * reading it as the end would expose the rest of the example. */
+      if (rail && rail[1][0] === fence[0] && rail[1].length >= fence.length &&
+          /^\s*$/.test(rail[2])) {
         fence = null;
       }
     } else if (rail) {
+      /* An opening rail may be followed by a language, so its tail is not
+       * checked here. */
       fence = rail[1];
       fenced[i] = true;
     }

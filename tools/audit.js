@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { codeOnly, statementPosition } = require('./source.js');
 
 const ROOT = path.join(__dirname, '..');
 const rel = p => path.relative(ROOT, p).replace(/\\/g, '/');
@@ -141,19 +142,6 @@ const toolFiles = jsUnder(path.join(ROOT, 'tools'));
 /* Strip comments before scanning, rather than skipping any line that starts
  * with one. The old test skipped the whole line, so `/* *\/ fetch(url)` was
  * invisible, and a trailing `// see fetch()` produced a false failure. */
-/* Comments removed, and nothing else moved.
- *
- * A block comment becomes blank space of the same shape rather than one
- * space, so a comment spanning several lines does not pull everything below
- * it upwards. Checks report the line they found something on, and those
- * numbers have to match the file the reader is about to open. */
-function codeOnly(body) {
-  return body
-    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
-    .split('\n')
-    .map(line => line.replace(/\/\/.*$/, ''));
-}
-
 check('all JavaScript parses', () => {
   srcFiles.concat(toolFiles).forEach(f => {
     try {
@@ -515,15 +503,24 @@ check('no function is declared twice in the same file', () => {
      * each look like half a declaration to a scan that stopped at the
      * newline. Several on one line are found for the same reason.
      *
-     * Statement position only, which leaves the name in a function
-     * expression such as "x = function name()" alone: that name binds
-     * inside the function rather than beside its neighbours. */
+     * Statement position only, which leaves alone both the name in a
+     * function expression such as "x = function name()", since that name
+     * binds inside the function rather than beside its neighbours, and the
+     * text of a declaration written inside a string. */
     const code = codeOnly(fs.readFileSync(f, 'utf8')).join('\n');
     const decl = /(^|[{};])\s*function\s+([A-Za-z_]\w*)\s*\(/gm;
     const seen = {};
     let m;
     while ((m = decl.exec(code)) !== null) {
       const name = m[2];
+      const keyword = m.index + m[0].indexOf('function');
+      /* Back one: the delimiter this match consumed may be the one the
+       * next match needs. Set before anything below can skip the rest. */
+      decl.lastIndex = m.index + m[0].length - 1;
+
+      const lineStart = code.lastIndexOf('\n', keyword - 1) + 1;
+      if (!statementPosition(code.slice(lineStart, keyword))) continue;
+
       /* The line the name is on, which is not always where the match
        * started: it may have begun at a delimiter on an earlier line. */
       const start = m.index + m[0].lastIndexOf(name);
@@ -534,9 +531,6 @@ check('no function is declared twice in the same file', () => {
       } else {
         seen[name] = line;
       }
-      /* Back one: the delimiter this match consumed may be the one the
-       * next match needs. */
-      decl.lastIndex = m.index + m[0].length - 1;
     }
   });
   if (clashes.length) fail('\n    ' + clashes.join('\n    '));
