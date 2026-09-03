@@ -470,7 +470,9 @@ check('every CI job is required by the gate', () => {
 
   const jobs = [];
   for (let i = jobsAt + 1; i < lines.length; i++) {
-    const m = /^ {2}([A-Za-z_][\w-]*):\s*$/.exec(lines[i]);
+    /* A trailing comment is legal after a job name, and a job that carried
+     * one used to slip past this and out of the gate entirely. */
+    const m = /^ {2}([A-Za-z_][\w-]*):[ 	]*(?:#.*)?$/.exec(lines[i]);
     if (m) jobs.push({ name: m[1], line: i });
   }
   if (jobs.length < 2) fail('expected more than one job, found ' + jobs.length);
@@ -483,7 +485,7 @@ check('every CI job is required by the gate', () => {
                   .reduce((a, j) => Math.min(a, j.line), lines.length);
   let needs = null;
   for (let i = gate.line + 1; i < end; i++) {
-    const m = /^ {4}needs:\s*\[([^\]]*)\]\s*$/.exec(lines[i]);
+    const m = /^ {4}needs:[ 	]*\[([^\]]*)\][ 	]*(?:#.*)?$/.exec(lines[i]);
     if (m) needs = m[1].split(',').map(s => s.trim()).filter(Boolean);
   }
   if (!needs) fail('the `audit` job has no single-line needs: [...] list');
