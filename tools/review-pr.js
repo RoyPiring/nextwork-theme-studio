@@ -41,7 +41,7 @@
  */
 'use strict';
 
-const { execFileSync, spawnSync } = require('node:child_process');
+const { execFileSync, spawn } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -73,6 +73,10 @@ const REVIEWERS = [
  * printed in the terminal; the comment carries enough to act on and no more. */
 const MAX_COMMENT = 1000;
 const MAX_DIFF = 120000;        /* beyond this nobody has read the whole thing */
+
+/* What a reviewer may print before it is stopped. spawnSync enforced the same
+ * limit through maxBuffer; collecting the output by hand means saying so. */
+const MAX_OUTPUT = 32 * 1024 * 1024;
 
 /* Anything published is stripped of local detail first. The reviewers are
  * local CLIs, and their diagnostics contain absolute paths. */
@@ -273,9 +277,20 @@ function shellArg(a) {
  * can be tested, because every bug this has had was a way of failing open. */
 function verdictFromRun(run) {
   if (run.error) {
-    return { ok: false, verdict: 'BLOCK', output:
-      'This reviewer could not be run: ' + run.error.message +
-      '\n\nA reviewer that cannot run is treated as a block, not as a pass.' };
+    /* Anything it printed before it failed comes with the failure. A reviewer
+     * that wrote a whole review and then would not stop is still worth
+     * reading, and a bare error message throws that away. */
+    const said = String(run.stdout || '').trim();
+    return { ok: false, verdict: 'BLOCK',
+      output:
+        'This reviewer could not be run: ' + run.error.message +
+        '\n\nA reviewer that cannot run is treated as a block, not as a pass.' +
+        (said ? '\n\nWhat it printed before that:\n\n' + said : ''),
+      /* Carried like the other two answers do. It is printed in the terminal
+       * and never published, and it is usually the only thing that says why a
+       * reviewer failed - dropping it here left the one case that most needs
+       * explaining with nothing to explain it. */
+      stderr: String(run.stderr || '').trim() };
   }
   /* The verdict is read from stdout alone. stderr carries warnings, update
    * notices and telemetry, and mixing them in let a stray diagnostic line
@@ -319,19 +334,234 @@ function scratchDir() {
   return dir;
 }
 
-function runReviewer(reviewer, text) {
+/* One reviewer, run to completion, as the object verdictFromRun reads.
+ *
+ * Started rather than waited on, so the reviewers can run at the same time.
+ * They have nothing to say to each other: each gets the same diff, works in a
+ * scratch directory of its own, and reaches its own verdict. Run one after the
+ * other, a review took as long as both of them put together, and the wait grew
+ * with the diff until it was long enough to discourage asking. */
+function startReviewer(reviewer, text, limit) {
+  /* Not `limit || MAX_OUTPUT`: a deliberate cap of nothing would become the
+   * default, which is the opposite of what was asked for. */
+  const cap = limit === undefined ? MAX_OUTPUT : limit;
   const useShell = process.platform === 'win32';
   const args = useShell ? reviewer.args.map(shellArg) : reviewer.args;
+  /* The command is quoted too, not only its arguments. Under a shell the whole
+   * line is one string, so a command whose path contains a space is split at
+   * it and the first word run as the program. The reviewers are named plainly
+   * enough that this never showed, which is exactly how it would have waited
+   * for the one that is not. */
+  const cmd = useShell ? shellArg(reviewer.cmd) : reviewer.cmd;
   const cwd = scratchDir();
-  try {
-    return verdictFromRun(spawnSync(reviewer.cmd, args, {
-      cwd: cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
-      shell: useShell,
-      input: text                   /* the prompt, never on the command line */
-    }));
-  } finally {
-    try { fs.rmSync(cwd, { recursive: true, force: true }); } catch (e) { /* leave it */ }
+  LEFTOVER.add(cwd);
+
+  return new Promise(function (resolve) {
+    let child;
+    try {
+      child = spawn(cmd, args, {
+        cwd: cwd, shell: useShell, stdio: ['pipe', 'pipe', 'pipe'],
+        /* Its own process group, so stopping it can take everything it
+         * started. Without this there is no group to signal, and a reviewer
+         * that is a launcher - a shim that starts the real binary rather than
+         * replacing itself with it - leaves that binary running. Windows has
+         * no groups to speak of and uses taskkill instead. */
+        detached: !useShell
+      });
+    } catch (error) {
+      cleanUp(cwd);
+      resolve({ error: error });
+      return;
+    }
+
+    LIVE.add(child);
+
+    let settled = false;
+    const finish = run => {
+      if (settled) return;
+      settled = true;
+      resolve(run);
+    };
+
+    /* Kept to a size, and stopped past it.
+     *
+     * spawnSync had maxBuffer for this and killed the child when it was
+     * exceeded. Collecting the output by hand loses that unless it is put
+     * back: a reviewer stuck in a loop would otherwise be drained into memory
+     * until this process runs out of it, and a gate that dies is worse than
+     * one that blocks.
+     *
+     * Counted in bytes, over the buffers as they arrive, because that is what
+     * is being held. Counting the decoded string counts characters instead,
+     * and a reviewer printing anything but ASCII takes several bytes per
+     * character - so a cap of 32 MB would have let through three times that
+     * before noticing. */
+    const chunks = { out: [], err: [] };
+    /* One budget each, as maxBuffer gave them. Shared, a reviewer whose CLI
+     * is chatty on stderr - update notices and telemetry, which the verdict
+     * deliberately ignores - would spend the review's own allowance and turn
+     * a finished review into a block. */
+    const used = { out: 0, err: 0 };
+    const take = (chunk, onto) => {
+      if (settled) return;
+      used[onto] += chunk.length;
+      if (used[onto] > cap) {
+        killTree(child);
+        /* Nothing more is wanted from it, and an attached pipe keeps this
+         * process alive on the chance that more arrives. */
+        child.stdout.destroy();
+        child.stderr.destroy();
+        /* What it printed before it went loud comes back with the failure.
+         * A reviewer that wrote a whole review and then would not stop is
+         * still worth reading, and spawnSync handed back the truncated
+         * output alongside its error for the same reason.
+         *
+         * Both streams as they stood at this moment, which is as much as
+         * there can be: the two pipes are independent, so anything the other
+         * one had written but not yet delivered is gone once it is stopped.
+         * Waiting for it would mean reading on past the cap. */
+        finish({
+          status: null, stdout: text_(chunks.out), stderr: text_(chunks.err),
+          pid: child.pid, cwd: cwd,
+          error: new Error('it printed more than ' + describeSize(cap) +
+                           ' on ' + (onto === 'out' ? 'stdout' : 'stderr') +
+                           ', and was stopped')
+        });
+        return;
+      }
+      chunks[onto].push(chunk);
+    };
+    child.stdout.on('data', d => take(d, 'out'));
+    child.stderr.on('data', d => take(d, 'err'));
+
+    /* A command that is not installed fails here rather than exiting. */
+    child.on('error', error => {
+      LIVE.delete(child);
+      cleanUp(cwd);
+      finish({ error: error });
+    });
+    /* The scratch directory goes when the process using it does, not when the
+     * promise settles. Stopping a reviewer resolves immediately; removing its
+     * working directory while it is still in there fails, quietly, and leaves
+     * it behind. */
+    child.on('close', code => {
+      LIVE.delete(child);
+      cleanUp(cwd);
+      finish({ status: code, pid: child.pid, cwd: cwd,
+               stdout: text_(chunks.out), stderr: text_(chunks.err) });
+    });
+
+    /* The prompt goes in on stdin, never on the command line. A broken pipe
+     * here is the child having already gone; its exit says what happened. */
+    child.stdin.on('error', () => {});
+    child.stdin.end(text);
+  });
+}
+
+/* Reviewers still running, and the directories they are running in.
+ *
+ * Giving a reviewer its own process group is what makes it possible to stop
+ * everything it started - and it also means a Ctrl-C at the terminal no
+ * longer reaches it, because that goes to the foreground group and the
+ * reviewer is no longer in it. Stopping one for printing too much has the
+ * same shape: the promise settles at once and the insistent SIGKILL is on a
+ * timer, so an exit before that timer fires leaves the reviewer running.
+ *
+ * Both are the same problem - this process ending without taking its children
+ * with it - so both are answered in the same place, on the way out. */
+const LIVE = new Set();
+
+function stopEverything() {
+  LIVE.forEach(function (child) {
+    try {
+      if (process.platform === 'win32' && child.pid) {
+        execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'],
+                     { stdio: 'ignore' });
+      } else if (child.pid) {
+        /* Straight to SIGKILL: there is no time left to ask politely. */
+        try { process.kill(-child.pid, 'SIGKILL'); }
+        catch (e) { child.kill('SIGKILL'); }
+      }
+    } catch (e) { /* already gone */ }
+  });
+  LIVE.clear();
+}
+
+/* Only synchronous work runs here, which killing is. */
+process.on('exit', stopEverything);
+
+['SIGINT', 'SIGTERM', 'SIGHUP'].forEach(function (sig) {
+  process.on(sig, function () {
+    stopEverything();
+    /* The conventional code for ending on a signal, and it also means the
+     * gate reports a failure rather than a pass when someone interrupts it. */
+    process.exit(130);
+  });
+});
+
+const LEFTOVER = new Set();
+
+/* Every scratch directory still in use. A reviewer stopped for printing too
+ * much resolves at once and its directory goes when the process using it
+ * closes - but if this process ends first, that close never comes. */
+process.on('exit', function () {
+  LEFTOVER.forEach(function (dir) {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
+  });
+});
+
+/* The buffers as text, decoded once at the end. Decoding each chunk as it
+ * arrives splits a character that straddles two of them. */
+function text_(list) {
+  return Buffer.concat(list).toString('utf8');
+}
+
+function cleanUp(dir) {
+  LEFTOVER.delete(dir);
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
+}
+
+/* Stop the reviewer, not the shell in front of it.
+ *
+ * Windows needs a shell here, because these commands are .cmd shims that
+ * cannot be spawned directly. That makes the handle the shell's: kill() ends
+ * cmd.exe and leaves the reviewer running, still printing, still holding the
+ * scratch directory open. taskkill with /T takes the tree. */
+function killTree(child) {
+  if (process.platform === 'win32' && child.pid) {
+    try {
+      execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'],
+                   { stdio: 'ignore' });
+      return;
+    } catch (e) { /* already gone, or taskkill is unavailable */ }
   }
+  /* The whole group, so a reviewer that started something else does not leave
+   * it behind. Negating the pid addresses the group; the plain kill is there
+   * for the case where there is no group to address. */
+  const signal = sig => {
+    try {
+      if (child.pid) process.kill(-child.pid, sig);
+      return;
+    } catch (e) { /* no group, or already gone */ }
+    try { child.kill(sig); } catch (e) { /* already gone */ }
+  };
+
+  /* Asked first, and then insisted upon. SIGTERM can be caught or ignored,
+   * and a reviewer that ignores it carries on printing. */
+  signal('SIGTERM');
+  const insist = setTimeout(function () { signal('SIGKILL'); }, 2000);
+  if (insist.unref) insist.unref();
+}
+
+/* A size as a person would say it, so a small cap does not read as "0 MB". */
+function describeSize(bytes) {
+  if (bytes >= 1024 * 1024) return Math.round(bytes / (1024 * 1024)) + ' MB';
+  if (bytes >= 1024) return Math.round(bytes / 1024) + ' KB';
+  return bytes + ' bytes';
+}
+
+function runReviewer(reviewer, text) {
+  return startReviewer(reviewer, text).then(verdictFromRun);
 }
 
 function comment(pr, head, reviewer, result, dryRun) {
@@ -422,7 +652,7 @@ function selfIsTrusted() {
   }
 }
 
-function main() {
+async function main() {
   const argv = process.argv.slice(2);
   const dryRun = argv.includes('--dry-run');
   const selfModified = argv.includes('--reviewing-this-script');
@@ -504,14 +734,29 @@ function main() {
   console.log('head ' + head.slice(0, 9) + ' · ' + diff.length +
               ' characters of diff · ' + REVIEWERS.length + ' reviewers\n');
 
+  /* Both at once, and each says so as it lands, so a long wait still shows
+   * progress. */
+  console.log('  running ' + REVIEWERS.map(r => r.name + ' (' + r.cmd + ')').join(' and ') +
+              ', together...\n');
+  const started = Date.now();
+
+  const done = await Promise.all(REVIEWERS.map(function (reviewer) {
+    return runReviewer(reviewer, text).then(function (result) {
+      console.log('  ' + reviewer.name + ' finished after ' +
+                  Math.round((Date.now() - started) / 1000) + 's: ' + result.verdict);
+      return result;
+    });
+  }));
+
+  /* Printed and posted in the order the reviewers are declared, whichever
+   * finished first, so two runs of the same review read the same. */
   const results = [];
-  REVIEWERS.forEach(function (reviewer) {
-    console.log('  running ' + reviewer.name + ' (' + reviewer.cmd + ')...');
-    const result = runReviewer(reviewer, text);
-    console.log('  ' + reviewer.name + ': ' + result.verdict);
+  REVIEWERS.forEach(function (reviewer, i) {
+    const result = done[i];
     /* The whole review, here, where it is not published. The comment on the
      * pull request is a short public note; this is the thing to act on. */
     console.log('\n' + '-'.repeat(70));
+    console.log(reviewer.name);
     console.log(result.output.trim());
     if (result.stderr) console.log('\n[stderr]\n' + result.stderr);
     console.log('-'.repeat(70) + '\n');
@@ -562,6 +807,13 @@ function main() {
   console.log('who reads the findings and merges if satisfied.');
 }
 
-module.exports = { parseVerdict, verdictFromRun, redact };
+module.exports = {
+  parseVerdict, verdictFromRun, redact, startReviewer, shellArg, describeSize
+};
 
-if (require.main === module) main();
+if (require.main === module) {
+  main().catch(function (e) {
+    console.error(String((e && e.message) || e));
+    process.exit(2);
+  });
+}

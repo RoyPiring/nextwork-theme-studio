@@ -305,3 +305,325 @@ test('an unindented citation with a parenthetical is kept', () => {
   assert.match(out, /the mix runs before the clamp/);
   assert.ok(!out.includes('88:3'), 'an indented frame survived: ' + out);
 });
+
+/* ------------------------------------------------------------ running them */
+
+const { startReviewer } = require('../tools/review-pr.js');
+
+/* A reviewer is a name and a command, so a test can supply its own. These run
+ * node rather than the real CLIs: what is being checked is the running, not
+ * the reviewing. */
+function fake(name, script) {
+  return { name: name, cmd: process.execPath, args: ['-e', script] };
+}
+
+test('the reviewers run at the same time, not one after the other', async () => {
+  /* Run in turn, a review took as long as both put together, and the wait grew
+   * with the diff until it was long enough to discourage asking. */
+  /* Single quotes inside: an argument carrying a double quote is refused
+   * outright on Windows, which is the quoting guard doing its job. */
+  const sleep = "setTimeout(() => console.log('VERDICT: PASS'), 700)";
+
+  /* One first, to learn what this machine costs for a single reviewer. A
+   * fixed threshold measures the machine as much as the sequencing, and fails
+   * on a busy one for reasons that have nothing to do with the change. */
+  let mark = Date.now();
+  const one = await startReviewer(fake('Solo', sleep), '');
+  const alone = Date.now() - mark;
+  assert.equal(one.status, 0);
+
+  mark = Date.now();
+  const both = await Promise.all([
+    startReviewer(fake('A', sleep), ''),
+    startReviewer(fake('B', sleep), '')
+  ]);
+  const together = Date.now() - mark;
+
+  both.forEach((r, i) => {
+    assert.equal(r.status, 0, 'reviewer ' + i + ' did not exit cleanly');
+    assert.match(r.stdout, /VERDICT: PASS/);
+  });
+  /* Run in turn it would be about twice one. Halfway between the two is a
+   * wide gap either side, so this reads as sequencing rather than speed. */
+  assert.ok(together < alone * 1.5,
+    'one reviewer took ' + alone + 'ms and two took ' + together +
+    'ms, which is one after the other rather than together');
+});
+
+test('what a reviewer is given arrives on its stdin', async () => {
+  /* The prompt carries a diff, which is far past the command-line limit on
+   * Windows, so it never goes in as an argument. */
+  const echo = "let s='';process.stdin.on('data',d=>s+=d)" +
+               ".on('end',()=>console.log('got:'+s.length))";
+  const run = await startReviewer(fake('A', echo), 'x'.repeat(5000));
+  assert.match(run.stdout, /got:5000/);
+});
+
+test('a reviewer that is not installed blocks rather than throwing', async () => {
+  /* How it comes back differs by platform: without a shell the spawn itself
+   * errors, and under one the shell runs, says it cannot find the command and
+   * exits non-zero. Both have to block, and it is the blocking that matters. */
+  const run = await startReviewer(
+    { name: 'Missing', cmd: 'definitely-not-a-real-command-xyz', args: [] }, '');
+  assert.ok(run.error || run.status !== 0,
+    'a missing command should not look like a clean run');
+  assert.equal(verdictFromRun(run).verdict, 'BLOCK');
+});
+
+test('a reviewer that exits non-zero keeps what it printed', async () => {
+  const run = await startReviewer(
+    fake('A', "console.log('VERDICT: PASS');process.exit(3)"), '');
+  assert.equal(run.status, 3);
+  assert.match(run.stdout, /VERDICT: PASS/,
+    'what it printed before failing was thrown away');
+  assert.equal(verdictFromRun(run).verdict, 'BLOCK',
+    'a run that failed part way through is not a pass');
+});
+
+test('a reviewer that will not stop printing is stopped, and blocks', async () => {
+  /* spawnSync enforced this through maxBuffer and killed the child. Collecting
+   * the output by hand loses it unless it is put back, and a gate that runs
+   * out of memory is worse than one that blocks. The cap is an argument so
+   * this does not have to produce 32 MB to find out. */
+  /* Prints far past the cap and then ends by itself, so this checks the cap
+   * without also depending on a kill reaching through a shell. */
+  const flood = "for (let i = 0; i < 200; i++) console.log('x'.repeat(4096))";
+  const run = await startReviewer(fake('Loud', flood), '', 64 * 1024);
+
+  assert.ok(run.error, 'it was allowed to keep printing');
+  assert.match(run.error.message, /printed more than/);
+  assert.equal(verdictFromRun(run).verdict, 'BLOCK');
+});
+
+test('a reviewer that prints a normal amount is left alone', async () => {
+  const some = "console.log('x'.repeat(10000));console.log('VERDICT: PASS')";
+  const run = await startReviewer(fake('Quiet', some), '', 64 * 1024);
+  assert.ok(!run.error, 'a reviewer under the cap was stopped anyway');
+  assert.equal(verdictFromRun(run).verdict, 'PASS');
+});
+
+test('a command whose path has a space is quoted for the shell', () => {
+  /* Only the arguments were quoted, so a command path containing a space was
+   * split at it and the first word run as the program. The reviewers are
+   * named plainly enough that it never showed. */
+  const { shellArg } = require('../tools/review-pr.js');
+  const spaced = ['C:', 'Program Files', 'nodejs', 'node.exe'].join(String.fromCharCode(92));
+  assert.equal(shellArg(spaced), '"' + spaced + '"');
+  assert.equal(shellArg('codex'), 'codex', 'a plain name should not be quoted');
+});
+
+test('a stopped reviewer still shows what it managed to say', () => {
+  /* spawnSync handed back the truncated output alongside its error. A bare
+   * message would throw away a review that was finished before the reviewer
+   * went loud. */
+  const r = verdictFromRun({
+    error: new Error('it printed more than 64 KB, and was stopped'),
+    stdout: 'The storage write is unguarded.\n\nVERDICT: BLOCK'
+  });
+  assert.equal(r.verdict, 'BLOCK');
+  assert.match(r.output, /printed more than 64 KB/);
+  assert.match(r.output, /storage write is unguarded/);
+});
+
+test('the size in that message reads properly at any cap', () => {
+  /* Rounded to megabytes, the tests' own cap read as "0 MB". */
+  const { describeSize } = require('../tools/review-pr.js');
+  assert.equal(describeSize(32 * 1024 * 1024), '32 MB');
+  assert.equal(describeSize(64 * 1024), '64 KB');
+  assert.equal(describeSize(512), '512 bytes');
+});
+
+test('a cap of nothing is taken at its word', () => {
+  /* Written as `limit || MAX_OUTPUT`, asking for no output at all quietly
+   * became the 32 MB default. */
+  const quiet = "console.log('VERDICT: PASS')";
+  return startReviewer(fake('Any', quiet), '', 0).then(run => {
+    assert.ok(run.error, 'a cap of zero let output through');
+  });
+});
+
+test('the cap counts bytes, not characters', async () => {
+  /* maxBuffer counted bytes, and bytes are what is being held. Counting the
+   * decoded string counts characters instead: 30,000 of these is 90 KB of
+   * output but only 30,000 characters, so a 64 KB cap measured in characters
+   * would not notice. */
+  const wide = "console.log('\u20ac'.repeat(30000))";
+  const run = await startReviewer(fake('Wide', wide), '', 64 * 1024);
+
+  assert.ok(run.error, 'ninety kilobytes went through a sixty-four kilobyte cap');
+  assert.match(run.error.message, /printed more than 64 KB/);
+});
+
+test('text that straddles two chunks is still decoded correctly', async () => {
+  /* The buffers are joined once at the end. Decoded as each arrives, a
+   * character split across two of them comes back as replacement characters. */
+  const wide = "console.log('\u20ac'.repeat(20000));console.log('VERDICT: PASS')";
+  const run = await startReviewer(fake('Wide', wide), '');
+
+  assert.equal(run.status, 0);
+  assert.ok(!run.stdout.includes('\ufffd'), 'a character was split and lost');
+  assert.equal((run.stdout.match(/\u20ac/g) || []).length, 20000);
+  assert.equal(verdictFromRun(run).verdict, 'PASS');
+});
+
+test('a reviewer that ignores being asked to stop is stopped anyway', async () => {
+  /* The earlier test used a producer that ended by itself, so it passed
+   * whether the kill worked, killed the wrong process, or did nothing. This
+   * one refuses to go on being asked and never stops printing, so the only
+   * way it ends is being made to. */
+  /* Whether it is still working, rather than whether a pid answers.
+   *
+   * Asking after the pid checks the wrong process: under a shell the handle
+   * is the shell's, and that exits by itself once its pipes are gone - so the
+   * pid reads as dead while the reviewer behind it runs on. This one keeps
+   * appending to a file, so the question becomes "is the file still growing",
+   * which is the same question on every platform.
+   */
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const marker = path.join(os.tmpdir(), 'nwt-stubborn-' + process.pid + '-' + Date.now());
+
+  /* It shrugs off both ways of asking. Ignoring SIGTERM is the point;
+   * ignoring the broken pipe matters too, because closing the pipes is enough
+   * to end an ordinary child - so without this the test would pass on that
+   * alone and say nothing about the kill. */
+  const stubborn = "const f=require('fs');process.on('SIGTERM', () => {});" +
+                   "process.stdout.on('error', () => {});" +
+                   "process.stderr.on('error', () => {});" +
+                   "setInterval(() => { f.appendFileSync(process.argv[1], 'x');" +
+                   "try { console.log('x'.repeat(4096)); } catch (e) {} }, 10)";
+  const reviewer = { name: 'Stubborn', cmd: process.execPath,
+                     args: ['-e', stubborn, marker] };
+
+  const run = await startReviewer(reviewer, '', 64 * 1024);
+  assert.ok(run.error, 'the cap never tripped');
+
+  /* SIGKILL follows the ignored SIGTERM after two seconds. */
+  await new Promise(r => setTimeout(r, 3500));
+  const settledAt = fs.existsSync(marker) ? fs.statSync(marker).size : 0;
+  await new Promise(r => setTimeout(r, 1000));
+  const laterOn = fs.existsSync(marker) ? fs.statSync(marker).size : 0;
+
+  try { fs.rmSync(marker, { force: true }); } catch (e) { /* leave it */ }
+  assert.equal(laterOn, settledAt,
+    'the reviewer was still writing ' + (laterOn - settledAt) +
+    ' bytes a second after it was stopped');
+});
+
+test('each reviewer gets its own directory, and it goes when they do', async () => {
+  /* Sequentially this was safe by construction - one existed at a time. Run
+   * together, two reviewers sharing a directory would have the first to
+   * finish delete the other's working tree mid-run. */
+  const fs = require('node:fs');
+  const quiet = "console.log('VERDICT: PASS')";
+  const [a, b] = await Promise.all([
+    startReviewer(fake('A', quiet), ''),
+    startReviewer(fake('B', quiet), '')
+  ]);
+
+  assert.ok(a.cwd && b.cwd, 'no directory came back');
+  assert.notEqual(a.cwd, b.cwd, 'both reviewers were given the same directory');
+  assert.equal(fs.existsSync(a.cwd), false, 'a scratch directory was left behind');
+  assert.equal(fs.existsSync(b.cwd), false, 'a scratch directory was left behind');
+});
+
+test('a chatty stderr does not spend the review its own allowance', async () => {
+  /* maxBuffer gave each stream its own budget. Shared, a CLI that prints
+   * update notices and telemetry on stderr - which the verdict deliberately
+   * ignores - could turn a finished review into a block. */
+  const both = "console.error('n'.repeat(50000));" +
+               "console.log('VERDICT: PASS')";
+  const run = await startReviewer(fake('Chatty', both), '', 64 * 1024);
+
+  assert.ok(!run.error, 'stderr spent the budget stdout needed');
+  assert.equal(verdictFromRun(run).verdict, 'PASS');
+});
+
+test('the message says which stream ran out', async () => {
+  const loud = "console.error('n'.repeat(90000))";
+  const run = await startReviewer(fake('Loud', loud), '', 64 * 1024);
+  assert.match(run.error.message, /on stderr/);
+});
+
+test('a reviewer that failed still explains itself', async () => {
+  /* stderr is where these CLIs say what went wrong, and the failure branch
+   * dropped it - leaving the one case that most needs explaining with
+   * nothing to explain it. It is printed in the terminal and never
+   * published, which the redaction tests above cover. */
+  const noisy = "console.error('could not reach the model');" +
+                "console.log('x'.repeat(90000))";
+  const run = await startReviewer(fake('Failing', noisy), '', 64 * 1024);
+  const result = verdictFromRun(run);
+
+  assert.equal(result.verdict, 'BLOCK');
+  assert.match(result.stderr, /could not reach the model/);
+  assert.match(result.output, /printed more than/);
+});
+
+test('what a failed reviewer said on stderr is not published', () => {
+  /* The same guarantee as every other path: the comment is built from
+   * output, and stderr is not part of it. */
+  const result = verdictFromRun({
+    error: new Error('stopped'),
+    stdout: 'VERDICT: BLOCK',
+    stderr: 'Error at /home/someone/.aws/credentials'
+  });
+  assert.match(result.stderr, /credentials/, 'the terminal should still see it');
+  assert.ok(!result.output.includes('credentials'),
+    'stderr reached the text that gets posted');
+});
+
+test('a reviewer does not outlive the run that started it', async () => {
+  /* Two ways this process can end while a reviewer is still going: it exits
+   * on an error before the insistent SIGKILL fires, or someone interrupts it
+   * and the signal goes to the foreground group - which the reviewer is no
+   * longer in, because it was given a group of its own.
+   *
+   * Both are the same problem, so both are checked the same way: start a
+   * reviewer that will not stop, end this process, and see whether the file
+   * it is writing keeps growing.
+   *
+   * Worth knowing where this bites: on Windows the stop is taskkill, which
+   * has already finished by the time the promise settles, so there is no
+   * window and this passes without proving much. The gap it is written for is
+   * the other platforms, where the ignored SIGTERM leaves two seconds before
+   * SIGKILL - and that is where CI runs it.
+   */
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { spawn } = require('node:child_process');
+
+  const marker = path.join(os.tmpdir(), 'nwt-orphan-' + process.pid + '-' + Date.now());
+  const tool = path.join(__dirname, '..', 'tools', 'review-pr.js');
+
+  /* A parent that starts a stubborn reviewer and then exits without waiting,
+   * the way the real one does when something later throws. */
+  const parent = [
+    "const { startReviewer } = require(process.argv[1]);",
+    "const stubborn = \"const f=require('fs');process.on('SIGTERM',()=>{});\" +",
+    "  \"process.stdout.on('error',()=>{});\" +",
+    "  \"setInterval(() => { f.appendFileSync(process.argv[1],'x');\" +",
+    "  \"try { console.log('x'.repeat(4096)); } catch (e) {} }, 10)\";",
+    "startReviewer({ name: 'S', cmd: process.execPath,",
+    "                args: ['-e', stubborn, process.argv[2]] }, '', 64 * 1024)",
+    "  .then(() => process.exit(2));"
+  ].join('\n');
+
+  await new Promise(resolve => {
+    const p = spawn(process.execPath, ['-e', parent, tool, marker], { stdio: 'ignore' });
+    p.on('close', resolve);
+  });
+
+  /* The parent has gone. Whatever it started should have gone with it. */
+  await new Promise(r => setTimeout(r, 800));
+  const settledAt = fs.existsSync(marker) ? fs.statSync(marker).size : 0;
+  await new Promise(r => setTimeout(r, 1000));
+  const laterOn = fs.existsSync(marker) ? fs.statSync(marker).size : 0;
+
+  try { fs.rmSync(marker, { force: true }); } catch (e) { /* leave it */ }
+  assert.equal(laterOn, settledAt,
+    'a reviewer outlived the run that started it, writing ' +
+    (laterOn - settledAt) + ' more bytes');
+});
