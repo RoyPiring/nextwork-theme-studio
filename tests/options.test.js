@@ -428,7 +428,14 @@ test('an escaped backslash is spent as one, not read as starting an escape', () 
    * plain text. Read in two passes, the second was taken as opening an escape
    * and the file was refused for asking for nothing. */
   const p = openEditor({});
-  const css = '.a::before { content: "' + String.raw`\75rl` + '"; }';
+  /* Two backslashes, and the open bracket. With one it was a hex escape and
+   * not this case at all; without the bracket, decoding it wrongly gives
+   * "url" with nothing after it, which the check would not have matched
+   * either way - so the test would have passed against the fault it names. */
+  const css = '.a::before { content: "' + String.raw`\\75rl(` + '"; }';
+  assert.ok(css.includes(String.raw`\\75rl(`),
+    'the file does not hold two backslashes, so this is not the case it names');
+
   return p.chooseFile('file-input', themeFile({ customCSS: css })).then(() => {
     assert.equal(onlyCustom(p).customCSS, css,
       'a literal backslash was read as an escape and the theme refused');

@@ -39,16 +39,22 @@ test('text set before a child is added is still there', () => {
 });
 
 test('the letter s survives being parsed', () => {
-  /* Runs of whitespace are collapsed. Written without its backslash the
-   * pattern collapsed runs of the letter s instead, and every label carrying
-   * one was quietly corrupted. */
+  /* Whitespace runs were collapsed here once, by a pattern written without
+   * its backslash - so it collapsed runs of the letter s instead, and every
+   * label carrying one was quietly corrupted. */
   const { host } = fragment('<p>Sessions assess success</p>');
   assert.equal(host.textContent, 'Sessions assess success');
 });
 
-test('a run of whitespace becomes one space, and is not dropped', () => {
+test('whitespace is kept as written, not as it would be laid out', () => {
+  /* textContent in a browser hands back the source whitespace. Collapsing it
+   * here would have every test comparing labels against text the DOM does not
+   * hold. */
   const { host } = fragment('<p>Theme   <b>Ocean</b>\n  is on</p>');
-  assert.equal(host.textContent, 'Theme Ocean is on');
+  assert.equal(host.textContent, 'Theme   Ocean\n  is on');
+
+  const { host: plain } = fragment('<p>a   b</p>');
+  assert.equal(plain.textContent, 'a   b');
 });
 
 test('setting textContent empties the element', () => {
@@ -221,4 +227,43 @@ test('an array made inside the page is an Array there', () => {
   assert.equal(vm.runInContext('({}) instanceof Object', p.sandbox), true);
   assert.equal(vm.runInContext('new Error("x") instanceof Error', p.sandbox), true);
   assert.equal(vm.runInContext('/x/ instanceof RegExp', p.sandbox), true);
+});
+
+test('a cancelled callback does not run', () => {
+  /* As a no-op, clearTimeout let a cancelled callback run anyway, so a
+   * debounce that clears its previous timer looked correct here whatever it
+   * actually did. */
+  const p = page();
+  const ran = [];
+  const first = p.sandbox.setTimeout(() => ran.push('first'));
+  p.sandbox.setTimeout(() => ran.push('second'));
+  p.sandbox.clearTimeout(first);
+  p.flush();
+
+  assert.deepEqual(ran, ['second'], 'a cancelled callback still ran');
+});
+
+test('cancelling one animation frame leaves the others', () => {
+  const p = page();
+  const ran = [];
+  p.sandbox.requestAnimationFrame(() => ran.push('a'));
+  const b = p.sandbox.requestAnimationFrame(() => ran.push('b'));
+  p.sandbox.requestAnimationFrame(() => ran.push('c'));
+  p.sandbox.cancelAnimationFrame(b);
+  p.flush();
+
+  assert.deepEqual(ran, ['a', 'c']);
+});
+
+test('a timer scheduled after a cancellation still gets a fresh id', () => {
+  /* Ids taken from the length of a list were handed out twice once anything
+   * had been removed, so cancelling one could cancel another. */
+  const p = page();
+  const ran = [];
+  const first = p.sandbox.setTimeout(() => ran.push('first'));
+  p.sandbox.clearTimeout(first);
+  const second = p.sandbox.setTimeout(() => ran.push('second'));
+  assert.notEqual(second, first, 'the same id was handed out twice');
+  p.flush();
+  assert.deepEqual(ran, ['second']);
 });

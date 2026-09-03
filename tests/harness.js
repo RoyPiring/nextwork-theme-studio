@@ -329,11 +329,12 @@ function parseHTML(html, doc, into) {
   while ((m = tag.exec(cleaned)) !== null) {
     const text = cleaned.slice(last, m.index);
     if (text) {
-      /* Runs of space become one, the way they render. A run that is nothing
-       * but space is kept: it is the space between two elements, and dropping
-       * it ran "<b>Focus</b> <span>12:00</span>" together into one word while
-       * a test asserted on the label and saw nothing wrong. */
-      stack[stack.length - 1].appendText(decodeEntities(text).replace(/\s+/g, ' '));
+      /* Kept exactly as written. textContent in a browser hands back the
+       * source whitespace, not what the layout makes of it, so collapsing
+       * runs here would have tests comparing against text the DOM does not
+       * hold. A run that is only whitespace is text too - it is the space
+       * between two elements. */
+      stack[stack.length - 1].appendText(decodeEntities(text));
     }
     last = tag.lastIndex;
 
@@ -672,7 +673,13 @@ function loadPage(options) {
   const doc = new FakeDocument();
   const stored = Object.assign({}, opts.settings || {});
   const changeListeners = [];
-  const timers = [];
+  /* Scheduled callbacks, by the id handed back. Held in a map rather than a
+   * list so cancelling one actually removes it: as a no-op, a callback that
+   * had been cancelled still ran, and a debounce that clears its previous
+   * timer looked correct here whatever it did. */
+  const timers = new Map();
+  let timerSeq = 0;
+  function queue(fn) { timerSeq += 1; timers.set(timerSeq, fn); return timerSeq; }
   const intervals = new Map();
   const reads = [];
   const opened = { optionsPage: 0, reloadedTabs: 0, closed: 0 };
@@ -710,13 +717,13 @@ function loadPage(options) {
         },
         set(patch, cb) {
           Object.assign(stored, JSON.parse(JSON.stringify(patch)));
-          if (cb) timers.push(cb);
-          changeListeners.forEach(fn => timers.push(() => fn({}, 'local')));
+          if (cb) queue(cb);
+          changeListeners.forEach(fn => queue(() => fn({}, 'local')));
         },
         clear(cb) {
           Object.keys(stored).forEach(k => { delete stored[k]; });
-          if (cb) timers.push(cb);
-          changeListeners.forEach(fn => timers.push(() => fn({}, 'local')));
+          if (cb) queue(cb);
+          changeListeners.forEach(fn => queue(() => fn({}, 'local')));
         }
       },
       onChanged: { addListener(fn) { changeListeners.push(fn); } }
@@ -771,12 +778,12 @@ function loadPage(options) {
     },
     alert() {},
     getComputedStyle(el) { return Object.assign({}, el._computed || {}); },
-    setTimeout(fn) { timers.push(fn); return timers.length; },
-    clearTimeout() {},
+    setTimeout(fn) { return queue(fn); },
+    clearTimeout(id) { timers.delete(id); },
     setInterval(fn, ms) { intervalSeq += 1; intervals.set(intervalSeq, { fn, ms }); return intervalSeq; },
     clearInterval(id) { intervals.delete(id); },
-    requestAnimationFrame(fn) { timers.push(fn); return timers.length; },
-    cancelAnimationFrame() {},
+    requestAnimationFrame(fn) { return queue(fn); },
+    cancelAnimationFrame(id) { timers.delete(id); },
     /* Math, Date, Array and the rest are deliberately not passed in. A vm
      * context has its own, and handing it this realm's would shadow them: an
      * array made inside the sandbox would carry the inner prototype while the
@@ -804,7 +811,8 @@ function loadPage(options) {
         if (options.reverseReads) pending.reverse();
         pending.forEach(r => r.cb(r.snapshot));
       }
-      const batch = timers.splice(0, timers.length);
+      const batch = [...timers.values()];
+      timers.clear();
       batch.forEach(fn => fn());
       if (!pending.length && !batch.length) break;
     }
