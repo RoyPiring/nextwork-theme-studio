@@ -38,6 +38,10 @@ jobs:
           # manual run naming a branch could publish a tag that never existed,
           # from code that was never tagged.
           ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          # The job holds a token that can write to the repository, and
+          # everything after this runs code from the tag. Without this, that
+          # code inherits the credential and could push refs of its own.
+          persist-credentials: false
 
       # Everything below runs the code as it was at the tag, not as it is on
       # the default branch. A tag from before this workflow existed does not
@@ -97,6 +101,9 @@ jobs:
         run: |
           shopt -s nullglob
           archives=(dist/*.zip dist/*.xpi)
+          # Four: Chrome, Brave, Edge and Firefox. Safari is the fifth target
+          # and produces a folder rather than an archive, because it has to be
+          # converted with Xcode. Adding a target means changing this number.
           if [ ${#archives[@]} -lt 4 ]; then
             echo "expected at least 4 archives, found ${#archives[@]}"
             exit 1
