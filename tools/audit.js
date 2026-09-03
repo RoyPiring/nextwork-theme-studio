@@ -457,12 +457,25 @@ check('shipped code runs in strict mode', () => {
   /* Sloppy mode turns a mistyped assignment into a new global rather than an
    * error, which is the one class of typo that survives every other check
    * here: it parses, it runs, and it silently does nothing useful. */
-  /* The directive, and nothing else. Being wrapped in a function is not a
-   * substitute: `(function () { mistyped = 1; })()` creates a global in
-   * sloppy mode exactly as it would at the top level, so accepting an IIFE
-   * would have let through the thing this exists to catch. */
-  const loose = srcFiles.filter(f =>
-    !/^\s*['"]use strict['"]\s*;/m.test(fs.readFileSync(f, 'utf8')));
+  /* The directive has to be the first statement, and being wrapped in a
+   * function is not a substitute for it.
+   *
+   * Two things this has been wrong about. `(function () { mistyped = 1; })()`
+   * creates a global in sloppy mode exactly as top-level code does, so a
+   * wrapper proves nothing. And the directive only takes effect in the
+   * prologue: a file that calls something and *then* says 'use strict' is
+   * still sloppy, and the string appearing on some later line means nothing
+   * at all. So this looks at position, not presence. */
+  function isStrict(body) {
+    const code = codeOnly(body).map(l => l.trim()).filter(Boolean);
+    if (!code.length) return true;                 /* nothing to leak */
+    /* The outermost wrapper may open first; the directive is then the first
+     * statement of its body. Anything else before the directive is code. */
+    const start = /^[!+~-]?\s*\(?\s*function\b[^{]*\{?\s*$/.test(code[0]) ? 1 : 0;
+    return /^['"]use strict['"]\s*;?$/.test(code[start] || '');
+  }
+
+  const loose = srcFiles.filter(f => !isStrict(fs.readFileSync(f, 'utf8')));
   if (loose.length) {
     fail(loose.map(rel).join(', ') +
          ' - add a \'use strict\' directive, or a typo becomes a global');
@@ -476,7 +489,10 @@ check('no debugging left in shipped code', () => {
   const offenders = [];
   srcFiles.forEach(f => {
     codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
-      if (/\bconsole\s*\.\s*log\s*\(/.test(line) || /\bdebugger\s*;?/.test(line)) {
+      /* debugger only as a statement of its own. The bare word appears in
+       * ordinary prose and inside strings, and flagging those would make this
+       * something to work around rather than something to keep. */
+      if (/\bconsole\s*\.\s*log\s*\(/.test(line) || /^\s*debugger\s*;?\s*$/.test(line)) {
         offenders.push(rel(f) + ':' + (i + 1));
       }
     });
