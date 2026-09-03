@@ -73,9 +73,12 @@ function notesFor(changelog, version) {
   let linkList = lines.length;
   for (let i = lines.length - 1; i >= 0; i--) {
     if (fenced[i]) break;
-    const line = lines[i].trim();
-    if (line === '') continue;
-    if (/^\[[^\]]+\]:\s*\S+$/.test(line)) { linkList = i; continue; }
+    if (lines[i].trim() === '') continue;
+    /* Matched where it sits, not trimmed first. A definition can carry up to
+     * three spaces; past that it is an indented example of one, the same as a
+     * fenced example, and cutting there would take the example off the end of
+     * the section that shows it. */
+    if (/^ {0,3}\[[^\]]+\]:\s*\S+$/.test(lines[i])) { linkList = i; continue; }
     break;
   }
 

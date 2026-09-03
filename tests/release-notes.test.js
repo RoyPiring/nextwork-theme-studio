@@ -192,3 +192,32 @@ test('an inline code span does not open a fence', () => {
   assert.equal(notesFor(doc, '1.0.0'), '- the real 1.0.0 note',
     'a code span hid the sections below it');
 });
+
+test('an indented link definition at the end is content, not the link list', () => {
+  /* The fenced version of this document is covered above. An indented example
+   * is the same shape in a different wrapper, and cutting there took the
+   * example off the end and left the sentence introducing it dangling. */
+  const doc = [
+    '## [1.0.0]',
+    '- the real 1.0.0 note',
+    '',
+    'The links go at the bottom:',
+    '',
+    '    [1.0.0]: https://example.com/1'
+  ].join('\n');
+  const notes = notesFor(doc, '1.0.0');
+  assert.match(notes, /the real 1\.0\.0 note/);
+  assert.match(notes, /\[1\.0\.0\]: https/, 'the indented example was cut off');
+});
+
+test('the real link list is still recognised when slightly indented', () => {
+  /* Up to three spaces is still a definition, not an example. */
+  const doc = [
+    '## [1.0.0]',
+    '- the real 1.0.0 note',
+    '',
+    '   [1.0.0]: https://example.com/1'
+  ].join('\n');
+  assert.equal(notesFor(doc, '1.0.0'), '- the real 1.0.0 note',
+    'the trailing link list was kept in the notes');
+});
