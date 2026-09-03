@@ -1,0 +1,146 @@
+name: release
+
+# On a version tag, or on demand for a tag that already exists.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish, for example v2.9.0'
+        required: true
+
+# Nothing by default. The one job that needs to write says so.
+permissions: {}
+
+jobs:
+  release:
+    name: release
+    # Windows, because that is the platform the packaging code targets: it
+    # resolves bsdtar by full path, and GNU tar cannot write a zip.
+    runs-on: windows-latest
+    permissions:
+      contents: write     # to create the release and attach files to it
+
+    # The tag reaches every step through the environment, never by being
+    # interpolated into a script. A tag name may contain shell metacharacters,
+    # and these steps run with a token that can write to the repository.
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+
+    steps:
+      # Actions are pinned to a commit SHA, not a tag. A tag can be moved to
+      # point at different code; a SHA cannot.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # refs/tags/ explicitly. A bare name also matches a branch, so a
+          # manual run naming a branch could publish a tag that never existed,
+          # from code that was never tagged.
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
+          # The job holds a token that can write to the repository, and
+          # everything after this runs code from the tag. Without this, that
+          # code inherits the credential and could push refs of its own.
+          persist-credentials: false
+
+      # Everything below runs the code as it was at the tag, not as it is on
+      # the default branch. A tag from before this workflow existed does not
+      # carry the tools it needs, and would otherwise fail several steps later
+      # with an error that says nothing about the cause.
+      - name: Check this tag can be released
+        shell: bash
+        run: |
+          missing=0
+          for f in tools/release-notes.js tools/build.js tools/audit.js .nvmrc; do
+            if [ ! -f "$f" ]; then
+              echo "missing at this tag: $f"
+              missing=1
+            fi
+          done
+          if [ "$missing" != "0" ]; then
+            echo ''
+            echo "This tag predates the release tooling, so it cannot be published"
+            echo "here: a release is built from the tag's own code, and that code"
+            echo "is not present. Tag a new version instead."
+            exit 1
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: '.nvmrc'
+
+      # The same gate every pull request passes. A tag is not a reason to skip
+      # it: this is the build people actually download.
+      - name: Unit tests
+        shell: bash
+        run: node --test
+
+      - name: Run the audit gate
+        shell: bash
+        run: node tools/audit.js
+
+      # The tag has to match what the extension reports once installed, or the
+      # release is labelled with a version nobody can see in the browser.
+      - name: Check the tag matches the manifest
+        shell: bash
+        run: |
+          manifest=$(node -p "require('./manifest.json').version")
+          if [ "$TAG" != "v$manifest" ]; then
+            echo "tag $TAG does not match manifest version $manifest"
+            exit 1
+          fi
+          echo "$TAG matches the manifest"
+
+      - name: Build every browser package
+        shell: bash
+        run: node tools/build.js
+
+      - name: Check the archives exist
+        shell: bash
+        run: |
+          shopt -s nullglob
+          archives=(dist/*.zip dist/*.xpi)
+          # Four: Chrome, Brave, Edge and Firefox. Safari is the fifth target
+          # and produces a folder rather than an archive, because it has to be
+          # converted with Xcode. Adding a target means changing this number.
+          if [ ${#archives[@]} -lt 4 ]; then
+            echo "expected at least 4 archives, found ${#archives[@]}"
+            exit 1
+          fi
+          for f in "${archives[@]}"; do
+            if [ ! -s "$f" ]; then
+              echo "empty: $f"
+              exit 1
+            fi
+            echo "ok: $f ($(wc -c < "$f") bytes)"
+          done
+
+      # From the changelog, so the release and the changelog cannot drift
+      # apart. No section for this version fails the release.
+      - name: Take the notes from the changelog
+        shell: bash
+        run: |
+          node tools/release-notes.js "$TAG" > release-notes.md
+          {
+            echo ''
+            echo '---'
+            echo ''
+            echo 'Download the archive for your browser below. Chrome, Brave and'
+            echo 'Edge use the same build; Firefox needs the `.xpi`. Installation'
+            echo 'is covered in [the README](https://github.com/RoyPiring/nextwork-theme-studio#install).'
+          } >> release-notes.md
+          cat release-notes.md
+
+      # gh is already on the runner, so this needs no third-party action and
+      # nothing further to pin.
+      - name: Publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" \
+            --verify-tag \
+            --title "$TAG" \
+            --notes-file release-notes.md \
+            dist/*.zip dist/*.xpi

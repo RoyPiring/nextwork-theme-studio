@@ -26,6 +26,11 @@ week on a schedule, and on demand from the Actions tab:
 | `package` | Windows | `tools/build.js`, then checks each archive exists and is not empty |
 | `audit` | Ubuntu | Passes only if the three above did |
 
+A separate **release** workflow runs on a version tag, or on demand for a tag
+that already exists. It repeats the tests, the audit and the build, checks the
+tag against the manifest version, and publishes a release with every archive
+attached and the notes taken from the changelog.
+
 `audit` exists to have a name that never changes. A required status check is
 named after the job reporting it, so putting the matrix under that name would
 have produced `audit (ubuntu-latest)` and `audit (windows-latest)`, leaving the
