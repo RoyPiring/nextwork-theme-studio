@@ -94,15 +94,13 @@ test('a missing SystemRoot does not throw', () => {
   assert.deepEqual(candidatesFor('win32', undefined, () => false), ['tar']);
 });
 
-/* ------------------------------------------------------------ this machine */
-
-test('this machine has one, and the build would find it', () => {
-  /* If this fails here, the build fails here, and it says which is missing
-   * rather than writing an archive nobody can open. */
-  const fs = require('node:fs');
-  const { execFileSync } = require('node:child_process');
-  const found = findArchiver(
-    candidatesFor(process.platform, process.env.SystemRoot, fs.existsSync),
-    bin => execFileSync(bin, ['--version'], { stdio: 'pipe' }).toString());
-  assert.ok(found, NO_ARCHIVER);
-});
+/* There is deliberately no test here that this machine has an archiver.
+ *
+ * It was written, and it failed on the runner that only runs the tests -
+ * correctly, because that machine has no bsdtar and does not need one. An
+ * assertion about what is installed is not a test of this code; it passes or
+ * fails on the machine rather than on the change.
+ *
+ * The property it was reaching for is held where it belongs: the build asks
+ * before it stages anything and stops with a message naming what to install,
+ * and CI builds the packages on both platforms. */
