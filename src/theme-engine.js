@@ -505,9 +505,56 @@
     return hslToHex(c);
   }
 
+  /* A colour is a #rrggbb value and nothing else.
+   *
+   * Every one of these is written into the stylesheet, and the accent pair
+   * reaches it as typed rather than through the tuner - so a value carrying a
+   * semicolon ends the declaration and whatever follows it becomes a rule of
+   * its own, which is a way to put a url() on the page without touching the
+   * custom CSS the checks were looking at.
+   *
+   * The editor refuses anything but a hex value on import, but storage
+   * outlives the version that wrote it: a theme accepted before that check
+   * existed is still selected and still built on every visit. So it is asked
+   * again here, where the palette is made, and anything else falls back to the
+   * default theme's colour rather than reaching the page. */
+  const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+  function isColor(value) {
+    return HEX_COLOR.test(String(value == null ? '' : value).trim());
+  }
+
+  /* The colours a palette is built from.
+   *
+   * A theme that cannot supply all nine gets a whole palette instead of having
+   * the missing ones filled in. Key by key from one fixed theme mixed palettes
+   * that were never designed together: a light theme whose textPrimary had
+   * been saved as something unusable took a near-white value from the dark
+   * default and put it on a light canvas, which is unreadable, on every visit,
+   * with nothing to show for it. Even between two themes of the same mode
+   * there is no contrast guarantee across a mixture.
+   *
+   * So it is all or nothing, and the replacement is of the theme's own mode -
+   * a set that was drawn together and clears the floor as a set. */
+  const DEFAULT_COLORS = { dark: 'concrete', light: 'hawaiiMorning' };
+
+  function usableColors(theme) {
+    const given = theme.colors || {};
+    if (BASE_KEYS.every(function (entry) { return isColor(given[entry[0]]); })) {
+      return given;
+    }
+    const wanted = DEFAULT_COLORS[theme.mode === 'light' ? 'light' : 'dark'];
+    const source = PRESETS[wanted] || PRESETS[DEFAULT_SETTINGS.themeId];
+    console.warn('[nwt] theme "' + (theme.name || 'unnamed') +
+                 '" has a colour that is not a #rrggbb value, so the ' +
+                 (theme.mode === 'light' ? 'light' : 'dark') +
+                 ' default palette is being used instead');
+    return source.colors;
+  }
+
   function buildPalette(theme) {
     const t = theme.tuning;
-    const c = theme.colors;
+    const c = usableColors(theme);
     const S = h => tuneNeutral(h, t, 'surface');
     const T = h => tuneNeutral(h, t, 'text');
 
@@ -674,6 +721,53 @@
     }
     if (buf.trim()) out.push(buf.trim());
     return out;
+  }
+
+  /* Whether a piece of CSS can ask for something over the network.
+   *
+   * The extension never talks to anything, and custom CSS is the one place a
+   * theme could break that: a url() in a rule is a live request from a page
+   * you are signed into, and an attribute selector plus a background image is
+   * a known way to read a form field out one character at a time. url(), src(),
+   * image(), cross-fade() and image-set() all fetch, and @import pulls in a
+   * whole stylesheet.
+   *
+   * A denylist, and only as good as its list, because the alternative is a CSS
+   * parser. Dropping a rule that asks for nothing costs far less than making a
+   * request that should never happen, so anything new that can fetch belongs
+   * here.
+   */
+  const CSS_REACHES_OUT =
+    /url\s*\(|src\s*\(|@import|expression\s*\(|image\s*\(|image-set\s*\(|cross-fade\s*\(/i;
+
+  /* CSS with its escapes resolved.
+   *
+   * A name may be written with escapes, and the browser resolves them before
+   * deciding what it is looking at: \75 is "u", so "\75 rl(...)" is a url()
+   * the moment it is parsed, while reading as nothing in particular to a
+   * pattern. Line endings go first, as they do in a browser, because an escape
+   * swallows one whitespace character and a file saved on Windows carries two
+   * bytes where the browser sees one. */
+  function withoutCssEscapes(css) {
+    return String(css)
+      .replace(/\r\n?|\f/g, '\n')
+      /* One pass, so an escaped backslash is spent as one rather than having
+       * its second half read as opening an escape. */
+      .replace(/\\(?:([0-9a-fA-F]{1,6})[ \t\n]?|([\s\S]))/g, function (_, hex, ch) {
+        if (ch !== undefined) return ch;
+        const code = parseInt(hex, 16);
+        if (!code || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return '';
+        if (code <= 0xffff) return String.fromCharCode(code);
+        const above = code - 0x10000;
+        return String.fromCharCode(0xd800 + (above >> 10), 0xdc00 + (above & 0x3ff));
+      });
+  }
+
+  /* Read as written and as the browser will read it. The file as typed is
+   * still checked so a fault in the decoder cannot make this weaker than it
+   * would be without one. */
+  function cssReachesOut(css) {
+    return CSS_REACHES_OUT.test(css) || CSS_REACHES_OUT.test(withoutCssEscapes(css));
   }
 
   function scopeCSS(css, prefix, rootSel) {
@@ -1392,8 +1486,25 @@
      * own CSS is appended afterwards, unscoped, so they keep full control. */
     let css = scopeCSS(L.join('\n'), prefix, rootSel);
 
-    if (theme.customCSS && String(theme.customCSS).trim()) {
-      css += '\n/* --- custom CSS --- */\n' + String(theme.customCSS).trim();
+    /* Checked here, not only where a theme is imported.
+     *
+     * The editor refuses a file that can reach the network, but storage
+     * outlives the version that wrote it: a theme imported before that check
+     * existed is still there, still selected, and still injected on every
+     * visit, without anyone opening the editor again. This is the last point
+     * before the rules reach the page, so it is the one that has to hold. */
+    const custom = theme.customCSS ? String(theme.customCSS).trim() : '';
+    if (custom && cssReachesOut(custom)) {
+      /* Said out loud. The list of things that can fetch has grown, so custom
+       * CSS an older version accepted can stop applying after an upgrade, and
+       * dropping it in silence leaves someone looking at a theme quietly
+       * missing a piece, with nothing to search for. */
+      console.warn('[nwt] the custom CSS in theme "' + (theme.name || 'unnamed') +
+                   '" can load something over the network, so it is not being ' +
+                   'applied. Remove the url(), src(), image(), image-set(), ' +
+                   'cross-fade() or @import in it to use it again.');
+    } else if (custom) {
+      css += '\n/* --- custom CSS --- */\n' + custom;
     }
 
     return css;
@@ -1403,6 +1514,7 @@
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
     focusElapsed, focusRemaining, formatDuration,
+    cssReachesOut, withoutCssEscapes,
     toneOf,
     debounce,
     color: { hexToRgb, rgbToHex, hexToHsl, hslToHex, mix, rgba, lighten, contrastRatio, clamp }

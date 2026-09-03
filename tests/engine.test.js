@@ -354,3 +354,161 @@ test('the galactica fleet is black, smaller and twice the size of fleet', () => 
   assert.ok(widest < scene.near.tile * 0.05,
     'the ships should be small, widest was ' + widest.toFixed(0));
 });
+
+/* ------------------------------------------------- custom CSS at injection */
+
+/* The editor refuses a theme file that can reach the network, but storage
+ * outlives the version that wrote it. A theme imported before that check
+ * existed is still there, still selected, and still injected on every visit,
+ * and nobody has to open the editor again for that to happen. So the question
+ * is asked once more here, at the last point before the rules reach the page.
+ */
+function withCustomCSS(css) {
+  return settings({
+    themeId: 'stored',
+    customThemes: {
+      stored: {
+        name: 'Stored',
+        mode: 'dark',
+        colors: NWT.cloneTheme(NWT.PRESETS.concrete.colors),
+        tuning: NWT.cloneTheme(NWT.DEFAULT_TUNING),
+        customCSS: css
+      }
+    }
+  });
+}
+
+test('custom CSS that only sets properties is injected', () => {
+  const css = NWT.buildCSS(withCustomCSS('.card { border-radius: 12px; }'));
+  assert.match(css, /border-radius: 12px/, 'ordinary custom CSS was dropped');
+});
+
+test('custom CSS already in storage that reaches out is not injected', () => {
+  /* This is the upgrade case: the theme was accepted by a version that did
+   * not look, and the person never opened the editor again. */
+  const reaching = [
+    'body { background: url("https://example.com/x.png"); }',
+    '@import "https://example.com/x.css";',
+    'body { background: image("https://example.com/x.png"); }',
+    '@font-face { font-family: x; src: src("https://example.com/x.woff2"); }',
+    'body { background: cross-fade(url(a), url(b), 50%); }',
+    'body { background: -webkit-image-set("x.png" 1x); }'
+  ];
+  reaching.forEach(bad => {
+    const css = NWT.buildCSS(withCustomCSS(bad));
+    assert.equal(css.indexOf('example.com'), -1, 'this was injected: ' + bad);
+    assert.equal(css.indexOf('custom CSS'), -1, 'the block was written out anyway');
+  });
+});
+
+test('custom CSS hiding a request behind an escape is not injected', () => {
+  /* \75 is "u", so a browser reads this as url() the moment it parses it. */
+  const hidden = [
+    String.raw`body { background: \75 rl("https://example.com/x.png"); }`,
+    String.raw`@\69 mport "https://example.com/x.css";`,
+    String.raw`body { background: \000075rl("https://example.com/x.png"); }`,
+    'body { background: ' + String.raw`\75` + '\r\nrl("https://example.com/x.png"); }'
+  ];
+  hidden.forEach(bad => {
+    const css = NWT.buildCSS(withCustomCSS(bad));
+    assert.equal(css.indexOf('example.com'), -1,
+      'this was injected: ' + JSON.stringify(bad));
+  });
+});
+
+test('the engine and the editor ask the same question', () => {
+  /* One definition, so the two cannot drift apart and leave the injection
+   * point accepting what the import refuses. */
+  assert.equal(typeof NWT.cssReachesOut, 'function');
+  assert.equal(NWT.cssReachesOut('body { color: red; }'), false);
+  assert.equal(NWT.cssReachesOut('body { background: url(x); }'), true);
+  assert.equal(NWT.cssReachesOut(String.raw`body { background: \75 rl(x); }`), true);
+});
+
+test('a stored colour that is not a hex value never reaches the stylesheet', () => {
+  /* The accent pair is written into the stylesheet as typed rather than
+   * through the tuner, so a value carrying a semicolon ends the declaration
+   * and whatever follows becomes a rule of its own - a url() on the page
+   * without touching the custom CSS the other checks look at. The editor
+   * refuses these on import, but storage outlives the version that wrote it. */
+  const keys = ['canvas', 'surface', 'surfaceAlt', 'border', 'textPrimary',
+    'textSecondary', 'textMuted', 'accent', 'accentText'];
+  const payloads = [
+    '#101112; background: url(https://evil.example/x)',
+    'url(https://evil.example/x)',
+    '#101112;} body { background: url(https://evil.example/x) }',
+    'red; background-image: url(https://evil.example/x)'
+  ];
+
+  keys.forEach(key => {
+    payloads.forEach(payload => {
+      const colors = NWT.cloneTheme(NWT.PRESETS.concrete.colors);
+      colors[key] = payload;
+      const s = settings({
+        themeId: 'stored',
+        customThemes: {
+          stored: { name: 'S', mode: 'dark', colors: colors,
+                    tuning: NWT.cloneTheme(NWT.DEFAULT_TUNING) }
+        }
+      });
+      const css = NWT.buildCSS(s);
+      /* Asked as "does this text appear at all", which is the actual
+       * question. Written as a pattern it reads to a scanner like a host
+       * check that forgot its anchors, and about a pattern matched against a
+       * URL a scanner is right to say so. */
+      assert.equal(css.indexOf('evil.example'), -1,
+        key + ' carried a request into the stylesheet: ' + payload);
+    });
+  });
+});
+
+test('a theme with an unusable colour gets a whole palette of its own mode', () => {
+  /* Filled in key by key from one fixed theme, a light theme took a
+   * near-white text colour from the dark default and put it on a light
+   * canvas: unreadable, on every visit. It is all or nothing now, and the
+   * replacement is a set that was drawn together. */
+  /* mode, the theme it was forked from, and the palette it should land on. */
+  [['dark', 'graphite', 'concrete'],
+   ['light', 'mountFuji', 'hawaiiMorning']].forEach(function (row) {
+    const mode = row[0];
+
+    /* textPrimary, not accent: this is the key where taking one colour from
+     * a palette of the other mode is unreadable rather than merely wrong, and
+     * where filling in key by key looks the same as taking the lot until you
+     * corrupt this one. Written the way a version before the check would
+     * have saved it. */
+    const colors = NWT.cloneTheme(NWT.PRESETS[row[1]].colors);
+    colors.textPrimary = 'rgb(20,20,20)';
+
+    const s = settings({
+      themeId: 'stored',
+      customThemes: {
+        stored: { name: 'S', mode: mode, colors: colors,
+                  tuning: NWT.cloneTheme(NWT.DEFAULT_TUNING) }
+      }
+    });
+    const p = NWT.buildPalette(NWT.getTheme(s));
+
+    /* Readable, which filling in key by key from the other mode is not. */
+    assert.ok(C(p.textPrimary, p.canvas) >= 7,
+      mode + ': text on canvas is ' + C(p.textPrimary, p.canvas).toFixed(2) + ':1');
+    assert.ok(C(p.textPrimary, p.surface) >= 7, mode + ': text on surface');
+
+    /* And of this theme's own mode, not whichever one is the overall default. */
+    assert.equal(p.canvas, NWT.PRESETS[row[2]].colors.canvas,
+      mode + ' theme fell back to a palette of the wrong mode');
+    assert.equal(p.textPrimary, NWT.PRESETS[row[2]].colors.textPrimary,
+      mode + ' theme took its text colour from the wrong palette');
+  });
+});
+
+test('an ordinary theme keeps its own colours, not the default ones', () => {
+  /* Asserted as identity. Checked only for the shape of a hex value, this
+   * passed just as well when every theme silently became the default one,
+   * since that is a hex value too. */
+  THEMES.forEach(id => {
+    const p = NWT.buildPalette(NWT.getTheme(settings({ themeId: id })));
+    assert.equal(p.accent, NWT.PRESETS[id].colors.accent, id + ' lost its accent');
+    assert.equal(p.canvas, NWT.PRESETS[id].colors.canvas, id + ' lost its canvas');
+  });
+});

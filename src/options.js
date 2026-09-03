@@ -347,8 +347,6 @@
                       'textPrimary', 'textSecondary', 'textMuted',
                       'accent', 'accentText'];
   const HEX = /^#[0-9a-fA-F]{6}$/;
-  const CSS_REACHES_OUT = /url\s*\(|@import|expression\s*\(|image-set\s*\(/i;
-
   function cleanTheme(raw) {
     if (!raw || typeof raw !== 'object') throw new Error('not a theme');
     const out = { colors: {} };
@@ -378,7 +376,18 @@
 
     if (raw.customCSS) {
       const css = String(raw.customCSS);
-      if (CSS_REACHES_OUT.test(css)) {
+      /* Checked as written and as the browser will read it.
+       *
+       * The decoded form alone would do for everything known: decoding text
+       * that carries no escapes returns it unchanged. The file as typed is
+       * still checked so that a fault in the decoder below cannot make this
+       * weaker than it was before the decoder existed. No test can tell the
+       * two apart, which is the point - both have to refuse. */
+      /* Asked through NWT at the point of use rather than held in a local.
+       * Taken once when this file loads, it would be undefined if the page
+       * ever loaded this script before the engine, turning every import
+       * from a refusal with a reason into an error nobody sees. */
+      if (NWT.cssReachesOut(css)) {
         throw new Error('custom CSS in this file can load an external resource');
       }
       out.customCSS = css.slice(0, 20000);

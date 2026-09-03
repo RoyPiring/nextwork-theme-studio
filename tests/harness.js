@@ -12,6 +12,13 @@
  * script actually touches, and nothing else, which keeps it short enough to
  * read and to trust. Anything the script starts using that is missing here
  * will throw rather than quietly do nothing.
+ *
+ * One thing it does not do: events travel from an element up through its
+ * parents and stop there. Nothing is delivered to the document or the window,
+ * and addEventListener on either is accepted and ignored. Neither page wires
+ * anything to them today, so nothing is uncovered by it - but a page that
+ * starts to would be untested here without a test failing to say so, and this
+ * would need to grow first.
  */
 const path = require('path');
 const fs = require('fs');
@@ -23,6 +30,66 @@ class FakeClassList {
   add(...n) { n.forEach(x => this.set.add(x)); }
   remove(...n) { n.forEach(x => this.set.delete(x)); }
   contains(n) { return this.set.has(n); }
+  toggle(n, force) {
+    const on = force === undefined ? !this.set.has(n) : !!force;
+    if (on) this.set.add(n); else this.set.delete(n);
+    return on;
+  }
+}
+
+/* Does one element match one selector.
+ *
+ * Compound parts are read left to right - "button[data-min]" is a tag and an
+ * attribute, and closest() is given exactly that. Anything it does not
+ * understand throws, so a selector this does not cover fails loudly instead of
+ * quietly matching nothing and leaving a test green for the wrong reason. */
+function matchesSelector(el, sel) {
+  return String(sel).split(',').map(s => s.trim()).filter(Boolean)
+    .some(part => matchesOne(el, part));
+}
+
+function matchesOne(el, part) {
+  if (part === '*') return true;
+  const bits = part.match(/^[a-zA-Z][\w-]*|\[[^\]]*\]|\.[\w-]+|#[\w-]+/g);
+  if (!bits || bits.join('') !== part) {
+    throw new Error('harness: unsupported selector "' + part + '"');
+  }
+  return bits.every(bit => {
+    if (bit.startsWith('#')) return el.id === bit.slice(1);
+    if (bit.startsWith('.')) return el.classList.contains(bit.slice(1));
+    if (bit.startsWith('[')) {
+      const body = bit.slice(1, -1);
+      if (body.startsWith('class*=')) {
+        const want = body.slice(body.indexOf('=') + 1).replace(/^["']|["']$/g, '');
+        return [...el.classList.set].some(c => c.indexOf(want) !== -1);
+      }
+      /* Every other operator is refused rather than misread. Left to fall
+       * through, "[data-min^=2]" took the name as "data-min^", found nothing
+       * under it, and returned no elements - which reads as "the page does
+       * not have one" and leaves the test green. */
+      const operator = /([~^$*|])=/.exec(body);
+      if (operator) {
+        throw new Error('harness: unsupported attribute operator "' +
+                        operator[0] + '" in "' + bit + '"');
+      }
+      const eq = body.indexOf('=');
+      const name = (eq === -1 ? body : body.slice(0, eq)).trim();
+      const key = name.replace(/^data-/, '').replace(/-(\w)/g, (_, c) => c.toUpperCase());
+      /* id and class are held as properties rather than in the attribute bag,
+       * so asking the bag for them would answer "absent" for every element and
+       * quietly match nothing. */
+      const value = name === 'id' ? (el.id || undefined)
+        : name === 'class' ? (el.className || undefined)
+        : name.startsWith('data-') ? el.dataset[key]
+        : el.attributes[name];
+      if (eq === -1) return value !== undefined;
+      /* Trimmed, so [data-min = "25"] reads as the same thing it does in a
+       * browser rather than matching nothing. */
+      const want = body.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
+      return String(value) === want;
+    }
+    return el.tagName === bit.toUpperCase();
+  });
 }
 
 class FakeStyle {
@@ -56,7 +123,14 @@ class FakeElement {
     this.style = new FakeStyle();
     this.classList = new FakeClassList();
     this.attributes = {};
-    this.textContent = '';
+    /* Text runs and elements together, in the order they appear.
+     *
+     * Held as a separate text field beside the children, "Theme <b>Ocean</b>
+     * is on" read back with the child's words moved to the end, and text set
+     * before a child was appended disappeared entirely. Either way an
+     * assertion about a label was measuring something the page does not
+     * show. */
+    this._content = [];
     this.id = '';
     this.shadowRoot = null;
     this._rect = { left: 0, top: 0, width: 300, height: 200 };
@@ -72,6 +146,23 @@ class FakeElement {
   set className(v) {
     this.classList.set = new Set(String(v == null ? '' : v).split(/\s+/).filter(Boolean));
   }
+  /* Setting textContent empties the element, which is how the popup clears a
+   * list before rebuilding it. Held as a plain field, the old children stayed
+   * and every render appended another copy - the list would have grown on
+   * each click while the test watched the count and saw nothing wrong. */
+  get textContent() {
+    return this._content
+      .map(n => (typeof n === 'string' ? n : n.textContent)).join('');
+  }
+  set textContent(v) {
+    this.children.forEach(c => { c.parentNode = null; c.isConnected = false; });
+    this.children = [];
+    const text = String(v == null ? '' : v);
+    this._content = text === '' ? [] : [text];
+  }
+  appendText(text) {
+    if (text !== '') this._content.push(String(text));
+  }
   /* The real DOM has both; code walking ancestors uses parentElement. */
   get parentElement() {
     return this.parentNode && this.parentNode.nodeType === 1 ? this.parentNode : null;
@@ -79,12 +170,15 @@ class FakeElement {
   appendChild(child) {
     child.parentNode = this;
     this.children.push(child);
+    this._content.push(child);
     return child;
   }
   remove() {
     if (!this.parentNode) return;
     const i = this.parentNode.children.indexOf(this);
     if (i >= 0) this.parentNode.children.splice(i, 1);
+    const j = this.parentNode._content.indexOf(this);
+    if (j >= 0) this.parentNode._content.splice(j, 1);
     this.parentNode = null;
   }
   contains(node) {
@@ -111,6 +205,21 @@ class FakeElement {
   getBoundingClientRect() { return Object.assign({}, this._rect); }
   setPointerCapture() {}
   releasePointerCapture() {}
+  /* A script clicking an element itself, which is how the editor opens the
+   * file chooser and how it starts a download. */
+  click() {
+    let stopped = false;
+    const event = {
+      type: 'click', target: this,
+      preventDefault() {},
+      stopPropagation() { stopped = true; }
+    };
+    let node = this;
+    while (node && !stopped) {
+      (node.listeners.click || []).forEach(fn => fn.call(node, event));
+      node = node.parentElement;
+    }
+  }
   /* The content script normalises colours by round-tripping them through a
    * canvas fillStyle, because getComputedStyle hands back whatever colour
    * space the author wrote. This does the same job for the notations the
@@ -152,23 +261,17 @@ class FakeElement {
       node.children.forEach(c => { all.push(c); walk(c); });
     })(this);
     if (sel === '*') return all;
-    const parts = sel.split(',').map(s => s.trim()).filter(Boolean);
-    const match = (el, part) => {
-      if (part.startsWith('[class*=')) {
-        const want = part.slice(part.indexOf('"') + 1, part.lastIndexOf('"'));
-        return (el.className || '').toString().indexOf(want) !== -1 ||
-               [...el.classList.set].some(c => c.indexOf(want) !== -1);
-      }
-      if (part.startsWith('[') && part.endsWith(']')) {
-        const key = part.slice(1, -1).replace(/^data-/, '')
-          .replace(/-(\w)/g, (_, c) => c.toUpperCase());
-        return el.dataset[key] !== undefined;
-      }
-      if (part.startsWith('.')) return el.classList.contains(part.slice(1));
-      if (/^[a-zA-Z][\w-]*$/.test(part)) return el.tagName === part.toUpperCase();
-      throw new Error('harness: unsupported selector "' + part + '"');
-    };
-    return all.filter(el => parts.some(part => match(el, part)));
+    return all.filter(el => matchesSelector(el, sel));
+  }
+  /* This element or the nearest ancestor that matches. The popup asks for the
+   * label wrapping a switch, and for the button under a click. */
+  closest(sel) {
+    let node = this;
+    while (node && node.nodeType === 1) {
+      if (matchesSelector(node, sel)) return node;
+      node = node.parentElement;
+    }
+    return null;
   }
 }
 
@@ -214,6 +317,174 @@ class FakeDocument {
     return hits.map(function (h) { return h.el; });
   }
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
+}
+
+/* Enough of an HTML parser for the extension's own two pages.
+ *
+ * The pages are built here rather than described in the test, so a test drives
+ * the same DOM the browser would. An id renamed in the HTML and not in the
+ * script then fails a test instead of shipping a popup where one control does
+ * nothing - which is a class of bug nothing else here would catch.
+ *
+ * It handles what those pages use and throws on the rest.
+ *
+ * Read in one pass, left to right.
+ *
+ * Comments and the contents of script and style are skipped where they are met
+ * rather than stripped out beforehand. Removing them first is the shape of a
+ * sanitiser, and it has a sanitiser's problem: what one pass leaves behind the
+ * next can read as markup, and a script holding "-->" would end a comment that
+ * had not started. Passing over them in place cannot do that. */
+const RAW_TEXT_TAGS = new Set(['script', 'style']);
+const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img',
+  'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+
+const TAG = /^<(\/?)([a-zA-Z][\w-]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/;
+
+function parseHTML(html, doc, into) {
+  const root = into || doc.createElement('div');
+  const stack = [root];
+  const top = () => stack[stack.length - 1];
+
+  /* Text is kept exactly as written. textContent in a browser hands back the
+   * source whitespace, not what the layout makes of it, so collapsing runs
+   * here would have tests comparing against text the DOM does not hold. A run
+   * that is only whitespace is text too - it is the space between two
+   * elements. */
+  const text = s => { if (s) top().appendText(decodeEntities(s)); };
+
+  let i = 0;
+  while (i < html.length) {
+    const lt = html.indexOf('<', i);
+    if (lt === -1) { text(html.slice(i)); break; }
+    text(html.slice(i, lt));
+
+    if (html.startsWith('<!--', lt)) {
+      const end = html.indexOf('-->', lt + 4);
+      i = end === -1 ? html.length : end + 3;
+      continue;
+    }
+    if (html.startsWith('<!', lt)) {          /* a doctype, or anything like it */
+      const end = html.indexOf('>', lt);
+      i = end === -1 ? html.length : end + 1;
+      continue;
+    }
+
+    const m = TAG.exec(html.slice(lt));
+    if (!m) { text('<'); i = lt + 1; continue; }
+    i = lt + m[0].length;
+
+    const name = m[2].toLowerCase();
+    if (m[1]) {
+      /* Unwind to the matching open tag; a stray close is ignored rather than
+       * silently reparenting everything after it. */
+      for (let j = stack.length - 1; j > 0; j--) {
+        if (stack[j].tagName === name.toUpperCase()) { stack.length = j; break; }
+      }
+      continue;
+    }
+
+    const el = doc.createElement(name);
+    applyAttributes(el, m[3]);
+    top().appendChild(el);
+
+    if (RAW_TEXT_TAGS.has(name)) {
+      /* Everything up to the matching close is text, whatever it looks like,
+       * and it stays as text: textContent in a browser includes a stylesheet
+       * and a script body. Entities are not decoded in here - raw text is
+       * exactly what was written. */
+      const close = new RegExp('</' + name + '\\s*>', 'i');
+      const rest = html.slice(i);
+      const found = close.exec(rest);
+      el.appendText(found ? rest.slice(0, found.index) : rest);
+      i += found ? found.index + found[0].length : rest.length;
+      continue;
+    }
+    if (!VOID_TAGS.has(name) && !m[4]) stack.push(el);
+  }
+  return root;
+}
+
+/* One pass, so nothing this produces is read again.
+ *
+ * Run as a sequence of replacements, "&amp;lt;" became "&lt;" and then "<" -
+ * text that says the name of a tag turned into the tag. */
+const ENTITIES = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' '
+};
+
+/* Load a whole page into a document that already has an html, head and body.
+ *
+ * Parsed straight into the body, the file's own <body> became a child of it -
+ * a body inside a body - so document.body was not the element the page
+ * declares, and anything written on that tag, a class among them, was on a
+ * node no script would ever find. */
+function parseDocument(html, doc) {
+  const parsed = parseHTML(html, doc);
+  ['head', 'body'].forEach(part => {
+    const found = parsed.querySelectorAll(part)[0];
+    if (found) adopt(found, doc[part]);
+  });
+  /* A fragment with no body of its own is the body. */
+  if (!parsed.querySelectorAll('body')[0]) adopt(parsed, doc.body);
+  return doc;
+}
+
+/* Move everything one element holds into another, in order, attributes and
+ * all. The target keeps its identity, which is what makes it the document's
+ * own body rather than a copy of it. */
+function adopt(source, target) {
+  Object.keys(source.attributes).forEach(k => target.setAttribute(k, source.attributes[k]));
+  source.classList.set.forEach(c => target.classList.add(c));
+  Object.keys(source.dataset).forEach(k => { target.dataset[k] = source.dataset[k]; });
+
+  source._content.forEach(node => {
+    if (typeof node === 'string') target.appendText(node);
+    else { node.parentNode = target; target.children.push(node); target._content.push(node); }
+  });
+  source._content = [];
+  source.children = [];
+}
+
+function decodeEntities(s) {
+  return String(s).replace(/&(#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z]+);/g, (whole, body) => {
+    if (body.charAt(0) === '#') {
+      const hex = body.charAt(1) === 'x' || body.charAt(1) === 'X';
+      const code = parseInt(hex ? body.slice(2) : body.slice(1), hex ? 16 : 10);
+      if (!code || code > 0x10ffff) return whole;
+      return String.fromCodePoint(code);
+    }
+    return Object.prototype.hasOwnProperty.call(ENTITIES, body)
+      ? ENTITIES[body] : whole;
+  });
+}
+
+function applyAttributes(el, source) {
+  const attr = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+  let a;
+  while ((a = attr.exec(source || '')) !== null) {
+    const key = a[1];
+    const value = decodeEntities(a[2] !== undefined ? a[2]
+      : a[3] !== undefined ? a[3]
+      : a[4] !== undefined ? a[4] : '');
+    if (key === 'id') el.id = value;
+    else if (key === 'class') el.className = value;
+    else if (key.startsWith('data-')) {
+      el.dataset[key.slice(5).replace(/-(\w)/g, (_, c) => c.toUpperCase())] = value;
+    } else {
+      el.setAttribute(key, value);
+      /* The properties a script reads back off a control. `checked` follows
+       * the attribute only as a starting state, as it does in a browser. */
+      if (key === 'type' || key === 'value' || key === 'min' ||
+          key === 'max' || key === 'step' || key === 'title') {
+        el[key] = value;
+      }
+      if (key === 'checked') el.checked = true;
+      if (key === 'disabled') el.disabled = true;
+    }
+  }
+  if (el.tagName === 'INPUT' && el.checked === undefined) el.checked = false;
+  if (el.tagName === 'INPUT' && el.value === undefined) el.value = '';
 }
 
 /* Build an environment, load content.js into it, and hand back the controls a
@@ -484,3 +755,251 @@ function loadBackground(options) {
 }
 
 module.exports = { loadContentScript, loadBackground };
+
+/* Build one of the extension's own pages, load its script into it, and hand
+ * back the controls a test needs.
+ *
+ * The DOM comes from the page's real HTML. A control the script wires up by id
+ * has to exist in the file for the wiring to run at all, so the two staying in
+ * step is checked by the tests rather than by looking.
+ */
+function loadPage(options) {
+  const opts = options || {};
+  const doc = new FakeDocument();
+  const stored = Object.assign({}, opts.settings || {});
+  const changeListeners = [];
+  /* Scheduled callbacks, by the id handed back. Held in a map rather than a
+   * list so cancelling one actually removes it: as a no-op, a callback that
+   * had been cancelled still ran, and a debounce that clears its previous
+   * timer looked correct here whatever it did. */
+  const timers = new Map();
+  let timerSeq = 0;
+  function queue(fn) { timerSeq += 1; timers.set(timerSeq, fn); return timerSeq; }
+  const intervals = new Map();
+  const reads = [];
+  const opened = { optionsPage: 0, reloadedTabs: 0, closed: 0 };
+  let intervalSeq = 0;
+
+  parseDocument(fs.readFileSync(path.join(ROOT, opts.page), 'utf8'), doc);
+
+  const chrome = {
+    runtime: {
+      lastError: null,
+      id: 'test',
+      openOptionsPage() { opened.optionsPage++; },
+      onMessage: { addListener() {} }
+    },
+    tabs: { reload() { opened.reloadedTabs++; } },
+    storage: {
+      local: {
+        /* The keys are honoured. Handing back everything regardless meant a
+         * script could ask for one key, read another off the answer, and get
+         * a value the browser would have reported as missing. */
+        get(keys, cb) {
+          const all = JSON.parse(JSON.stringify(stored));
+          let snapshot = all;
+          if (typeof keys === 'string') {
+            snapshot = keys in all ? { [keys]: all[keys] } : {};
+          } else if (Array.isArray(keys)) {
+            snapshot = {};
+            keys.forEach(k => { if (k in all) snapshot[k] = all[k]; });
+          } else if (keys && typeof keys === 'object') {
+            /* An object is a set of defaults. */
+            snapshot = Object.assign({}, keys);
+            Object.keys(keys).forEach(k => { if (k in all) snapshot[k] = all[k]; });
+          }
+          reads.push({ cb, snapshot });
+        },
+        set(patch, cb) {
+          Object.assign(stored, JSON.parse(JSON.stringify(patch)));
+          if (cb) queue(cb);
+          changeListeners.forEach(fn => queue(() => fn({}, 'local')));
+        },
+        clear(cb) {
+          Object.keys(stored).forEach(k => { delete stored[k]; });
+          if (cb) queue(cb);
+          changeListeners.forEach(fn => queue(() => fn({}, 'local')));
+        }
+      },
+      onChanged: { addListener(fn) { changeListeners.push(fn); } }
+    }
+  };
+
+  /* Whatever the page hands to the browser to save. The editor builds a Blob
+   * and asks for a URL for it, so holding the blobs is enough to see what an
+   * export would contain without a download happening. */
+  const saved = [];
+  const asked = [];
+  let blobSeq = 0;
+
+  class FakeBlob {
+    constructor(parts, options) {
+      this.parts = parts || [];
+      this.type = (options || {}).type || '';
+    }
+    text() { return Promise.resolve(this.parts.join('')); }
+  }
+
+  const win = {
+    innerWidth: 420,
+    innerHeight: 600,
+    close() { opened.closed++; },
+    addEventListener() {},
+    removeEventListener() {},
+    alert() {}
+  };
+  win.top = win;
+
+  const sandbox = {
+    window: win,
+    document: doc,
+    location: { pathname: '/' + path.basename(opts.page) },
+    chrome,
+    Blob: FakeBlob,
+    URL: {
+      createObjectURL(blob) {
+        blobSeq += 1;
+        saved.push({ type: blob.type, text: (blob.parts || []).join('') });
+        return 'blob:test/' + blobSeq;
+      },
+      revokeObjectURL() {}
+    },
+    /* Counted, so a test can tell "it did not delete" from "it never
+     * asked". A version that prompts and then does nothing satisfies the
+     * first and not the second. */
+    confirm(message) {
+      asked.push(String(message));
+      return opts.confirm === undefined ? true : opts.confirm;
+    },
+    alert() {},
+    getComputedStyle(el) { return Object.assign({}, el._computed || {}); },
+    /* The delay is recorded by nobody: flush() runs what is pending in the
+     * order it was scheduled. Two timers with different delays therefore fire
+     * in the order they were made rather than the order a browser would use,
+     * so do not write a test whose meaning depends on which lands first. */
+    setTimeout(fn) { return queue(fn); },
+    clearTimeout(id) { timers.delete(id); },
+    setInterval(fn, ms) { intervalSeq += 1; intervals.set(intervalSeq, { fn, ms }); return intervalSeq; },
+    clearInterval(id) { intervals.delete(id); },
+    requestAnimationFrame(fn) { return queue(fn); },
+    cancelAnimationFrame(id) { timers.delete(id); },
+    /* Math, Date, Array and the rest are deliberately not passed in. A vm
+     * context has its own, and handing it this realm's would shadow them: an
+     * array made inside the sandbox would carry the inner prototype while the
+     * Array it is compared against is the outer one, so "[] instanceof Array"
+     * answers false here and true in a browser. Any branch turning on that
+     * would be exercised backwards. */
+    console
+  };
+  sandbox.globalThis = sandbox;
+
+  const vm = require('node:vm');
+  vm.createContext(sandbox);
+  sandbox.self = sandbox;
+  ['src/wallpapers.js', 'src/scenes.js', 'src/theme-engine.js']
+    .concat(opts.scripts || [])
+    .forEach(f => vm.runInContext(
+      fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f }));
+
+  function flush(o) {
+    const options = o || {};
+    for (let i = 0; i < (options.rounds || 12); i++) {
+      let pending = [];
+      if (options.deliverReads !== false) {
+        pending = reads.splice(0, reads.length);
+        if (options.reverseReads) pending.reverse();
+        pending.forEach(r => r.cb(r.snapshot));
+      }
+      const batch = [...timers.values()];
+      timers.clear();
+      batch.forEach(fn => fn());
+      if (!pending.length && !batch.length) break;
+    }
+  }
+
+  /* Dispatch to the listeners on an element, and to any ancestor listening for
+   * the same type, which is the bubbling the pages rely on for their lists. */
+  function dispatch(el, type, extra, settle) {
+    /* An event that is stopped goes no further. As a no-op, a handler that
+     * stopped it here still reached every ancestor listening for the same
+     * thing, so a delegated handler fired in a test where the page would not
+     * have run it. */
+    let stopped = false;
+    const event = Object.assign({
+      type,
+      target: el,
+      preventDefault() {},
+      stopPropagation() { stopped = true; }
+    }, extra || {});
+    let node = el;
+    while (node && !stopped) {
+      (node.listeners[type] || []).forEach(fn => fn.call(node, event));
+      node = node.parentElement;
+    }
+    /* A write held behind a timer has not happened yet when the handler
+     * returns. Tests that care about that fire without settling, look, then
+     * settle. */
+    if (settle !== false) flush();
+    return event;
+  }
+
+  return {
+    doc, chrome, window: win, sandbox, stored, reads, flush, opened, intervals,
+    /* What an export handed to the browser to save. */
+    saved,
+    /* Every question the page put to the person using it. */
+    asked,
+    /* Hand the page a file the way a chooser would, and wait for it to be
+     * read - the page reads the file through a promise. */
+    async chooseFile(id, text) {
+      const input = doc.getElementById(id);
+      if (!input) throw new Error('no file input with id "' + id + '"');
+      input.files = [new FakeBlob([text], { type: 'application/json' })];
+      dispatch(input, 'change');
+      await Promise.resolve();
+      await Promise.resolve();
+      flush();
+    },
+    el(id) {
+      const found = doc.getElementById(id);
+      if (!found) throw new Error('no element with id "' + id + '" in ' + opts.page);
+      return found;
+    },
+    /* Set a control's value the way a person would, then fire the event the
+     * page listens for. */
+    fire(id, type, extra) { return dispatch(this.el(id), type, extra); },
+    /* Fire and stop, leaving anything on a timer still pending. */
+    fireOnly(id, type, extra) { return dispatch(this.el(id), type, extra, false); },
+    /* Make the next storage read fail the way the real API does: it sets
+     * runtime.lastError rather than throwing, so unread it passes silently. */
+    failNextRead(message) {
+      const real = chrome.storage.local.get;
+      chrome.storage.local.get = function (keys, cb) {
+        chrome.storage.local.get = real;
+        reads.push({
+          snapshot: null,
+          cb(snapshot) {
+            chrome.runtime.lastError = { message: message || 'storage is unavailable' };
+            try { cb(snapshot); } finally { chrome.runtime.lastError = null; }
+          }
+        });
+      };
+    },
+    set(id, value) {
+      const el = this.el(id);
+      if (typeof value === 'boolean') el.checked = value;
+      else el.value = String(value);
+      return el;
+    },
+    click(el, extra) { return dispatch(el, 'click', extra); },
+    /* Run every interval once, which is how the clock is advanced. */
+    tick() {
+      [...intervals.values()].forEach(t => t.fn());
+      flush();
+    }
+  };
+}
+
+module.exports.loadPage = loadPage;
+module.exports.parseHTML = parseHTML;
+module.exports.parseDocument = parseDocument;
