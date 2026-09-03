@@ -341,4 +341,108 @@ function loadContentScript(options) {
   };
 }
 
-module.exports = { loadContentScript };
+/* Build an environment for the background worker and load it into one.
+ *
+ * The same file runs two ways: Chromium runs it as a service worker, where
+ * importScripts exists, and Firefox runs it as an event page, where it does
+ * not and the manifest lists the libraries instead. `serviceWorker` picks
+ * which of those is being exercised.
+ */
+function loadBackground(options) {
+  const opts = options || {};
+  const stored = Object.assign({}, opts.settings || {});
+  const timers = [];
+  const badge = { text: null, color: null, title: null };
+  const changeListeners = [];
+  const commandListeners = [];
+  const installedListeners = [];
+  const startupListeners = [];
+  const imported = [];
+
+  const chrome = {
+    runtime: {
+      lastError: opts.lastError || null,
+      onInstalled: { addListener(fn) { installedListeners.push(fn); } },
+      onStartup: { addListener(fn) { startupListeners.push(fn); } }
+    },
+    commands: { onCommand: { addListener(fn) { commandListeners.push(fn); } } },
+    action: {
+      setBadgeText(o) { badge.text = o.text; },
+      setBadgeBackgroundColor(o) { badge.color = o.color; },
+      setTitle(o) { badge.title = o.title; }
+    },
+    storage: {
+      local: {
+        get(keys, cb) {
+          /* After an error Chrome invokes the callback with undefined and
+           * sets runtime.lastError. Code that does not check it then builds
+           * from nothing. */
+          if (chrome.runtime.lastError) { timers.push(() => cb(undefined)); return; }
+          const snapshot = JSON.parse(JSON.stringify(stored));
+          /* `get(null, ...)` asks for everything; an object asks for those
+           * keys with those defaults. Both shapes are used here. */
+          const answer = (keys === null || keys === undefined)
+            ? snapshot
+            : Object.assign({}, keys, Object.fromEntries(
+                Object.keys(keys).filter(k => k in snapshot).map(k => [k, snapshot[k]])));
+          timers.push(() => cb(answer));
+        },
+        set(patch, cb) {
+          Object.assign(stored, JSON.parse(JSON.stringify(patch)));
+          if (cb) timers.push(cb);
+          const changes = {};
+          Object.keys(patch).forEach(k => { changes[k] = { newValue: patch[k] }; });
+          changeListeners.forEach(fn => timers.push(() => fn(changes, 'local')));
+        }
+      },
+      onChanged: { addListener(fn) { changeListeners.push(fn); } }
+    }
+  };
+
+  const sandbox = {
+    chrome,
+    Math, Date, JSON, Object, Array, String, Number, Boolean, RegExp, Error,
+    isFinite, parseInt, parseFloat, console
+  };
+  sandbox.globalThis = sandbox;
+  sandbox.self = sandbox;
+
+  if (opts.serviceWorker) {
+    sandbox.importScripts = function () {
+      for (let i = 0; i < arguments.length; i++) imported.push(arguments[i]);
+      load(['src/' + arguments[0], 'src/' + arguments[1], 'src/' + arguments[2]]);
+    };
+  }
+
+  const vm = require('node:vm');
+  vm.createContext(sandbox);
+  function load(files) {
+    files.forEach(f => vm.runInContext(
+      fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f }));
+  }
+
+  /* The event-page path has no importScripts, so the libraries are already
+   * present when the worker starts. */
+  if (!opts.serviceWorker) {
+    load(['src/wallpapers.js', 'src/scenes.js', 'src/theme-engine.js']);
+  }
+  load(['src/background.js']);
+
+  function flush(rounds) {
+    for (let i = 0; i < (rounds || 12); i++) {
+      const batch = timers.splice(0, timers.length);
+      if (!batch.length) break;
+      batch.forEach(fn => fn());
+    }
+  }
+
+  return {
+    chrome, sandbox, badge, stored, flush, imported,
+    install() { installedListeners.forEach(fn => fn()); },
+    startup() { startupListeners.forEach(fn => fn()); },
+    command(name) { commandListeners.forEach(fn => fn(name)); },
+    change(changes, area) { changeListeners.forEach(fn => fn(changes, area)); }
+  };
+}
+
+module.exports = { loadContentScript, loadBackground };
