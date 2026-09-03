@@ -573,3 +573,57 @@ test('what a failed reviewer said on stderr is not published', () => {
   assert.ok(!result.output.includes('credentials'),
     'stderr reached the text that gets posted');
 });
+
+test('a reviewer does not outlive the run that started it', async () => {
+  /* Two ways this process can end while a reviewer is still going: it exits
+   * on an error before the insistent SIGKILL fires, or someone interrupts it
+   * and the signal goes to the foreground group - which the reviewer is no
+   * longer in, because it was given a group of its own.
+   *
+   * Both are the same problem, so both are checked the same way: start a
+   * reviewer that will not stop, end this process, and see whether the file
+   * it is writing keeps growing.
+   *
+   * Worth knowing where this bites: on Windows the stop is taskkill, which
+   * has already finished by the time the promise settles, so there is no
+   * window and this passes without proving much. The gap it is written for is
+   * the other platforms, where the ignored SIGTERM leaves two seconds before
+   * SIGKILL - and that is where CI runs it.
+   */
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { spawn } = require('node:child_process');
+
+  const marker = path.join(os.tmpdir(), 'nwt-orphan-' + process.pid + '-' + Date.now());
+  const tool = path.join(__dirname, '..', 'tools', 'review-pr.js');
+
+  /* A parent that starts a stubborn reviewer and then exits without waiting,
+   * the way the real one does when something later throws. */
+  const parent = [
+    "const { startReviewer } = require(process.argv[1]);",
+    "const stubborn = \"const f=require('fs');process.on('SIGTERM',()=>{});\" +",
+    "  \"process.stdout.on('error',()=>{});\" +",
+    "  \"setInterval(() => { f.appendFileSync(process.argv[1],'x');\" +",
+    "  \"try { console.log('x'.repeat(4096)); } catch (e) {} }, 10)\";",
+    "startReviewer({ name: 'S', cmd: process.execPath,",
+    "                args: ['-e', stubborn, process.argv[2]] }, '', 64 * 1024)",
+    "  .then(() => process.exit(2));"
+  ].join('\n');
+
+  await new Promise(resolve => {
+    const p = spawn(process.execPath, ['-e', parent, tool, marker], { stdio: 'ignore' });
+    p.on('close', resolve);
+  });
+
+  /* The parent has gone. Whatever it started should have gone with it. */
+  await new Promise(r => setTimeout(r, 800));
+  const settledAt = fs.existsSync(marker) ? fs.statSync(marker).size : 0;
+  await new Promise(r => setTimeout(r, 1000));
+  const laterOn = fs.existsSync(marker) ? fs.statSync(marker).size : 0;
+
+  try { fs.rmSync(marker, { force: true }); } catch (e) { /* leave it */ }
+  assert.equal(laterOn, settledAt,
+    'a reviewer outlived the run that started it, writing ' +
+    (laterOn - settledAt) + ' more bytes');
+});

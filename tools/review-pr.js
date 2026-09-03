@@ -374,6 +374,8 @@ function startReviewer(reviewer, text, limit) {
       return;
     }
 
+    LIVE.add(child);
+
     let settled = false;
     const finish = run => {
       if (settled) return;
@@ -428,12 +430,17 @@ function startReviewer(reviewer, text, limit) {
     child.stderr.on('data', d => take(d, 'err'));
 
     /* A command that is not installed fails here rather than exiting. */
-    child.on('error', error => { cleanUp(cwd); finish({ error: error }); });
+    child.on('error', error => {
+      LIVE.delete(child);
+      cleanUp(cwd);
+      finish({ error: error });
+    });
     /* The scratch directory goes when the process using it does, not when the
      * promise settles. Stopping a reviewer resolves immediately; removing its
      * working directory while it is still in there fails, quietly, and leaves
      * it behind. */
     child.on('close', code => {
+      LIVE.delete(child);
       cleanUp(cwd);
       finish({ status: code, pid: child.pid, cwd: cwd,
                stdout: text_(chunks.out), stderr: text_(chunks.err) });
@@ -445,6 +452,47 @@ function startReviewer(reviewer, text, limit) {
     child.stdin.end(text);
   });
 }
+
+/* Reviewers still running, and the directories they are running in.
+ *
+ * Giving a reviewer its own process group is what makes it possible to stop
+ * everything it started - and it also means a Ctrl-C at the terminal no
+ * longer reaches it, because that goes to the foreground group and the
+ * reviewer is no longer in it. Stopping one for printing too much has the
+ * same shape: the promise settles at once and the insistent SIGKILL is on a
+ * timer, so an exit before that timer fires leaves the reviewer running.
+ *
+ * Both are the same problem - this process ending without taking its children
+ * with it - so both are answered in the same place, on the way out. */
+const LIVE = new Set();
+
+function stopEverything() {
+  LIVE.forEach(function (child) {
+    try {
+      if (process.platform === 'win32' && child.pid) {
+        execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'],
+                     { stdio: 'ignore' });
+      } else if (child.pid) {
+        /* Straight to SIGKILL: there is no time left to ask politely. */
+        try { process.kill(-child.pid, 'SIGKILL'); }
+        catch (e) { child.kill('SIGKILL'); }
+      }
+    } catch (e) { /* already gone */ }
+  });
+  LIVE.clear();
+}
+
+/* Only synchronous work runs here, which killing is. */
+process.on('exit', stopEverything);
+
+['SIGINT', 'SIGTERM', 'SIGHUP'].forEach(function (sig) {
+  process.on(sig, function () {
+    stopEverything();
+    /* The conventional code for ending on a signal, and it also means the
+     * gate reports a failure rather than a pass when someone interrupts it. */
+    process.exit(130);
+  });
+});
 
 const LEFTOVER = new Set();
 
