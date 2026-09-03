@@ -374,10 +374,14 @@ function parseHTML(html, doc, into) {
     top().appendChild(el);
 
     if (RAW_TEXT_TAGS.has(name)) {
-      /* Everything up to the matching close is text, whatever it looks like. */
+      /* Everything up to the matching close is text, whatever it looks like,
+       * and it stays as text: textContent in a browser includes a stylesheet
+       * and a script body. Entities are not decoded in here - raw text is
+       * exactly what was written. */
       const close = new RegExp('</' + name + '\\s*>', 'i');
       const rest = html.slice(i);
       const found = close.exec(rest);
+      el.appendText(found ? rest.slice(0, found.index) : rest);
       i += found ? found.index + found[0].length : rest.length;
       continue;
     }
@@ -393,6 +397,39 @@ function parseHTML(html, doc, into) {
 const ENTITIES = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' '
 };
+
+/* Load a whole page into a document that already has an html, head and body.
+ *
+ * Parsed straight into the body, the file's own <body> became a child of it -
+ * a body inside a body - so document.body was not the element the page
+ * declares, and anything written on that tag, a class among them, was on a
+ * node no script would ever find. */
+function parseDocument(html, doc) {
+  const parsed = parseHTML(html, doc);
+  ['head', 'body'].forEach(part => {
+    const found = parsed.querySelectorAll(part)[0];
+    if (found) adopt(found, doc[part]);
+  });
+  /* A fragment with no body of its own is the body. */
+  if (!parsed.querySelectorAll('body')[0]) adopt(parsed, doc.body);
+  return doc;
+}
+
+/* Move everything one element holds into another, in order, attributes and
+ * all. The target keeps its identity, which is what makes it the document's
+ * own body rather than a copy of it. */
+function adopt(source, target) {
+  Object.keys(source.attributes).forEach(k => target.setAttribute(k, source.attributes[k]));
+  source.classList.set.forEach(c => target.classList.add(c));
+  Object.keys(source.dataset).forEach(k => { target.dataset[k] = source.dataset[k]; });
+
+  source._content.forEach(node => {
+    if (typeof node === 'string') target.appendText(node);
+    else { node.parentNode = target; target.children.push(node); target._content.push(node); }
+  });
+  source._content = [];
+  source.children = [];
+}
 
 function decodeEntities(s) {
   return String(s).replace(/&(#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z]+);/g, (whole, body) => {
@@ -728,7 +765,7 @@ function loadPage(options) {
   const opened = { optionsPage: 0, reloadedTabs: 0, closed: 0 };
   let intervalSeq = 0;
 
-  parseHTML(fs.readFileSync(path.join(ROOT, opts.page), 'utf8'), doc, doc.body);
+  parseDocument(fs.readFileSync(path.join(ROOT, opts.page), 'utf8'), doc);
 
   const chrome = {
     runtime: {
@@ -941,3 +978,4 @@ function loadPage(options) {
 
 module.exports.loadPage = loadPage;
 module.exports.parseHTML = parseHTML;
+module.exports.parseDocument = parseDocument;

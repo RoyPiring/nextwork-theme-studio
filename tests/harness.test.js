@@ -139,13 +139,22 @@ test('a checkbox marked checked starts checked', () => {
   assert.equal(host.children[0].checked, true);
 });
 
-test('script and style contents are not read as markup', () => {
+test('script and style contents are text, but not markup', () => {
+  /* A browser keeps both as text nodes - textContent includes a stylesheet
+   * and a script body - while parsing neither as elements. Dropping them
+   * would have textContent read shorter here than in the page. */
   const { host } = fragment(
     '<div><style>.a { color: red }</style><script>var x = "<b>no</b>";</script>ok</div>');
   const box = host.children[0];
   assert.equal(box.querySelectorAll('b').length, 0, 'markup inside a script was parsed');
-  assert.match(box.textContent, /ok/);
-  assert.ok(!/color: red/.test(box.textContent), 'stylesheet text became page text');
+  assert.equal(box.textContent, '.a { color: red }var x = "<b>no</b>";ok');
+  assert.equal(box.querySelectorAll('style')[0].textContent, '.a { color: red }');
+});
+
+test('an entity inside a script is left exactly as written', () => {
+  /* Raw text is not decoded: "&amp;" in a script is those five characters. */
+  const { host } = fragment('<div><script>var s = "a &amp; b";</script></div>');
+  assert.equal(host.children[0].textContent, 'var s = "a &amp; b";');
 });
 
 test('a comment is not read as markup', () => {
@@ -319,4 +328,46 @@ test('a doctype is skipped', () => {
 test('a stray angle bracket is text, not the start of a tag', () => {
   const { host } = fragment('<p>5 < 6 and 7 > 4</p>');
   assert.match(host.textContent, /5 < 6/);
+});
+
+test('the page body is the document body, not a body inside one', () => {
+  /* Parsed straight into the body, the file's own <body> became a child of
+   * it, so document.body was not the element the page declares and anything
+   * written on that tag sat on a node no script would find. */
+  const p = page();
+  assert.equal(p.doc.body.querySelectorAll('body').length, 0,
+    'there is a body inside the body');
+  assert.equal(p.doc.body.querySelectorAll('html').length, 0,
+    'the html element ended up inside the body');
+  assert.ok(p.doc.body.querySelectorAll('#themes').length,
+    'the controls are not in the document body');
+});
+
+test('what is written on the body tag lands on the document body', () => {
+  const { loadPage: load } = require('./harness.js');
+  const doc = load({ page: 'src/popup.html', scripts: [], settings: {} }).doc;
+  /* Whatever popup.html puts on its body tag, the document body has it. */
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'popup.html'), 'utf8');
+  const tag = /<body([^>]*)>/i.exec(html);
+  const cls = tag && /class="([^"]*)"/.exec(tag[1]);
+  if (cls) {
+    cls[1].split(/\s+/).filter(Boolean).forEach(c => {
+      assert.ok(doc.body.classList.contains(c),
+        'the body class "' + c + '" is not on document.body');
+    });
+  }
+  /* And the head is the document head. */
+  assert.equal(doc.head.querySelectorAll('head').length, 0);
+});
+
+test('a fragment with no body of its own still lands in the body', () => {
+  const { parseDocument } = require('./harness.js');
+  const p = page();
+  const doc = p.doc;
+  doc.body.textContent = '';
+  parseDocument('<div id="loose">hi</div>', doc);
+  assert.ok(doc.getElementById('loose'), 'a bodyless fragment was dropped');
 });
