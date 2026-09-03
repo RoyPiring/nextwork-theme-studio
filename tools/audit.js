@@ -448,6 +448,43 @@ check('contrast floor holds for every theme', () => {
   return themeIds.length + ' themes checked';
 });
 
+/* ------------------------------------------------------- shipped code ---
+ * Two properties a linter would give, without becoming the project's first
+ * dependency. See docs/maintenance/DEVELOPMENT.md for why that trade was made
+ * the way it was.
+ */
+check('shipped code runs in strict mode', () => {
+  /* Sloppy mode turns a mistyped assignment into a new global rather than an
+   * error, which is the one class of typo that survives every other check
+   * here: it parses, it runs, and it silently does nothing useful. */
+  const loose = srcFiles.filter(f => {
+    const body = fs.readFileSync(f, 'utf8');
+    /* Either an explicit directive, or wrapped in a function, which is what
+     * the rest of these are - a module body cannot leak a global either way. */
+    return !/['"]use strict['"]/.test(body) && !/^\s*\(function/m.test(body);
+  });
+  if (loose.length) {
+    fail(loose.map(rel).join(', ') +
+         ' - add \'use strict\' or wrap the file, or a typo becomes a global');
+  }
+  return srcFiles.length + ' files';
+});
+
+check('no debugging left in shipped code', () => {
+  /* console.log and debugger are for working on something, not for shipping
+   * it. Real reporting in this codebase uses console.warn or console.error. */
+  const offenders = [];
+  srcFiles.forEach(f => {
+    codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
+      if (/\bconsole\s*\.\s*log\s*\(/.test(line) || /\bdebugger\s*;?/.test(line)) {
+        offenders.push(rel(f) + ':' + (i + 1));
+      }
+    });
+  });
+  if (offenders.length) fail(offenders.join(', '));
+  return 'clean';
+});
+
 /* ------------------------------------------------- the workflow itself ---
  * The branch rule requires one check, named `audit`, and that job passes only
  * if every other job passed. The whole arrangement rests on `audit` listing
