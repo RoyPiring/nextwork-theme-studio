@@ -19,7 +19,7 @@ were never released.
   the reason is written to the console.
 - More of the ways CSS can fetch something are recognised: `src()`, `image()`
   and `cross-fade()` alongside `url()`, `@import` and `image-set()`. A name
-  written with escapes counts as the name it spells, so `= rl(` is read as
+  written with escapes counts as the name it spells, so `\75 rl(` is read as
   `url(`.
 - A theme colour has to be a plain `#rrggbb` value. One that is not can end
   a declaration early and add rules of its own, which is another way to put a
@@ -442,7 +442,7 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.9.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.10.0...HEAD
 [2.10.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.10.0
 [2.9.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.9.0
 [2.8.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.3
