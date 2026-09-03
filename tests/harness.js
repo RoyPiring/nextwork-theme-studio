@@ -76,7 +76,10 @@ function matchesOne(el, part) {
         : name.startsWith('data-') ? el.dataset[key]
         : el.attributes[name];
       if (eq === -1) return value !== undefined;
-      return String(value) === body.slice(eq + 1).replace(/^["']|["']$/g, '');
+      /* Trimmed, so [data-min = "25"] reads as the same thing it does in a
+       * browser rather than matching nothing. */
+      const want = body.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
+      return String(value) === want;
     }
     return el.tagName === bit.toUpperCase();
   });
@@ -198,9 +201,14 @@ class FakeElement {
   /* A script clicking an element itself, which is how the editor opens the
    * file chooser and how it starts a download. */
   click() {
-    const event = { type: 'click', target: this, preventDefault() {}, stopPropagation() {} };
+    let stopped = false;
+    const event = {
+      type: 'click', target: this,
+      preventDefault() {},
+      stopPropagation() { stopped = true; }
+    };
     let node = this;
-    while (node) {
+    while (node && !stopped) {
       (node.listeners.click || []).forEach(fn => fn.call(node, event));
       node = node.parentElement;
     }
@@ -858,6 +866,10 @@ function loadPage(options) {
     },
     alert() {},
     getComputedStyle(el) { return Object.assign({}, el._computed || {}); },
+    /* The delay is recorded by nobody: flush() runs what is pending in the
+     * order it was scheduled. Two timers with different delays therefore fire
+     * in the order they were made rather than the order a browser would use,
+     * so do not write a test whose meaning depends on which lands first. */
     setTimeout(fn) { return queue(fn); },
     clearTimeout(id) { timers.delete(id); },
     setInterval(fn, ms) { intervalSeq += 1; intervals.set(intervalSeq, { fn, ms }); return intervalSeq; },
@@ -901,14 +913,19 @@ function loadPage(options) {
   /* Dispatch to the listeners on an element, and to any ancestor listening for
    * the same type, which is the bubbling the pages rely on for their lists. */
   function dispatch(el, type, extra, settle) {
+    /* An event that is stopped goes no further. As a no-op, a handler that
+     * stopped it here still reached every ancestor listening for the same
+     * thing, so a delegated handler fired in a test where the page would not
+     * have run it. */
+    let stopped = false;
     const event = Object.assign({
       type,
       target: el,
       preventDefault() {},
-      stopPropagation() {}
+      stopPropagation() { stopped = true; }
     }, extra || {});
     let node = el;
-    while (node) {
+    while (node && !stopped) {
       (node.listeners[type] || []).forEach(fn => fn.call(node, event));
       node = node.parentElement;
     }

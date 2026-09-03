@@ -371,3 +371,42 @@ test('a fragment with no body of its own still lands in the body', () => {
   parseDocument('<div id="loose">hi</div>', doc);
   assert.ok(doc.getElementById('loose'), 'a bodyless fragment was dropped');
 });
+
+test('an event that is stopped goes no further', () => {
+  /* As a no-op, a handler that stopped an event still reached every ancestor
+   * listening for the same thing - so a delegated handler fired in a test
+   * where the page would never have run it. */
+  const { p, host } = fragment('<div id="outer"><button id="inner">x</button></div>');
+  p.doc.body.appendChild(host);
+  const seen = [];
+
+  host.children[0].addEventListener('click', () => seen.push('outer'));
+  const button = host.querySelectorAll('button')[0];
+  /* Stopped at the button, so nothing above it hears about it. The handler
+   * that stops it still runs - that is where the stop comes from. */
+  button.addEventListener('click', e => {
+    seen.push('inner');
+    e.stopPropagation();
+  });
+
+  button.click();
+  assert.deepEqual(seen, ['inner'], 'the event carried on past a stop');
+});
+
+test('an event nobody stops reaches the ancestor', () => {
+  const { p, host } = fragment('<div id="outer"><button id="inner">x</button></div>');
+  p.doc.body.appendChild(host);
+  const seen = [];
+  host.children[0].addEventListener('click', () => seen.push('outer'));
+  host.querySelectorAll('button')[0].addEventListener('click', () => seen.push('inner'));
+
+  host.querySelectorAll('button')[0].click();
+  assert.deepEqual(seen, ['inner', 'outer']);
+});
+
+test('spaces around an attribute comparison do not hide the match', () => {
+  const { host } = fragment('<div><button data-min="25">a</button></div>');
+  assert.equal(host.querySelectorAll('[data-min = "25"]').length, 1);
+  assert.equal(host.querySelectorAll('[data-min="25"]').length, 1);
+  assert.equal(host.querySelectorAll('[data-min = "26"]').length, 0);
+});
