@@ -364,10 +364,17 @@ function comment(pr, head, reviewer, result, dryRun) {
   }
 
   /* Through a file, not --body, so nothing depends on the command-line
-   * length limit even if the cap above is ever raised. */
-  const tmp = path.join(os.tmpdir(),
-    'nwt-review-' + reviewer.name.toLowerCase() + '-' + process.pid + '.md');
+   * length limit even if the cap above is ever raised.
+   *
+   * In a directory of its own rather than under a predictable name in the
+   * shared temporary directory, where anything else on the machine could have
+   * placed a symlink at that path first. */
+  let dir = null;
   try {
+    /* Inside the try: making the directory can fail on its own, and a review
+     * run should lose one comment rather than stop. */
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nwt-review-'));
+    const tmp = path.join(dir, 'review.md');
     fs.writeFileSync(tmp, body, 'utf8');
     sh('gh', ['pr', 'comment', String(pr), '--body-file', tmp]);
     console.log('  posted ' + reviewer.name + ' review to PR #' + pr);
@@ -377,7 +384,9 @@ function comment(pr, head, reviewer, result, dryRun) {
                 String(e.message).split('\n')[0]);
     return false;
   } finally {
-    try { fs.unlinkSync(tmp); } catch (e) { /* nothing to clean up */ }
+    if (dir) {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
+    }
   }
 }
 

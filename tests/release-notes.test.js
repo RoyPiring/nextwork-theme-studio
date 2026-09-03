@@ -71,3 +71,200 @@ test('a reference link inside a section does not end it early', () => {
   assert.ok(!/older/.test(notes), 'it ran into the next version');
   assert.ok(!/^\[2\.0\.0\]:/m.test(notes), 'the trailing link list was included');
 });
+
+test('an indented line that reads like a heading is not one', () => {
+  /* A heading cannot be indented, so this is an indented code block: example
+   * text, whatever it says. Nothing here is fenced, so the column the heading
+   * starts in is the only thing that separates the two - which is what a
+   * trim() before comparing would take away. */
+  const doc = [
+    '# Changelog',
+    '',
+    '## [3.0.0]',
+    'A heading is written like this:',
+    '',
+    '    ## [2.0.0]',
+    '',
+    '- the real 3.0.0 note',
+    '',
+    '## [2.0.0]',
+    '- the real 2.0.0 note',
+    '',
+    '[3.0.0]: https://example.com/3',
+    '[2.0.0]: https://example.com/2'
+  ].join('\n');
+  assert.equal(notesFor(doc, '2.0.0'), '- the real 2.0.0 note',
+    'it started at the indented example instead of the heading');
+  assert.match(notesFor(doc, '3.0.0'), /the real 3\.0\.0 note/,
+    'the section was cut short at its own example');
+});
+
+test('a heading inside a fence is not mistaken for one', () => {
+  /* A fence can hold a line shaped exactly like a heading, indented or not.
+   * A changelog that shows the reader how an entry is written contains one. */
+  const doc = [
+    '# Changelog',
+    '',
+    '## [3.0.0]',
+    'An entry is written like this:',
+    '',
+    '```',
+    '## [2.0.0]',
+    '```',
+    '',
+    '- the real 3.0.0 note',
+    '',
+    '## [2.0.0]',
+    '- the real 2.0.0 note',
+    '',
+    '[3.0.0]: https://example.com/3',
+    '[2.0.0]: https://example.com/2'
+  ].join('\n');
+  assert.equal(notesFor(doc, '2.0.0'), '- the real 2.0.0 note',
+    'it started at the example instead of the heading');
+  assert.match(notesFor(doc, '3.0.0'), /the real 3\.0\.0 note/,
+    'the section was cut short at its own example');
+  assert.match(notesFor(doc, '3.0.0'), /## \[2\.0\.0\]/,
+    'the example was dropped from the section that shows it');
+});
+
+test('a tilde fence counts as a fence', () => {
+  const doc = [
+    '## [1.0.0]',
+    '~~~',
+    '## [0.9.0]',
+    '~~~',
+    '- the real 1.0.0 note',
+    '',
+    '## [0.9.0]',
+    '- the real 0.9.0 note'
+  ].join('\n');
+  assert.equal(notesFor(doc, '0.9.0'), '- the real 0.9.0 note');
+});
+
+test('a fenced link definition at the end is content, not the link list', () => {
+  /* The walk back from the end of the file stops at a fence, so an example
+   * showing how the links are written stays part of the section. */
+  const doc = [
+    '## [1.0.0]',
+    '- the real 1.0.0 note',
+    '',
+    'The links go at the bottom:',
+    '',
+    '```',
+    '[1.0.0]: https://example.com/1',
+    '```'
+  ].join('\n');
+  const notes = notesFor(doc, '1.0.0');
+  assert.match(notes, /the real 1\.0\.0 note/);
+  assert.match(notes, /\[1\.0\.0\]: https/, 'the fenced example was cut off');
+});
+
+test('a version carrying pattern characters matches nothing', () => {
+  /* The version arrives from the command line. Compiled into a pattern with
+   * only the dots escaped, every other metacharacter stayed live: these either
+   * selected the wrong section or threw. */
+  const doc = [
+    '## [2.9.0]',
+    '- the real note',
+    '',
+    '[2.9.0]: https://example.com/1'
+  ].join('\n');
+  assert.equal(notesFor(doc, '2.9.0'), '- the real note', 'the ordinary case broke');
+  ['.*', '2.9.0]|(', '.', '2.9.0)', '[2.9.0]', '2!9!0', '^'].forEach(v => {
+    assert.doesNotThrow(() => notesFor(doc, v), 'threw on ' + JSON.stringify(v));
+    assert.equal(notesFor(doc, v), null, JSON.stringify(v) + ' matched a section');
+  });
+});
+
+test('an inline code span does not open a fence', () => {
+  /* Three backticks only open a block when nothing on the line closes them.
+   * Treating a sentence with a code span in it as a fence would swallow every
+   * heading below it, and the whole changelog would go missing. */
+  const doc = [
+    '## [2.0.0]',
+    '```build``` is now ``` on its own line',
+    '- the real 2.0.0 note',
+    '',
+    '## [1.0.0]',
+    '- the real 1.0.0 note'
+  ].join('\n');
+  assert.equal(notesFor(doc, '1.0.0'), '- the real 1.0.0 note',
+    'a code span hid the sections below it');
+});
+
+test('an indented link definition at the end is content, not the link list', () => {
+  /* The fenced version of this document is covered above. An indented example
+   * is the same shape in a different wrapper, and cutting there took the
+   * example off the end and left the sentence introducing it dangling. */
+  const doc = [
+    '## [1.0.0]',
+    '- the real 1.0.0 note',
+    '',
+    'The links go at the bottom:',
+    '',
+    '    [1.0.0]: https://example.com/1'
+  ].join('\n');
+  const notes = notesFor(doc, '1.0.0');
+  assert.match(notes, /the real 1\.0\.0 note/);
+  assert.match(notes, /\[1\.0\.0\]: https/, 'the indented example was cut off');
+});
+
+test('the real link list is still recognised when slightly indented', () => {
+  /* Up to three spaces is still a definition, not an example. */
+  const doc = [
+    '## [1.0.0]',
+    '- the real 1.0.0 note',
+    '',
+    '   [1.0.0]: https://example.com/1'
+  ].join('\n');
+  assert.equal(notesFor(doc, '1.0.0'), '- the real 1.0.0 note',
+    'the trailing link list was kept in the notes');
+});
+
+test('a changelog with an unclosed fence yields nothing, not the wrong thing', () => {
+  /* Everything after an unclosed fence reads as example text, so no heading
+   * is found. The release then fails with "no section for X" instead of
+   * publishing notes taken from the middle of an example, which is the safe
+   * way round for a malformed file. */
+  const doc = [
+    '# Changelog',
+    '',
+    '## [2.0.0]',
+    'An entry looks like this:',
+    '',
+    '```',
+    '## [1.0.0]',
+    '- never closed',
+    '',
+    '## [1.0.0]',
+    '- the real 1.0.0 note'
+  ].join('\n');
+  assert.equal(notesFor(doc, '1.0.0'), null);
+  assert.match(notesFor(doc, '2.0.0'), /An entry looks like this/,
+    'the section above the fence should still read');
+});
+
+test('a tilde rail opens a fence even with a tail, unlike a backtick one', () => {
+  /* Not an oversight in the backtick rule. A backtick fence may not carry a
+   * backtick in its info string, which is what makes ```x``` an inline code
+   * span rather than a fence. Tildes have no inline form and no such
+   * restriction, so ~~~x~~~ really does open a block.
+   *
+   * Reading it any other way would disagree with how the file renders. The
+   * heading below it is inside the block, so nothing is found, and a release
+   * stops rather than publishing notes taken from inside an example. */
+  const tail = which => [
+    '## [2.0.0]',
+    which + 'x' + which + ' is inline',
+    '- note 2',
+    '',
+    '## [1.0.0]',
+    '- note 1'
+  ].join('\n');
+
+  assert.equal(notesFor(tail('```'), '1.0.0'), '- note 1',
+    'a backtick code span was read as a fence');
+  assert.equal(notesFor(tail('~~~'), '1.0.0'), null,
+    'a tilde rail should open a fence, as it does when rendered');
+});

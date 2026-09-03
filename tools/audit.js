@@ -9,6 +9,8 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { codeOnly, duplicateDeclarations, unusedDeclarations, isText,
+        importsOnlyLocalFiles } = require('./source.js');
 
 const ROOT = path.join(__dirname, '..');
 const rel = p => path.relative(ROOT, p).replace(/\\/g, '/');
@@ -138,16 +140,6 @@ function jsUnder(dir) {
 const srcFiles = jsUnder(path.join(ROOT, 'src'));
 const toolFiles = jsUnder(path.join(ROOT, 'tools'));
 
-/* Strip comments before scanning, rather than skipping any line that starts
- * with one. The old test skipped the whole line, so `/* *\/ fetch(url)` was
- * invisible, and a trailing `// see fetch()` produced a false failure. */
-function codeOnly(body) {
-  return body
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .split('\n')
-    .map(line => line.replace(/\/\/.*$/, ''));
-}
-
 check('all JavaScript parses', () => {
   srcFiles.concat(toolFiles).forEach(f => {
     try {
@@ -156,6 +148,45 @@ check('all JavaScript parses', () => {
       fail(rel(f) + ': ' + String(e.stderr).split('\n')[0]);
     }
   });
+  return srcFiles.length + toolFiles.length + ' files';
+});
+
+/* A source file has to be readable as text, and parsing is not enough to say
+ * it is: a NUL byte inside a comment or a string parses perfectly well, and
+ * git then reports the whole file as "Binary files differ". A file that cannot
+ * be shown in a diff cannot be reviewed, which is the one thing every other
+ * check here depends on. */
+check('every source file is text', () => {
+  const bad = srcFiles.concat(toolFiles)
+    .filter(f => !isText(fs.readFileSync(f)))
+    .map(f => rel(f));
+  if (bad.length) {
+    fail(bad.join(', ') + ' - a diff shows this as binary, so it cannot be read');
+  }
+  return srcFiles.length + toolFiles.length + ' files';
+});
+
+/* Nothing declared and never called.
+ *
+ * Thirty-six of these had collected in the scenery: generators from before
+ * every theme carried a picture, and the helpers only they used. None of it
+ * ran, and all of it shipped to everyone who installed the extension.
+ *
+ * This is also what makes removing one safe to check. A function that survives
+ * while calling something deleted is unreachable by definition, and would be
+ * reported here rather than waiting to throw. */
+check('no function is declared and never named again', () => {
+  const idle = [];
+  srcFiles.concat(toolFiles).forEach(f => {
+    unusedDeclarations(fs.readFileSync(f, 'utf8')).forEach(d => {
+      idle.push(rel(f) + ':' + d.line + ' ' + d.name);
+    });
+  });
+  if (idle.length) {
+    fail('\n    ' + idle.join('\n    ') +
+         '\n    (each file is read on its own, so a name reached from' +
+         '\n     another file by anything but an object needs a look)');
+  }
   return srcFiles.length + toolFiles.length + ' files';
 });
 
@@ -168,9 +199,8 @@ check('no network calls in extension code', () => {
   srcFiles.forEach(f => {
     codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
       /* The background pulls its two libraries in with importScripts on
-       * Chromium. Allow it only when every argument is a bare local filename -
-       * naming the files instead meant adding one broke the build. */
-      if (/^\s*importScripts\((?:\s*'[\w.-]+\.js'\s*,?)+\)\s*;?\s*$/.test(line)) return;
+       * Chromium, which is the one exception. */
+      if (importsOnlyLocalFiles(line)) return;
       if (banned.test(line)) offenders.push(rel(f) + ':' + (i + 1));
     });
   });
@@ -486,6 +516,23 @@ check('shipped code runs in strict mode', () => {
          ' - add a \'use strict\' directive, or a typo becomes a global');
   }
   return srcFiles.length + ' files';
+});
+
+check('no function is declared twice in the same scope', () => {
+  /* A second declaration of the same name silently replaces the first, and
+   * every call then reaches whichever came last regardless of what it was
+   * written against. Two pairs had accumulated this way, each with different
+   * arguments; nothing was broken because the callers happened to match the
+   * survivor, which is luck rather than design. */
+  const clashes = [];
+  srcFiles.concat(toolFiles).forEach(f => {
+    duplicateDeclarations(fs.readFileSync(f, 'utf8')).forEach(d => {
+      clashes.push(rel(f) + ': ' + d.name +
+        ' at lines ' + d.first + ' and ' + d.second);
+    });
+  });
+  if (clashes.length) fail('\n    ' + clashes.join('\n    '));
+  return srcFiles.length + toolFiles.length + ' files';
 });
 
 check('no debugging left in shipped code', () => {
