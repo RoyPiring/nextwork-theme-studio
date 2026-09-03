@@ -122,6 +122,7 @@ node tools/audit.js   # repository checks, run before every commit
 ```
 
 → [How to contribute](CONTRIBUTING.md) ·
+[Getting help](SUPPORT.md) ·
 [Security](SECURITY.md) ·
 [Changelog](CHANGELOG.md) ·
 [Code of conduct](CODE_OF_CONDUCT.md)
