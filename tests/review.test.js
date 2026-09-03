@@ -323,19 +323,31 @@ test('the reviewers run at the same time, not one after the other', async () => 
   /* Single quotes inside: an argument carrying a double quote is refused
    * outright on Windows, which is the quoting guard doing its job. */
   const sleep = "setTimeout(() => console.log('VERDICT: PASS'), 700)";
-  const started = Date.now();
+
+  /* One first, to learn what this machine costs for a single reviewer. A
+   * fixed threshold measures the machine as much as the sequencing, and fails
+   * on a busy one for reasons that have nothing to do with the change. */
+  let mark = Date.now();
+  const one = await startReviewer(fake('Solo', sleep), '');
+  const alone = Date.now() - mark;
+  assert.equal(one.status, 0);
+
+  mark = Date.now();
   const both = await Promise.all([
     startReviewer(fake('A', sleep), ''),
     startReviewer(fake('B', sleep), '')
   ]);
-  const elapsed = Date.now() - started;
+  const together = Date.now() - mark;
 
   both.forEach((r, i) => {
     assert.equal(r.status, 0, 'reviewer ' + i + ' did not exit cleanly');
     assert.match(r.stdout, /VERDICT: PASS/);
   });
-  assert.ok(elapsed < 1300,
-    'two 700ms reviewers took ' + elapsed + 'ms, which is one after the other');
+  /* Run in turn it would be about twice one. Halfway between the two is a
+   * wide gap either side, so this reads as sequencing rather than speed. */
+  assert.ok(together < alone * 1.5,
+    'one reviewer took ' + alone + 'ms and two took ' + together +
+    'ms, which is one after the other rather than together');
 });
 
 test('what a reviewer is given arrives on its stdin', async () => {
@@ -386,4 +398,44 @@ test('a reviewer that prints a normal amount is left alone', async () => {
   const run = await startReviewer(fake('Quiet', some), '', 64 * 1024);
   assert.ok(!run.error, 'a reviewer under the cap was stopped anyway');
   assert.equal(verdictFromRun(run).verdict, 'PASS');
+});
+
+test('a command whose path has a space is quoted for the shell', () => {
+  /* Only the arguments were quoted, so a command path containing a space was
+   * split at it and the first word run as the program. The reviewers are
+   * named plainly enough that it never showed. */
+  const { shellArg } = require('../tools/review-pr.js');
+  const spaced = ['C:', 'Program Files', 'nodejs', 'node.exe'].join(String.fromCharCode(92));
+  assert.equal(shellArg(spaced), '"' + spaced + '"');
+  assert.equal(shellArg('codex'), 'codex', 'a plain name should not be quoted');
+});
+
+test('a stopped reviewer still shows what it managed to say', () => {
+  /* spawnSync handed back the truncated output alongside its error. A bare
+   * message would throw away a review that was finished before the reviewer
+   * went loud. */
+  const r = verdictFromRun({
+    error: new Error('it printed more than 64 KB, and was stopped'),
+    stdout: 'The storage write is unguarded.\n\nVERDICT: BLOCK'
+  });
+  assert.equal(r.verdict, 'BLOCK');
+  assert.match(r.output, /printed more than 64 KB/);
+  assert.match(r.output, /storage write is unguarded/);
+});
+
+test('the size in that message reads properly at any cap', () => {
+  /* Rounded to megabytes, the tests' own cap read as "0 MB". */
+  const { describeSize } = require('../tools/review-pr.js');
+  assert.equal(describeSize(32 * 1024 * 1024), '32 MB');
+  assert.equal(describeSize(64 * 1024), '64 KB');
+  assert.equal(describeSize(512), '512 bytes');
+});
+
+test('a cap of nothing is taken at its word', () => {
+  /* Written as `limit || MAX_OUTPUT`, asking for no output at all quietly
+   * became the 32 MB default. */
+  const quiet = "console.log('VERDICT: PASS')";
+  return startReviewer(fake('Any', quiet), '', 0).then(run => {
+    assert.ok(run.error, 'a cap of zero let output through');
+  });
 });

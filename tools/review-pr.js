@@ -277,9 +277,14 @@ function shellArg(a) {
  * can be tested, because every bug this has had was a way of failing open. */
 function verdictFromRun(run) {
   if (run.error) {
+    /* Anything it printed before it failed comes with the failure. A reviewer
+     * that wrote a whole review and then would not stop is still worth
+     * reading, and a bare error message throws that away. */
+    const said = String(run.stdout || '').trim();
     return { ok: false, verdict: 'BLOCK', output:
       'This reviewer could not be run: ' + run.error.message +
-      '\n\nA reviewer that cannot run is treated as a block, not as a pass.' };
+      '\n\nA reviewer that cannot run is treated as a block, not as a pass.' +
+      (said ? '\n\nWhat it printed before that:\n\n' + said : '') };
   }
   /* The verdict is read from stdout alone. stderr carries warnings, update
    * notices and telemetry, and mixing them in let a stray diagnostic line
@@ -331,7 +336,9 @@ function scratchDir() {
  * other, a review took as long as both of them put together, and the wait grew
  * with the diff until it was long enough to discourage asking. */
 function startReviewer(reviewer, text, limit) {
-  const cap = limit || MAX_OUTPUT;
+  /* Not `limit || MAX_OUTPUT`: a deliberate cap of nothing would become the
+   * default, which is the opposite of what was asked for. */
+  const cap = limit === undefined ? MAX_OUTPUT : limit;
   const useShell = process.platform === 'win32';
   const args = useShell ? reviewer.args.map(shellArg) : reviewer.args;
   /* The command is quoted too, not only its arguments. Under a shell the whole
@@ -360,7 +367,6 @@ function startReviewer(reviewer, text, limit) {
     const finish = run => {
       if (settled) return;
       settled = true;
-      cleanUp(cwd);
       resolve(run);
     };
 
@@ -376,10 +382,16 @@ function startReviewer(reviewer, text, limit) {
     const take = (chunk, onto) => {
       if (settled) return;
       if (stdout.length + stderr.length + chunk.length > cap) {
-        try { child.kill(); } catch (e) { /* already gone */ }
-        finish({ error: new Error(
-          'it printed more than ' + Math.round(cap / (1024 * 1024)) +
-          ' MB, and was stopped') });
+        killTree(child);
+        /* What it printed before it went loud comes back with the failure.
+         * A reviewer that wrote a whole review and then would not stop is
+         * still worth reading, and spawnSync handed back the truncated
+         * output alongside its error for the same reason. */
+        finish({
+          status: null, stdout: stdout, stderr: stderr,
+          error: new Error('it printed more than ' + describeSize(cap) +
+                           ', and was stopped')
+        });
         return;
       }
       if (onto === 'out') stdout += chunk; else stderr += chunk;
@@ -388,8 +400,15 @@ function startReviewer(reviewer, text, limit) {
     child.stderr.on('data', d => take(d, 'err'));
 
     /* A command that is not installed fails here rather than exiting. */
-    child.on('error', error => finish({ error: error }));
-    child.on('close', code => finish({ status: code, stdout: stdout, stderr: stderr }));
+    child.on('error', error => { cleanUp(cwd); finish({ error: error }); });
+    /* The scratch directory goes when the process using it does, not when the
+     * promise settles. Stopping a reviewer resolves immediately; removing its
+     * working directory while it is still in there fails, quietly, and leaves
+     * it behind. */
+    child.on('close', code => {
+      cleanUp(cwd);
+      finish({ status: code, stdout: stdout, stderr: stderr });
+    });
 
     /* The prompt goes in on stdin, never on the command line. A broken pipe
      * here is the child having already gone; its exit says what happened. */
@@ -400,6 +419,30 @@ function startReviewer(reviewer, text, limit) {
 
 function cleanUp(dir) {
   try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
+}
+
+/* Stop the reviewer, not the shell in front of it.
+ *
+ * Windows needs a shell here, because these commands are .cmd shims that
+ * cannot be spawned directly. That makes the handle the shell's: kill() ends
+ * cmd.exe and leaves the reviewer running, still printing, still holding the
+ * scratch directory open. taskkill with /T takes the tree. */
+function killTree(child) {
+  if (process.platform === 'win32' && child.pid) {
+    try {
+      execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'],
+                   { stdio: 'ignore' });
+      return;
+    } catch (e) { /* already gone, or taskkill is unavailable */ }
+  }
+  try { child.kill(); } catch (e) { /* already gone */ }
+}
+
+/* A size as a person would say it, so a small cap does not read as "0 MB". */
+function describeSize(bytes) {
+  if (bytes >= 1024 * 1024) return Math.round(bytes / (1024 * 1024)) + ' MB';
+  if (bytes >= 1024) return Math.round(bytes / 1024) + ' KB';
+  return bytes + ' bytes';
 }
 
 function runReviewer(reviewer, text) {
@@ -649,7 +692,9 @@ async function main() {
   console.log('who reads the findings and merges if satisfied.');
 }
 
-module.exports = { parseVerdict, verdictFromRun, redact, startReviewer };
+module.exports = {
+  parseVerdict, verdictFromRun, redact, startReviewer, shellArg, describeSize
+};
 
 if (require.main === module) {
   main().catch(function (e) {
