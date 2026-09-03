@@ -347,7 +347,17 @@
                       'textPrimary', 'textSecondary', 'textMuted',
                       'accent', 'accentText'];
   const HEX = /^#[0-9a-fA-F]{6}$/;
-  const CSS_REACHES_OUT = /url\s*\(|@import|expression\s*\(|image-set\s*\(/i;
+  /* Every way a stylesheet can ask for something over the network.
+   *
+   * image() and cross-fade() take an image the same way url() does, and
+   * image-set() covers its prefixed spelling because that name contains it.
+   *
+   * This is a denylist, and a denylist is only as good as its list. It is used
+   * because the alternative is a CSS parser, and refusing a theme that asks
+   * for nothing is a far smaller cost than allowing one that asks for
+   * something. Anything new that can fetch belongs here. */
+  const CSS_REACHES_OUT =
+    /url\s*\(|@import|expression\s*\(|image\s*\(|image-set\s*\(|cross-fade\s*\(/i;
 
   /* CSS with its escapes resolved.
    *

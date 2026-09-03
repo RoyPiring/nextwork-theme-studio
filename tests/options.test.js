@@ -434,3 +434,34 @@ test('an escaped backslash is spent as one, not read as starting an escape', () 
       'a literal backslash was read as an escape and the theme refused');
   });
 });
+
+test('the other functions that fetch an image are refused too', async () => {
+  /* image() and cross-fade() take a URL the same way url() does, and the
+   * prefixed spelling of image-set() carries that name inside it. */
+  const reaching = [
+    'body { background-image: image("https://example.com/x.png"); }',
+    'body { background: cross-fade(url(a.png), url(b.png), 50%); }',
+    'body { background: -webkit-image-set("x.png" 1x); }',
+    'body { background: image ("https://example.com/x.png"); }'
+  ];
+  for (const css of reaching) {
+    const p = openEditor({});
+    await p.chooseFile('file-input', themeFile({ customCSS: css }));
+    assert.deepEqual(customThemes(p), {}, 'this was imported: ' + css);
+  }
+});
+
+test('text that only looks like a request is refused as well', async () => {
+  /* Deliberate, and the cost of not having a CSS parser here. This string is
+   * inert - it is content, not a request - and it is still refused, because
+   * telling the two apart means knowing whether the file is inside a string,
+   * a comment or a declaration. Refusing a theme that asks for nothing is a
+   * far smaller cost than allowing one that asks for something, so the test
+   * pins the refusal rather than treating it as a fault. */
+  const p = openEditor({});
+  await p.chooseFile('file-input', themeFile({
+    customCSS: '.x::before { content: "url("; }'
+  }));
+  assert.deepEqual(customThemes(p), {},
+    'if this now imports, the check was loosened rather than made precise');
+});
