@@ -25,9 +25,15 @@ function notesFor(changelog, version) {
    * from the command line, and escaping only the dots left every other
    * metacharacter to be interpreted: a version containing one would either
    * match the wrong section or throw. A heading has a fixed shape, so there
-   * was nothing here that needed a regular expression. */
+   * was nothing here that needed a regular expression.
+   *
+   * Matched at column 0 and not trimmed first. A heading cannot be indented,
+   * but a fenced example inside an earlier section can contain a line that
+   * looks like one, and trimming would let that example end the search at the
+   * wrong place. This is the same anchor the loop below uses to find the next
+   * heading. */
   const wanted = '## [' + want + ']';
-  const start = lines.findIndex(l => l.trim().indexOf(wanted) === 0);
+  const start = lines.findIndex(l => l.indexOf(wanted) === 0);
   if (start === -1) return null;
 
   /* Up to the next version heading, or the link list at the bottom.

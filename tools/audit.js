@@ -506,13 +506,24 @@ check('no function is declared twice in the same file', () => {
   srcFiles.forEach(f => {
     const seen = {};
     codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
-      const m = /^\s*function\s+([A-Za-z_]\w*)\s*\(/.exec(line);
-      if (!m) return;
-      const name = m[1];
-      if (seen[name]) {
-        clashes.push(rel(f) + ': ' + name + ' at lines ' + seen[name] + ' and ' + (i + 1));
-      } else {
-        seen[name] = i + 1;
+      /* Every declaration on the line, not only the first. Two on one line
+       * is unusual, but a rule a second copy can hide from is not a rule.
+       * Statement position only, so the name in a function expression such
+       * as "x = function name()" is left alone: that name binds inside the
+       * function rather than beside its neighbours. */
+      const decl = /(^|[{};])\s*function\s+([A-Za-z_]\w*)\s*\(/g;
+      let m;
+      while ((m = decl.exec(line)) !== null) {
+        const name = m[2];
+        if (seen[name]) {
+          clashes.push(rel(f) + ': ' + name +
+            ' at lines ' + seen[name] + ' and ' + (i + 1));
+        } else {
+          seen[name] = i + 1;
+        }
+        /* Step back one: the delimiter this match consumed may be the one
+         * the next match needs. */
+        decl.lastIndex = m.index + m[0].length - 1;
       }
     });
   });
