@@ -365,14 +365,18 @@
        * straight through - and every ordinary text editor on Windows writes
        * that ending. */
       .replace(/\r\n?|\f/g, '\n')
-      .replace(/\\([0-9a-fA-F]{1,6})[ \t\n]?/g, function (_, hex) {
+      /* One pass, left to right, so an escaped backslash is spent as one.
+       * Read in two passes, "\\75rl(" - a backslash followed by the plain
+       * text 75rl( - had its second backslash taken as starting an escape and
+       * came out as url(, refusing a file that asks for nothing. */
+      .replace(/\\(?:([0-9a-fA-F]{1,6})[ \t\n]?|([\s\S]))/g, function (_, hex, ch) {
+        if (ch !== undefined) return ch;
         const code = parseInt(hex, 16);
         /* Out of range, or half of a surrogate pair, is not a character a
          * browser would produce here either. */
         if (!code || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return '';
         return String.fromCodePoint(code);
-      })
-      .replace(/\\([\s\S])/g, '$1');
+      });
   }
 
   function cleanTheme(raw) {

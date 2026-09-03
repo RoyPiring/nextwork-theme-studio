@@ -269,10 +269,19 @@ test('a failed read leaves the popup as it was', () => {
 
 test('a migration is persisted, so it does not run again on every open', () => {
   /* migrate() only reports; writing the result is the caller's job. Without
-   * that the same migration reruns on each open and clears the dials again. */
+   * that the same migration reruns on each open and clears the dials again -
+   * so the second open here is the point of the test, not the first. */
   const p = openPopup({ schema: 0, tuningOverrides: { concrete: { hue: 30 } } });
-  assert.equal(p.stored.migrated, undefined, 'the flag was written to storage');
   assert.ok(p.stored.schema >= 1, 'the new schema was not saved');
+  assert.deepEqual(p.stored.tuningOverrides, {}, 'the migration did not run');
+
+  /* Open again on what the first open left behind, with dials set since. */
+  const after = Object.assign({}, p.stored, {
+    tuningOverrides: { concrete: { hue: 30 } }
+  });
+  const q = openPopup(after);
+  assert.deepEqual(q.stored.tuningOverrides, { concrete: { hue: 30 } },
+    'the migration ran a second time and cleared the dials again');
 });
 
 /* ------------------------------------------------------------- other bits */

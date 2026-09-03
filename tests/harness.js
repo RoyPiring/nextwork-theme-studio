@@ -56,6 +56,15 @@ function matchesOne(el, part) {
         const want = body.slice(body.indexOf('=') + 1).replace(/^["']|["']$/g, '');
         return [...el.classList.set].some(c => c.indexOf(want) !== -1);
       }
+      /* Every other operator is refused rather than misread. Left to fall
+       * through, "[data-min^=2]" took the name as "data-min^", found nothing
+       * under it, and returned no elements - which reads as "the page does
+       * not have one" and leaves the test green. */
+      const operator = /([~^$*|])=/.exec(body);
+      if (operator) {
+        throw new Error('harness: unsupported attribute operator "' +
+                        operator[0] + '" in "' + bit + '"');
+      }
       const eq = body.indexOf('=');
       const name = (eq === -1 ? body : body.slice(0, eq)).trim();
       const key = name.replace(/^data-/, '').replace(/-(\w)/g, (_, c) => c.toUpperCase());
@@ -319,9 +328,11 @@ function parseHTML(html, doc, into) {
   let m;
   while ((m = tag.exec(cleaned)) !== null) {
     const text = cleaned.slice(last, m.index);
-    if (text.trim()) {
-      /* Runs of space become one, the way they render. Not trimmed away: the
-       * space between a word and the element after it is part of the text. */
+    if (text) {
+      /* Runs of space become one, the way they render. A run that is nothing
+       * but space is kept: it is the space between two elements, and dropping
+       * it ran "<b>Focus</b> <span>12:00</span>" together into one word while
+       * a test asserted on the label and saw nothing wrong. */
       stack[stack.length - 1].appendText(decodeEntities(text).replace(/\s+/g, ' '));
     }
     last = tag.lastIndex;
@@ -679,8 +690,23 @@ function loadPage(options) {
     tabs: { reload() { opened.reloadedTabs++; } },
     storage: {
       local: {
-        get(_keys, cb) {
-          reads.push({ cb, snapshot: JSON.parse(JSON.stringify(stored)) });
+        /* The keys are honoured. Handing back everything regardless meant a
+         * script could ask for one key, read another off the answer, and get
+         * a value the browser would have reported as missing. */
+        get(keys, cb) {
+          const all = JSON.parse(JSON.stringify(stored));
+          let snapshot = all;
+          if (typeof keys === 'string') {
+            snapshot = keys in all ? { [keys]: all[keys] } : {};
+          } else if (Array.isArray(keys)) {
+            snapshot = {};
+            keys.forEach(k => { if (k in all) snapshot[k] = all[k]; });
+          } else if (keys && typeof keys === 'object') {
+            /* An object is a set of defaults. */
+            snapshot = Object.assign({}, keys);
+            Object.keys(keys).forEach(k => { if (k in all) snapshot[k] = all[k]; });
+          }
+          reads.push({ cb, snapshot });
         },
         set(patch, cb) {
           Object.assign(stored, JSON.parse(JSON.stringify(patch)));
@@ -751,8 +777,13 @@ function loadPage(options) {
     clearInterval(id) { intervals.delete(id); },
     requestAnimationFrame(fn) { timers.push(fn); return timers.length; },
     cancelAnimationFrame() {},
-    Math, Date, JSON, Object, Array, String, Number, Boolean, RegExp, Error,
-    isFinite, parseInt, parseFloat, console
+    /* Math, Date, Array and the rest are deliberately not passed in. A vm
+     * context has its own, and handing it this realm's would shadow them: an
+     * array made inside the sandbox would carry the inner prototype while the
+     * Array it is compared against is the outer one, so "[] instanceof Array"
+     * answers false here and true in a browser. Any branch turning on that
+     * would be exercised backwards. */
+    console
   };
   sandbox.globalThis = sandbox;
 

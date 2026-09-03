@@ -254,8 +254,11 @@ test('a fork keeps the fields that are not colours', () => {
 
   const fork = onlyCustom(p);
   assert.equal(fork.mode, preset.mode, 'the fork changed mode');
-  assert.equal(fork.sceneKey || p.stored.themeId, 'hawaiiMorning',
-    'the fork names no scene');
+  /* Asserted on its own. Written as "fork.sceneKey || themeId" this also
+   * passed when the scene was missing and the editor had failed to move off
+   * the preset - two faults cancelling to look like success. */
+  assert.equal(fork.sceneKey, 'hawaiiMorning', 'the fork names no scene');
+  assert.notEqual(p.stored.themeId, 'hawaiiMorning', 'the editor stayed on the preset');
   assert.deepEqual(fork.colors, preset.colors, 'the colours were not carried');
 });
 
@@ -418,4 +421,16 @@ test('asking to reset is a real question', () => {
   p.fire('reset-all', 'click');
   assert.equal(p.asked.length, 1, 'it reset without asking');
   assert.match(p.asked[0], /reset/i);
+});
+
+test('an escaped backslash is spent as one, not read as starting an escape', () => {
+  /* Two backslashes are a literal backslash to a browser, so what follows is
+   * plain text. Read in two passes, the second was taken as opening an escape
+   * and the file was refused for asking for nothing. */
+  const p = openEditor({});
+  const css = '.a::before { content: "' + String.raw`\75rl` + '"; }';
+  return p.chooseFile('file-input', themeFile({ customCSS: css })).then(() => {
+    assert.equal(onlyCustom(p).customCSS, css,
+      'a literal backslash was read as an escape and the theme refused');
+  });
 });

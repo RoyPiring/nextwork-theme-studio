@@ -170,3 +170,55 @@ test('every id in a page is reachable once it is built', () => {
     });
   });
 });
+
+test('a space between two elements is kept', () => {
+  /* Dropped, "<b>Focus</b> <span>12:00</span>" ran together into one word
+   * while a test asserting on the label saw nothing wrong. */
+  const { host } = fragment('<div><b>Focus</b> <span>12:00</span></div>');
+  assert.equal(host.children[0].textContent, 'Focus 12:00');
+});
+
+test('an attribute operator is refused rather than misread', () => {
+  /* Left to fall through, [data-min^="2"] took the name as "data-min^", found
+   * nothing under it, and returned no elements. */
+  const { host } = fragment('<div><button data-min="25">a</button></div>');
+  ['[data-min^="2"]', '[data-min$="5"]', '[data-min*="2"]',
+   '[data-min~="25"]', '[data-min|="25"]'].forEach(sel => {
+    assert.throws(() => host.querySelectorAll(sel), /unsupported attribute operator/,
+      sel + ' did not throw');
+  });
+  /* The one that is implemented still works. */
+  const { host: h2 } = fragment('<div class="theme-card wide">x</div>');
+  assert.equal(h2.querySelectorAll('[class*="theme"]').length, 1);
+});
+
+test('storage hands back only the keys that were asked for', () => {
+  /* Handing back everything meant a script could ask for one key, read
+   * another off the answer, and get a value a browser would not have. */
+  const p = loadPage({ page: 'src/popup.html', scripts: [],
+                       settings: { themeId: 'concrete', enabled: true } });
+  const seen = [];
+  p.chrome.storage.local.get(['themeId'], s => seen.push(s));
+  p.chrome.storage.local.get('enabled', s => seen.push(s));
+  p.chrome.storage.local.get({ missing: 'fallback' }, s => seen.push(s));
+  p.chrome.storage.local.get(null, s => seen.push(s));
+  p.flush();
+
+  assert.deepEqual(seen[0], { themeId: 'concrete' });
+  assert.deepEqual(seen[1], { enabled: true });
+  assert.deepEqual(seen[2], { missing: 'fallback' }, 'a default was not used');
+  assert.equal(Object.keys(seen[3]).length, 2, 'null should hand back everything');
+});
+
+test('an array made inside the page is an Array there', () => {
+  /* Passing this realm's intrinsics into the context shadowed the ones the
+   * sandbox has, so a literal made inside carried the inner prototype while
+   * the binding it was compared against was the outer one: instanceof
+   * answered false in a test and true in a browser. */
+  const vm = require('node:vm');
+  const p = loadPage({ page: 'src/popup.html', scripts: [], settings: {} });
+  assert.equal(vm.runInContext('[] instanceof Array', p.sandbox), true);
+  assert.equal(vm.runInContext('({}) instanceof Object', p.sandbox), true);
+  assert.equal(vm.runInContext('new Error("x") instanceof Error', p.sandbox), true);
+  assert.equal(vm.runInContext('/x/ instanceof RegExp', p.sandbox), true);
+});
