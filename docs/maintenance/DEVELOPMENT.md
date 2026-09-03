@@ -26,6 +26,12 @@ week on a schedule, and on demand from the Actions tab:
 | `package` | Windows | `tools/build.js`, then checks each archive exists and is not empty |
 | `audit` | Ubuntu | Passes only if the three above did |
 
+A **codeql** workflow analyses the JavaScript on every pull request and once a
+week. The weekly run is not redundant: CodeQL's queries change, so the same
+code is worth re-analysing when nothing has. Generated files and artwork are
+excluded in `.github/codeql/codeql-config.yml`, since scanning a few hundred
+kilobytes of embedded image data produces nothing worth reading.
+
 A separate **release** workflow runs on a version tag, or on demand for a tag
 that already exists. It repeats the tests, the audit and the build, checks the
 tag against the manifest version, and publishes a release with every archive

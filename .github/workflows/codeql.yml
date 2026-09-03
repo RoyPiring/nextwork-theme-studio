@@ -1,0 +1,47 @@
+name: codeql
+
+# On pull requests and pushes to the default branch, plus weekly. The weekly
+# run matters more than it looks: CodeQL's queries are updated continuously,
+# so the same code is worth re-analysing even when nothing has changed.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '41 5 * * 2'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  analyse:
+    name: analyse
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write     # to upload the results to the Security tab
+
+    steps:
+      # Actions are pinned to a commit SHA, not a tag. A tag can be moved to
+      # point at different code; a SHA cannot.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+        with:
+          languages: javascript-typescript
+          config-file: ./.github/codeql/codeql-config.yml
+          # security-and-quality rather than the default set. This project has
+          # no dependencies, so the usual supply-chain findings do not apply
+          # and the extra queries are what is left to learn from.
+          queries: security-and-quality
+
+      # No build step: there is nothing to compile, and the analysis reads the
+      # sources directly.
+      - name: Analyse
+        uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d # v3.37.9
+        with:
+          category: '/language:javascript-typescript'
