@@ -21,8 +21,13 @@ function notesFor(changelog, version) {
   const want = String(version).replace(/^v/, '');
   const lines = changelog.split(/\r?\n/);
 
-  const heading = new RegExp('^## \\[' + want.replace(/\./g, '\\.') + '\\]');
-  const start = lines.findIndex(l => heading.test(l));
+  /* Compared as a string, not compiled into a pattern. The version arrives
+   * from the command line, and escaping only the dots left every other
+   * metacharacter to be interpreted: a version containing one would either
+   * match the wrong section or throw. A heading has a fixed shape, so there
+   * was nothing here that needed a regular expression. */
+  const wanted = '## [' + want + ']';
+  const start = lines.findIndex(l => l.trim().indexOf(wanted) === 0);
   if (start === -1) return null;
 
   /* Up to the next version heading, or the link list at the bottom.

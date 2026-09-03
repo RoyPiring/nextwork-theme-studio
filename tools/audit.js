@@ -170,7 +170,15 @@ check('no network calls in extension code', () => {
       /* The background pulls its two libraries in with importScripts on
        * Chromium. Allow it only when every argument is a bare local filename -
        * naming the files instead meant adding one broke the build. */
-      if (/^\s*importScripts\((?:\s*'[\w.-]+\.js'\s*,?)+\)\s*;?\s*$/.test(line)) return;
+      /* The arguments are split and checked one at a time. Written as a
+       * single pattern this needed a repeated group around a repeated
+       * character class, which backtracks exponentially on a long line that
+       * almost matches. */
+      const call = /^\s*importScripts\(([^()]*)\)\s*;?\s*$/.exec(line);
+      if (call) {
+        const args = call[1].split(',').map(a => a.trim()).filter(Boolean);
+        if (args.length && args.every(a => /^'[\w.-]+\.js'$/.test(a))) return;
+      }
       if (banned.test(line)) offenders.push(rel(f) + ':' + (i + 1));
     });
   });
@@ -485,6 +493,30 @@ check('shipped code runs in strict mode', () => {
     fail(loose.map(rel).join(', ') +
          ' - add a \'use strict\' directive, or a typo becomes a global');
   }
+  return srcFiles.length + ' files';
+});
+
+check('no function is declared twice in the same file', () => {
+  /* A second declaration of the same name silently replaces the first, and
+   * every call then reaches whichever came last regardless of what it was
+   * written against. Two pairs had accumulated this way, each with different
+   * arguments; nothing was broken because the callers happened to match the
+   * survivor, which is luck rather than design. */
+  const clashes = [];
+  srcFiles.forEach(f => {
+    const seen = {};
+    codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
+      const m = /^\s*function\s+([A-Za-z_]\w*)\s*\(/.exec(line);
+      if (!m) return;
+      const name = m[1];
+      if (seen[name]) {
+        clashes.push(rel(f) + ': ' + name + ' at lines ' + seen[name] + ' and ' + (i + 1));
+      } else {
+        seen[name] = i + 1;
+      }
+    });
+  });
+  if (clashes.length) fail('\n    ' + clashes.join('\n    '));
   return srcFiles.length + ' files';
 });
 
