@@ -71,7 +71,9 @@ test('an unpaired quote is declined, whatever put it there', () => {
    * correct. Both quotes here are closed, so nothing is actually wrong with
    * the line - it is simply not worth a parser to prove it. */
   assert.equal(statementPosition(`  var m = /['"]/.test(s); `), false);
+  assert.equal(statementPosition('  var m = /["]/.test(s); '), false,
+    'one quote in a class is still one unpaired quote');
 
-  /* Same shape, one quote character, and read normally. */
-  assert.equal(statementPosition('  var m = /["]/.test(s); '), true);
+  /* The same shape without a quote in it is read normally. */
+  assert.equal(statementPosition('  var m = /[0-9]/.test(s); '), true);
 });
