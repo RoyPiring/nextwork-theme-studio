@@ -347,52 +347,10 @@
                       'textPrimary', 'textSecondary', 'textMuted',
                       'accent', 'accentText'];
   const HEX = /^#[0-9a-fA-F]{6}$/;
-  /* Every way a stylesheet can ask for something over the network.
-   *
-   * image() and cross-fade() take an image the same way url() does, and
-   * image-set() covers its prefixed spelling because that name contains it.
-   *
-   * This is a denylist, and a denylist is only as good as its list. It is used
-   * because the alternative is a CSS parser, and refusing a theme that asks
-   * for nothing is a far smaller cost than allowing one that asks for
-   * something. Anything new that can fetch belongs here. */
-  const CSS_REACHES_OUT =
-    /url\s*\(|src\s*\(|@import|expression\s*\(|image\s*\(|image-set\s*\(|cross-fade\s*\(/i;
-
-  /* CSS with its escapes resolved.
-   *
-   * A name in CSS may be written with escapes, and the browser resolves them
-   * before deciding what it is looking at: \75 is "u", so "\75 rl(...)" is a
-   * url() the moment it is parsed, while reading as nothing in particular to a
-   * pattern. Matching the file as typed would have let that straight through
-   * and the request would have been made. */
-  function withoutCssEscapes(css) {
-    return String(css)
-      /* Line endings first, the way a browser does before it reads a single
-       * token. An escape swallows one whitespace character, so on a file saved
-       * on Windows "\75" followed by CRLF left a newline behind here while the
-       * browser had already turned those two bytes into one and read the name
-       * straight through - and every ordinary text editor on Windows writes
-       * that ending. */
-      .replace(/\r\n?|\f/g, '\n')
-      /* One pass, left to right, so an escaped backslash is spent as one.
-       * Read in two passes, "\\75rl(" - a backslash followed by the plain
-       * text 75rl( - had its second backslash taken as starting an escape and
-       * came out as url(, refusing a file that asks for nothing. */
-      .replace(/\\(?:([0-9a-fA-F]{1,6})[ \t\n]?|([\s\S]))/g, function (_, hex, ch) {
-        if (ch !== undefined) return ch;
-        const code = parseInt(hex, 16);
-        /* Out of range, or half of a surrogate pair, is not a character a
-         * browser would produce here either. */
-        if (!code || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return '';
-        if (code <= 0xffff) return String.fromCharCode(code);
-        /* Built from its two halves, the way the rest of this file works.
-         * Nothing up here can be part of url() or @import; it is spelled out
-         * so the decoded text still matches what a browser would read. */
-        const above = code - 0x10000;
-        return String.fromCharCode(0xd800 + (above >> 10), 0xdc00 + (above & 0x3ff));
-      });
-  }
+  /* Both live in the engine, because the same question is asked again just
+   * before the rules reach the page. A theme stored by an older version was
+   * never read through here a second time. */
+  const cssReachesOut = NWT.cssReachesOut;
 
   function cleanTheme(raw) {
     if (!raw || typeof raw !== 'object') throw new Error('not a theme');
@@ -430,7 +388,7 @@
        * still checked so that a fault in the decoder below cannot make this
        * weaker than it was before the decoder existed. No test can tell the
        * two apart, which is the point - both have to refuse. */
-      if (CSS_REACHES_OUT.test(css) || CSS_REACHES_OUT.test(withoutCssEscapes(css))) {
+      if (cssReachesOut(css)) {
         throw new Error('custom CSS in this file can load an external resource');
       }
       out.customCSS = css.slice(0, 20000);

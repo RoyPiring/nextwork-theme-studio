@@ -354,3 +354,72 @@ test('the galactica fleet is black, smaller and twice the size of fleet', () => 
   assert.ok(widest < scene.near.tile * 0.05,
     'the ships should be small, widest was ' + widest.toFixed(0));
 });
+
+/* ------------------------------------------------- custom CSS at injection */
+
+/* The editor refuses a theme file that can reach the network, but storage
+ * outlives the version that wrote it. A theme imported before that check
+ * existed is still there, still selected, and still injected on every visit,
+ * and nobody has to open the editor again for that to happen. So the question
+ * is asked once more here, at the last point before the rules reach the page.
+ */
+function withCustomCSS(css) {
+  return settings({
+    themeId: 'stored',
+    customThemes: {
+      stored: {
+        name: 'Stored',
+        mode: 'dark',
+        colors: NWT.cloneTheme(NWT.PRESETS.concrete.colors),
+        tuning: NWT.cloneTheme(NWT.DEFAULT_TUNING),
+        customCSS: css
+      }
+    }
+  });
+}
+
+test('custom CSS that only sets properties is injected', () => {
+  const css = NWT.buildCSS(withCustomCSS('.card { border-radius: 12px; }'));
+  assert.match(css, /border-radius: 12px/, 'ordinary custom CSS was dropped');
+});
+
+test('custom CSS already in storage that reaches out is not injected', () => {
+  /* This is the upgrade case: the theme was accepted by a version that did
+   * not look, and the person never opened the editor again. */
+  const reaching = [
+    'body { background: url("https://example.com/x.png"); }',
+    '@import "https://example.com/x.css";',
+    'body { background: image("https://example.com/x.png"); }',
+    '@font-face { font-family: x; src: src("https://example.com/x.woff2"); }',
+    'body { background: cross-fade(url(a), url(b), 50%); }',
+    'body { background: -webkit-image-set("x.png" 1x); }'
+  ];
+  reaching.forEach(bad => {
+    const css = NWT.buildCSS(withCustomCSS(bad));
+    assert.ok(!/example\.com/.test(css), 'this was injected: ' + bad);
+    assert.ok(!/custom CSS/.test(css), 'the block was written out anyway');
+  });
+});
+
+test('custom CSS hiding a request behind an escape is not injected', () => {
+  /* \75 is "u", so a browser reads this as url() the moment it parses it. */
+  const hidden = [
+    String.raw`body { background: \75 rl("https://example.com/x.png"); }`,
+    String.raw`@\69 mport "https://example.com/x.css";`,
+    String.raw`body { background: \000075rl("https://example.com/x.png"); }`,
+    'body { background: ' + String.raw`\75` + '\r\nrl("https://example.com/x.png"); }'
+  ];
+  hidden.forEach(bad => {
+    const css = NWT.buildCSS(withCustomCSS(bad));
+    assert.ok(!/example\.com/.test(css), 'this was injected: ' + JSON.stringify(bad));
+  });
+});
+
+test('the engine and the editor ask the same question', () => {
+  /* One definition, so the two cannot drift apart and leave the injection
+   * point accepting what the import refuses. */
+  assert.equal(typeof NWT.cssReachesOut, 'function');
+  assert.equal(NWT.cssReachesOut('body { color: red; }'), false);
+  assert.equal(NWT.cssReachesOut('body { background: url(x); }'), true);
+  assert.equal(NWT.cssReachesOut(String.raw`body { background: \75 rl(x); }`), true);
+});

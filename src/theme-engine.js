@@ -676,6 +676,53 @@
     return out;
   }
 
+  /* Whether a piece of CSS can ask for something over the network.
+   *
+   * The extension never talks to anything, and custom CSS is the one place a
+   * theme could break that: a url() in a rule is a live request from a page
+   * you are signed into, and an attribute selector plus a background image is
+   * a known way to read a form field out one character at a time. url(), src(),
+   * image(), cross-fade() and image-set() all fetch, and @import pulls in a
+   * whole stylesheet.
+   *
+   * A denylist, and only as good as its list, because the alternative is a CSS
+   * parser. Dropping a rule that asks for nothing costs far less than making a
+   * request that should never happen, so anything new that can fetch belongs
+   * here.
+   */
+  const CSS_REACHES_OUT =
+    /url\s*\(|src\s*\(|@import|expression\s*\(|image\s*\(|image-set\s*\(|cross-fade\s*\(/i;
+
+  /* CSS with its escapes resolved.
+   *
+   * A name may be written with escapes, and the browser resolves them before
+   * deciding what it is looking at: \75 is "u", so "\75 rl(...)" is a url()
+   * the moment it is parsed, while reading as nothing in particular to a
+   * pattern. Line endings go first, as they do in a browser, because an escape
+   * swallows one whitespace character and a file saved on Windows carries two
+   * bytes where the browser sees one. */
+  function withoutCssEscapes(css) {
+    return String(css)
+      .replace(/\r\n?|\f/g, '\n')
+      /* One pass, so an escaped backslash is spent as one rather than having
+       * its second half read as opening an escape. */
+      .replace(/\\(?:([0-9a-fA-F]{1,6})[ \t\n]?|([\s\S]))/g, function (_, hex, ch) {
+        if (ch !== undefined) return ch;
+        const code = parseInt(hex, 16);
+        if (!code || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return '';
+        if (code <= 0xffff) return String.fromCharCode(code);
+        const above = code - 0x10000;
+        return String.fromCharCode(0xd800 + (above >> 10), 0xdc00 + (above & 0x3ff));
+      });
+  }
+
+  /* Read as written and as the browser will read it. The file as typed is
+   * still checked so a fault in the decoder cannot make this weaker than it
+   * would be without one. */
+  function cssReachesOut(css) {
+    return CSS_REACHES_OUT.test(css) || CSS_REACHES_OUT.test(withoutCssEscapes(css));
+  }
+
   function scopeCSS(css, prefix, rootSel) {
     /* The delimiter is a lookbehind rather than a captured character on
      * purpose. Consuming it meant that after an at-rule prelude was matched
@@ -1392,8 +1439,16 @@
      * own CSS is appended afterwards, unscoped, so they keep full control. */
     let css = scopeCSS(L.join('\n'), prefix, rootSel);
 
-    if (theme.customCSS && String(theme.customCSS).trim()) {
-      css += '\n/* --- custom CSS --- */\n' + String(theme.customCSS).trim();
+    /* Checked here, not only where a theme is imported.
+     *
+     * The editor refuses a file that can reach the network, but storage
+     * outlives the version that wrote it: a theme imported before that check
+     * existed is still there, still selected, and still injected on every
+     * visit, without anyone opening the editor again. This is the last point
+     * before the rules reach the page, so it is the one that has to hold. */
+    const custom = theme.customCSS ? String(theme.customCSS).trim() : '';
+    if (custom && !cssReachesOut(custom)) {
+      css += '\n/* --- custom CSS --- */\n' + custom;
     }
 
     return css;
@@ -1403,6 +1458,7 @@
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
     focusElapsed, focusRemaining, formatDuration,
+    cssReachesOut, withoutCssEscapes,
     toneOf,
     debounce,
     color: { hexToRgb, rgbToHex, hexToHsl, hslToHex, mix, rgba, lighten, contrastRatio, clamp }
