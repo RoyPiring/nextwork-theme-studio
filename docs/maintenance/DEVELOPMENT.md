@@ -14,6 +14,32 @@ node tools/audit.js   # repository checks, run before every commit
 node tools/build.js   # package a folder for each browser into dist/
 ```
 
+## What continuous integration runs
+
+Four jobs. They run on every pull request, on every push to `main`, once a
+week on a schedule, and on demand from the Actions tab:
+
+| Job | Where | What |
+| --- | --- | --- |
+| `checks` | Ubuntu **and** Windows | `node --test` and `tools/audit.js` |
+| `generated` | Ubuntu | Regenerates the scenery and gallery, fails if they drift |
+| `package` | Windows | `tools/build.js`, then checks each archive exists and is not empty |
+| `audit` | Ubuntu | Passes only if the three above did |
+
+`audit` exists to have a name that never changes. A required status check is
+named after the job reporting it, so putting the matrix under that name would
+have produced `audit (ubuntu-latest)` and `audit (windows-latest)`, leaving the
+branch rule pointing at a check that no longer exists and quietly requiring
+nothing.
+
+Packaging runs on Windows because that is the platform the packaging code
+targets: it resolves bsdtar by full path, since GNU tar cannot write a zip.
+
+Two of the audit's checks exist to keep this arrangement honest: one fails if a
+job is added and left out of `audit`'s `needs`, or listed there but never read;
+the other fails if any action is referenced by tag rather than by commit SHA.
+Both were previously guaranteed by a comment.
+
 ## The audit
 
 `tools/audit.js` is the important one. It checks that:

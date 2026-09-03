@@ -25,21 +25,18 @@
  * ---------------------------------------------------------------------------
  * Why this refuses pull requests from forks
  *
- * The title, description and diff become the prompt for an agent running on
- * this machine, whose reply is then posted publicly using the maintainer's
- * credentials. Text written by someone else therefore gets to talk to an agent
- * that is inside the repository.
+ * A pull request's title, description and diff become the prompt for a local
+ * agent, and its reply is posted publicly. Untrusted text therefore reaches an
+ * agent with local access.
  *
- * Fencing that text, labelling it as data, switching the agents' tools off,
- * and running them in an empty directory outside the checkout all narrow the
- * opening. None of them closes it, because a prompt is not a security
- * boundary and a tool blocklist is only as complete as the list.
+ * Fencing that text, labelling it as data, switching the agents' tools off and
+ * running them in an empty directory all narrow the opening. None closes it: a
+ * prompt is not a security boundary, and a tool blocklist is only as complete
+ * as the list.
  *
- * So this does not try. A pull request from a fork is refused outright. Branch
- * pull requests come from people who already have push access, where the agent
- * is reading text from someone who could commit directly anyway. An outside
- * pull request gets read by a person, or reviewed in a container with no
- * credentials.
+ * So this does not try. A fork pull request is refused outright. A branch pull
+ * request comes from someone who already has push access. An outside pull
+ * request should be read by a person, or reviewed in a disposable container.
  * ---------------------------------------------------------------------------
  */
 'use strict';
@@ -60,14 +57,10 @@ const ROOT = path.join(__dirname, '..');
  * Both of these read stdin: `codex exec -` takes its instructions from it, and
  * `claude -p` reads it as the prompt.
  *
- * `-s read-only` puts Codex in a sandbox that cannot write. Gemini held this
- * slot until Google withdrew the free individual tier, at which point it could
- * no longer authenticate - and correctly blocked rather than passing. */
+ * `-s read-only` puts Codex in a sandbox that cannot write. */
 const REVIEWERS = [
-  /* --skip-git-repo-check because the scratch directory below is
-   * deliberately not a repository. Without it codex declines to start and
-   * says nothing, which the gate reads as a block - correctly, but for a
-   * reason that looks like a finding. */
+  /* --skip-git-repo-check because the scratch directory is deliberately not
+   * a repository, and codex otherwise declines to start. */
   { name: 'Codex',  cmd: 'codex',
     args: ['exec', '-s', 'read-only', '--skip-git-repo-check', '-'] },
   { name: 'Claude', cmd: 'claude',
@@ -77,33 +70,27 @@ const REVIEWERS = [
 ];
 
 /* A posted review is a short public note, not a transcript. The full text is
- * printed in the terminal for whoever is running this; the comment carries
- * enough to act on and no more. Early runs posted 34 KB of reviewer output to
- * a public pull request, some of it stack traces naming this machine. */
+ * printed in the terminal; the comment carries enough to act on and no more. */
 const MAX_COMMENT = 1000;
 const MAX_DIFF = 120000;        /* beyond this nobody has read the whole thing */
 
-/* Anything published gets stripped of the machine it was produced on. The
- * reviewers are local CLIs, and a crash from one of them prints absolute paths
- * that carry a home directory and an account name into a public repository. */
+/* Anything published is stripped of local detail first. The reviewers are
+ * local CLIs, and their diagnostics contain absolute paths. */
 function redact(text) {
   let t = String(text == null ? '' : text);
 
-  /* The order here is the whole design, and it was arrived at by getting it
-   * wrong three times.
+  /* Order matters here.
    *
    * A pattern has to stop somewhere, and it stops at whitespace, so a path
-   * containing a space used to lose only its prefix: a home directory under
-   * "OneDrive - Acme Corp" published everything after the space. Directory
-   * names with spaces are ordinary; OneDrive writes them.
+   * containing a space would keep everything after the space. Directory names
+   * with spaces are ordinary.
    *
-   * So a quoted absolute path goes first, and goes whole. Errors quote the
-   * paths they complain about, and a quote is the only reliable end marker
-   * when the path itself contains spaces. */
+   * So a quoted absolute path goes first, and goes whole: a quote is the only
+   * reliable end marker when the path itself contains spaces. */
   t = t.replace(/(['"`])((?:[A-Za-z]:[\\/]|\\\\|\/)[^'"`\n]*)\1/g, '$1[path]$1');
 
-  /* Then the two directories this machine actually uses, matched literally
-   * and carrying their tail with them. */
+  /* Then the local home and temporary directories, matched literally and
+   * carrying their tail with them. */
   const quoteRe = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const tail = '[^\\s"\'`,)\\]]*';
   [os.tmpdir(), os.homedir()].forEach(function (dir) {
@@ -116,31 +103,22 @@ function redact(text) {
    * directory. Order matters: file:// URLs first, because the drive rule
    * below would otherwise eat the tail and leave a bare "file:///" behind.
    *
-   * The drive rule refuses a letter that follows another letter. Without
-   * that, "https://example.com" matches from the s of https - a colon and a
-   * slash preceded by a letter is exactly a drive path - and every link in
-   * every review came out as "http[path]". */
+   * The drive rule refuses a letter that follows another letter, so an
+   * https:// URL is not read as a drive path. */
   t = t.replace(/file:\/\/\/[^\s"'`,)\]]+/g, '[path]');
   t = t.replace(/(?<![A-Za-z])[A-Za-z]:[\\/][^\s"'`,)\]]+/g, '[path]');
-  /* Any POSIX absolute path of two or more segments, not just the home ones.
-   * Naming the directories that matter is a denylist, and the ones that got
-   * named were the ones already thought of: a module resolution error quoting
-   * /opt/..., or a container reading /root/.config/..., went out verbatim.
-   * A reviewer citing a file in this project writes "tools/x.js" without a
-   * leading slash, so this does not eat citations. */
+  /* Any POSIX absolute path of two or more segments. Naming particular
+   * directories is a denylist. A reviewer citing a file in this project writes
+   * "tools/x.js" with no leading slash, so citations are untouched. */
   t = t.replace(/(?<![\w.:\/])\/[A-Za-z0-9_.-]+\/[^\s"'`,)\]]+/g, '[path]');
   /* Windows network shares, which no rule above matches. */
   t = t.replace(/\\\\[A-Za-z0-9_.-]+\\[^\s"'`,)\]]+/g, '[path]');
   t = t.replace(/\/var\/folders\/[^\s"'`,)\]]+/g, '[path]');
 
   /* The account name last, and only for bare mentions left over after whole
-   * paths have gone.
-   *
-   * Doing it first was a leak. The path rules stop at "]", so once the name
-   * inside a path had become "[user]" the match ended there: with the account
-   * name "roy", "/home/roy/.aws/credentials" came out as
-   * "[path]]/.aws/credentials" and published the tail. Paths are removed
-   * whole first; whatever mentions the name outside a path is handled here. */
+   * paths have gone. Doing it earlier truncates the path rules: they stop at
+   * "]", so a name already replaced by "[user]" ends the match and the rest of
+   * the path survives. Paths go whole first. */
   let user = '';
   try { user = (os.userInfo().username || ''); } catch (e) { /* not available */ }
   if (user.length > 2) {
@@ -149,11 +127,9 @@ function redact(text) {
   }
 
   /* Stack frames are all path and no finding. Matched narrowly: a frame is
-   * "at name (somewhere)" or "at somewhere:12:3", not any line that happens
-   * to begin with the word "at". The loose version silently deleted findings
-   * like "at tools/scenes.js:40 the guard is inverted" from the public
-   * comment while the terminal copy kept them, so the record on the pull
-   * request disagreed with the review. */
+   * "at name (somewhere)" or an indented "at somewhere:12:3", not any line
+   * beginning with the word "at". A reviewer citing a location writes the same
+   * shape unindented, and deleting that would drop a real finding. */
   t = t.split('\n').filter(function (l) {
     return !/^\s+at\s+\S.*\($/.test(l) &&
            !/^\s+at\s+\S+\s*\([^)]*\)\s*$/.test(l) &&
@@ -176,15 +152,13 @@ function sh(cmd, args, opts) {
 
 /* Exactly one line whose whole content is the verdict.
  *
- * Two earlier versions were wrong in opposite directions. Taking the first
- * match anywhere failed open: a review arguing for a block while quoting the
- * words "VERDICT: PASS" was recorded as a pass. Demanding the last line then
- * failed closed, because these CLIs print trailers after their answer, so
- * every clean review came back blocked.
+ * Taking the first match anywhere fails open: a review arguing for a block
+ * while quoting "VERDICT: PASS" reads as a pass. Demanding the last line
+ * fails closed, since these CLIs print trailers after their answer.
  *
- * Requiring exactly one anchored line does neither. A quoted verdict is
- * either mid-sentence, and not anchored, or it is a second verdict line, and
- * two is an ambiguity to refuse rather than a coin to toss. */
+ * One anchored line does neither. A quoted verdict is either mid-sentence,
+ * and so not anchored, or it is a second verdict line, and two is an
+ * ambiguity to refuse rather than a coin to toss. */
 function parseVerdict(output) {
   const text = String(output == null ? '' : output);
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -308,8 +282,8 @@ function verdictFromRun(run) {
    * decide a review. It is still shown, because it explains failures. */
   const stdout = String(run.stdout || '').trim();
   const stderr = String(run.stderr || '').trim();
-  /* stderr stays out of anything published. It is where the stack traces
-   * live, and a stack trace is a list of absolute paths from this machine. */
+  /* stderr stays out of anything published: it carries the stack traces, and
+   * a stack trace is a list of absolute paths. */
   const output = stdout;
 
   /* Any non-zero exit blocks, printed output or not. A reviewer that crashed
@@ -333,16 +307,13 @@ function verdictFromRun(run) {
 
 /* An empty directory, outside the repository, for the reviewers to run in.
  *
- * This matters more than it looks. These CLIs read project configuration from
- * their working directory: CLAUDE.md, AGENTS.md, and .claude/settings.json,
- * which can define hooks that run commands. Started inside the checkout, a
- * pull request that never touches this script can still add one of those and
- * have it execute here, with the credentials to hand. Checking that this file
- * matches origin/main only ever covered this file.
+ * These CLIs read project configuration from their working directory:
+ * CLAUDE.md, AGENTS.md and .claude/settings.json, the last of which can define
+ * hooks that run commands. Started inside the checkout, a branch could supply
+ * any of those without touching this script.
  *
- * Nothing needs the repository on disk: the diff arrives from `gh pr diff`
- * over the network and the prompt arrives on stdin. So the reviewers get a
- * directory with nothing in it. */
+ * Nothing needs the repository on disk: the diff arrives from `gh pr diff` and
+ * the prompt arrives on stdin. */
 function scratchDir() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nwt-review-'));
   return dir;
@@ -375,8 +346,8 @@ function comment(pr, head, reviewer, result, dryRun) {
     ''
   ].join('\n');
 
-  /* The public note is short and carries nothing from this machine. Whoever
-   * ran this already has the whole review in front of them. */
+  /* The public note is short and carries no local detail. Whoever ran this
+   * already has the whole review in front of them. */
   /* Floored: if a longer reviewer name or header ever ate the budget, a
    * negative slice counts from the end and would post the tail of a review
    * as though it were the whole one. */
@@ -492,12 +463,11 @@ function main() {
   }
   const head = meta.headRefOid;
 
-  /* A pull request from a fork is written by someone without push access,
-   * and its text becomes the prompt for an agent running here under the
-   * maintainer's credentials. Fencing the text and switching off tools
-   * narrows that; neither closes it, because a prompt is not a boundary.
-   * So this refuses rather than pretending. Read an outside pull request
-   * yourself, or run this in a container with no credentials. */
+  /* A fork pull request is written by someone without push access, and its
+   * text becomes the prompt for a local agent. Fencing the text and switching
+   * off tools narrows that; neither closes it, because a prompt is not a
+   * boundary. So this refuses rather than pretending. Read an outside pull
+   * request yourself, or review it in a disposable container. */
   if (meta.isCrossRepository) {
     console.error('PR #' + pr + ' comes from a fork (' +
       ((meta.headRepositoryOwner && meta.headRepositoryOwner.login) || 'unknown') + ').');

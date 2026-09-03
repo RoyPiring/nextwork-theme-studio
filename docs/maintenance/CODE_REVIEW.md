@@ -58,20 +58,18 @@ The reviewers are configured at the top of `tools/review-pr.js`:
 
 Swapping a reviewer is one entry in that list.
 
-Gemini held the second slot until Google withdrew the free tier for
-individuals, at which point the CLI could no longer authenticate. It blocked
-rather than passing, which is the behaviour below working correctly.
+A reviewer that cannot authenticate blocks rather than passes, which is the
+behaviour below working as intended.
 
 ### Two refusals, and what they mean
 
 The script exits without reviewing anything in two cases. Both print why.
 
 **A pull request from a fork.** Refused outright. Its text would become the
-prompt for an agent running on your machine, whose reply is posted publicly
-under your account. Reviewers run in an empty directory with their tools off
-and the untrusted text fenced, but a prompt is not a security boundary. Read an
-outside pull request yourself, or review it on a throwaway machine with no
-credentials attached. There is no flag to force it.
+prompt for a local agent whose reply is posted publicly. Reviewers run in an
+empty directory with their tools off and the untrusted text fenced, but a
+prompt is not a security boundary. Read an outside pull request yourself, or
+review it in a disposable container. There is no flag to force it.
 
 **This script differs from the copy on `origin/main`.** Refused, because
 running it would let the branch supply its own reviewer. Run it from a clean
@@ -98,15 +96,13 @@ Rules the script enforces, all deliberate:
 ### What gets published, and what does not
 
 The full review is printed in your terminal. The comment on the pull request
-is a short public note, capped at 1,000 characters, and everything in it is
-stripped of this machine first: home directory, account name, absolute paths
-in any shape, and stack frames, which are all path and no finding. stderr is
-never published at all.
+is a short public note, capped at 1,000 characters, with local detail removed:
+absolute paths, the home and temporary directories, the account name, and
+stack frames. Standard error is never published.
 
-This is not tidiness. The repository is public, and an early run posted a
-reviewer's crash to it complete with a home directory and an account name in
-every stack frame. Read the full review in the terminal; the comment exists so
-the pull request carries a record that a review happened and what it decided.
+The repository is public, and reviewer diagnostics contain local paths. Read
+the full review in the terminal; the comment exists so the pull request carries
+a record that a review happened and what it decided.
 
 ## 4. Fix and re-run
 

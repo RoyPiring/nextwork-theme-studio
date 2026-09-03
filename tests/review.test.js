@@ -1,11 +1,9 @@
 /* Tests for the pull request review gate.
  *
- * Every case here is a way the gate could fail *open* — recording a pass when
- * nobody actually passed the change. That is the only failure mode that
- * matters: a gate that wrongly blocks costs a re-run, a gate that wrongly
- * passes is the reason it exists.
- *
- * The first three were found by the gate reviewing its own pull request.
+ * Every case here is a way the gate could fail *open* - recording a pass when
+ * nobody passed the change. That is the failure mode that matters: a gate
+ * that wrongly blocks costs a re-run, a gate that wrongly passes is the
+ * reason it exists.
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
@@ -20,8 +18,8 @@ test('a clean verdict on the last line is taken at face value', () => {
 });
 
 test('a verdict quoted mid-review does not decide the review', () => {
-  /* The original parser searched the whole reply and took the first match, so
-   * a reviewer explaining why it would NOT pass was recorded as a pass. */
+  /* Taking the first match anywhere records a pass when the reviewer was
+   * explaining why it would not pass. */
   const review = [
     'I considered answering VERDICT: PASS here, but the storage write is',
     'unguarded and will throw in private mode.',
@@ -39,8 +37,7 @@ test('two verdicts is a refusal, not a guess', () => {
 
 test('a trailer after the verdict does not change it', () => {
   /* These CLIs print token counts, update notices and warnings after their
-   * answer. An earlier version demanded the verdict be the final line, which
-   * turned every clean review into a block and made the gate unusable. */
+   * answer, so the verdict is rarely the final line. */
   assert.strictEqual(
     parseVerdict('Looks fine.\n\nVERDICT: PASS\ntokens used: 5310').verdict, 'PASS');
   assert.strictEqual(
@@ -59,7 +56,7 @@ test('silence, noise and nonsense all block', () => {
   assert.strictEqual(parseVerdict(undefined).verdict, 'BLOCK');
   assert.strictEqual(parseVerdict('   \n  \n').verdict, 'BLOCK');
   assert.strictEqual(parseVerdict('The command line is too long.').verdict, 'BLOCK');
-  /* The real Gemini failure: an authentication stack trace and no verdict. */
+  /* An authentication error and no verdict. */
   assert.strictEqual(
     parseVerdict('Error authenticating: IneligibleTierError: ...').verdict, 'BLOCK');
   /* A verdict word that is not one of the two allowed. */
@@ -115,9 +112,8 @@ test('a spawn that never started blocks', () => {
 
 const { redact } = require('../tools/review-pr.js');
 
-test('nothing from this machine reaches a posted review', () => {
-  /* An early run posted a reviewer crash to a public pull request, complete
-   * with a home directory and an account name in every stack frame. */
+test('no local detail reaches a posted review', () => {
+  /* Reviewer diagnostics carry absolute paths, and the comment is public. */
   const os = require('node:os');
   const home = os.homedir();
   const user = os.userInfo().username;
@@ -153,8 +149,7 @@ test('redaction leaves an ordinary review alone', () => {
 
 test('redaction keeps links and issue URLs intact', () => {
   /* An https:// URL contains a letter, a colon and a slash, which is also the
-   * shape of a Windows drive path. The first version matched from the "s" of
-   * https and turned every cited link into "http[path]". */
+   * shape of a Windows drive path. */
   const review = [
     'See https://github.com/owner/repo/issues/12 and',
     'http://example.com/a/b for the reasoning.',
@@ -170,8 +165,8 @@ test('a file:// URL is redacted whole, not left as a stub', () => {
 });
 
 test('stderr never reaches the text that gets posted', () => {
-  /* CODE_REVIEW.md promises stderr is never published. That promise rests on
-   * one assignment, so it gets a test rather than trust. */
+  /* The promise that stderr is never published rests on one assignment, so
+   * it gets a test rather than trust. */
   const r = verdictFromRun({
     status: 1, stdout: 'VERDICT: PASS', stderr: 'Error at /home/someone/.aws/creds'
   });
@@ -182,8 +177,8 @@ test('stderr never reaches the text that gets posted', () => {
 });
 
 test('a finding that starts with "at" is not mistaken for a stack frame', () => {
-  /* The first filter dropped any line beginning with "at", which silently
-   * deleted findings from the public comment while the terminal kept them. */
+  /* A filter that drops any line beginning with "at" deletes real findings
+   * along with stack frames. */
   const review = [
     'at tools/scenes.js:40 the guard is inverted',
     'at least two callers depend on the old behaviour',
@@ -230,10 +225,9 @@ test('the directory the reviewers run in is not published', () => {
 });
 
 test('a path containing the account name is removed whole, tail and all', () => {
-  /* The account name used to be replaced before the path rules ran. Those
-   * rules stop at "]", so once the name inside a path had become "[user]" the
-   * match ended there and the rest of the path was published:
-   * "/home/roy/.aws/credentials" came out as "[path]]/.aws/credentials". */
+  /* Replacing the account name before the path rules truncates them: they
+   * stop at "]", so a name already replaced ends the match and the rest of
+   * the path survives. */
   const os = require('node:os');
   const user = os.userInfo().username;
   const B = String.fromCharCode(92);
@@ -254,8 +248,8 @@ test('a path containing the account name is removed whole, tail and all', () => 
 });
 
 test('any absolute path is removed, not just the ones already thought of', () => {
-  /* Naming home directories was a denylist. A module resolution error quoting
-   * /opt/..., or a container reading /root/.config/..., went out verbatim. */
+  /* Naming particular directories is a denylist, and covers only the cases
+   * already thought of. */
   const B = String.fromCharCode(92);
   [
     ["Cannot find module '/opt/homebrew/lib/node_modules/x/cli.js'", 'homebrew'],
@@ -270,8 +264,8 @@ test('any absolute path is removed, not just the ones already thought of', () =>
 });
 
 test('links and in-project citations survive the broad path rule', () => {
-  /* The broad rule matched from the second slash of "https://", so the first
-   * version of it turned every link into "https:[path]". */
+  /* A broad path rule matches from the second slash of "https://" unless the
+   * lookbehind refuses a preceding slash or colon. */
   [
     'see https://github.com/owner/repo/issues/12 ok',
     'and http://example.com/a/b too',
@@ -282,9 +276,8 @@ test('links and in-project citations survive the broad path rule', () => {
 });
 
 test('a path with a space in it is removed whole, not up to the space', () => {
-  /* Both reviewers found this independently. Every pattern rule ends its
-   * match at whitespace, so a directory with a space in the name - which
-   * OneDrive writes as a matter of course - published everything after it. */
+  /* Every pattern rule ends its match at whitespace, so a directory whose
+   * name contains a space would keep everything after it. */
   const os = require('node:os');
   const B = String.fromCharCode(92);
   const u = os.userInfo().username;
@@ -302,9 +295,8 @@ test('a path with a space in it is removed whole, not up to the space', () => {
 });
 
 test('an unindented citation with a parenthetical is kept', () => {
-  /* Two of the four frame patterns were anchored ^\s* while the other two
-   * used ^\s+, so a citation written without indentation was still deleted
-   * even though the rule says indentation is what separates the two. */
+  /* Indentation is what separates a frame from a citation, so every pattern
+   * has to require it. */
   const out = redact([
     'at buildPalette (theme-engine.js) the mix runs before the clamp',
     '    at buildPalette (/home/someone/app/theme-engine.js:88:3)',
