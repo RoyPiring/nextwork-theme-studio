@@ -23,6 +23,52 @@ class FakeClassList {
   add(...n) { n.forEach(x => this.set.add(x)); }
   remove(...n) { n.forEach(x => this.set.delete(x)); }
   contains(n) { return this.set.has(n); }
+  toggle(n, force) {
+    const on = force === undefined ? !this.set.has(n) : !!force;
+    if (on) this.set.add(n); else this.set.delete(n);
+    return on;
+  }
+}
+
+/* Does one element match one selector.
+ *
+ * Compound parts are read left to right - "button[data-min]" is a tag and an
+ * attribute, and closest() is given exactly that. Anything it does not
+ * understand throws, so a selector this does not cover fails loudly instead of
+ * quietly matching nothing and leaving a test green for the wrong reason. */
+function matchesSelector(el, sel) {
+  return String(sel).split(',').map(s => s.trim()).filter(Boolean)
+    .some(part => matchesOne(el, part));
+}
+
+function matchesOne(el, part) {
+  if (part === '*') return true;
+  const bits = part.match(/^[a-zA-Z][\w-]*|\[[^\]]*\]|\.[\w-]+|#[\w-]+/g);
+  if (!bits || bits.join('') !== part) {
+    throw new Error('harness: unsupported selector "' + part + '"');
+  }
+  return bits.every(bit => {
+    if (bit.startsWith('#')) return el.id === bit.slice(1);
+    if (bit.startsWith('.')) return el.classList.contains(bit.slice(1));
+    if (bit.startsWith('[')) {
+      const body = bit.slice(1, -1);
+      if (body.startsWith('class*=')) {
+        const want = body.slice(body.indexOf('=') + 1).replace(/^["']|["']$/g, '');
+        return [...el.classList.set].some(c => c.indexOf(want) !== -1);
+      }
+      const eq = body.indexOf('=');
+      const name = (eq === -1 ? body : body.slice(0, eq)).trim();
+      const key = name.replace(/^data-/, '').replace(/-(\w)/g, (_, c) => c.toUpperCase());
+      const has = name.startsWith('data-')
+        ? el.dataset[key] !== undefined
+        : el.attributes[name] !== undefined;
+      if (eq === -1) return has;
+      const want = body.slice(eq + 1).replace(/^["']|["']$/g, '');
+      const value = name.startsWith('data-') ? el.dataset[key] : el.attributes[name];
+      return String(value) === want;
+    }
+    return el.tagName === bit.toUpperCase();
+  });
 }
 
 class FakeStyle {
@@ -56,7 +102,7 @@ class FakeElement {
     this.style = new FakeStyle();
     this.classList = new FakeClassList();
     this.attributes = {};
-    this.textContent = '';
+    this._text = '';
     this.id = '';
     this.shadowRoot = null;
     this._rect = { left: 0, top: 0, width: 300, height: 200 };
@@ -71,6 +117,18 @@ class FakeElement {
   get className() { return [...this.classList.set].join(' '); }
   set className(v) {
     this.classList.set = new Set(String(v == null ? '' : v).split(/\s+/).filter(Boolean));
+  }
+  /* Setting textContent empties the element, which is how the popup clears a
+   * list before rebuilding it. Held as a plain field, the old children stayed
+   * and every render appended another copy - the list would have grown on
+   * each click while the test watched the count and saw nothing wrong. */
+  get textContent() {
+    return this.children.reduce((s, c) => s + c.textContent, this._text);
+  }
+  set textContent(v) {
+    this.children.forEach(c => { c.parentNode = null; c.isConnected = false; });
+    this.children = [];
+    this._text = String(v == null ? '' : v);
   }
   /* The real DOM has both; code walking ancestors uses parentElement. */
   get parentElement() {
@@ -111,6 +169,16 @@ class FakeElement {
   getBoundingClientRect() { return Object.assign({}, this._rect); }
   setPointerCapture() {}
   releasePointerCapture() {}
+  /* A script clicking an element itself, which is how the editor opens the
+   * file chooser and how it starts a download. */
+  click() {
+    const event = { type: 'click', target: this, preventDefault() {}, stopPropagation() {} };
+    let node = this;
+    while (node) {
+      (node.listeners.click || []).forEach(fn => fn.call(node, event));
+      node = node.parentElement;
+    }
+  }
   /* The content script normalises colours by round-tripping them through a
    * canvas fillStyle, because getComputedStyle hands back whatever colour
    * space the author wrote. This does the same job for the notations the
@@ -152,23 +220,17 @@ class FakeElement {
       node.children.forEach(c => { all.push(c); walk(c); });
     })(this);
     if (sel === '*') return all;
-    const parts = sel.split(',').map(s => s.trim()).filter(Boolean);
-    const match = (el, part) => {
-      if (part.startsWith('[class*=')) {
-        const want = part.slice(part.indexOf('"') + 1, part.lastIndexOf('"'));
-        return (el.className || '').toString().indexOf(want) !== -1 ||
-               [...el.classList.set].some(c => c.indexOf(want) !== -1);
-      }
-      if (part.startsWith('[') && part.endsWith(']')) {
-        const key = part.slice(1, -1).replace(/^data-/, '')
-          .replace(/-(\w)/g, (_, c) => c.toUpperCase());
-        return el.dataset[key] !== undefined;
-      }
-      if (part.startsWith('.')) return el.classList.contains(part.slice(1));
-      if (/^[a-zA-Z][\w-]*$/.test(part)) return el.tagName === part.toUpperCase();
-      throw new Error('harness: unsupported selector "' + part + '"');
-    };
-    return all.filter(el => parts.some(part => match(el, part)));
+    return all.filter(el => matchesSelector(el, sel));
+  }
+  /* This element or the nearest ancestor that matches. The popup asks for the
+   * label wrapping a switch, and for the button under a click. */
+  closest(sel) {
+    let node = this;
+    while (node && node.nodeType === 1) {
+      if (matchesSelector(node, sel)) return node;
+      node = node.parentElement;
+    }
+    return null;
   }
 }
 
@@ -214,6 +276,90 @@ class FakeDocument {
     return hits.map(function (h) { return h.el; });
   }
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
+}
+
+/* Enough of an HTML parser for the extension's own two pages.
+ *
+ * The pages are built here rather than described in the test, so a test drives
+ * the same DOM the browser would. An id renamed in the HTML and not in the
+ * script then fails a test instead of shipping a popup where one control does
+ * nothing - which is a class of bug nothing else here would catch.
+ *
+ * It handles what those pages use and throws on the rest. */
+const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img',
+  'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+
+function parseHTML(html, doc, into) {
+  const root = into || doc.createElement('div');
+  const stack = [root];
+  /* Comments, and the contents of style and script, are not markup. */
+  const cleaned = html
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+
+  const tag = /<(\/?)([a-zA-Z][\w-]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/g;
+  let last = 0;
+  let m;
+  while ((m = tag.exec(cleaned)) !== null) {
+    const text = cleaned.slice(last, m.index);
+    if (text.trim()) {
+      const top = stack[stack.length - 1];
+      top._text += decodeEntities(text.trim());
+    }
+    last = tag.lastIndex;
+
+    const closing = m[1];
+    const name = m[2].toLowerCase();
+    if (closing) {
+      /* Unwind to the matching open tag; a stray close is ignored rather than
+       * silently reparenting everything after it. */
+      for (let i = stack.length - 1; i > 0; i--) {
+        if (stack[i].tagName === name.toUpperCase()) { stack.length = i; break; }
+      }
+      continue;
+    }
+
+    const el = doc.createElement(name);
+    applyAttributes(el, m[3]);
+    stack[stack.length - 1].appendChild(el);
+    if (!VOID_TAGS.has(name) && !m[4]) stack.push(el);
+  }
+  return root;
+}
+
+function decodeEntities(s) {
+  return s
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ');
+}
+
+function applyAttributes(el, source) {
+  const attr = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+  let a;
+  while ((a = attr.exec(source || '')) !== null) {
+    const key = a[1];
+    const value = decodeEntities(a[2] !== undefined ? a[2]
+      : a[3] !== undefined ? a[3]
+      : a[4] !== undefined ? a[4] : '');
+    if (key === 'id') el.id = value;
+    else if (key === 'class') el.className = value;
+    else if (key.startsWith('data-')) {
+      el.dataset[key.slice(5).replace(/-(\w)/g, (_, c) => c.toUpperCase())] = value;
+    } else {
+      el.setAttribute(key, value);
+      /* The properties a script reads back off a control. `checked` follows
+       * the attribute only as a starting state, as it does in a browser. */
+      if (key === 'type' || key === 'value' || key === 'min' ||
+          key === 'max' || key === 'step' || key === 'title') {
+        el[key] = value;
+      }
+      if (key === 'checked') el.checked = true;
+      if (key === 'disabled') el.disabled = true;
+    }
+  }
+  if (el.tagName === 'INPUT' && el.checked === undefined) el.checked = false;
+  if (el.tagName === 'INPUT' && el.value === undefined) el.value = '';
 }
 
 /* Build an environment, load content.js into it, and hand back the controls a
@@ -484,3 +630,205 @@ function loadBackground(options) {
 }
 
 module.exports = { loadContentScript, loadBackground };
+
+/* Build one of the extension's own pages, load its script into it, and hand
+ * back the controls a test needs.
+ *
+ * The DOM comes from the page's real HTML. A control the script wires up by id
+ * has to exist in the file for the wiring to run at all, so the two staying in
+ * step is checked by the tests rather than by looking.
+ */
+function loadPage(options) {
+  const opts = options || {};
+  const doc = new FakeDocument();
+  const stored = Object.assign({}, opts.settings || {});
+  const changeListeners = [];
+  const timers = [];
+  const intervals = new Map();
+  const reads = [];
+  const opened = { optionsPage: 0, reloadedTabs: 0, closed: 0 };
+  let intervalSeq = 0;
+
+  parseHTML(fs.readFileSync(path.join(ROOT, opts.page), 'utf8'), doc, doc.body);
+
+  const chrome = {
+    runtime: {
+      lastError: null,
+      id: 'test',
+      openOptionsPage() { opened.optionsPage++; },
+      onMessage: { addListener() {} }
+    },
+    tabs: { reload() { opened.reloadedTabs++; } },
+    storage: {
+      local: {
+        get(_keys, cb) {
+          reads.push({ cb, snapshot: JSON.parse(JSON.stringify(stored)) });
+        },
+        set(patch, cb) {
+          Object.assign(stored, JSON.parse(JSON.stringify(patch)));
+          if (cb) timers.push(cb);
+          changeListeners.forEach(fn => timers.push(() => fn({}, 'local')));
+        },
+        clear(cb) {
+          Object.keys(stored).forEach(k => { delete stored[k]; });
+          if (cb) timers.push(cb);
+          changeListeners.forEach(fn => timers.push(() => fn({}, 'local')));
+        }
+      },
+      onChanged: { addListener(fn) { changeListeners.push(fn); } }
+    }
+  };
+
+  /* Whatever the page hands to the browser to save. The editor builds a Blob
+   * and asks for a URL for it, so holding the blobs is enough to see what an
+   * export would contain without a download happening. */
+  const saved = [];
+  let blobSeq = 0;
+
+  class FakeBlob {
+    constructor(parts, options) {
+      this.parts = parts || [];
+      this.type = (options || {}).type || '';
+    }
+    text() { return Promise.resolve(this.parts.join('')); }
+  }
+
+  const win = {
+    innerWidth: 420,
+    innerHeight: 600,
+    close() { opened.closed++; },
+    addEventListener() {},
+    removeEventListener() {},
+    alert() {}
+  };
+  win.top = win;
+
+  const sandbox = {
+    window: win,
+    document: doc,
+    location: { pathname: '/' + path.basename(opts.page) },
+    chrome,
+    Blob: FakeBlob,
+    URL: {
+      createObjectURL(blob) {
+        blobSeq += 1;
+        saved.push({ type: blob.type, text: (blob.parts || []).join('') });
+        return 'blob:test/' + blobSeq;
+      },
+      revokeObjectURL() {}
+    },
+    confirm: () => (opts.confirm === undefined ? true : opts.confirm),
+    alert() {},
+    getComputedStyle(el) { return Object.assign({}, el._computed || {}); },
+    setTimeout(fn) { timers.push(fn); return timers.length; },
+    clearTimeout() {},
+    setInterval(fn, ms) { intervalSeq += 1; intervals.set(intervalSeq, { fn, ms }); return intervalSeq; },
+    clearInterval(id) { intervals.delete(id); },
+    requestAnimationFrame(fn) { timers.push(fn); return timers.length; },
+    cancelAnimationFrame() {},
+    Math, Date, JSON, Object, Array, String, Number, Boolean, RegExp, Error,
+    isFinite, parseInt, parseFloat, console
+  };
+  sandbox.globalThis = sandbox;
+
+  const vm = require('node:vm');
+  vm.createContext(sandbox);
+  sandbox.self = sandbox;
+  ['src/wallpapers.js', 'src/scenes.js', 'src/theme-engine.js']
+    .concat(opts.scripts || [])
+    .forEach(f => vm.runInContext(
+      fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f }));
+
+  function flush(o) {
+    const options = o || {};
+    for (let i = 0; i < (options.rounds || 12); i++) {
+      let pending = [];
+      if (options.deliverReads !== false) {
+        pending = reads.splice(0, reads.length);
+        if (options.reverseReads) pending.reverse();
+        pending.forEach(r => r.cb(r.snapshot));
+      }
+      const batch = timers.splice(0, timers.length);
+      batch.forEach(fn => fn());
+      if (!pending.length && !batch.length) break;
+    }
+  }
+
+  /* Dispatch to the listeners on an element, and to any ancestor listening for
+   * the same type, which is the bubbling the pages rely on for their lists. */
+  function dispatch(el, type, extra, settle) {
+    const event = Object.assign({
+      type,
+      target: el,
+      preventDefault() {},
+      stopPropagation() {}
+    }, extra || {});
+    let node = el;
+    while (node) {
+      (node.listeners[type] || []).forEach(fn => fn.call(node, event));
+      node = node.parentElement;
+    }
+    /* A write held behind a timer has not happened yet when the handler
+     * returns. Tests that care about that fire without settling, look, then
+     * settle. */
+    if (settle !== false) flush();
+    return event;
+  }
+
+  return {
+    doc, chrome, window: win, sandbox, stored, reads, flush, opened, intervals,
+    /* What an export handed to the browser to save. */
+    saved,
+    /* Hand the page a file the way a chooser would, and wait for it to be
+     * read - the page reads the file through a promise. */
+    async chooseFile(id, text) {
+      const input = doc.getElementById(id);
+      if (!input) throw new Error('no file input with id "' + id + '"');
+      input.files = [new FakeBlob([text], { type: 'application/json' })];
+      dispatch(input, 'change');
+      await Promise.resolve();
+      await Promise.resolve();
+      flush();
+    },
+    el(id) {
+      const found = doc.getElementById(id);
+      if (!found) throw new Error('no element with id "' + id + '" in ' + opts.page);
+      return found;
+    },
+    /* Set a control's value the way a person would, then fire the event the
+     * page listens for. */
+    fire(id, type, extra) { return dispatch(this.el(id), type, extra); },
+    /* Fire and stop, leaving anything on a timer still pending. */
+    fireOnly(id, type, extra) { return dispatch(this.el(id), type, extra, false); },
+    /* Make the next storage read fail the way the real API does: it sets
+     * runtime.lastError rather than throwing, so unread it passes silently. */
+    failNextRead(message) {
+      const real = chrome.storage.local.get;
+      chrome.storage.local.get = function (keys, cb) {
+        chrome.storage.local.get = real;
+        reads.push({
+          snapshot: null,
+          cb(snapshot) {
+            chrome.runtime.lastError = { message: message || 'storage is unavailable' };
+            try { cb(snapshot); } finally { chrome.runtime.lastError = null; }
+          }
+        });
+      };
+    },
+    set(id, value) {
+      const el = this.el(id);
+      if (typeof value === 'boolean') el.checked = value;
+      else el.value = String(value);
+      return el;
+    },
+    click(el, extra) { return dispatch(el, 'click', extra); },
+    /* Run every interval once, which is how the clock is advanced. */
+    tick() {
+      [...intervals.values()].forEach(t => t.fn());
+      flush();
+    }
+  };
+}
+
+module.exports.loadPage = loadPage;
+module.exports.parseHTML = parseHTML;
