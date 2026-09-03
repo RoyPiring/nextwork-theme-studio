@@ -365,3 +365,25 @@ test('a reviewer that exits non-zero keeps what it printed', async () => {
   assert.equal(verdictFromRun(run).verdict, 'BLOCK',
     'a run that failed part way through is not a pass');
 });
+
+test('a reviewer that will not stop printing is stopped, and blocks', async () => {
+  /* spawnSync enforced this through maxBuffer and killed the child. Collecting
+   * the output by hand loses it unless it is put back, and a gate that runs
+   * out of memory is worse than one that blocks. The cap is an argument so
+   * this does not have to produce 32 MB to find out. */
+  /* Prints far past the cap and then ends by itself, so this checks the cap
+   * without also depending on a kill reaching through a shell. */
+  const flood = "for (let i = 0; i < 200; i++) console.log('x'.repeat(4096))";
+  const run = await startReviewer(fake('Loud', flood), '', 64 * 1024);
+
+  assert.ok(run.error, 'it was allowed to keep printing');
+  assert.match(run.error.message, /printed more than/);
+  assert.equal(verdictFromRun(run).verdict, 'BLOCK');
+});
+
+test('a reviewer that prints a normal amount is left alone', async () => {
+  const some = "console.log('x'.repeat(10000));console.log('VERDICT: PASS')";
+  const run = await startReviewer(fake('Quiet', some), '', 64 * 1024);
+  assert.ok(!run.error, 'a reviewer under the cap was stopped anyway');
+  assert.equal(verdictFromRun(run).verdict, 'PASS');
+});

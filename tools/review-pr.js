@@ -74,6 +74,10 @@ const REVIEWERS = [
 const MAX_COMMENT = 1000;
 const MAX_DIFF = 120000;        /* beyond this nobody has read the whole thing */
 
+/* What a reviewer may print before it is stopped. spawnSync enforced the same
+ * limit through maxBuffer; collecting the output by hand means saying so. */
+const MAX_OUTPUT = 32 * 1024 * 1024;
+
 /* Anything published is stripped of local detail first. The reviewers are
  * local CLIs, and their diagnostics contain absolute paths. */
 function redact(text) {
@@ -326,7 +330,8 @@ function scratchDir() {
  * scratch directory of its own, and reaches its own verdict. Run one after the
  * other, a review took as long as both of them put together, and the wait grew
  * with the diff until it was long enough to discourage asking. */
-function startReviewer(reviewer, text) {
+function startReviewer(reviewer, text, limit) {
+  const cap = limit || MAX_OUTPUT;
   const useShell = process.platform === 'win32';
   const args = useShell ? reviewer.args.map(shellArg) : reviewer.args;
   /* The command is quoted too, not only its arguments. Under a shell the whole
@@ -359,10 +364,28 @@ function startReviewer(reviewer, text) {
       resolve(run);
     };
 
+    /* Kept to a size, and stopped past it.
+     *
+     * spawnSync had maxBuffer for this and killed the child when it was
+     * exceeded. Collecting the output by hand loses that unless it is put
+     * back: a reviewer stuck in a loop would otherwise be drained into memory
+     * until this process runs out of it, and a gate that dies is worse than
+     * one that blocks. */
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
-    child.stdout.on('data', d => { stdout += d; });
-    child.stderr.on('data', d => { stderr += d; });
+    const take = (chunk, onto) => {
+      if (settled) return;
+      if (stdout.length + stderr.length + chunk.length > cap) {
+        try { child.kill(); } catch (e) { /* already gone */ }
+        finish({ error: new Error(
+          'it printed more than ' + Math.round(cap / (1024 * 1024)) +
+          ' MB, and was stopped') });
+        return;
+      }
+      if (onto === 'out') stdout += chunk; else stderr += chunk;
+    };
+    child.stdout.on('data', d => take(d, 'out'));
+    child.stderr.on('data', d => take(d, 'err'));
 
     /* A command that is not installed fails here rather than exiting. */
     child.on('error', error => finish({ error: error }));
