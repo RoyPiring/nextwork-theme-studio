@@ -311,57 +311,100 @@ class FakeDocument {
  * script then fails a test instead of shipping a popup where one control does
  * nothing - which is a class of bug nothing else here would catch.
  *
- * It handles what those pages use and throws on the rest. */
+ * It handles what those pages use and throws on the rest.
+ *
+ * Read in one pass, left to right.
+ *
+ * Comments and the contents of script and style are skipped where they are met
+ * rather than stripped out beforehand. Removing them first is the shape of a
+ * sanitiser, and it has a sanitiser's problem: what one pass leaves behind the
+ * next can read as markup, and a script holding "-->" would end a comment that
+ * had not started. Passing over them in place cannot do that. */
+const RAW_TEXT_TAGS = new Set(['script', 'style']);
 const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img',
   'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+
+const TAG = /^<(\/?)([a-zA-Z][\w-]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/;
 
 function parseHTML(html, doc, into) {
   const root = into || doc.createElement('div');
   const stack = [root];
-  /* Comments, and the contents of style and script, are not markup. */
-  const cleaned = html
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+  const top = () => stack[stack.length - 1];
 
-  const tag = /<(\/?)([a-zA-Z][\w-]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/g;
-  let last = 0;
-  let m;
-  while ((m = tag.exec(cleaned)) !== null) {
-    const text = cleaned.slice(last, m.index);
-    if (text) {
-      /* Kept exactly as written. textContent in a browser hands back the
-       * source whitespace, not what the layout makes of it, so collapsing
-       * runs here would have tests comparing against text the DOM does not
-       * hold. A run that is only whitespace is text too - it is the space
-       * between two elements. */
-      stack[stack.length - 1].appendText(decodeEntities(text));
+  /* Text is kept exactly as written. textContent in a browser hands back the
+   * source whitespace, not what the layout makes of it, so collapsing runs
+   * here would have tests comparing against text the DOM does not hold. A run
+   * that is only whitespace is text too - it is the space between two
+   * elements. */
+  const text = s => { if (s) top().appendText(decodeEntities(s)); };
+
+  let i = 0;
+  while (i < html.length) {
+    const lt = html.indexOf('<', i);
+    if (lt === -1) { text(html.slice(i)); break; }
+    text(html.slice(i, lt));
+
+    if (html.startsWith('<!--', lt)) {
+      const end = html.indexOf('-->', lt + 4);
+      i = end === -1 ? html.length : end + 3;
+      continue;
     }
-    last = tag.lastIndex;
+    if (html.startsWith('<!', lt)) {          /* a doctype, or anything like it */
+      const end = html.indexOf('>', lt);
+      i = end === -1 ? html.length : end + 1;
+      continue;
+    }
 
-    const closing = m[1];
+    const m = TAG.exec(html.slice(lt));
+    if (!m) { text('<'); i = lt + 1; continue; }
+    i = lt + m[0].length;
+
     const name = m[2].toLowerCase();
-    if (closing) {
+    if (m[1]) {
       /* Unwind to the matching open tag; a stray close is ignored rather than
        * silently reparenting everything after it. */
-      for (let i = stack.length - 1; i > 0; i--) {
-        if (stack[i].tagName === name.toUpperCase()) { stack.length = i; break; }
+      for (let j = stack.length - 1; j > 0; j--) {
+        if (stack[j].tagName === name.toUpperCase()) { stack.length = j; break; }
       }
       continue;
     }
 
     const el = doc.createElement(name);
     applyAttributes(el, m[3]);
-    stack[stack.length - 1].appendChild(el);
+    top().appendChild(el);
+
+    if (RAW_TEXT_TAGS.has(name)) {
+      /* Everything up to the matching close is text, whatever it looks like. */
+      const close = new RegExp('</' + name + '\\s*>', 'i');
+      const rest = html.slice(i);
+      const found = close.exec(rest);
+      i += found ? found.index + found[0].length : rest.length;
+      continue;
+    }
     if (!VOID_TAGS.has(name) && !m[4]) stack.push(el);
   }
   return root;
 }
 
+/* One pass, so nothing this produces is read again.
+ *
+ * Run as a sequence of replacements, "&amp;lt;" became "&lt;" and then "<" -
+ * text that says the name of a tag turned into the tag. */
+const ENTITIES = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' '
+};
+
 function decodeEntities(s) {
-  return s
-    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ');
+  return String(s).replace(/&(#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z]+);/g, (whole, body) => {
+    if (body.charAt(0) === '#') {
+      const hex = body.charAt(1) === 'x' || body.charAt(1) === 'X';
+      const code = parseInt(hex ? body.slice(2) : body.slice(1), hex ? 16 : 10);
+      if (!code || code > 0x10ffff) return whole;
+      return String.fromCodePoint(code);
+    }
+    return Object.prototype.hasOwnProperty.call(ENTITIES, body)
+      ? ENTITIES[body] : whole;
+  });
 }
 
 function applyAttributes(el, source) {

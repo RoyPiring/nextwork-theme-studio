@@ -267,3 +267,56 @@ test('a timer scheduled after a cancellation still gets a fresh id', () => {
   p.flush();
   assert.deepEqual(ran, ['second']);
 });
+
+test('an entity is decoded once, not read again', () => {
+  /* Run as a sequence of replacements, "&amp;lt;" became "&lt;" and then "<":
+   * text naming a tag turned into the tag. */
+  const { host } = fragment('<p>&amp;lt; &amp;amp; &amp;#60;</p>');
+  assert.equal(host.textContent, '&lt; &amp; &#60;');
+});
+
+test('an entity nobody knows is left alone', () => {
+  const { host } = fragment('<p>&fake; &#0; a &amp; b</p>');
+  assert.equal(host.textContent, '&fake; &#0; a & b');
+});
+
+test('a hex entity is decoded', () => {
+  const { host } = fragment('<p>&#x1F34D; &#x3c;</p>');
+  assert.equal(host.textContent, '\u{1F34D} <');
+});
+
+test('a script holding a comment ending does not end a comment', () => {
+  /* Stripped in separate passes, what one left behind the next read as
+   * markup. Skipped where they are met, neither can reach the other. */
+  const { host } = fragment(
+    '<div><script>var x = "-->";</script><!-- <b>hidden</b> --><i>kept</i></div>');
+  const box = host.children[0];
+  assert.equal(box.querySelectorAll('b').length, 0, 'a comment was read as markup');
+  assert.equal(box.querySelectorAll('i').length, 1, 'what followed was lost');
+  assert.ok(!/hidden/.test(box.textContent));
+});
+
+test('a comment naming a script tag does not open one', () => {
+  const { host } = fragment('<div><!-- <script> --><b>after</b></div>');
+  const box = host.children[0];
+  assert.equal(box.querySelectorAll('b').length, 1);
+  assert.equal(box.textContent, 'after');
+});
+
+test('a stylesheet holding a close tag for something else is still text', () => {
+  const { host } = fragment(
+    '<div><style>.a::after { content: "</div>"; }</style><b>after</b></div>');
+  const box = host.children[0];
+  assert.equal(box.querySelectorAll('b').length, 1, 'the stylesheet closed the div');
+});
+
+test('a doctype is skipped', () => {
+  const { host } = fragment('<!DOCTYPE html><div>hi</div>');
+  assert.equal(host.children.length, 1);
+  assert.equal(host.children[0].textContent, 'hi');
+});
+
+test('a stray angle bracket is text, not the start of a tag', () => {
+  const { host } = fragment('<p>5 < 6 and 7 > 4</p>');
+  assert.match(host.textContent, /5 < 6/);
+});
