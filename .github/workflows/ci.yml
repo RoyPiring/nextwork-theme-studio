@@ -27,6 +27,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # Named explicitly. Without it these run under PowerShell on the Windows
+    # leg and under bash on the Linux one, so the two legs would not be
+    # running the same thing.
+    defaults:
+      run:
+        shell: bash
     steps:
       # Actions are pinned to a commit SHA, not a tag. A tag can be moved to
       # point at different code; a SHA cannot.
@@ -102,20 +108,29 @@ jobs:
 
       # build.js reads each archive back before reporting success. This checks
       # the other half: that the files it claims to have written are there and
-      # are not empty.
+      # are not empty. It looks at whatever the build wrote rather than a list
+      # repeated from build.js, so a browser target added there is not built
+      # and then silently left unverified.
       - name: Check the archives exist
         shell: bash
         run: |
-          missing=0
-          for f in dist/chrome.zip dist/brave.zip dist/edge.zip dist/firefox.xpi; do
+          shopt -s nullglob
+          archives=(dist/*.zip dist/*.xpi)
+          if [ ${#archives[@]} -lt 4 ]; then
+            echo "expected at least 4 archives, found ${#archives[@]}"
+            ls -la dist/ || true
+            exit 1
+          fi
+          fail=0
+          for f in "${archives[@]}"; do
             if [ ! -s "$f" ]; then
-              echo "missing or empty: $f"
-              missing=1
+              echo "empty: $f"
+              fail=1
             else
               echo "ok: $f ($(wc -c < "$f") bytes)"
             fi
           done
-          exit $missing
+          exit $fail
 
   # The one check the branch ruleset requires, and the only reason it has a
   # fixed name.

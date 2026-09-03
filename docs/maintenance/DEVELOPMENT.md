@@ -16,7 +16,8 @@ node tools/build.js   # package a folder for each browser into dist/
 
 ## What continuous integration runs
 
-Four jobs, on every pull request and on a weekly schedule:
+Four jobs. They run on every pull request, on every push to `main`, once a
+week on a schedule, and on demand from the Actions tab:
 
 | Job | Where | What |
 | --- | --- | --- |
@@ -34,6 +35,11 @@ nothing.
 Packaging runs on Windows because that is the platform the packaging code
 targets, and because a Windows-only bug once shipped archives that could not be
 installed anywhere while the build reported success.
+
+Two of the audit's checks exist to keep this arrangement honest: one fails if a
+job is added and left out of `audit`'s `needs`, or listed there but never read;
+the other fails if any action is referenced by tag rather than by commit SHA.
+Both were previously guaranteed by a comment.
 
 ## The audit
 

@@ -448,6 +448,84 @@ check('contrast floor holds for every theme', () => {
   return themeIds.length + ' themes checked';
 });
 
+/* ------------------------------------------------- the workflow itself ---
+ * The branch rule requires one check, named `audit`, and that job passes only
+ * if every other job passed. The whole arrangement rests on `audit` listing
+ * all of them, which until now was guaranteed by a comment. A job added later
+ * and left out of that list is built, run, and not required by anything.
+ *
+ * Parsed by hand rather than with a YAML library, because the project has no
+ * dependencies. Job names sit at two spaces under `jobs:` and nothing else in
+ * the file does, so that is what this looks for. */
+function workflowFile() {
+  const p = path.join(ROOT, '.github', 'workflows', 'ci.yml');
+  if (!fs.existsSync(p)) fail('.github/workflows/ci.yml is missing');
+  return fs.readFileSync(p, 'utf8').split(/\r?\n/);
+}
+
+check('every CI job is required by the gate', () => {
+  const lines = workflowFile();
+  const jobsAt = lines.findIndex(l => /^jobs:\s*$/.test(l));
+  if (jobsAt < 0) fail('ci.yml has no jobs: block');
+
+  const jobs = [];
+  for (let i = jobsAt + 1; i < lines.length; i++) {
+    const m = /^ {2}([A-Za-z_][\w-]*):\s*$/.exec(lines[i]);
+    if (m) jobs.push({ name: m[1], line: i });
+  }
+  if (jobs.length < 2) fail('expected more than one job, found ' + jobs.length);
+
+  const gate = jobs.find(j => j.name === 'audit');
+  if (!gate) fail('there is no job named `audit`, which is the required check');
+
+  /* The gate's own needs list, read from its block only. */
+  const end = jobs.filter(j => j.line > gate.line)
+                  .reduce((a, j) => Math.min(a, j.line), lines.length);
+  let needs = null;
+  for (let i = gate.line + 1; i < end; i++) {
+    const m = /^ {4}needs:\s*\[([^\]]*)\]\s*$/.exec(lines[i]);
+    if (m) needs = m[1].split(',').map(s => s.trim()).filter(Boolean);
+  }
+  if (!needs) fail('the `audit` job has no single-line needs: [...] list');
+
+  const missing = jobs.map(j => j.name)
+                      .filter(n => n !== 'audit' && needs.indexOf(n) === -1);
+  if (missing.length) {
+    fail('these jobs run but nothing requires them, so a failure in any of ' +
+         'them would not block a merge: ' + missing.join(', ') +
+         '\n    Add them to `needs:` on the `audit` job.');
+  }
+
+  /* Listing a job is not enough: its result has to be looked at. */
+  const body = lines.slice(gate.line, end).join('\n');
+  const unread = needs.filter(n => body.indexOf('needs.' + n + '.result') === -1);
+  if (unread.length) {
+    fail('the `audit` job waits for these but never reads their result: ' +
+         unread.join(', '));
+  }
+  return needs.length + ' jobs gated';
+});
+
+check('every action is pinned to a commit SHA', () => {
+  /* A tag can be moved to point at different code. A SHA cannot. */
+  const loose = [];
+  fs.readdirSync(path.join(ROOT, '.github', 'workflows'))
+    .filter(f => /\.ya?ml$/.test(f))
+    .forEach(function (f) {
+      const text = fs.readFileSync(path.join(ROOT, '.github', 'workflows', f), 'utf8');
+      text.split(/\r?\n/).forEach(function (line, i) {
+        const m = /^\s*(?:-\s*)?uses:\s*(\S+)/.exec(line);
+        if (!m) return;
+        const ref = m[1].split('@')[1];
+        if (!ref || !/^[0-9a-f]{40}$/.test(ref)) {
+          loose.push(f + ':' + (i + 1) + ' ' + m[1]);
+        }
+      });
+    });
+  if (loose.length) fail('\n    ' + loose.join('\n    '));
+  return 'all pinned';
+});
+
 /* ------------------------------------------------------------------ report */
 const width = Math.max(...results.map(r => r.name.length));
 console.log('');
