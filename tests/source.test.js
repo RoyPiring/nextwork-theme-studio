@@ -7,6 +7,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { codeOnly, statementPosition, duplicateDeclarations,
+        unusedDeclarations, isText,
         importsOnlyLocalFiles } = require('../tools/source.js');
 
 test('a block comment keeps the lines it spans', () => {
@@ -217,4 +218,90 @@ test('the line the extension actually ships is the one that is allowed', () => {
   const weakened = calls[0].replace(/'[\w.-]+\.js'/, 'name');
   assert.notEqual(weakened, calls[0], 'the substitution matched nothing');
   assert.equal(importsOnlyLocalFiles(weakened), false);
+});
+
+/* ------------------------------------------------------- unused and binary */
+
+test('a function nothing names again is unused', () => {
+  const found = unusedDeclarations(src([
+    '(function () {',
+    '  function used() { return 1; }',
+    '  function idle() { return 2; }',
+    '  return used();',
+    '}());'
+  ]));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].name, 'idle');
+  assert.equal(found[0].line, 3);
+});
+
+test('a comment is not a use', () => {
+  /* Six functions hid this way: the name in the description above each one
+   * made it look busy to a scan that counted the raw text. */
+  const found = unusedDeclarations(src([
+    '(function () {',
+    '  /* A sun or moon disc, drawn with a corona. */',
+    '  function disc() { return 1; }',
+    '}());'
+  ]));
+  assert.equal(found.length, 1, 'the name in its own comment counted as a use');
+  assert.equal(found[0].name, 'disc');
+});
+
+test('a function used only by a dead one is also dead', () => {
+  /* This is what makes a removal safe to check: whatever survives while
+   * calling something deleted is unreachable, and says so. */
+  const first = unusedDeclarations(src([
+    '(function () {',
+    '  function helper() { return 1; }',
+    '  function band() { return helper(); }',
+    '}());'
+  ]));
+  assert.deepEqual(first.map(d => d.name), ['band'],
+    'the caller should be the only one reported while it still stands');
+
+  const after = unusedDeclarations(src([
+    '(function () {',
+    '  function helper() { return 1; }',
+    '}());'
+  ]));
+  assert.deepEqual(after.map(d => d.name), ['helper'],
+    'the helper should be reported once its only caller is gone');
+});
+
+test('a name used inside a string does not keep a function alive', () => {
+  const found = unusedDeclarations(src([
+    '(function () {',
+    '  function idle() { return 1; }',
+    "  var label = 'idle';",
+    '  return label;',
+    '}());'
+  ]));
+  assert.deepEqual(found.map(d => d.name), [],
+    'a quoted name counts as a use, which errs towards keeping code');
+});
+
+test('the shipped sources have nothing left that is never called', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const dir = path.join(__dirname, '..', 'src');
+  const idle = [];
+  fs.readdirSync(dir).filter(n => n.endsWith('.js')).forEach(n => {
+    unusedDeclarations(fs.readFileSync(path.join(dir, n), 'utf8'))
+      .forEach(d => idle.push(n + ':' + d.line + ' ' + d.name));
+  });
+  assert.deepEqual(idle, [], 'dead code is back in the extension');
+});
+
+test('a file with a NUL byte is not text', () => {
+  /* It parses, and git then shows the whole file as binary, so none of it
+   * can be read in review. */
+  assert.equal(isText(Buffer.from('var a = 1;\n', 'utf8')), true);
+  assert.equal(isText(Buffer.from([0x76, 0x61, 0x72, 0x00, 0x20, 0x61])), false);
+});
+
+test('a file that is not valid UTF-8 is not text', () => {
+  assert.equal(isText(Buffer.from([0xff, 0xfe, 0x41])), false);
+  assert.equal(isText(Buffer.from('café — ok\n', 'utf8')), true,
+    'ordinary accented text should still read as text');
 });

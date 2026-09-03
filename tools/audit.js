@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { codeOnly, duplicateDeclarations,
+const { codeOnly, duplicateDeclarations, unusedDeclarations, isText,
         importsOnlyLocalFiles } = require('./source.js');
 
 const ROOT = path.join(__dirname, '..');
@@ -157,20 +157,32 @@ check('all JavaScript parses', () => {
  * be shown in a diff cannot be reviewed, which is the one thing every other
  * check here depends on. */
 check('every source file is text', () => {
-  const bad = [];
+  const bad = srcFiles.concat(toolFiles)
+    .filter(f => !isText(fs.readFileSync(f)))
+    .map(f => rel(f));
+  if (bad.length) {
+    fail(bad.join(', ') + ' - a diff shows this as binary, so it cannot be read');
+  }
+  return srcFiles.length + toolFiles.length + ' files';
+});
+
+/* Nothing declared and never called.
+ *
+ * Thirty-six of these had collected in the scenery: generators from before
+ * every theme carried a picture, and the helpers only they used. None of it
+ * ran, and all of it shipped to everyone who installed the extension.
+ *
+ * This is also what makes removing one safe to check. A function that survives
+ * while calling something deleted is unreachable by definition, and would be
+ * reported here rather than waiting to throw. */
+check('no function is declared and never called', () => {
+  const idle = [];
   srcFiles.concat(toolFiles).forEach(f => {
-    const bytes = fs.readFileSync(f);
-    if (bytes.includes(0)) {
-      bad.push(rel(f) + ': has a NUL byte, so a diff shows it as binary');
-      return;
-    }
-    try {
-      new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    } catch (e) {
-      bad.push(rel(f) + ': is not valid UTF-8');
-    }
+    unusedDeclarations(fs.readFileSync(f, 'utf8')).forEach(d => {
+      idle.push(rel(f) + ':' + d.line + ' ' + d.name);
+    });
   });
-  if (bad.length) fail('\n    ' + bad.join('\n    '));
+  if (idle.length) fail('\n    ' + idle.join('\n    '));
   return srcFiles.length + toolFiles.length + ' files';
 });
 
@@ -509,14 +521,14 @@ check('no function is declared twice in the same scope', () => {
    * arguments; nothing was broken because the callers happened to match the
    * survivor, which is luck rather than design. */
   const clashes = [];
-  srcFiles.forEach(f => {
+  srcFiles.concat(toolFiles).forEach(f => {
     duplicateDeclarations(fs.readFileSync(f, 'utf8')).forEach(d => {
       clashes.push(rel(f) + ': ' + d.name +
         ' at lines ' + d.first + ' and ' + d.second);
     });
   });
   if (clashes.length) fail('\n    ' + clashes.join('\n    '));
-  return srcFiles.length + ' files';
+  return srcFiles.length + toolFiles.length + ' files';
 });
 
 check('no debugging left in shipped code', () => {
