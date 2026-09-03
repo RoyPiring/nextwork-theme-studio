@@ -1,19 +1,16 @@
 name: release
 
 # On a version tag, or on demand for a tag that already exists.
-#
-# The on-demand path matters because the tags for released versions were
-# created before this workflow did, and a tag cannot be pushed twice.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to publish, for example v2.8.3'
+        description: 'Tag to publish, for example v2.9.0'
         required: true
 
-# Nothing by default. The one job that needs to write does so explicitly.
+# Nothing by default. The one job that needs to write says so.
 permissions: {}
 
 jobs:
@@ -24,6 +21,13 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write     # to create the release and attach files to it
+
+    # The tag reaches every step through the environment, never by being
+    # interpolated into a script. A tag name may contain shell metacharacters,
+    # and these steps run with a token that can write to the repository.
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+
     steps:
       # Actions are pinned to a commit SHA, not a tag. A tag can be moved to
       # point at different code; a SHA cannot.
@@ -31,6 +35,28 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag || github.ref_name }}
+
+      # Everything below runs the code as it was at the tag, not as it is on
+      # the default branch. A tag from before this workflow existed does not
+      # carry the tools it needs, and would otherwise fail several steps later
+      # with an error that says nothing about the cause.
+      - name: Check this tag can be released
+        shell: bash
+        run: |
+          missing=0
+          for f in tools/release-notes.js tools/build.js tools/audit.js .nvmrc; do
+            if [ ! -f "$f" ]; then
+              echo "missing at this tag: $f"
+              missing=1
+            fi
+          done
+          if [ "$missing" != "0" ]; then
+            echo ''
+            echo "This tag predates the release tooling, so it cannot be published"
+            echo "here: a release is built from the tag's own code, and that code"
+            echo "is not present. Tag a new version instead."
+            exit 1
+          fi
 
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -47,18 +73,17 @@ jobs:
         shell: bash
         run: node tools/audit.js
 
-      # The tag has to match what the extension will report once installed,
-      # or the release is labelled with a version nobody can see in the browser.
+      # The tag has to match what the extension reports once installed, or the
+      # release is labelled with a version nobody can see in the browser.
       - name: Check the tag matches the manifest
         shell: bash
         run: |
-          tag="${{ inputs.tag || github.ref_name }}"
           manifest=$(node -p "require('./manifest.json').version")
-          if [ "$tag" != "v$manifest" ]; then
-            echo "tag $tag does not match manifest version $manifest"
+          if [ "$TAG" != "v$manifest" ]; then
+            echo "tag $TAG does not match manifest version $manifest"
             exit 1
           fi
-          echo "$tag matches the manifest"
+          echo "$TAG matches the manifest"
 
       - name: Build every browser package
         shell: bash
@@ -86,8 +111,7 @@ jobs:
       - name: Take the notes from the changelog
         shell: bash
         run: |
-          tag="${{ inputs.tag || github.ref_name }}"
-          node tools/release-notes.js "$tag" > release-notes.md
+          node tools/release-notes.js "$TAG" > release-notes.md
           {
             echo ''
             echo '---'
@@ -105,8 +129,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${{ inputs.tag || github.ref_name }}"
-          gh release create "$tag" \
-            --title "$tag" \
+          gh release create "$TAG" \
+            --title "$TAG" \
             --notes-file release-notes.md \
             dist/*.zip dist/*.xpi

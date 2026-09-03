@@ -23,6 +23,11 @@ changelog.
 A tag that already exists cannot be pushed again. To publish one of those, run
 the **release** workflow from the Actions tab and give it the tag name.
 
+That only works for a tag whose code contains the release tooling. A release
+is built from the tag's own code, so a tag made before that tooling existed
+cannot be published this way; the workflow says so and stops rather than
+failing later for a reason that looks unrelated. Tag a new version instead.
+
 The release fails rather than publishing if the tag and the manifest disagree,
 or if the changelog has no section for that version. Both would otherwise
 produce a release describing something other than what it contains.
