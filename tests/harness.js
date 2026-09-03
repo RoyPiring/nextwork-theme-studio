@@ -104,10 +104,13 @@ class FakeElement {
     this.style = new FakeStyle();
     this.classList = new FakeClassList();
     this.attributes = {};
-    this._text = '';
-    /* Text runs and elements, in the order they appear. Held only as a
-     * separate text field, "Theme <b>Ocean</b> is on" read back with the
-     * child's words moved to the end. */
+    /* Text runs and elements together, in the order they appear.
+     *
+     * Held as a separate text field beside the children, "Theme <b>Ocean</b>
+     * is on" read back with the child's words moved to the end, and text set
+     * before a child was appended disappeared entirely. Either way an
+     * assertion about a label was measuring something the page does not
+     * show. */
     this._content = [];
     this.id = '';
     this.shadowRoot = null;
@@ -129,19 +132,17 @@ class FakeElement {
    * and every render appended another copy - the list would have grown on
    * each click while the test watched the count and saw nothing wrong. */
   get textContent() {
-    if (!this._content.length) return this._text;
     return this._content
       .map(n => (typeof n === 'string' ? n : n.textContent)).join('');
   }
   set textContent(v) {
     this.children.forEach(c => { c.parentNode = null; c.isConnected = false; });
     this.children = [];
-    this._content = [];
-    this._text = String(v == null ? '' : v);
+    const text = String(v == null ? '' : v);
+    this._content = text === '' ? [] : [text];
   }
   appendText(text) {
-    this._content.push(String(text));
-    this._text += String(text);
+    if (text !== '') this._content.push(String(text));
   }
   /* The real DOM has both; code walking ancestors uses parentElement. */
   get parentElement() {
@@ -321,7 +322,7 @@ function parseHTML(html, doc, into) {
     if (text.trim()) {
       /* Runs of space become one, the way they render. Not trimmed away: the
        * space between a word and the element after it is part of the text. */
-      stack[stack.length - 1].appendText(decodeEntities(text).replace(/s+/g, ' '));
+      stack[stack.length - 1].appendText(decodeEntities(text).replace(/\s+/g, ' '));
     }
     last = tag.lastIndex;
 

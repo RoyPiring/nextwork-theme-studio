@@ -358,7 +358,14 @@
    * and the request would have been made. */
   function withoutCssEscapes(css) {
     return String(css)
-      .replace(/\\([0-9a-fA-F]{1,6})[ \t\r\n\f]?/g, function (_, hex) {
+      /* Line endings first, the way a browser does before it reads a single
+       * token. An escape swallows one whitespace character, so on a file saved
+       * on Windows "\75" followed by CRLF left a newline behind here while the
+       * browser had already turned those two bytes into one and read the name
+       * straight through - and every ordinary text editor on Windows writes
+       * that ending. */
+      .replace(/\r\n?|\f/g, '\n')
+      .replace(/\\([0-9a-fA-F]{1,6})[ \t\n]?/g, function (_, hex) {
         const code = parseInt(hex, 16);
         /* Out of range, or half of a surrogate pair, is not a character a
          * browser would produce here either. */

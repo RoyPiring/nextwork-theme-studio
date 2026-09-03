@@ -358,7 +358,19 @@ test('CSS that hides url() behind an escape is refused', async () => {
     String.raw`body { background: \75 rl("https://example.com/x.png"); }`,
     String.raw`body { background: \75\72\6C("https://example.com/x.png"); }`,
     String.raw`@\69 mport "https://example.com/x.css";`,
-    String.raw`body { background: \000075rl("https://example.com/x.png"); }`
+    String.raw`body { background: \000075rl("https://example.com/x.png"); }`,
+    String.raw`body { width: \65 xpression(alert(1)); }`,
+    String.raw`body { background: \69 mage-set("x.png" 1x); }`,
+
+    /* A file saved on Windows. The browser turns the two bytes of a CRLF into
+     * one newline before it reads a single token, and the escape then swallows
+     * that one character and carries on reading the name - so this is url()
+     * there. Consuming one raw byte here left the newline behind and the
+     * payload went through, on the line ending most files actually use. */
+    'body { background: ' + String.raw`\75` + '\r\n' +
+      'rl("https://example.com/x.png"); }',
+    'body { background: ' + String.raw`\75` + '\r' +
+      'rl("https://example.com/x.png"); }'
   ];
 
   for (const css of hidden) {
@@ -367,6 +379,27 @@ test('CSS that hides url() behind an escape is refused', async () => {
     assert.deepEqual(customThemes(p), {}, 'this was imported: ' + css);
     assert.match(p.el('toast').textContent, /external resource/i);
   }
+});
+
+test('an escape naming nothing is dropped rather than throwing', async () => {
+  /* A code point past the end of the range, a null, or half of a surrogate
+   * pair is not a character a browser would produce here either. The decoder
+   * has to get through the file all the same: throwing would refuse a theme
+   * for a reason that has nothing to do with reaching the network. */
+  const p = openEditor({});
+  const css = String.raw`.a { content: "\110000 \0 \d800"; }`;
+  await p.chooseFile('file-input', themeFile({ customCSS: css }));
+  assert.equal(onlyCustom(p).customCSS, css, 'the file was refused or mangled');
+});
+
+test('an escape naming nothing cannot be used to hide a payload', async () => {
+  /* The dropped character must not join what is either side of it into
+   * something new. */
+  const p = openEditor({});
+  await p.chooseFile('file-input', themeFile({
+    customCSS: String.raw`body { background: u\d800rl("https://example.com/x"); }`
+  }));
+  assert.deepEqual(customThemes(p), {}, 'a payload hid behind a dropped escape');
 });
 
 test('an escape that spells something harmless is still allowed', () => {
