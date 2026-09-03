@@ -474,7 +474,10 @@ check('shipped code runs in strict mode', () => {
   function isStrict(body) {
     const code = codeOnly(body).map(l => l.trim()).filter(Boolean);
     if (!code.length) return true;                 /* nothing to leak */
-    return /^['"]use strict['"]\s*;?$/.test(code[0]);
+    /* The semicolon is required. Without it the next line can continue the
+     * expression - `'use strict'` followed by `+function(){}` is one additive
+     * expression and not a directive at all - and the file stays sloppy. */
+    return /^['"]use strict['"]\s*;$/.test(code[0]);
   }
 
   const loose = srcFiles.filter(f => !isStrict(fs.readFileSync(f, 'utf8')));
