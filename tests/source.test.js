@@ -6,7 +6,8 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { codeOnly, statementPosition } = require('../tools/source.js');
+const { codeOnly, statementPosition, duplicateDeclarations,
+        importsOnlyLocalFiles } = require('../tools/source.js');
 
 test('a block comment keeps the lines it spans', () => {
   /* Replacing the whole comment with one space moved every line below it
@@ -76,4 +77,119 @@ test('an unpaired quote is declined, whatever put it there', () => {
 
   /* The same shape without a quote in it is read normally. */
   assert.equal(statementPosition('  var m = /[0-9]/.test(s); '), true);
+});
+
+/* ------------------------------------------------- duplicate declarations */
+
+const src = lines => lines.join('\n');
+
+test('the same name declared twice beside itself is found', () => {
+  const found = duplicateDeclarations(src([
+    '(function () {',
+    "  'use strict';",
+    '  function petals(a) { return a; }',
+    '  function other() {}',
+    '  function petals(a, b) { return b; }',
+    '}());'
+  ]));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].name, 'petals');
+  assert.equal(found[0].first, 3, 'wrong line for the first');
+  assert.equal(found[0].second, 5, 'wrong line for the second');
+});
+
+test('a helper of the same name in two functions is left alone', () => {
+  /* Two scenes may each keep a local y. They are different functions that
+   * never meet, and reporting them would fail the build over correct code. */
+  const found = duplicateDeclarations(src([
+    '(function () {',
+    '  function ridge() {',
+    '    function y(i) { return i; }',
+    '    return y(1);',
+    '  }',
+    '  function trees() {',
+    '    function y(i) { return i * 2; }',
+    '    return y(2);',
+    '  }',
+    '}());'
+  ]));
+  assert.deepEqual(found, [], 'a local helper was reported as a duplicate');
+});
+
+test('the same helper twice in one function is found', () => {
+  const found = duplicateDeclarations(src([
+    '(function () {',
+    '  function ridge() {',
+    '    function y(i) { return i; }',
+    '    function y(i) { return i * 2; }',
+    '  }',
+    '}());'
+  ]));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].name, 'y');
+  assert.equal(found[0].first, 3);
+  assert.equal(found[0].second, 4);
+});
+
+test('a name split from its keyword is still a declaration', () => {
+  const found = duplicateDeclarations(src([
+    '  function',
+    '  split() {}',
+    '  function',
+    '  split() {}'
+  ]));
+  assert.equal(found.length, 1, 'a declaration written across lines was missed');
+  assert.equal(found[0].second, 4, 'the line reported is not the name');
+});
+
+test('two declarations on one line are both read', () => {
+  const found = duplicateDeclarations('  if (a) { function w() {} } if (b) { function w() {} }');
+  assert.equal(found.length, 1, 'the second on the line was missed');
+});
+
+test('a declaration written inside a string is not one', () => {
+  const found = duplicateDeclarations(src([
+    '  var s = "; function render(";',
+    '  function render() {}'
+  ]));
+  assert.deepEqual(found, [], 'text in a string was read as code');
+});
+
+test('a named function expression is not a declaration', () => {
+  const found = duplicateDeclarations(src([
+    '  var a = function keep() {};',
+    '  var b = function keep() {};'
+  ]));
+  assert.deepEqual(found, []);
+});
+
+test('a declaration under a block comment reports the line it is on', () => {
+  const found = duplicateDeclarations(src([
+    '  function dup() {}',
+    '  /* one',
+    '     two',
+    '     three */',
+    '  function dup() {}'
+  ]));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].second, 5, 'the comment moved the reported line');
+});
+
+/* ----------------------------------------------------------- importScripts */
+
+test('importScripts naming local files is allowed', () => {
+  assert.equal(importsOnlyLocalFiles("importScripts('a.js');"), true);
+  assert.equal(importsOnlyLocalFiles("  importScripts('scenes.js', 'theme-engine.js');"), true);
+  assert.equal(importsOnlyLocalFiles("importScripts('a.js')"), true);
+});
+
+test('importScripts reaching anywhere else is not', () => {
+  assert.equal(importsOnlyLocalFiles("importScripts('a.js' + x);"), false);
+  assert.equal(importsOnlyLocalFiles('importScripts(url);'), false);
+  assert.equal(importsOnlyLocalFiles("importScripts('https://example.com/a.js');"), false);
+  assert.equal(importsOnlyLocalFiles('importScripts();'), false,
+    'no arguments is not a list of local files');
+  assert.equal(importsOnlyLocalFiles("importScripts('a.js', url);"), false,
+    'one bad argument is enough');
+  assert.equal(importsOnlyLocalFiles("fetch('a.js');"), false);
 });

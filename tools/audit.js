@@ -9,7 +9,8 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { codeOnly, statementPosition } = require('./source.js');
+const { codeOnly, duplicateDeclarations,
+        importsOnlyLocalFiles } = require('./source.js');
 
 const ROOT = path.join(__dirname, '..');
 const rel = p => path.relative(ROOT, p).replace(/\\/g, '/');
@@ -162,17 +163,8 @@ check('no network calls in extension code', () => {
   srcFiles.forEach(f => {
     codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
       /* The background pulls its two libraries in with importScripts on
-       * Chromium. Allow it only when every argument is a bare local filename -
-       * naming the files instead meant adding one broke the build. */
-      /* The arguments are split and checked one at a time. Written as a
-       * single pattern this needed a repeated group around a repeated
-       * character class, which backtracks exponentially on a long line that
-       * almost matches. */
-      const call = /^\s*importScripts\(([^()]*)\)\s*;?\s*$/.exec(line);
-      if (call) {
-        const args = call[1].split(',').map(a => a.trim()).filter(Boolean);
-        if (args.length && args.every(a => /^'[\w.-]+\.js'$/.test(a))) return;
-      }
+       * Chromium, which is the one exception. */
+      if (importsOnlyLocalFiles(line)) return;
       if (banned.test(line)) offenders.push(rel(f) + ':' + (i + 1));
     });
   });
@@ -498,40 +490,10 @@ check('no function is declared twice in the same file', () => {
    * survivor, which is luck rather than design. */
   const clashes = [];
   srcFiles.forEach(f => {
-    /* Read as one string rather than line by line. A declaration can be
-     * written with its name on the following line, and two of those would
-     * each look like half a declaration to a scan that stopped at the
-     * newline. Several on one line are found for the same reason.
-     *
-     * Statement position only, which leaves alone both the name in a
-     * function expression such as "x = function name()", since that name
-     * binds inside the function rather than beside its neighbours, and the
-     * text of a declaration written inside a string. */
-    const code = codeOnly(fs.readFileSync(f, 'utf8')).join('\n');
-    const decl = /(^|[{};])\s*function\s+([A-Za-z_]\w*)\s*\(/gm;
-    const seen = {};
-    let m;
-    while ((m = decl.exec(code)) !== null) {
-      const name = m[2];
-      const keyword = m.index + m[0].indexOf('function');
-      /* Back one: the delimiter this match consumed may be the one the
-       * next match needs. Set before anything below can skip the rest. */
-      decl.lastIndex = m.index + m[0].length - 1;
-
-      const lineStart = code.lastIndexOf('\n', keyword - 1) + 1;
-      if (!statementPosition(code.slice(lineStart, keyword))) continue;
-
-      /* The line the name is on, which is not always where the match
-       * started: it may have begun at a delimiter on an earlier line. */
-      const start = m.index + m[0].lastIndexOf(name);
-      const line = code.slice(0, start).split('\n').length;
-      if (seen[name]) {
-        clashes.push(rel(f) + ': ' + name +
-          ' at lines ' + seen[name] + ' and ' + line);
-      } else {
-        seen[name] = line;
-      }
-    }
+    duplicateDeclarations(fs.readFileSync(f, 'utf8')).forEach(d => {
+      clashes.push(rel(f) + ': ' + d.name +
+        ' at lines ' + d.first + ' and ' + d.second);
+    });
   });
   if (clashes.length) fail('\n    ' + clashes.join('\n    '));
   return srcFiles.length + ' files';

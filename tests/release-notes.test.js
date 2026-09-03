@@ -72,19 +72,18 @@ test('a reference link inside a section does not end it early', () => {
   assert.ok(!/^\[2\.0\.0\]:/m.test(notes), 'the trailing link list was included');
 });
 
-test('a heading shown inside a fenced example is not mistaken for one', () => {
-  /* A heading cannot be indented, so an indented line that reads like one is
-   * example text. Trimming each line before comparing would have found this
-   * first and returned the wrong section. */
+test('an indented line that reads like a heading is not one', () => {
+  /* A heading cannot be indented, so this is an indented code block: example
+   * text, whatever it says. Nothing here is fenced, so the column the heading
+   * starts in is the only thing that separates the two - which is what a
+   * trim() before comparing would take away. */
   const doc = [
     '# Changelog',
     '',
     '## [3.0.0]',
     'A heading is written like this:',
     '',
-    '```',
     '    ## [2.0.0]',
-    '```',
     '',
     '- the real 3.0.0 note',
     '',
@@ -95,7 +94,7 @@ test('a heading shown inside a fenced example is not mistaken for one', () => {
     '[2.0.0]: https://example.com/2'
   ].join('\n');
   assert.equal(notesFor(doc, '2.0.0'), '- the real 2.0.0 note',
-    'it started at the example instead of the heading');
+    'it started at the indented example instead of the heading');
   assert.match(notesFor(doc, '3.0.0'), /the real 3\.0\.0 note/,
     'the section was cut short at its own example');
 });
