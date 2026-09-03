@@ -62,7 +62,7 @@ Both were previously guaranteed by a comment.
 - all 18 themes clear the contrast floor
 - every theme has a wallpaper and its own scenery
 - both stylesheet variants build for every theme
-- every shipped file runs in strict mode
+- every shipped file carries a `'use strict'` directive
 - no `console.log` or `debugger` is left in shipped code
 - every continuous integration job is required by the gate
 - every action is pinned to a commit SHA
@@ -80,9 +80,11 @@ Most of what a linter would find here is already covered:
 
 - **CodeQL** runs the `security-and-quality` query set on every pull request,
   which includes unused variables, unreachable code and dead assignments.
-- **The audit** checks that every shipped file runs in strict mode, so a
-  mistyped assignment throws instead of quietly creating a global, and that no
-  `console.log` or `debugger` survives into shipped code.
+- **The audit** checks that every shipped file carries a `'use strict'`
+  directive, so a mistyped assignment throws instead of quietly creating a
+  global, and that no `console.log` or `debugger` survives into shipped code.
+  Being wrapped in a function is not accepted as a substitute: an IIFE in
+  sloppy mode leaks a global exactly as top-level code does.
 - **`node --check`** parses every file, and the tests exercise the behaviour.
 
 That is a deliberate trade rather than an oversight. If the project ever takes

@@ -457,15 +457,15 @@ check('shipped code runs in strict mode', () => {
   /* Sloppy mode turns a mistyped assignment into a new global rather than an
    * error, which is the one class of typo that survives every other check
    * here: it parses, it runs, and it silently does nothing useful. */
-  const loose = srcFiles.filter(f => {
-    const body = fs.readFileSync(f, 'utf8');
-    /* Either an explicit directive, or wrapped in a function, which is what
-     * the rest of these are - a module body cannot leak a global either way. */
-    return !/['"]use strict['"]/.test(body) && !/^\s*\(function/m.test(body);
-  });
+  /* The directive, and nothing else. Being wrapped in a function is not a
+   * substitute: `(function () { mistyped = 1; })()` creates a global in
+   * sloppy mode exactly as it would at the top level, so accepting an IIFE
+   * would have let through the thing this exists to catch. */
+  const loose = srcFiles.filter(f =>
+    !/^\s*['"]use strict['"]\s*;/m.test(fs.readFileSync(f, 'utf8')));
   if (loose.length) {
     fail(loose.map(rel).join(', ') +
-         ' - add \'use strict\' or wrap the file, or a typo becomes a global');
+         ' - add a \'use strict\' directive, or a typo becomes a global');
   }
   return srcFiles.length + ' files';
 });
