@@ -117,6 +117,9 @@ test('a theme missing a colour is refused rather than half-built', async () => {
   delete colors.accent;
   await p.chooseFile('file-input', themeFile({ colors }));
   assert.deepEqual(customThemes(p), {});
+  /* Pinned to a finished import, like the other refusals: without this the
+   * assertion also holds while the read is still in flight. */
+  assert.match(p.el('toast').textContent, /accent/);
 });
 
 test('a scene this build does not have is dropped, not carried', async () => {
@@ -126,7 +129,11 @@ test('a scene this build does not have is dropped, not carried', async () => {
   assert.equal(onlyCustom(p).sceneKey, undefined);
 
   const q = openEditor({});
+  /* Checked before it is used. Left to be undefined, the key would drop out
+   * of the JSON entirely and the assertion would compare undefined against
+   * undefined - green for a cleanTheme that discards every scene there is. */
   const real = Object.keys(q.sandbox.NWT_SCENES || {})[0];
+  assert.equal(typeof real, 'string', 'no scenes were loaded, so this proves nothing');
   await q.chooseFile('file-input', themeFile({ sceneKey: real }));
   assert.equal(onlyCustom(q).sceneKey, real, 'a real scene was dropped');
 });

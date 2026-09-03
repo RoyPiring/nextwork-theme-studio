@@ -423,3 +423,61 @@ test('the engine and the editor ask the same question', () => {
   assert.equal(NWT.cssReachesOut('body { background: url(x); }'), true);
   assert.equal(NWT.cssReachesOut(String.raw`body { background: \75 rl(x); }`), true);
 });
+
+test('a stored colour that is not a hex value never reaches the stylesheet', () => {
+  /* The accent pair is written into the stylesheet as typed rather than
+   * through the tuner, so a value carrying a semicolon ends the declaration
+   * and whatever follows becomes a rule of its own - a url() on the page
+   * without touching the custom CSS the other checks look at. The editor
+   * refuses these on import, but storage outlives the version that wrote it. */
+  const keys = ['canvas', 'surface', 'surfaceAlt', 'border', 'textPrimary',
+    'textSecondary', 'textMuted', 'accent', 'accentText'];
+  const payloads = [
+    '#101112; background: url(https://evil.example/x)',
+    'url(https://evil.example/x)',
+    '#101112;} body { background: url(https://evil.example/x) }',
+    'red; background-image: url(https://evil.example/x)'
+  ];
+
+  keys.forEach(key => {
+    payloads.forEach(payload => {
+      const colors = NWT.cloneTheme(NWT.PRESETS.concrete.colors);
+      colors[key] = payload;
+      const s = settings({
+        themeId: 'stored',
+        customThemes: {
+          stored: { name: 'S', mode: 'dark', colors: colors,
+                    tuning: NWT.cloneTheme(NWT.DEFAULT_TUNING) }
+        }
+      });
+      const css = NWT.buildCSS(s);
+      assert.ok(!/evil\.example/.test(css),
+        key + ' carried a request into the stylesheet: ' + payload);
+    });
+  });
+});
+
+test('a colour that is not usable falls back rather than being dropped', () => {
+  /* The page still has to be readable. A bad value becomes the default
+   * theme's colour for that key, not nothing. */
+  const colors = NWT.cloneTheme(NWT.PRESETS.concrete.colors);
+  colors.accent = 'not a colour';
+  const s = settings({
+    themeId: 'stored',
+    customThemes: {
+      stored: { name: 'S', mode: 'dark', colors: colors,
+                tuning: NWT.cloneTheme(NWT.DEFAULT_TUNING) }
+    }
+  });
+  const p = NWT.buildPalette(NWT.getTheme(s));
+  assert.match(p.accent, /^#[0-9a-fA-F]{6}$/, 'accent is not a usable colour');
+  assert.equal(p.accent, NWT.PRESETS.concrete.colors.accent);
+});
+
+test('an ordinary theme is untouched by the colour check', () => {
+  THEMES.forEach(id => {
+    const p = NWT.buildPalette(NWT.getTheme(settings({ themeId: id })));
+    assert.match(p.accent, /^#[0-9a-fA-F]{6}$/, id + ' lost its accent');
+    assert.match(p.canvas, /^#[0-9a-fA-F]{6}$/, id + ' lost its canvas');
+  });
+});

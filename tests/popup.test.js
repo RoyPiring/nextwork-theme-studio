@@ -289,7 +289,8 @@ test('a migration is persisted, so it does not run again on every open', () => {
 test('the wallpaper switch is disabled for a theme that has no scenery', () => {
   const p = openPopup({ themeId: 'concrete' });
   const backdrop = p.el('sceneBackdrop');
-  const hasScene = !!(p.sandbox.NWT_SCENES || {}).concrete;
+  assert.ok(p.sandbox.NWT_SCENES, 'no scenery was loaded, so this proves nothing');
+  const hasScene = !!p.sandbox.NWT_SCENES.concrete;
   assert.equal(backdrop.disabled, !hasScene);
   if (!hasScene) {
     assert.equal(backdrop.closest('.switch-item').style.opacity, '0.45',

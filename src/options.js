@@ -347,11 +347,6 @@
                       'textPrimary', 'textSecondary', 'textMuted',
                       'accent', 'accentText'];
   const HEX = /^#[0-9a-fA-F]{6}$/;
-  /* Both live in the engine, because the same question is asked again just
-   * before the rules reach the page. A theme stored by an older version was
-   * never read through here a second time. */
-  const cssReachesOut = NWT.cssReachesOut;
-
   function cleanTheme(raw) {
     if (!raw || typeof raw !== 'object') throw new Error('not a theme');
     const out = { colors: {} };
@@ -388,7 +383,11 @@
        * still checked so that a fault in the decoder below cannot make this
        * weaker than it was before the decoder existed. No test can tell the
        * two apart, which is the point - both have to refuse. */
-      if (cssReachesOut(css)) {
+      /* Asked through NWT at the point of use rather than held in a local.
+       * Taken once when this file loads, it would be undefined if the page
+       * ever loaded this script before the engine, turning every import
+       * from a refusal with a reason into an error nobody sees. */
+      if (NWT.cssReachesOut(css)) {
         throw new Error('custom CSS in this file can load an external resource');
       }
       out.customCSS = css.slice(0, 20000);

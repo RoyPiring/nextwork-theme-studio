@@ -505,9 +505,35 @@
     return hslToHex(c);
   }
 
+  /* A colour is a #rrggbb value and nothing else.
+   *
+   * Every one of these is written into the stylesheet, and the accent pair
+   * reaches it as typed rather than through the tuner - so a value carrying a
+   * semicolon ends the declaration and whatever follows it becomes a rule of
+   * its own, which is a way to put a url() on the page without touching the
+   * custom CSS the checks were looking at.
+   *
+   * The editor refuses anything but a hex value on import, but storage
+   * outlives the version that wrote it: a theme accepted before that check
+   * existed is still selected and still built on every visit. So it is asked
+   * again here, where the palette is made, and anything else falls back to the
+   * default theme's colour rather than reaching the page. */
+  const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+  function safeColor(value, fallback) {
+    const text = String(value == null ? '' : value).trim();
+    return HEX_COLOR.test(text) ? text : fallback;
+  }
+
   function buildPalette(theme) {
     const t = theme.tuning;
-    const c = theme.colors;
+    const fallback = PRESETS[DEFAULT_SETTINGS.themeId].colors;
+    const given = theme.colors || {};
+    const c = {};
+    BASE_KEYS.forEach(function (entry) {
+      const key = entry[0];
+      c[key] = safeColor(given[key], fallback[key]);
+    });
     const S = h => tuneNeutral(h, t, 'surface');
     const T = h => tuneNeutral(h, t, 'text');
 
