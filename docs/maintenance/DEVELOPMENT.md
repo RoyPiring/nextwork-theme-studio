@@ -76,6 +76,19 @@ Tests live in `tests/` and use `node:test`, so there is nothing to install.
 - `tests/engine.test.js` covers colour maths, CSS generation and scenery.
 - `tests/content.test.js` covers the content script, driven through a small
   DOM stand-in in `tests/harness.js`.
+- `tests/background.test.js` covers the badge, the keyboard shortcut and the
+  defaults written on install.
+- `tests/review.test.js` and `tests/release-notes.test.js` cover the tools.
+
+### A note on the coverage report
+
+`node --test --experimental-test-coverage` does not list `src/content.js` or
+`src/background.js`. Both are loaded through `vm` by the harness, and coverage
+cannot attribute what it did not load itself. They are tested; the report
+simply cannot see it, so the overall percentage understates what is covered.
+
+Read the per-file numbers for `theme-engine.js` and `scenes.js`, which are
+required normally, and read the test files for the other two.
 
 `tests/harness.js` is not a browser. It implements only what the content script
 touches, which keeps it short enough to read and to trust. Anything the script

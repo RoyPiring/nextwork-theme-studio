@@ -1,6 +1,13 @@
 /* A small DOM and extension-API stand-in, so src/content.js can be loaded and
  * driven in a test.
  *
+ * One limitation worth knowing. The sandbox is given the host's Object, Array,
+ * RegExp and friends, and then vm.createContext runs the source in a new
+ * realm. A literal created inside that realm is not an instanceof the host
+ * constructor of the same name. Nothing here relies on cross-realm
+ * instanceof, and the code under test does not use it, but a test that starts
+ * to would fail for a reason that has nothing to do with the code.
+ *
  * This is not a browser. It implements the handful of things the content
  * script actually touches, and nothing else, which keeps it short enough to
  * read and to trust. Anything the script starts using that is missing here
@@ -341,4 +348,139 @@ function loadContentScript(options) {
   };
 }
 
-module.exports = { loadContentScript };
+/* Build an environment for the background worker and load it into one.
+ *
+ * The same file runs two ways: Chromium runs it as a service worker, where
+ * importScripts exists, and Firefox runs it as an event page, where it does
+ * not and the manifest lists the libraries instead. `serviceWorker` picks
+ * which of those is being exercised.
+ */
+function loadBackground(options) {
+  const opts = options || {};
+  const stored = Object.assign({}, opts.settings || {});
+  const timers = [];
+  const badge = { text: null, color: null, title: null };
+  const changeListeners = [];
+  const commandListeners = [];
+  const installedListeners = [];
+  const startupListeners = [];
+  const imported = [];
+
+  /* Set for the next read only, the way Chrome reports one. */
+  let pendingError = opts.lastError || null;
+
+  const chrome = {
+    runtime: {
+      lastError: null,
+      onInstalled: { addListener(fn) { installedListeners.push(fn); } },
+      onStartup: { addListener(fn) { startupListeners.push(fn); } }
+    },
+    commands: { onCommand: { addListener(fn) { commandListeners.push(fn); } } },
+    action: {
+      setBadgeText(o) { badge.text = o.text; },
+      setBadgeBackgroundColor(o) { badge.color = o.color; },
+      setTitle(o) { badge.title = o.title; }
+    },
+    storage: {
+      local: {
+        get(keys, cb) {
+          /* After an error Chrome invokes the callback with undefined and
+           * sets runtime.lastError. Code that does not check it then builds
+           * from nothing. */
+          /* lastError exists only while the failing callback runs, and is
+           * cleared afterwards. Leaving it set makes every later read fail
+           * too, so a recovery could never be tested. */
+          if (pendingError) {
+            const err = pendingError;
+            pendingError = null;        /* one read, not every read after it */
+            timers.push(() => {
+              chrome.runtime.lastError = err;
+              try { cb(undefined); } finally { chrome.runtime.lastError = null; }
+            });
+            return;
+          }
+          const snapshot = JSON.parse(JSON.stringify(stored));
+          /* `get(null, ...)` asks for everything; an object asks for those
+           * keys with those defaults. Both shapes are used here. */
+          const answer = (keys === null || keys === undefined)
+            ? snapshot
+            : Object.assign({}, keys, Object.fromEntries(
+                Object.keys(keys).filter(k => k in snapshot).map(k => [k, snapshot[k]])));
+          timers.push(() => cb(answer));
+        },
+        set(patch, cb) {
+          Object.assign(stored, JSON.parse(JSON.stringify(patch)));
+          if (cb) timers.push(cb);
+          const changes = {};
+          Object.keys(patch).forEach(k => { changes[k] = { newValue: patch[k] }; });
+          changeListeners.forEach(fn => timers.push(() => fn(changes, 'local')));
+        }
+      },
+      onChanged: { addListener(fn) { changeListeners.push(fn); } }
+    }
+  };
+
+  const sandbox = {
+    chrome,
+    Math, Date, JSON, Object, Array, String, Number, Boolean, RegExp, Error,
+    isFinite, parseInt, parseFloat, console
+  };
+  sandbox.globalThis = sandbox;
+  sandbox.self = sandbox;
+
+  if (opts.serviceWorker) {
+    sandbox.importScripts = function () {
+      /* However many are passed. Assuming three would break silently the day
+       * a fourth library is added, which is the day it matters. */
+      const names = Array.prototype.slice.call(arguments);
+      names.forEach(n => imported.push(n));
+      load(names.map(n => 'src/' + n));
+    };
+  }
+
+  const vm = require('node:vm');
+  vm.createContext(sandbox);
+  function load(files) {
+    files.forEach(f => vm.runInContext(
+      fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f }));
+  }
+
+  /* The event-page path has no importScripts, so the libraries are already
+   * present when the worker starts. */
+  if (!opts.serviceWorker) {
+    load(['src/wallpapers.js', 'src/scenes.js', 'src/theme-engine.js']);
+  }
+  load(['src/background.js']);
+
+  function flush(rounds) {
+    for (let i = 0; i < (rounds || 12); i++) {
+      const batch = timers.splice(0, timers.length);
+      if (!batch.length) break;
+      batch.forEach(fn => fn());
+    }
+  }
+
+  return {
+    chrome, sandbox, badge, stored, flush, imported,
+    /* Make the next storage read fail, once. */
+    failNextRead(err) { pendingError = err || { message: 'storage unavailable' }; },
+    clearError() { pendingError = null; },
+    install() { installedListeners.forEach(fn => fn()); },
+    startup() { startupListeners.forEach(fn => fn()); },
+    command(name) { commandListeners.forEach(fn => fn(name)); },
+    /* Apply the new values before notifying, as Chrome does. Without this a
+     * test has to seed storage with the value it is about to "change" to, and
+     * then it is not testing a transition at all. */
+    change(changes, area) {
+      if (area === 'local') {
+        Object.keys(changes).forEach(k => {
+          if ('newValue' in changes[k]) stored[k] = changes[k].newValue;
+          else delete stored[k];
+        });
+      }
+      changeListeners.forEach(fn => fn(changes, area));
+    }
+  };
+}
+
+module.exports = { loadContentScript, loadBackground };
