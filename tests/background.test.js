@@ -166,14 +166,21 @@ test('a storage error is checked rather than walked past', () => {
   /* Reading chrome.storage after an error gives undefined, and building a
    * badge out of that used to throw inside the callback where nothing
    * reports it. */
-  const env = loadBackground({ settings: { enabled: true }, lastError: { message: 'nope' } });
+  const env = loadBackground({ settings: { enabled: true } });
+  env.failNextRead();
   env.badge.text = 'sentinel';
   assert.doesNotThrow(() => {
-    env.change({ enabled: { newValue: true } }, 'local');
+    env.change({ enabled: { newValue: false } }, 'local');
     env.flush();
   });
   assert.strictEqual(env.badge.text, 'sentinel',
     'the badge was painted from a read that failed');
+
+  /* And the next read works, because the error was for that call only. */
+  env.change({ enabled: { newValue: false } }, 'local');
+  env.flush();
+  assert.strictEqual(env.badge.text, 'off',
+    'the worker did not recover after one failed read');
 });
 
 test('the service worker path loads its libraries by name', () => {

@@ -359,9 +359,12 @@ function loadBackground(options) {
   const startupListeners = [];
   const imported = [];
 
+  /* Set for the next read only, the way Chrome reports one. */
+  let pendingError = opts.lastError || null;
+
   const chrome = {
     runtime: {
-      lastError: opts.lastError || null,
+      lastError: null,
       onInstalled: { addListener(fn) { installedListeners.push(fn); } },
       onStartup: { addListener(fn) { startupListeners.push(fn); } }
     },
@@ -377,7 +380,18 @@ function loadBackground(options) {
           /* After an error Chrome invokes the callback with undefined and
            * sets runtime.lastError. Code that does not check it then builds
            * from nothing. */
-          if (chrome.runtime.lastError) { timers.push(() => cb(undefined)); return; }
+          /* lastError exists only while the failing callback runs, and is
+           * cleared afterwards. Leaving it set makes every later read fail
+           * too, so a recovery could never be tested. */
+          if (pendingError) {
+            const err = pendingError;
+            pendingError = null;        /* one read, not every read after it */
+            timers.push(() => {
+              chrome.runtime.lastError = err;
+              try { cb(undefined); } finally { chrome.runtime.lastError = null; }
+            });
+            return;
+          }
           const snapshot = JSON.parse(JSON.stringify(stored));
           /* `get(null, ...)` asks for everything; an object asks for those
            * keys with those defaults. Both shapes are used here. */
@@ -441,6 +455,9 @@ function loadBackground(options) {
 
   return {
     chrome, sandbox, badge, stored, flush, imported,
+    /* Make the next storage read fail, once. */
+    failNextRead(err) { pendingError = err || { message: 'storage unavailable' }; },
+    clearError() { pendingError = null; },
     install() { installedListeners.forEach(fn => fn()); },
     startup() { startupListeners.forEach(fn => fn()); },
     command(name) { commandListeners.forEach(fn => fn(name)); },
