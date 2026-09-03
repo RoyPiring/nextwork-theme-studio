@@ -12,6 +12,13 @@
  * script actually touches, and nothing else, which keeps it short enough to
  * read and to trust. Anything the script starts using that is missing here
  * will throw rather than quietly do nothing.
+ *
+ * One thing it does not do: events travel from an element up through its
+ * parents and stop there. Nothing is delivered to the document or the window,
+ * and addEventListener on either is accepted and ignored. Neither page wires
+ * anything to them today, so nothing is uncovered by it - but a page that
+ * starts to would be untested here without a test failing to say so, and this
+ * would need to grow first.
  */
 const path = require('path');
 const fs = require('fs');

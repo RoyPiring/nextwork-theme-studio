@@ -520,20 +520,41 @@
    * default theme's colour rather than reaching the page. */
   const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
-  function safeColor(value, fallback) {
-    const text = String(value == null ? '' : value).trim();
-    return HEX_COLOR.test(text) ? text : fallback;
+  function isColor(value) {
+    return HEX_COLOR.test(String(value == null ? '' : value).trim());
+  }
+
+  /* The colours a palette is built from.
+   *
+   * A theme that cannot supply all nine gets a whole palette instead of having
+   * the missing ones filled in. Key by key from one fixed theme mixed palettes
+   * that were never designed together: a light theme whose textPrimary had
+   * been saved as something unusable took a near-white value from the dark
+   * default and put it on a light canvas, which is unreadable, on every visit,
+   * with nothing to show for it. Even between two themes of the same mode
+   * there is no contrast guarantee across a mixture.
+   *
+   * So it is all or nothing, and the replacement is of the theme's own mode -
+   * a set that was drawn together and clears the floor as a set. */
+  const DEFAULT_COLORS = { dark: 'concrete', light: 'hawaiiMorning' };
+
+  function usableColors(theme) {
+    const given = theme.colors || {};
+    if (BASE_KEYS.every(function (entry) { return isColor(given[entry[0]]); })) {
+      return given;
+    }
+    const wanted = DEFAULT_COLORS[theme.mode === 'light' ? 'light' : 'dark'];
+    const source = PRESETS[wanted] || PRESETS[DEFAULT_SETTINGS.themeId];
+    console.warn('[nwt] theme "' + (theme.name || 'unnamed') +
+                 '" has a colour that is not a #rrggbb value, so the ' +
+                 (theme.mode === 'light' ? 'light' : 'dark') +
+                 ' default palette is being used instead');
+    return source.colors;
   }
 
   function buildPalette(theme) {
     const t = theme.tuning;
-    const fallback = PRESETS[DEFAULT_SETTINGS.themeId].colors;
-    const given = theme.colors || {};
-    const c = {};
-    BASE_KEYS.forEach(function (entry) {
-      const key = entry[0];
-      c[key] = safeColor(given[key], fallback[key]);
-    });
+    const c = usableColors(theme);
     const S = h => tuneNeutral(h, t, 'surface');
     const T = h => tuneNeutral(h, t, 'text');
 
@@ -1473,7 +1494,16 @@
      * visit, without anyone opening the editor again. This is the last point
      * before the rules reach the page, so it is the one that has to hold. */
     const custom = theme.customCSS ? String(theme.customCSS).trim() : '';
-    if (custom && !cssReachesOut(custom)) {
+    if (custom && cssReachesOut(custom)) {
+      /* Said out loud. The list of things that can fetch has grown, so custom
+       * CSS an older version accepted can stop applying after an upgrade, and
+       * dropping it in silence leaves someone looking at a theme quietly
+       * missing a piece, with nothing to search for. */
+      console.warn('[nwt] the custom CSS in theme "' + (theme.name || 'unnamed') +
+                   '" can load something over the network, so it is not being ' +
+                   'applied. Remove the url(), src(), image(), image-set(), ' +
+                   'cross-fade() or @import in it to use it again.');
+    } else if (custom) {
       css += '\n/* --- custom CSS --- */\n' + custom;
     }
 

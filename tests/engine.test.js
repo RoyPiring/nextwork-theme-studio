@@ -457,27 +457,53 @@ test('a stored colour that is not a hex value never reaches the stylesheet', () 
   });
 });
 
-test('a colour that is not usable falls back rather than being dropped', () => {
-  /* The page still has to be readable. A bad value becomes the default
-   * theme's colour for that key, not nothing. */
-  const colors = NWT.cloneTheme(NWT.PRESETS.concrete.colors);
-  colors.accent = 'not a colour';
-  const s = settings({
-    themeId: 'stored',
-    customThemes: {
-      stored: { name: 'S', mode: 'dark', colors: colors,
-                tuning: NWT.cloneTheme(NWT.DEFAULT_TUNING) }
-    }
+test('a theme with an unusable colour gets a whole palette of its own mode', () => {
+  /* Filled in key by key from one fixed theme, a light theme took a
+   * near-white text colour from the dark default and put it on a light
+   * canvas: unreadable, on every visit. It is all or nothing now, and the
+   * replacement is a set that was drawn together. */
+  /* mode, the theme it was forked from, and the palette it should land on. */
+  [['dark', 'graphite', 'concrete'],
+   ['light', 'mountFuji', 'hawaiiMorning']].forEach(function (row) {
+    const mode = row[0];
+
+    /* textPrimary, not accent: this is the key where taking one colour from
+     * a palette of the other mode is unreadable rather than merely wrong, and
+     * where filling in key by key looks the same as taking the lot until you
+     * corrupt this one. Written the way a version before the check would
+     * have saved it. */
+    const colors = NWT.cloneTheme(NWT.PRESETS[row[1]].colors);
+    colors.textPrimary = 'rgb(20,20,20)';
+
+    const s = settings({
+      themeId: 'stored',
+      customThemes: {
+        stored: { name: 'S', mode: mode, colors: colors,
+                  tuning: NWT.cloneTheme(NWT.DEFAULT_TUNING) }
+      }
+    });
+    const p = NWT.buildPalette(NWT.getTheme(s));
+
+    /* Readable, which filling in key by key from the other mode is not. */
+    assert.ok(C(p.textPrimary, p.canvas) >= 7,
+      mode + ': text on canvas is ' + C(p.textPrimary, p.canvas).toFixed(2) + ':1');
+    assert.ok(C(p.textPrimary, p.surface) >= 7, mode + ': text on surface');
+
+    /* And of this theme's own mode, not whichever one is the overall default. */
+    assert.equal(p.canvas, NWT.PRESETS[row[2]].colors.canvas,
+      mode + ' theme fell back to a palette of the wrong mode');
+    assert.equal(p.textPrimary, NWT.PRESETS[row[2]].colors.textPrimary,
+      mode + ' theme took its text colour from the wrong palette');
   });
-  const p = NWT.buildPalette(NWT.getTheme(s));
-  assert.match(p.accent, /^#[0-9a-fA-F]{6}$/, 'accent is not a usable colour');
-  assert.equal(p.accent, NWT.PRESETS.concrete.colors.accent);
 });
 
-test('an ordinary theme is untouched by the colour check', () => {
+test('an ordinary theme keeps its own colours, not the default ones', () => {
+  /* Asserted as identity. Checked only for the shape of a hex value, this
+   * passed just as well when every theme silently became the default one,
+   * since that is a hex value too. */
   THEMES.forEach(id => {
     const p = NWT.buildPalette(NWT.getTheme(settings({ themeId: id })));
-    assert.match(p.accent, /^#[0-9a-fA-F]{6}$/, id + ' lost its accent');
-    assert.match(p.canvas, /^#[0-9a-fA-F]{6}$/, id + ' lost its canvas');
+    assert.equal(p.accent, NWT.PRESETS[id].colors.accent, id + ' lost its accent');
+    assert.equal(p.canvas, NWT.PRESETS[id].colors.canvas, id + ' lost its canvas');
   });
 });

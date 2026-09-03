@@ -410,3 +410,20 @@ test('spaces around an attribute comparison do not hide the match', () => {
   assert.equal(host.querySelectorAll('[data-min="25"]').length, 1);
   assert.equal(host.querySelectorAll('[data-min = "26"]').length, 0);
 });
+
+test('neither page relies on an event reaching the document or the window', () => {
+  /* The stand-in walks from an element up through its parents and stops
+   * there, so anything wired to the document or the window would be untested
+   * without a test failing to say so. This is what keeps that limitation
+   * honest: if a page starts using one, this fails and the harness has to
+   * grow before the page can. */
+  const fs = require('node:fs');
+  const path = require('node:path');
+  ['src/popup.js', 'src/options.js'].forEach(file => {
+    const body = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+    assert.ok(!/\bdocument\s*\.\s*addEventListener\s*\(/.test(body),
+      file + ' now listens on the document, which the harness does not deliver');
+    assert.ok(!/\bwindow\s*\.\s*addEventListener\s*\(/.test(body),
+      file + ' now listens on the window, which the harness does not deliver');
+  });
+});
