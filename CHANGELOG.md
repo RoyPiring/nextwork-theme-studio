@@ -7,6 +7,19 @@ Versioning is [semver](https://semver.org/); the `version` field in
 1.3.0 is the first version published to a public repository. Entries below it
 were never released.
 
+## [2.9.0] - 2026-09-02
+
+### Added
+
+- Downloads. Each version is now published as a GitHub release with a ready
+  archive for Chrome, Brave, Edge and Firefox attached, so installing no
+  longer requires cloning the repository.
+
+### Changed
+
+- The install instructions point at the latest release rather than a copy of
+  the source tree.
+
 ## [2.8.3] - 2026-09-02
 
 ### Changed
@@ -404,7 +417,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.8.3...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.9.0
 [2.8.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.3
 [2.8.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.2
 [2.8.1]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.1

@@ -34,7 +34,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tag || github.ref_name }}
+          # refs/tags/ explicitly. A bare name also matches a branch, so a
+          # manual run naming a branch could publish a tag that never existed,
+          # from code that was never tagged.
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
 
       # Everything below runs the code as it was at the tag, not as it is on
       # the default branch. A tag from before this workflow existed does not
@@ -130,6 +133,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$TAG" \
+            --verify-tag \
             --title "$TAG" \
             --notes-file release-notes.md \
             dist/*.zip dist/*.xpi

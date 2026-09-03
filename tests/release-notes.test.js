@@ -45,3 +45,29 @@ test('a version is not matched by a longer one that starts the same', () => {
   const made_up = '## [2.8]\n- wrong section\n\n## [2.8.0]\n- right section\n';
   assert.match(notesFor(made_up, '2.8.0'), /right section/);
 });
+
+test('a reference link inside a section does not end it early', () => {
+  /* A section citing something with a reference-style link contains lines of
+   * the same shape as the changelog's trailing link list. Matching the first
+   * of those anywhere would cut the notes off at the citation. */
+  const doc = [
+    '## [2.0.0]',
+    '### Fixed',
+    '- Something, see [the spec][s].',
+    '',
+    '[s]: https://example.com/spec',
+    '',
+    '- And something after the citation.',
+    '',
+    '## [1.0.0]',
+    '- older',
+    '',
+    '[2.0.0]: https://example.com/2',
+    '[1.0.0]: https://example.com/1'
+  ].join('\n');
+  const notes = notesFor(doc, '2.0.0');
+  assert.match(notes, /And something after the citation/,
+    'the section was cut off at an inline reference link');
+  assert.ok(!/older/.test(notes), 'it ran into the next version');
+  assert.ok(!/^\[2\.0\.0\]:/m.test(notes), 'the trailing link list was included');
+});

@@ -25,13 +25,23 @@ function notesFor(changelog, version) {
   const start = lines.findIndex(l => heading.test(l));
   if (start === -1) return null;
 
-  /* Up to the next version heading, or the link list at the bottom. */
-  let end = lines.length;
-  for (let i = start + 1; i < lines.length; i++) {
-    if (/^## \[/.test(lines[i]) || /^\[[^\]]+\]:\s*https?:/.test(lines[i])) {
-      end = i;
-      break;
-    }
+  /* Up to the next version heading, or the link list at the bottom.
+   *
+   * The link list is found by walking back from the end of the file, not by
+   * matching a link definition anywhere. A section that cites something with a
+   * reference-style link contains lines of the same shape, and treating the
+   * first of those as the end would cut the notes short. */
+  let linkList = lines.length;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    if (line === '') continue;
+    if (/^\[[^\]]+\]:\s*\S+$/.test(line)) { linkList = i; continue; }
+    break;
+  }
+
+  let end = linkList;
+  for (let i = start + 1; i < end; i++) {
+    if (/^## \[/.test(lines[i])) { end = i; break; }
   }
   return lines.slice(start + 1, end).join('\n').trim();
 }
