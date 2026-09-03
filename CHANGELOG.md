@@ -7,6 +7,31 @@ Versioning is [semver](https://semver.org/); the `version` field in
 1.3.0 is the first version published to a public repository. Entries below it
 were never released.
 
+## [2.10.0] - 2026-09-03
+
+### Security
+
+- Custom CSS in a theme is checked when the theme is used, not only when it
+  is imported. The check was added to the editor, but settings outlive the
+  version that wrote them: a theme carrying CSS that loads something over the
+  network was still being applied on every visit, and upgrading did not look
+  at it again. If you have such a theme, that part of it stops applying and
+  the reason is written to the console.
+- More of the ways CSS can fetch something are recognised: `src()`, `image()`
+  and `cross-fade()` alongside `url()`, `@import` and `image-set()`. A name
+  written with escapes counts as the name it spells, so `\75 rl(` is read as
+  `url(`.
+- A theme colour has to be a plain `#rrggbb` value. One that is not can end
+  a declaration early and add rules of its own, which is another way to put a
+  request on the page. A theme with an unusable colour now falls back to the
+  default palette for its own light or dark mode, so it stays readable.
+
+### Changed
+
+- The extension is smaller. About 550 lines of scenery code that nothing
+  called - generators from before every theme carried a photograph - have
+  been removed. Every wallpaper is unchanged, byte for byte.
+
 ## [2.9.0] - 2026-09-02
 
 ### Added
@@ -417,7 +442,8 @@ First working version. Never published.
 - Permissions limited to `storage` and `activeTab`; host access pinned to
   `*://*.nextwork.ai/*`.
 
-[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.9.0...HEAD
+[Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.10.0...HEAD
+[2.10.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.10.0
 [2.9.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.9.0
 [2.8.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.3
 [2.8.2]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.2
