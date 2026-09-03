@@ -8,7 +8,26 @@ match it and the audit fails if it does not.
 Update `manifest.json` and `package.json` together, then add a `CHANGELOG.md`
 entry describing what changed for a user, not what changed in the diff.
 
-## 2. Build
+## 2. Tag
+
+```bash
+git tag -a v2.8.3 -m "2.8.3"
+git push origin v2.8.3
+```
+
+Pushing the tag runs the release workflow, which does the rest: tests, the
+audit, the build, a check that the tag matches the manifest version, and then
+a GitHub release with every archive attached and the notes taken from this
+changelog.
+
+A tag that already exists cannot be pushed again. To publish one of those, run
+the **release** workflow from the Actions tab and give it the tag name.
+
+The release fails rather than publishing if the tag and the manifest disagree,
+or if the changelog has no section for that version. Both would otherwise
+produce a release describing something other than what it contains.
+
+## 3. Building by hand
 
 ```bash
 node tools/build.js
@@ -23,16 +42,8 @@ previous archiver wrote Windows path separators into the zip index and produced
 files that looked fine, uploaded fine, and then failed to install. The check
 looks for that and for `manifest.json` at the archive root.
 
-## 3. Tag and publish
-
-```bash
-git tag -a v1.3.0 -m "1.3.0"
-git push origin main --follow-tags
-```
-
-Attach the archives from `dist/` to the GitHub release so people can install
-without cloning. The Firefox one is named `.xpi` because Firefox's
-install-from-file picker filters to that extension.
+The Firefox archive is named `.xpi` because Firefox's install-from-file
+picker filters to that extension.
 
 ## 4. If you ever submit to a store
 

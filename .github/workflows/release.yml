@@ -1,0 +1,112 @@
+name: release
+
+# On a version tag, or on demand for a tag that already exists.
+#
+# The on-demand path matters because the tags for released versions were
+# created before this workflow did, and a tag cannot be pushed twice.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish, for example v2.8.3'
+        required: true
+
+# Nothing by default. The one job that needs to write does so explicitly.
+permissions: {}
+
+jobs:
+  release:
+    name: release
+    # Windows, because that is the platform the packaging code targets: it
+    # resolves bsdtar by full path, and GNU tar cannot write a zip.
+    runs-on: windows-latest
+    permissions:
+      contents: write     # to create the release and attach files to it
+    steps:
+      # Actions are pinned to a commit SHA, not a tag. A tag can be moved to
+      # point at different code; a SHA cannot.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: '.nvmrc'
+
+      # The same gate every pull request passes. A tag is not a reason to skip
+      # it: this is the build people actually download.
+      - name: Unit tests
+        shell: bash
+        run: node --test
+
+      - name: Run the audit gate
+        shell: bash
+        run: node tools/audit.js
+
+      # The tag has to match what the extension will report once installed,
+      # or the release is labelled with a version nobody can see in the browser.
+      - name: Check the tag matches the manifest
+        shell: bash
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          manifest=$(node -p "require('./manifest.json').version")
+          if [ "$tag" != "v$manifest" ]; then
+            echo "tag $tag does not match manifest version $manifest"
+            exit 1
+          fi
+          echo "$tag matches the manifest"
+
+      - name: Build every browser package
+        shell: bash
+        run: node tools/build.js
+
+      - name: Check the archives exist
+        shell: bash
+        run: |
+          shopt -s nullglob
+          archives=(dist/*.zip dist/*.xpi)
+          if [ ${#archives[@]} -lt 4 ]; then
+            echo "expected at least 4 archives, found ${#archives[@]}"
+            exit 1
+          fi
+          for f in "${archives[@]}"; do
+            if [ ! -s "$f" ]; then
+              echo "empty: $f"
+              exit 1
+            fi
+            echo "ok: $f ($(wc -c < "$f") bytes)"
+          done
+
+      # From the changelog, so the release and the changelog cannot drift
+      # apart. No section for this version fails the release.
+      - name: Take the notes from the changelog
+        shell: bash
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          node tools/release-notes.js "$tag" > release-notes.md
+          {
+            echo ''
+            echo '---'
+            echo ''
+            echo 'Download the archive for your browser below. Chrome, Brave and'
+            echo 'Edge use the same build; Firefox needs the `.xpi`. Installation'
+            echo 'is covered in [the README](https://github.com/RoyPiring/nextwork-theme-studio#install).'
+          } >> release-notes.md
+          cat release-notes.md
+
+      # gh is already on the runner, so this needs no third-party action and
+      # nothing further to pin.
+      - name: Publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          gh release create "$tag" \
+            --title "$tag" \
+            --notes-file release-notes.md \
+            dist/*.zip dist/*.xpi

@@ -25,12 +25,11 @@ Works in Chrome, Brave and Edge. Takes about a minute.
 
 ![Install in five steps](docs/img/install.svg)
 
-**1. Download the folder.** Click the green **Code** button at the top of this
-page, choose **Download ZIP**, and unzip it. Or:
+**1. Download it.** Get the archive for your browser from
+[the latest release](https://github.com/RoyPiring/nextwork-theme-studio/releases/latest)
+and unzip it. Chrome, Brave and Edge use the same build.
 
-```bash
-git clone https://github.com/RoyPiring/nextwork-theme-studio
-```
+Prefer git? `git clone https://github.com/RoyPiring/nextwork-theme-studio`
 
 **2. Open your browser's extensions page.**
 
