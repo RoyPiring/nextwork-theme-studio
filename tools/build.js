@@ -59,12 +59,42 @@ function copyDir(from, to) {
  * on PATH first - Git for Windows ships one - a bare `tar` finds GNU tar, which
  * reads the drive letter in an absolute path as a remote host and fails with
  * "Cannot connect to C". */
+/* Whichever of these is libarchive, asked rather than assumed.
+ *
+ * On Debian and Ubuntu `tar` is GNU tar, which cannot write a zip at all: it
+ * accepted the arguments, wrote a file with the right name, and the archive
+ * had no central directory in it. libarchive-tools installs bsdtar beside it
+ * under its own name, so the name has to be tried before the plain one.
+ * macOS ships bsdtar as `tar`, which the fallback finds. */
+let cachedTar = null;
+
 function tarBin() {
+  if (cachedTar) return cachedTar;
+
+  const candidates = [];
   if (process.platform === 'win32') {
     const sys = path.join(process.env.SystemRoot || '', 'System32', 'tar.exe');
-    if (fs.existsSync(sys)) return sys;
+    if (fs.existsSync(sys)) candidates.push(sys);
+  } else {
+    candidates.push('bsdtar');
   }
-  return 'tar';
+  candidates.push('tar');
+
+  for (const bin of candidates) {
+    let version = '';
+    try {
+      version = execFileSync(bin, ['--version'], { stdio: 'pipe' }).toString();
+    } catch (e) {
+      continue;                              /* not on this machine */
+    }
+    if (/bsdtar|libarchive/i.test(version)) {
+      cachedTar = bin;
+      return bin;
+    }
+  }
+  throw new Error(
+    'no bsdtar here, and GNU tar cannot write a zip. Install libarchive-tools ' +
+    '(Debian, Ubuntu) or use a machine that ships bsdtar.');
 }
 
 function zip(dir, outFile) {
