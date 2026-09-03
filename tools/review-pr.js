@@ -414,7 +414,12 @@ function startReviewer(reviewer, text, limit) {
         /* What it printed before it went loud comes back with the failure.
          * A reviewer that wrote a whole review and then would not stop is
          * still worth reading, and spawnSync handed back the truncated
-         * output alongside its error for the same reason. */
+         * output alongside its error for the same reason.
+         *
+         * Both streams as they stood at this moment, which is as much as
+         * there can be: the two pipes are independent, so anything the other
+         * one had written but not yet delivered is gone once it is stopped.
+         * Waiting for it would mean reading on past the cap. */
         finish({
           status: null, stdout: text_(chunks.out), stderr: text_(chunks.err),
           pid: child.pid, cwd: cwd,
