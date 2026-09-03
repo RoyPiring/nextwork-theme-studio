@@ -281,10 +281,16 @@ function verdictFromRun(run) {
      * that wrote a whole review and then would not stop is still worth
      * reading, and a bare error message throws that away. */
     const said = String(run.stdout || '').trim();
-    return { ok: false, verdict: 'BLOCK', output:
-      'This reviewer could not be run: ' + run.error.message +
-      '\n\nA reviewer that cannot run is treated as a block, not as a pass.' +
-      (said ? '\n\nWhat it printed before that:\n\n' + said : '') };
+    return { ok: false, verdict: 'BLOCK',
+      output:
+        'This reviewer could not be run: ' + run.error.message +
+        '\n\nA reviewer that cannot run is treated as a block, not as a pass.' +
+        (said ? '\n\nWhat it printed before that:\n\n' + said : ''),
+      /* Carried like the other two answers do. It is printed in the terminal
+       * and never published, and it is usually the only thing that says why a
+       * reviewer failed - dropping it here left the one case that most needs
+       * explaining with nothing to explain it. */
+      stderr: String(run.stderr || '').trim() };
   }
   /* The verdict is read from stdout alone. stderr carries warnings, update
    * notices and telemetry, and mixing them in let a stray diagnostic line

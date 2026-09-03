@@ -545,3 +545,31 @@ test('the message says which stream ran out', async () => {
   const run = await startReviewer(fake('Loud', loud), '', 64 * 1024);
   assert.match(run.error.message, /on stderr/);
 });
+
+test('a reviewer that failed still explains itself', async () => {
+  /* stderr is where these CLIs say what went wrong, and the failure branch
+   * dropped it - leaving the one case that most needs explaining with
+   * nothing to explain it. It is printed in the terminal and never
+   * published, which the redaction tests above cover. */
+  const noisy = "console.error('could not reach the model');" +
+                "console.log('x'.repeat(90000))";
+  const run = await startReviewer(fake('Failing', noisy), '', 64 * 1024);
+  const result = verdictFromRun(run);
+
+  assert.equal(result.verdict, 'BLOCK');
+  assert.match(result.stderr, /could not reach the model/);
+  assert.match(result.output, /printed more than/);
+});
+
+test('what a failed reviewer said on stderr is not published', () => {
+  /* The same guarantee as every other path: the comment is built from
+   * output, and stderr is not part of it. */
+  const result = verdictFromRun({
+    error: new Error('stopped'),
+    stdout: 'VERDICT: BLOCK',
+    stderr: 'Error at /home/someone/.aws/credentials'
+  });
+  assert.match(result.stderr, /credentials/, 'the terminal should still see it');
+  assert.ok(!result.output.includes('credentials'),
+    'stderr reached the text that gets posted');
+});
