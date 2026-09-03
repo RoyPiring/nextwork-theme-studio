@@ -88,11 +88,19 @@ jobs:
   #
   # Windows, because that is what the packaging code targets: it resolves
   # bsdtar out of System32 by full path, since a POSIX toolchain on PATH would
-  # otherwise supply GNU tar, which cannot write a zip at all. Verifying it on
-  # Linux needs libarchive-tools installed and is a separate change.
+  # otherwise supply GNU tar, which cannot write a zip at all.
+  #
+  # Both platforms, because the two take different paths through tarBin() and
+  # the archive is what people install. Ubuntu carries GNU tar by default, so
+  # libarchive-tools is installed there to supply bsdtar - without it the build
+  # writes nothing a browser can read.
   package:
-    name: package
-    runs-on: windows-latest
+    name: package (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -101,6 +109,10 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
+
+      - name: Install bsdtar
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
 
       - name: Build every browser package
         run: node tools/build.js
@@ -131,6 +143,36 @@ jobs:
           done
           exit $fail
 
+
+  # The workflows are the one thing here that nothing else reads. A typo in a
+  # key name, an expression that cannot resolve, a shell quoting mistake - each
+  # of those is found by the run failing, which is late and costs a push.
+  #
+  # The binary is fetched from a pinned release and checked against the hash
+  # published with it, because actionlint ships no action to pin by SHA. An
+  # archive that does not match is not run.
+  workflows:
+    name: workflows
+    runs-on: ubuntu-latest
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Fetch actionlint, and check it is the one expected
+        run: |
+          set -euo pipefail
+          file="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          url="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${file}"
+          curl --fail --silent --show-error --location -o "$file" "$url"
+          echo "${ACTIONLINT_SHA256}  ${file}" | sha256sum --check --strict
+          tar -xzf "$file" actionlint
+
+      - name: Lint every workflow
+        run: ./actionlint -color
+
   # The one check the branch ruleset requires, and the only reason it has a
   # fixed name.
   #
@@ -141,7 +183,7 @@ jobs:
   # This job's name never changes, whatever is added above it.
   audit:
     name: audit
-    needs: [checks, generated, package]
+    needs: [checks, generated, package, workflows]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -151,7 +193,8 @@ jobs:
           for pair in \
             "checks:${{ needs.checks.result }}" \
             "generated:${{ needs.generated.result }}" \
-            "package:${{ needs.package.result }}"; do
+            "package:${{ needs.package.result }}" \
+            "workflows:${{ needs.workflows.result }}"; do
             name="${pair%%:*}"
             result="${pair#*:}"
             echo "$name: $result"

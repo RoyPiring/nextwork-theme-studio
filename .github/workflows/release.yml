@@ -122,14 +122,21 @@ jobs:
         shell: bash
         run: |
           node tools/release-notes.js "$TAG" > release-notes.md
-          {
-            echo ''
-            echo '---'
-            echo ''
-            echo 'Download the archive for your browser below. Chrome, Brave and'
-            echo 'Edge use the same build; Firefox needs the `.xpi`. Installation'
-            echo 'is covered in [the README](https://github.com/RoyPiring/nextwork-theme-studio#install).'
-          } >> release-notes.md
+          # A quoted heredoc, so everything in it is plainly literal.
+          #
+          # The echo form it replaces was not broken - single quotes already
+          # stop a backtick doing anything. shellcheck flags it because the
+          # backticks around .xpi look like a substitution someone expected to
+          # expand, and here they are markdown. Written this way there is
+          # nothing to read two ways.
+          cat >> release-notes.md <<'NOTE'
+
+          ---
+
+          Download the archive for your browser below. Chrome, Brave and
+          Edge use the same build; Firefox needs the `.xpi`. Installation
+          is covered in [the README](https://github.com/RoyPiring/nextwork-theme-studio#install).
+          NOTE
           cat release-notes.md
 
       # gh is already on the runner, so this needs no third-party action and
