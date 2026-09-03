@@ -59,13 +59,15 @@ function matchesOne(el, part) {
       const eq = body.indexOf('=');
       const name = (eq === -1 ? body : body.slice(0, eq)).trim();
       const key = name.replace(/^data-/, '').replace(/-(\w)/g, (_, c) => c.toUpperCase());
-      const has = name.startsWith('data-')
-        ? el.dataset[key] !== undefined
-        : el.attributes[name] !== undefined;
-      if (eq === -1) return has;
-      const want = body.slice(eq + 1).replace(/^["']|["']$/g, '');
-      const value = name.startsWith('data-') ? el.dataset[key] : el.attributes[name];
-      return String(value) === want;
+      /* id and class are held as properties rather than in the attribute bag,
+       * so asking the bag for them would answer "absent" for every element and
+       * quietly match nothing. */
+      const value = name === 'id' ? (el.id || undefined)
+        : name === 'class' ? (el.className || undefined)
+        : name.startsWith('data-') ? el.dataset[key]
+        : el.attributes[name];
+      if (eq === -1) return value !== undefined;
+      return String(value) === body.slice(eq + 1).replace(/^["']|["']$/g, '');
     }
     return el.tagName === bit.toUpperCase();
   });
@@ -103,6 +105,10 @@ class FakeElement {
     this.classList = new FakeClassList();
     this.attributes = {};
     this._text = '';
+    /* Text runs and elements, in the order they appear. Held only as a
+     * separate text field, "Theme <b>Ocean</b> is on" read back with the
+     * child's words moved to the end. */
+    this._content = [];
     this.id = '';
     this.shadowRoot = null;
     this._rect = { left: 0, top: 0, width: 300, height: 200 };
@@ -123,12 +129,19 @@ class FakeElement {
    * and every render appended another copy - the list would have grown on
    * each click while the test watched the count and saw nothing wrong. */
   get textContent() {
-    return this.children.reduce((s, c) => s + c.textContent, this._text);
+    if (!this._content.length) return this._text;
+    return this._content
+      .map(n => (typeof n === 'string' ? n : n.textContent)).join('');
   }
   set textContent(v) {
     this.children.forEach(c => { c.parentNode = null; c.isConnected = false; });
     this.children = [];
+    this._content = [];
     this._text = String(v == null ? '' : v);
+  }
+  appendText(text) {
+    this._content.push(String(text));
+    this._text += String(text);
   }
   /* The real DOM has both; code walking ancestors uses parentElement. */
   get parentElement() {
@@ -137,12 +150,15 @@ class FakeElement {
   appendChild(child) {
     child.parentNode = this;
     this.children.push(child);
+    this._content.push(child);
     return child;
   }
   remove() {
     if (!this.parentNode) return;
     const i = this.parentNode.children.indexOf(this);
     if (i >= 0) this.parentNode.children.splice(i, 1);
+    const j = this.parentNode._content.indexOf(this);
+    if (j >= 0) this.parentNode._content.splice(j, 1);
     this.parentNode = null;
   }
   contains(node) {
@@ -303,8 +319,9 @@ function parseHTML(html, doc, into) {
   while ((m = tag.exec(cleaned)) !== null) {
     const text = cleaned.slice(last, m.index);
     if (text.trim()) {
-      const top = stack[stack.length - 1];
-      top._text += decodeEntities(text.trim());
+      /* Runs of space become one, the way they render. Not trimmed away: the
+       * space between a word and the element after it is part of the text. */
+      stack[stack.length - 1].appendText(decodeEntities(text).replace(/s+/g, ' '));
     }
     last = tag.lastIndex;
 
@@ -683,6 +700,7 @@ function loadPage(options) {
    * and asks for a URL for it, so holding the blobs is enough to see what an
    * export would contain without a download happening. */
   const saved = [];
+  const asked = [];
   let blobSeq = 0;
 
   class FakeBlob {
@@ -717,7 +735,13 @@ function loadPage(options) {
       },
       revokeObjectURL() {}
     },
-    confirm: () => (opts.confirm === undefined ? true : opts.confirm),
+    /* Counted, so a test can tell "it did not delete" from "it never
+     * asked". A version that prompts and then does nothing satisfies the
+     * first and not the second. */
+    confirm(message) {
+      asked.push(String(message));
+      return opts.confirm === undefined ? true : opts.confirm;
+    },
     alert() {},
     getComputedStyle(el) { return Object.assign({}, el._computed || {}); },
     setTimeout(fn) { timers.push(fn); return timers.length; },
@@ -779,6 +803,8 @@ function loadPage(options) {
     doc, chrome, window: win, sandbox, stored, reads, flush, opened, intervals,
     /* What an export handed to the browser to save. */
     saved,
+    /* Every question the page put to the person using it. */
+    asked,
     /* Hand the page a file the way a chooser would, and wait for it to be
      * read - the page reads the file through a promise. */
     async chooseFile(id, text) {

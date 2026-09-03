@@ -324,7 +324,8 @@ test('a preset cannot be deleted, and is not even asked about', () => {
 
   assert.equal(JSON.stringify(p.stored), before,
     'deleting a preset wrote to storage');
-  assert.equal(p.el('toast').textContent, '', 'it said something had happened');
+  assert.deepEqual(p.asked, [],
+    'it asked whether to delete something it cannot delete');
 });
 
 test('resetting everything asks first, and declining changes nothing', () => {
@@ -346,4 +347,42 @@ test('resetting everything puts the defaults back', () => {
   p.fire('reset-all', 'click');
   assert.deepEqual(p.stored.customThemes, {}, 'a custom theme survived the reset');
   assert.equal(p.stored.themeId, p.sandbox.NWT.DEFAULT_SETTINGS.themeId);
+});
+
+test('CSS that hides url() behind an escape is refused', async () => {
+  /* A name in CSS may be written with escapes, and the browser resolves them
+   * before deciding what it is looking at: \75 is "u", so this is a url() the
+   * moment it is parsed. Matched as typed, it read as nothing in particular
+   * and went straight through - and the request would have been made. */
+  const hidden = [
+    String.raw`body { background: \75 rl("https://example.com/x.png"); }`,
+    String.raw`body { background: \75\72\6C("https://example.com/x.png"); }`,
+    String.raw`@\69 mport "https://example.com/x.css";`,
+    String.raw`body { background: \000075rl("https://example.com/x.png"); }`
+  ];
+
+  for (const css of hidden) {
+    const p = openEditor({});
+    await p.chooseFile('file-input', themeFile({ customCSS: css }));
+    assert.deepEqual(customThemes(p), {}, 'this was imported: ' + css);
+    assert.match(p.el('toast').textContent, /external resource/i);
+  }
+});
+
+test('an escape that spells something harmless is still allowed', () => {
+  /* Decoding is for the check, not for the file. Ordinary CSS that happens to
+   * use an escape - a quotation mark in generated content - is not refused. */
+  const p = openEditor({});
+  const css = String.raw`.q::before { content: "\201C"; }`;
+  return p.chooseFile('file-input', themeFile({ customCSS: css })).then(() => {
+    assert.equal(onlyCustom(p).customCSS, css,
+      'an ordinary escape was treated as an attempt to reach out');
+  });
+});
+
+test('asking to reset is a real question', () => {
+  const p = openEditor({ customThemes: {} }, { confirm: false });
+  p.fire('reset-all', 'click');
+  assert.equal(p.asked.length, 1, 'it reset without asking');
+  assert.match(p.asked[0], /reset/i);
 });

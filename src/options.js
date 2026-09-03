@@ -349,6 +349,25 @@
   const HEX = /^#[0-9a-fA-F]{6}$/;
   const CSS_REACHES_OUT = /url\s*\(|@import|expression\s*\(|image-set\s*\(/i;
 
+  /* CSS with its escapes resolved.
+   *
+   * A name in CSS may be written with escapes, and the browser resolves them
+   * before deciding what it is looking at: \75 is "u", so "\75 rl(...)" is a
+   * url() the moment it is parsed, while reading as nothing in particular to a
+   * pattern. Matching the file as typed would have let that straight through
+   * and the request would have been made. */
+  function withoutCssEscapes(css) {
+    return String(css)
+      .replace(/\\([0-9a-fA-F]{1,6})[ \t\r\n\f]?/g, function (_, hex) {
+        const code = parseInt(hex, 16);
+        /* Out of range, or half of a surrogate pair, is not a character a
+         * browser would produce here either. */
+        if (!code || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return '';
+        return String.fromCodePoint(code);
+      })
+      .replace(/\\([\s\S])/g, '$1');
+  }
+
   function cleanTheme(raw) {
     if (!raw || typeof raw !== 'object') throw new Error('not a theme');
     const out = { colors: {} };
@@ -378,7 +397,14 @@
 
     if (raw.customCSS) {
       const css = String(raw.customCSS);
-      if (CSS_REACHES_OUT.test(css)) {
+      /* Checked as written and as the browser will read it.
+       *
+       * The decoded form alone would do for everything known: decoding text
+       * that carries no escapes returns it unchanged. The file as typed is
+       * still checked so that a fault in the decoder below cannot make this
+       * weaker than it was before the decoder existed. No test can tell the
+       * two apart, which is the point - both have to refuse. */
+      if (CSS_REACHES_OUT.test(css) || CSS_REACHES_OUT.test(withoutCssEscapes(css))) {
         throw new Error('custom CSS in this file can load an external resource');
       }
       out.customCSS = css.slice(0, 20000);
