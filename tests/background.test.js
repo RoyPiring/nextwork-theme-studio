@@ -64,7 +64,10 @@ test('running past zero is shown differently from running', () => {
 
   assert.notStrictEqual(overText, env2.badge.text,
     'over and under should not look the same on the badge');
-  assert.notStrictEqual(overColour, env2.badge.color);
+  /* Deep, not strict. The badge colour is a string today and comparing by
+   * value is the same either way, but an array would compare by identity and
+   * two equal arrays would pass. */
+  assert.notDeepStrictEqual(overColour, env2.badge.color);
 });
 
 test('a paused timer does not claim to be running', () => {
@@ -139,11 +142,20 @@ test('a fresh install gets the default theme by name', () => {
 });
 
 test('seeding keeps what the user already chose', () => {
-  const env = loadBackground({ settings: { themeId: 'tokyoNight', enabled: false } });
+  /* More than the theme: seeding merges defaults under what is already
+   * there, so anything the user set has to come back out unchanged. */
+  const env = loadBackground({ settings: {
+    themeId: 'tokyoNight',
+    enabled: false,
+    options: { dimImages: 30 },
+    focus: { targetMin: 45 }
+  } });
   env.install();
   env.flush();
   assert.strictEqual(env.stored.themeId, 'tokyoNight', 'the chosen theme was overwritten');
   assert.strictEqual(env.stored.enabled, false, 'the chosen state was overwritten');
+  assert.strictEqual(env.stored.options.dimImages, 30, 'a chosen option was overwritten');
+  assert.strictEqual(env.stored.focus.targetMin, 45, 'a chosen session length was overwritten');
 });
 
 test('the badge ignores changes from another storage area', () => {
