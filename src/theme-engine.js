@@ -833,7 +833,6 @@
     const scene = typeof sceneDef === 'function'
       ? sceneDef(p, { toneOf: function (hex, target) { return toneOf(hex, p.textPrimary, target); }, mix: mix, rgba: rgba })
       : sceneDef;
-    const hasWallpaper = !!(scene || theme.backdrop) && !shadow;
 
     L.push('/* Pineapple NextWork Theme Studio Mod - generated stylesheet */');
     L.push(rootSel + ' {');
