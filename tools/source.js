@@ -60,15 +60,21 @@ function statementPosition(before) {
   return paired && /[{};]\s*$/.test(before);
 }
 
-/* Every function a file declares, with the line it is on. */
+/* Every function a file declares, with the line it is on.
+ *
+ * async and generator forms count, and a name may carry a $, so a file that
+ * starts using either is read rather than quietly skipped. */
 function declarations(body) {
   const code = codeOnly(body).join('\n');
-  const decl = /(^|[{};])\s*function\s+([A-Za-z_]\w*)\s*\(/gm;
+  const decl =
+    /(^|[{};])\s*(async\s+)?function\s*\*?\s*([A-Za-z_$][\w$]*)\s*\(/gm;
   const out = [];
   let m;
   while ((m = decl.exec(code)) !== null) {
-    const name = m[2];
-    const keyword = m.index + m[0].indexOf('function');
+    const name = m[3];
+    /* Where the declaration starts, which is the async when there is one:
+     * what precedes it is what decides whether this is a statement. */
+    const keyword = m.index + m[0].indexOf(m[2] ? 'async' : 'function');
     decl.lastIndex = m.index + m[0].length - 1;
 
     const lineStart = code.lastIndexOf('\n', keyword - 1) + 1;
@@ -134,10 +140,12 @@ function duplicateDeclarations(body) {
  * Comments do not count as a use, which is what let the last six hide - a
  * function whose own description mentioned it by name looked busy.
  *
- * Anything reached from outside the file would look unused here, so this is
- * only fit for files that are self-contained. The pages load no inline
- * handlers, so a function nothing in its own file names is genuinely
- * unreachable. */
+ * What it will not find, all of it in the direction of leaving code alone:
+ * a function that only calls itself counts its own call, a pair declared
+ * twice counts its twin, and a name reached from another file looks used
+ * because the name is there. Every shipped file is wrapped in an IIFE and
+ * the pages carry no inline handlers, so nothing crosses a file boundary by
+ * bare name; if that changes, this needs to know about it. */
 function unusedDeclarations(body) {
   const code = codeOnly(body).join('\n');
   return declarations(body).filter(d =>

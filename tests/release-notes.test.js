@@ -221,3 +221,26 @@ test('the real link list is still recognised when slightly indented', () => {
   assert.equal(notesFor(doc, '1.0.0'), '- the real 1.0.0 note',
     'the trailing link list was kept in the notes');
 });
+
+test('a changelog with an unclosed fence yields nothing, not the wrong thing', () => {
+  /* Everything after an unclosed fence reads as example text, so no heading
+   * is found. The release then fails with "no section for X" instead of
+   * publishing notes taken from the middle of an example, which is the safe
+   * way round for a malformed file. */
+  const doc = [
+    '# Changelog',
+    '',
+    '## [2.0.0]',
+    'An entry looks like this:',
+    '',
+    '```',
+    '## [1.0.0]',
+    '- never closed',
+    '',
+    '## [1.0.0]',
+    '- the real 1.0.0 note'
+  ].join('\n');
+  assert.equal(notesFor(doc, '1.0.0'), null);
+  assert.match(notesFor(doc, '2.0.0'), /An entry looks like this/,
+    'the section above the fence should still read');
+});

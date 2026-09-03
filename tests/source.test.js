@@ -6,7 +6,7 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { codeOnly, statementPosition, duplicateDeclarations,
+const { codeOnly, statementPosition, declarations, duplicateDeclarations,
         unusedDeclarations, isText,
         importsOnlyLocalFiles } = require('../tools/source.js');
 
@@ -330,4 +330,44 @@ test('a gap between importScripts arguments is not a filename', () => {
   assert.equal(importsOnlyLocalFiles("importScripts('a.js',);"), true);
   assert.equal(importsOnlyLocalFiles("importScripts('a.js',,);"), false);
   assert.equal(importsOnlyLocalFiles("importScripts(,'a.js');"), false);
+});
+
+test('async, generator and $-carrying declarations are read', () => {
+  /* None of these appear in the extension today. A check that silently
+   * skipped them would go quiet exactly when one arrived. */
+  const found = declarations(src([
+    '  async function load() {}',
+    '  function* walk() {}',
+    '  function $pick() {}',
+    '  function plain() {}'
+  ]));
+  assert.deepEqual(found.map(d => d.name), ['load', 'walk', '$pick', 'plain']);
+  assert.deepEqual(found.map(d => d.line), [1, 2, 3, 4]);
+});
+
+test('an async function declared twice is still a duplicate', () => {
+  const found = duplicateDeclarations(src([
+    '  async function load() { return 1; }',
+    '  async function load() { return 2; }'
+  ]));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].name, 'load');
+});
+
+test('an async method on an object is not a declaration', () => {
+  /* The keyword sits after a colon, not at a statement, so it is a value. */
+  const found = declarations('  var api = { load: async function load() {} };');
+  assert.deepEqual(found.map(d => d.name), []);
+});
+
+test('a function that only calls itself is left alone', () => {
+  /* A known gap, in the safe direction: it is reported as used because its
+   * own recursive call names it. Removing it would need a human to look. */
+  const found = unusedDeclarations(src([
+    '(function () {',
+    '  function walk(n) { return n <= 0 ? 0 : walk(n - 1); }',
+    '}());'
+  ]));
+  assert.deepEqual(found.map(d => d.name), [],
+    'a recursive call is counted as a use, by design');
 });

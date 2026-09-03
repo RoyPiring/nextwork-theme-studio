@@ -175,14 +175,18 @@ check('every source file is text', () => {
  * This is also what makes removing one safe to check. A function that survives
  * while calling something deleted is unreachable by definition, and would be
  * reported here rather than waiting to throw. */
-check('no function is declared and never called', () => {
+check('no function is declared and never named again', () => {
   const idle = [];
   srcFiles.concat(toolFiles).forEach(f => {
     unusedDeclarations(fs.readFileSync(f, 'utf8')).forEach(d => {
       idle.push(rel(f) + ':' + d.line + ' ' + d.name);
     });
   });
-  if (idle.length) fail('\n    ' + idle.join('\n    '));
+  if (idle.length) {
+    fail('\n    ' + idle.join('\n    ') +
+         '\n    (each file is read on its own, so a name reached from' +
+         '\n     another file by anything but an object needs a look)');
+  }
   return srcFiles.length + toolFiles.length + ' files';
 });
 
