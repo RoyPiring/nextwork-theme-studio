@@ -348,12 +348,19 @@ function startReviewer(reviewer, text, limit) {
    * for the one that is not. */
   const cmd = useShell ? shellArg(reviewer.cmd) : reviewer.cmd;
   const cwd = scratchDir();
+  LEFTOVER.add(cwd);
 
   return new Promise(function (resolve) {
     let child;
     try {
       child = spawn(cmd, args, {
-        cwd: cwd, shell: useShell, stdio: ['pipe', 'pipe', 'pipe']
+        cwd: cwd, shell: useShell, stdio: ['pipe', 'pipe', 'pipe'],
+        /* Its own process group, so stopping it can take everything it
+         * started. Without this there is no group to signal, and a reviewer
+         * that is a launcher - a shim that starts the real binary rather than
+         * replacing itself with it - leaves that binary running. Windows has
+         * no groups to speak of and uses taskkill instead. */
+        detached: !useShell
       });
     } catch (error) {
       cleanUp(cwd);
@@ -382,11 +389,15 @@ function startReviewer(reviewer, text, limit) {
      * character - so a cap of 32 MB would have let through three times that
      * before noticing. */
     const chunks = { out: [], err: [] };
-    let bytes = 0;
+    /* One budget each, as maxBuffer gave them. Shared, a reviewer whose CLI
+     * is chatty on stderr - update notices and telemetry, which the verdict
+     * deliberately ignores - would spend the review's own allowance and turn
+     * a finished review into a block. */
+    const used = { out: 0, err: 0 };
     const take = (chunk, onto) => {
       if (settled) return;
-      bytes += chunk.length;
-      if (bytes > cap) {
+      used[onto] += chunk.length;
+      if (used[onto] > cap) {
         killTree(child);
         /* Nothing more is wanted from it, and an attached pipe keeps this
          * process alive on the chance that more arrives. */
@@ -398,7 +409,9 @@ function startReviewer(reviewer, text, limit) {
          * output alongside its error for the same reason. */
         finish({
           status: null, stdout: text_(chunks.out), stderr: text_(chunks.err),
+          pid: child.pid, cwd: cwd,
           error: new Error('it printed more than ' + describeSize(cap) +
+                           ' on ' + (onto === 'out' ? 'stdout' : 'stderr') +
                            ', and was stopped')
         });
         return;
@@ -416,7 +429,8 @@ function startReviewer(reviewer, text, limit) {
      * it behind. */
     child.on('close', code => {
       cleanUp(cwd);
-      finish({ status: code, stdout: text_(chunks.out), stderr: text_(chunks.err) });
+      finish({ status: code, pid: child.pid, cwd: cwd,
+               stdout: text_(chunks.out), stderr: text_(chunks.err) });
     });
 
     /* The prompt goes in on stdin, never on the command line. A broken pipe
@@ -426,6 +440,17 @@ function startReviewer(reviewer, text, limit) {
   });
 }
 
+const LEFTOVER = new Set();
+
+/* Every scratch directory still in use. A reviewer stopped for printing too
+ * much resolves at once and its directory goes when the process using it
+ * closes - but if this process ends first, that close never comes. */
+process.on('exit', function () {
+  LEFTOVER.forEach(function (dir) {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
+  });
+});
+
 /* The buffers as text, decoded once at the end. Decoding each chunk as it
  * arrives splits a character that straddles two of them. */
 function text_(list) {
@@ -433,6 +458,7 @@ function text_(list) {
 }
 
 function cleanUp(dir) {
+  LEFTOVER.delete(dir);
   try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
 }
 
@@ -450,13 +476,21 @@ function killTree(child) {
       return;
     } catch (e) { /* already gone, or taskkill is unavailable */ }
   }
+  /* The whole group, so a reviewer that started something else does not leave
+   * it behind. Negating the pid addresses the group; the plain kill is there
+   * for the case where there is no group to address. */
+  const signal = sig => {
+    try {
+      if (child.pid) process.kill(-child.pid, sig);
+      return;
+    } catch (e) { /* no group, or already gone */ }
+    try { child.kill(sig); } catch (e) { /* already gone */ }
+  };
+
   /* Asked first, and then insisted upon. SIGTERM can be caught or ignored,
-   * and a reviewer that ignores it carries on printing with its pipes still
-   * attached to this process. */
-  try { child.kill('SIGTERM'); } catch (e) { /* already gone */ }
-  const insist = setTimeout(function () {
-    try { child.kill('SIGKILL'); } catch (e) { /* it went after all */ }
-  }, 2000);
+   * and a reviewer that ignores it carries on printing. */
+  signal('SIGTERM');
+  const insist = setTimeout(function () { signal('SIGKILL'); }, 2000);
   if (insist.unref) insist.unref();
 }
 

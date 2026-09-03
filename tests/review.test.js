@@ -374,6 +374,8 @@ test('a reviewer that exits non-zero keeps what it printed', async () => {
   const run = await startReviewer(
     fake('A', "console.log('VERDICT: PASS');process.exit(3)"), '');
   assert.equal(run.status, 3);
+  assert.match(run.stdout, /VERDICT: PASS/,
+    'what it printed before failing was thrown away');
   assert.equal(verdictFromRun(run).verdict, 'BLOCK',
     'a run that failed part way through is not a pass');
 });
@@ -462,4 +464,84 @@ test('text that straddles two chunks is still decoded correctly', async () => {
   assert.ok(!run.stdout.includes('\ufffd'), 'a character was split and lost');
   assert.equal((run.stdout.match(/\u20ac/g) || []).length, 20000);
   assert.equal(verdictFromRun(run).verdict, 'PASS');
+});
+
+test('a reviewer that ignores being asked to stop is stopped anyway', async () => {
+  /* The earlier test used a producer that ended by itself, so it passed
+   * whether the kill worked, killed the wrong process, or did nothing. This
+   * one refuses to go on being asked and never stops printing, so the only
+   * way it ends is being made to. */
+  /* Whether it is still working, rather than whether a pid answers.
+   *
+   * Asking after the pid checks the wrong process: under a shell the handle
+   * is the shell's, and that exits by itself once its pipes are gone - so the
+   * pid reads as dead while the reviewer behind it runs on. This one keeps
+   * appending to a file, so the question becomes "is the file still growing",
+   * which is the same question on every platform.
+   */
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const marker = path.join(os.tmpdir(), 'nwt-stubborn-' + process.pid + '-' + Date.now());
+
+  /* It shrugs off both ways of asking. Ignoring SIGTERM is the point;
+   * ignoring the broken pipe matters too, because closing the pipes is enough
+   * to end an ordinary child - so without this the test would pass on that
+   * alone and say nothing about the kill. */
+  const stubborn = "const f=require('fs');process.on('SIGTERM', () => {});" +
+                   "process.stdout.on('error', () => {});" +
+                   "process.stderr.on('error', () => {});" +
+                   "setInterval(() => { f.appendFileSync(process.argv[1], 'x');" +
+                   "try { console.log('x'.repeat(4096)); } catch (e) {} }, 10)";
+  const reviewer = { name: 'Stubborn', cmd: process.execPath,
+                     args: ['-e', stubborn, marker] };
+
+  const run = await startReviewer(reviewer, '', 64 * 1024);
+  assert.ok(run.error, 'the cap never tripped');
+
+  /* SIGKILL follows the ignored SIGTERM after two seconds. */
+  await new Promise(r => setTimeout(r, 3500));
+  const settledAt = fs.existsSync(marker) ? fs.statSync(marker).size : 0;
+  await new Promise(r => setTimeout(r, 1000));
+  const laterOn = fs.existsSync(marker) ? fs.statSync(marker).size : 0;
+
+  try { fs.rmSync(marker, { force: true }); } catch (e) { /* leave it */ }
+  assert.equal(laterOn, settledAt,
+    'the reviewer was still writing ' + (laterOn - settledAt) +
+    ' bytes a second after it was stopped');
+});
+
+test('each reviewer gets its own directory, and it goes when they do', async () => {
+  /* Sequentially this was safe by construction - one existed at a time. Run
+   * together, two reviewers sharing a directory would have the first to
+   * finish delete the other's working tree mid-run. */
+  const fs = require('node:fs');
+  const quiet = "console.log('VERDICT: PASS')";
+  const [a, b] = await Promise.all([
+    startReviewer(fake('A', quiet), ''),
+    startReviewer(fake('B', quiet), '')
+  ]);
+
+  assert.ok(a.cwd && b.cwd, 'no directory came back');
+  assert.notEqual(a.cwd, b.cwd, 'both reviewers were given the same directory');
+  assert.equal(fs.existsSync(a.cwd), false, 'a scratch directory was left behind');
+  assert.equal(fs.existsSync(b.cwd), false, 'a scratch directory was left behind');
+});
+
+test('a chatty stderr does not spend the review its own allowance', async () => {
+  /* maxBuffer gave each stream its own budget. Shared, a CLI that prints
+   * update notices and telemetry on stderr - which the verdict deliberately
+   * ignores - could turn a finished review into a block. */
+  const both = "console.error('n'.repeat(50000));" +
+               "console.log('VERDICT: PASS')";
+  const run = await startReviewer(fake('Chatty', both), '', 64 * 1024);
+
+  assert.ok(!run.error, 'stderr spent the budget stdout needed');
+  assert.equal(verdictFromRun(run).verdict, 'PASS');
+});
+
+test('the message says which stream ran out', async () => {
+  const loud = "console.error('n'.repeat(90000))";
+  const run = await startReviewer(fake('Loud', loud), '', 64 * 1024);
+  assert.match(run.error.message, /on stderr/);
 });
