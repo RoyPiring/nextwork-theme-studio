@@ -16,10 +16,9 @@ permissions:
   contents: read
 
 jobs:
-  # Tests and the audit gate, on both platforms. Development happens on
-  # Windows and CI used to run only on Linux, which is how a Windows-specific
-  # packaging bug shipped in 1.3.0: every archive was unloadable and the build
-  # reported success.
+  # Tests and the audit gate on both platforms. Packaging behaves differently
+  # on Windows and Linux, so a single-platform run can pass while the other
+  # platform is broken.
   checks:
     name: checks (${{ matrix.os }})
     strategy:
@@ -85,7 +84,7 @@ jobs:
             exit 1
           fi
 
-  # The packaging step, which had never run anywhere but one laptop.
+  # Packaging.
   #
   # Windows, because that is what the packaging code targets: it resolves
   # bsdtar out of System32 by full path, since a POSIX toolchain on PATH would

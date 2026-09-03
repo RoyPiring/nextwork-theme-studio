@@ -33,8 +33,7 @@ branch rule pointing at a check that no longer exists and quietly requiring
 nothing.
 
 Packaging runs on Windows because that is the platform the packaging code
-targets, and because a Windows-only bug once shipped archives that could not be
-installed anywhere while the build reported success.
+targets: it resolves bsdtar by full path, since GNU tar cannot write a zip.
 
 Two of the audit's checks exist to keep this arrangement honest: one fails if a
 job is added and left out of `audit`'s `needs`, or listed there but never read;
