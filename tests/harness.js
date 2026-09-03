@@ -441,7 +441,18 @@ function loadBackground(options) {
     install() { installedListeners.forEach(fn => fn()); },
     startup() { startupListeners.forEach(fn => fn()); },
     command(name) { commandListeners.forEach(fn => fn(name)); },
-    change(changes, area) { changeListeners.forEach(fn => fn(changes, area)); }
+    /* Apply the new values before notifying, as Chrome does. Without this a
+     * test has to seed storage with the value it is about to "change" to, and
+     * then it is not testing a transition at all. */
+    change(changes, area) {
+      if (area === 'local') {
+        Object.keys(changes).forEach(k => {
+          if ('newValue' in changes[k]) stored[k] = changes[k].newValue;
+          else delete stored[k];
+        });
+      }
+      changeListeners.forEach(fn => fn(changes, area));
+    }
   };
 }
 

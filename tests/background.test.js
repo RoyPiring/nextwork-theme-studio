@@ -21,7 +21,8 @@ function running(overrides) {
 }
 
 test('the badge reports the theme being off', () => {
-  const env = loadBackground({ settings: { enabled: false } });
+  /* Starts on, so this is a transition rather than a restatement. */
+  const env = loadBackground({ settings: { enabled: true } });
   env.change({ enabled: { newValue: false } }, 'local');
   env.flush();
   assert.strictEqual(env.badge.text, 'off');
@@ -29,7 +30,7 @@ test('the badge reports the theme being off', () => {
 });
 
 test('the badge is empty when the theme is on and no timer runs', () => {
-  const env = loadBackground({ settings: { enabled: true } });
+  const env = loadBackground({ settings: { enabled: false } });
   env.change({ enabled: { newValue: true } }, 'local');
   env.flush();
   assert.strictEqual(env.badge.text, '', 'an idle badge should show nothing');
@@ -39,7 +40,7 @@ test('a running timer takes the badge over', () => {
   /* The badge used to count down in minutes with nothing ticking it, so it
    * froze at the number it started with. It now reports that a session is
    * running and leaves the live count to the pill on the page. */
-  const env = loadBackground({ settings: { enabled: true, focus: running() } });
+  const env = loadBackground({ settings: { enabled: true } });
   env.change({ focus: { newValue: running() } }, 'local');
   env.flush();
   assert.notStrictEqual(env.badge.text, '', 'a running timer should show on the badge');
@@ -51,13 +52,13 @@ test('running past zero is shown differently from running', () => {
   /* The timer counts past its target rather than stopping, so going over has
    * to be distinguishable from still having time. */
   const over = running({ startedAt: Date.now() - 40 * 60 * 1000 });
-  const env = loadBackground({ settings: { enabled: true, focus: over } });
+  const env = loadBackground({ settings: { enabled: true } });
   env.change({ focus: { newValue: over } }, 'local');
   env.flush();
   const overText = env.badge.text;
   const overColour = env.badge.color;
 
-  const env2 = loadBackground({ settings: { enabled: true, focus: running() } });
+  const env2 = loadBackground({ settings: { enabled: true } });
   env2.change({ focus: { newValue: running() } }, 'local');
   env2.flush();
 
@@ -68,7 +69,7 @@ test('running past zero is shown differently from running', () => {
 
 test('a paused timer does not claim to be running', () => {
   const paused = running({ running: false });
-  const env = loadBackground({ settings: { enabled: true, focus: paused } });
+  const env = loadBackground({ settings: { enabled: true, focus: running() } });
   env.change({ focus: { newValue: paused } }, 'local');
   env.flush();
   assert.strictEqual(env.badge.text, '', 'a paused timer should not hold the badge');
@@ -99,8 +100,16 @@ test('install seeds the defaults and leaves no migration flag behind', () => {
   env.install();
   env.flush();
 
+  /* Named keys with usable values, not merely "something is there": an empty
+   * options object would satisfy a truthiness check and seed nothing. */
   assert.ok(env.stored.themeId, 'no theme was seeded');
-  assert.ok(env.stored.options, 'no options were seeded');
+  assert.strictEqual(typeof env.stored.enabled, 'boolean', 'enabled was not seeded');
+  assert.ok(env.stored.focus && typeof env.stored.focus.targetMin === 'number',
+    'the focus defaults were not seeded');
+  assert.ok(env.stored.options && Object.keys(env.stored.options).length > 5,
+    'the options defaults were not seeded');
+  assert.strictEqual(env.stored.options.rescuePanels, true,
+    'a known option default is missing');
   assert.ok(env.stored.schema > 0, 'the schema was not migrated');
   assert.strictEqual(env.stored.migrated, undefined,
     'the migration flag was written to storage, where it is not a setting');
