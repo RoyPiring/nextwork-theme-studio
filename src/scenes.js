@@ -40,21 +40,6 @@
            "' viewBox='0 0 " + w + " " + h + "' preserveAspectRatio='none'>" + body + "</svg>";
   }
 
-  function branch(strokeFill, blossomFill) {
-    return svg(1600, 620,
-      "<g stroke='" + strokeFill + "' stroke-width='11' fill='none' stroke-linecap='round'>" +
-      "<path d='M-20 70 q220 40 360 6 q150 -36 280 26'/>" +
-      "<path d='M250 88 q60 -52 120 -58'/>" +
-      "<path d='M470 96 q54 46 118 52'/>" +
-      "</g>" +
-      "<g fill='" + blossomFill + "'>" +
-      "<circle cx='150' cy='78' r='19'/><circle cx='188' cy='58' r='14'/>" +
-      "<circle cx='360' cy='36' r='17'/><circle cx='398' cy='60' r='12'/>" +
-      "<circle cx='596' cy='150' r='18'/><circle cx='632' cy='128' r='13'/>" +
-      "<circle cx='700' cy='128' r='15'/><circle cx='268' cy='120' r='13'/>" +
-      "</g>");
-  }
-
   /* ==========================================================================
    * ATMOSPHERE TOOLKIT
    *
@@ -98,18 +83,6 @@
       "</radialGradient></defs><rect width='1400' height='900' fill='url(#" + id + ")'/>");
   }
 
-  /* A sun/moon disc with a real corona rather than a hard circle. */
-  function disc(color, opacity, r) {
-    var id = uid();
-    return bleed(900, 900,
-      "<defs><radialGradient id='" + id + "' cx='50%' cy='50%' r='50%'>" +
-      "<stop offset='0%' stop-color='" + color + "' stop-opacity='" + opacity + "'/>" +
-      "<stop offset='" + (r || 34) + "%' stop-color='" + color + "' stop-opacity='" + (opacity * 0.85) + "'/>" +
-      "<stop offset='" + ((r || 34) + 4) + "%' stop-color='" + color + "' stop-opacity='" + (opacity * 0.30) + "'/>" +
-      "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
-      "</radialGradient></defs><rect width='900' height='900' fill='url(#" + id + ")'/>");
-  }
-
   /* ========================================================================
    * SIGNATURE MOTIFS
    *
@@ -117,22 +90,6 @@
    * what made the set feel like variations of a single wallpaper, so
    * tools/audit.js now fails if two scenes declare the same motif.
    * ======================================================================*/
-
-  /* concrete & blossom - ikebana: a vessel, three stems, a few blooms */
-  function ikebana(stem, bloom) {
-    return svg(1200, 640,
-      "<g stroke='" + stem + "' stroke-width='7' fill='none' stroke-linecap='round'>" +
-      "<path d='M600 620 q-14 -190 -96 -290'/>" +
-      "<path d='M604 620 q22 -150 118 -226'/>" +
-      "<path d='M598 620 q-4 -110 -30 -170'/>" +
-      "</g>" +
-      "<g fill='" + bloom + "'>" +
-      "<circle cx='504' cy='330' r='17'/><circle cx='486' cy='356' r='11'/>" +
-      "<circle cx='722' cy='394' r='15'/><circle cx='744' cy='372' r='10'/>" +
-      "<circle cx='568' cy='450' r='12'/>" +
-      "</g>" +
-      "<path d='M556 620 q6 -66 44 -66 q38 0 44 66 z' fill='" + stem + "'/>");
-  }
 
   /* ----------------------------------------------------------------- scenes */
   /* Each scene is a function of the palette, so it recolours with the theme.
@@ -219,20 +176,6 @@
     return motifBand(out, color, opacity);
   }
 
-  /* A comet: a bright head with a tail behind it. */
-  function comets(color, opacity, seed) {
-    var pts = scatter(12, MOTIF_W, MOTIF_H, seed), out = '', i;
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], s = 34 + pts[i][2] * 66;
-      out += "<path d='M" + x + " " + y + " l" + s + " " + (s * 0.22).toFixed(1) +
-             "' fill='none' stroke-width='" + (1.2 + pts[i][2]).toFixed(1) +
-             "' stroke-linecap='round' opacity='0.55'/>";
-      out += "<circle cx='" + x + "' cy='" + y + "' r='" + (2 + pts[i][2] * 2).toFixed(1) +
-             "' stroke='none'/>";
-    }
-    return motifBand(out, color, opacity);
-  }
-
   /* A firework: rays out of a centre, some with a spark on the end. */
   function fireworks(color, opacity, seed) {
     var pts = scatter(6, MOTIF_W, MOTIF_H, seed), out = '', i, k;
@@ -267,21 +210,6 @@
                (y + sh[k][1] * u).toFixed(1) + "' width='" + u.toFixed(1) + "' height='" +
                u.toFixed(1) + "' rx='1.5' fill='none' stroke-width='1.6'/>";
       }
-    }
-    return motifBand(out, color, opacity);
-  }
-
-  /* A ship seen from behind: a hull, a fin, and an engine glow. */
-  function ships(color, opacity, seed) {
-    var pts = scatter(11, MOTIF_W, MOTIF_H, seed), out = '', i;
-    for (i = 0; i < pts.length; i++) {
-      var x = pts[i][0], y = pts[i][1], s = 12 + pts[i][2] * 14;
-      out += "<path d='M" + x + " " + y + " l" + (s * 2.2) + " -" + (s * 0.42) +
-             " l0 " + (s * 0.84) + " z' stroke='none'/>";
-      out += "<path d='M" + (x + s * 0.9) + " " + y + " l" + (s * 0.5) + " -" + (s * 0.8) +
-             " l" + (s * 0.35) + " " + (s * 0.8) + " z' stroke='none' opacity='0.7'/>";
-      out += "<circle cx='" + (x - s * 0.35).toFixed(1) + "' cy='" + y + "' r='" +
-             (s * 0.2).toFixed(1) + "' stroke='none' opacity='0.6'/>";
     }
     return motifBand(out, color, opacity);
   }
@@ -479,11 +407,6 @@
       (opacity * 0.45).toFixed(3) + "'/>" +
       "<stop offset='100%' stop-color='" + color + "' stop-opacity='0'/>" +
       "</radialGradient></defs>" + out);
-  }
-
-  function planes(u, p, hue, target, distance) {
-    const base = u.mix(u.toneOf(hue, target), p.canvas, distance || 0);
-    return { top: u.mix(base, p.canvas, 0.30), bottom: base, base: base };
   }
 
   /* Every theme now has a painted wallpaper as its fixed backdrop, and the two

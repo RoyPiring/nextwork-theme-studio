@@ -205,10 +205,16 @@ test('the line the extension actually ships is the one that is allowed', () => {
     path.join(__dirname, '..', 'src', 'background.js'), 'utf8');
   const calls = body.split('\n').filter(l => /^\s*importScripts\(/.test(l));
 
-  assert.equal(calls.length, 1, 'expected exactly one importScripts call');
-  assert.equal(importsOnlyLocalFiles(calls[0]), true,
-    'the call the extension ships is no longer covered by the exemption');
+  assert.ok(calls.length > 0, 'no importScripts call found in background.js');
+  calls.forEach(call => {
+    assert.equal(importsOnlyLocalFiles(call), true,
+      'a call the extension ships is no longer covered: ' + call.trim());
+  });
 
-  /* And the same line reaching anywhere else would not be. */
-  assert.equal(importsOnlyLocalFiles(calls[0].replace("'scenes.js'", 'name')), false);
+  /* And the same call reaching a name instead of a file would not be. The
+   * filename is matched by shape rather than spelled out, so renaming a
+   * library or adding a third does not turn this into a test of nothing. */
+  const weakened = calls[0].replace(/'[\w.-]+\.js'/, 'name');
+  assert.notEqual(weakened, calls[0], 'the substitution matched nothing');
+  assert.equal(importsOnlyLocalFiles(weakened), false);
 });
