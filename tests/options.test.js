@@ -465,3 +465,36 @@ test('text that only looks like a request is refused as well', async () => {
   assert.deepEqual(customThemes(p), {},
     'if this now imports, the check was loosened rather than made precise');
 });
+
+test('src() is refused, plainly and spelled with an escape', async () => {
+  /* src() takes a font the way url() takes an image, so an @font-face using
+   * it fetches from the page you are signed into. */
+  const p = openEditor({});
+  await p.chooseFile('file-input', themeFile({
+    customCSS: '@font-face { font-family: x; src: src("https://example.com/x.woff2"); }'
+  }));
+  assert.deepEqual(customThemes(p), {}, 'src() was imported');
+
+  const q = openEditor({});
+  await q.chooseFile('file-input', themeFile({
+    customCSS: '@font-face { font-family: x; ' +
+      String.raw`\73 rc: \73 rc("https://example.com/x.woff2")` + '; }'
+  }));
+  assert.deepEqual(customThemes(q), {}, 'an escaped src() was imported');
+});
+
+test('a character above the basic range decodes to the same text', async () => {
+  /* Spelled out from its two halves rather than in one call. Getting that
+   * wrong would change the decoded text and, with it, what the check reads. */
+  const p = openEditor({});
+  const css = String.raw`.a::before { content: "\1F34D"; }`;
+  await p.chooseFile('file-input', themeFile({ customCSS: css }));
+  assert.equal(onlyCustom(p).customCSS, css, 'a pineapple stopped the import');
+
+  const q = openEditor({});
+  await q.chooseFile('file-input', themeFile({
+    customCSS: '.a { background: ' + String.raw`\1F34D` + String.raw`\75 rl("x")` + '; }'
+  }));
+  assert.deepEqual(customThemes(q), {},
+    'an escape above the basic range hid what followed it');
+});

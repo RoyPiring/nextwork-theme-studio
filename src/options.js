@@ -357,7 +357,7 @@
    * for nothing is a far smaller cost than allowing one that asks for
    * something. Anything new that can fetch belongs here. */
   const CSS_REACHES_OUT =
-    /url\s*\(|@import|expression\s*\(|image\s*\(|image-set\s*\(|cross-fade\s*\(/i;
+    /url\s*\(|src\s*\(|@import|expression\s*\(|image\s*\(|image-set\s*\(|cross-fade\s*\(/i;
 
   /* CSS with its escapes resolved.
    *
@@ -385,7 +385,12 @@
         /* Out of range, or half of a surrogate pair, is not a character a
          * browser would produce here either. */
         if (!code || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return '';
-        return String.fromCodePoint(code);
+        if (code <= 0xffff) return String.fromCharCode(code);
+        /* Built from its two halves, the way the rest of this file works.
+         * Nothing up here can be part of url() or @import; it is spelled out
+         * so the decoded text still matches what a browser would read. */
+        const above = code - 0x10000;
+        return String.fromCharCode(0xd800 + (above >> 10), 0xdc00 + (above & 0x3ff));
       });
   }
 
