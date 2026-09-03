@@ -115,6 +115,19 @@ test('install seeds the defaults and leaves no migration flag behind', () => {
     'the migration flag was written to storage, where it is not a setting');
 });
 
+test('the badge is painted at startup, before anything changes', () => {
+  /* Every other test here begins with a storage change. Without this one,
+   * removing the worker's startup refresh would pass them all, and a browser
+   * launched with the theme off would show a blank or stale badge until
+   * something else happened to change. */
+  const env = loadBackground({ settings: { enabled: false } });
+  env.badge.text = 'sentinel';
+  env.startup();
+  env.flush();
+  assert.strictEqual(env.badge.text, 'off',
+    'the badge was not painted when the browser started');
+});
+
 test('seeding keeps what the user already chose', () => {
   const env = loadBackground({ settings: { themeId: 'tokyoNight', enabled: false } });
   env.install();

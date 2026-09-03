@@ -409,8 +409,11 @@ function loadBackground(options) {
 
   if (opts.serviceWorker) {
     sandbox.importScripts = function () {
-      for (let i = 0; i < arguments.length; i++) imported.push(arguments[i]);
-      load(['src/' + arguments[0], 'src/' + arguments[1], 'src/' + arguments[2]]);
+      /* However many are passed. Assuming three would break silently the day
+       * a fourth library is added, which is the day it matters. */
+      const names = Array.prototype.slice.call(arguments);
+      names.forEach(n => imported.push(n));
+      load(names.map(n => 'src/' + n));
     };
   }
 
