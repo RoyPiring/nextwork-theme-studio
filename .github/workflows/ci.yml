@@ -172,6 +172,7 @@ jobs:
 
       - name: Lint every workflow
         run: ./actionlint -color
+
   # The one check the branch ruleset requires, and the only reason it has a
   # fixed name.
   #

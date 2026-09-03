@@ -15,6 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { tarBin } = require('./archiver.js');
 
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
@@ -53,50 +54,8 @@ function copyDir(from, to) {
  * store upload and Firefox install failed - while the build still reported
  * success.
  *
- * tar has shipped in Windows since 10 1803 and is standard everywhere else,
- * so one call now covers every platform. */
-/* On Windows, resolve System32's bsdtar by full path. If a POSIX toolchain is
- * on PATH first - Git for Windows ships one - a bare `tar` finds GNU tar, which
- * reads the drive letter in an absolute path as a remote host and fails with
- * "Cannot connect to C". */
-/* Whichever of these is libarchive, asked rather than assumed.
- *
- * On Debian and Ubuntu `tar` is GNU tar, which cannot write a zip at all: it
- * accepted the arguments, wrote a file with the right name, and the archive
- * had no central directory in it. libarchive-tools installs bsdtar beside it
- * under its own name, so the name has to be tried before the plain one.
- * macOS ships bsdtar as `tar`, which the fallback finds. */
-let cachedTar = null;
-
-function tarBin() {
-  if (cachedTar) return cachedTar;
-
-  const candidates = [];
-  if (process.platform === 'win32') {
-    const sys = path.join(process.env.SystemRoot || '', 'System32', 'tar.exe');
-    if (fs.existsSync(sys)) candidates.push(sys);
-  } else {
-    candidates.push('bsdtar');
-  }
-  candidates.push('tar');
-
-  for (const bin of candidates) {
-    let version = '';
-    try {
-      version = execFileSync(bin, ['--version'], { stdio: 'pipe' }).toString();
-    } catch (e) {
-      continue;                              /* not on this machine */
-    }
-    if (/bsdtar|libarchive/i.test(version)) {
-      cachedTar = bin;
-      return bin;
-    }
-  }
-  throw new Error(
-    'no bsdtar here, and GNU tar cannot write a zip. Install libarchive-tools ' +
-    '(Debian, Ubuntu) or use a machine that ships bsdtar.');
-}
-
+ * Which binary that is differs by platform and by what is installed, so
+ * tools/archiver.js works it out and this only asks. */
 function zip(dir, outFile) {
   const entries = fs.readdirSync(dir);
   /* -a picks the format from the file extension, and it does not know .xpi -
@@ -169,6 +128,11 @@ const TARGETS = [
   { dir: 'firefox', label: 'Firefox', manifest: firefoxManifest, zip: true },
   { dir: 'safari', label: 'Safari', manifest: chromiumManifest, zip: false }
 ];
+
+/* Asked before anything is staged. Left until the first archive, a machine
+ * without a usable archiver copied five directories and then failed, leaving
+ * all of them behind. */
+tarBin();
 
 fs.rmSync(DIST, { recursive: true, force: true });
 fs.mkdirSync(DIST, { recursive: true });

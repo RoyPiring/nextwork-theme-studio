@@ -122,9 +122,13 @@ jobs:
         shell: bash
         run: |
           node tools/release-notes.js "$TAG" > release-notes.md
-          # A quoted heredoc, so everything in it is literal. Written as echo
-          # with single quotes, the backticks around .xpi read as an attempt at
-          # a command substitution that would not expand; they are markdown.
+          # A quoted heredoc, so everything in it is plainly literal.
+          #
+          # The echo form it replaces was not broken - single quotes already
+          # stop a backtick doing anything. shellcheck flags it because the
+          # backticks around .xpi look like a substitution someone expected to
+          # expand, and here they are markdown. Written this way there is
+          # nothing to read two ways.
           cat >> release-notes.md <<'NOTE'
 
           ---
