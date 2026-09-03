@@ -244,3 +244,27 @@ test('a changelog with an unclosed fence yields nothing, not the wrong thing', (
   assert.match(notesFor(doc, '2.0.0'), /An entry looks like this/,
     'the section above the fence should still read');
 });
+
+test('a tilde rail opens a fence even with a tail, unlike a backtick one', () => {
+  /* Not an oversight in the backtick rule. A backtick fence may not carry a
+   * backtick in its info string, which is what makes ```x``` an inline code
+   * span rather than a fence. Tildes have no inline form and no such
+   * restriction, so ~~~x~~~ really does open a block.
+   *
+   * Reading it any other way would disagree with how the file renders. The
+   * heading below it is inside the block, so nothing is found, and a release
+   * stops rather than publishing notes taken from inside an example. */
+  const tail = which => [
+    '## [2.0.0]',
+    which + 'x' + which + ' is inline',
+    '- note 2',
+    '',
+    '## [1.0.0]',
+    '- note 1'
+  ].join('\n');
+
+  assert.equal(notesFor(tail('```'), '1.0.0'), '- note 1',
+    'a backtick code span was read as a fence');
+  assert.equal(notesFor(tail('~~~'), '1.0.0'), null,
+    'a tilde rail should open a fence, as it does when rendered');
+});
