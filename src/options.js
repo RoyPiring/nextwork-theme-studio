@@ -1,4 +1,6 @@
 /* Pineapple NextWork Theme Studio Mod - full editor */
+'use strict';
+
 (function () {
   'use strict';
 

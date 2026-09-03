@@ -457,25 +457,24 @@ check('shipped code runs in strict mode', () => {
   /* Sloppy mode turns a mistyped assignment into a new global rather than an
    * error, which is the one class of typo that survives every other check
    * here: it parses, it runs, and it silently does nothing useful. */
-  /* The directive has to be the first statement, and being wrapped in a
-   * function is not a substitute for it.
+  /* The directive is the first statement of the file. Nothing else counts.
    *
-   * Two things this has been wrong about. `(function () { mistyped = 1; })()`
-   * creates a global in sloppy mode exactly as top-level code does, so a
-   * wrapper proves nothing. And the directive only takes effect in the
-   * prologue: a file that calls something and *then* says 'use strict' is
-   * still sloppy, and the string appearing on some later line means nothing
-   * at all. So this looks at position, not presence. */
+   * Earlier versions of this tried to be accommodating and were wrong three
+   * times over, each in the same way: a regular expression cannot tell where
+   * one scope ends and the next begins, so every allowance it made left a
+   * shape that passed while running sloppy code. A wrapper proves nothing,
+   * because a sloppy function leaks a global exactly as top level does. A
+   * directive further down proves nothing, because it only takes effect in
+   * the prologue. A wrapper that closes before the end of the file proves
+   * nothing about what follows it.
+   *
+   * So the allowances are gone, and every shipped file now says it at the
+   * top. That makes the whole file strict whatever is inside it, and makes
+   * this check a single unambiguous question. */
   function isStrict(body) {
     const code = codeOnly(body).map(l => l.trim()).filter(Boolean);
     if (!code.length) return true;                 /* nothing to leak */
-    /* The outermost wrapper may open first; the directive is then the first
-     * statement of its body. Anything else before the directive is code. */
-    /* An opening parenthesis is required. Without it this matched a plain
-     * `function helper() {` declaration, so a file whose first function was
-     * strict could still run sloppy code after it and pass. */
-    const start = /^[!+~-]?\s*\(\s*function\b/.test(code[0]) ? 1 : 0;
-    return /^['"]use strict['"]\s*;?$/.test(code[start] || '');
+    return /^['"]use strict['"]\s*;?$/.test(code[0]);
   }
 
   const loose = srcFiles.filter(f => !isStrict(fs.readFileSync(f, 'utf8')));

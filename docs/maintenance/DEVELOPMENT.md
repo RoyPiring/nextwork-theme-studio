@@ -80,11 +80,14 @@ Most of what a linter would find here is already covered:
 
 - **CodeQL** runs the `security-and-quality` query set on every pull request,
   which includes unused variables, unreachable code and dead assignments.
-- **The audit** checks that every shipped file carries a `'use strict'`
-  directive, so a mistyped assignment throws instead of quietly creating a
+- **The audit** checks that `'use strict'` is the first statement of every
+  shipped file, so a mistyped assignment throws instead of quietly creating a
   global, and that no `console.log` or `debugger` survives into shipped code.
-  Being wrapped in a function is not accepted as a substitute: an IIFE in
-  sloppy mode leaks a global exactly as top-level code does.
+
+  The directive goes at the top of the file, outside any wrapper. That is not
+  a style preference: a regular expression cannot tell where one scope ends
+  and the next begins, so a check that allowed the directive inside a wrapper
+  would pass a file whose wrapper closes before the end of it.
 - **`node --check`** parses every file, and the tests exercise the behaviour.
 
 That is a deliberate trade rather than an oversight. If the project ever takes

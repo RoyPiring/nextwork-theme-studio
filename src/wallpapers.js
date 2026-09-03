@@ -19,6 +19,8 @@
  *
  * The audit checks all three.
  * ==========================================================================*/
+'use strict';
+
 (function (root) {
   'use strict';
 

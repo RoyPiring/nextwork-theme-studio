@@ -3,6 +3,8 @@
  * Shared by the content script, the popup and the options page.
  * No modules (MV3 content scripts), so everything hangs off window.NWT.
  * ==========================================================================*/
+'use strict';
+
 (function (root) {
   'use strict';
 
