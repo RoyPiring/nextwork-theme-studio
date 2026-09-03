@@ -21,6 +21,8 @@
  * A band must tile seamlessly: shapes either stay clear of the tile edge, or
  * the path's first and last y match.
  * ==========================================================================*/
+'use strict';
+
 (function (root) {
   'use strict';
 

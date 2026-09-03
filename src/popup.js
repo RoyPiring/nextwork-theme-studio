@@ -1,4 +1,6 @@
 /* Pineapple NextWork Theme Studio Mod - popup */
+'use strict';
+
 (function () {
   'use strict';
 

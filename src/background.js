@@ -3,6 +3,11 @@
  * Seeds defaults on install, owns the keyboard shortcut, and keeps the
  * toolbar badge honest about whether the theme is on.
  * ==========================================================================*/
+/* Strict mode. This file is the one that is not wrapped in a function, since a
+ * worker's top level is where its listeners have to be registered, so without
+ * it a mistyped assignment would quietly create a global instead of throwing. */
+'use strict';
+
 /* Chromium runs this as a service worker, where importScripts exists. Firefox
  * MV3 runs it as an event page, where it does not - there the same two files
  * are listed in manifest.background.scripts instead. One file, both worlds. */

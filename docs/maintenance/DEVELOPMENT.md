@@ -62,8 +62,37 @@ Both were previously guaranteed by a comment.
 - all 18 themes clear the contrast floor
 - every theme has a wallpaper and its own scenery
 - both stylesheet variants build for every theme
+- every shipped file carries a `'use strict'` directive
+- no `console.log` or `debugger` is left in shipped code
+- every continuous integration job is required by the gate
+- every action is pinned to a commit SHA
 
 Every check exists because that exact problem happened at some point.
+
+## Why there is no linter
+
+This project has no dependencies at all, not even development ones. Adding
+ESLint would make it the first, along with a lockfile to maintain, an install
+step in every continuous integration run, and a supply chain where there was
+none.
+
+Most of what a linter would find here is already covered:
+
+- **CodeQL** runs the `security-and-quality` query set on every pull request,
+  which includes unused variables, unreachable code and dead assignments.
+- **The audit** checks that `'use strict'` is the first statement of every
+  shipped file, so a mistyped assignment throws instead of quietly creating a
+  global, and that no `console.log` or `debugger` survives into shipped code.
+
+  The directive goes at the top of the file, outside any wrapper. That is not
+  a style preference: a regular expression cannot tell where one scope ends
+  and the next begins, so a check that allowed the directive inside a wrapper
+  would pass a file whose wrapper closes before the end of it.
+- **`node --check`** parses every file, and the tests exercise the behaviour.
+
+That is a deliberate trade rather than an oversight. If the project ever takes
+a dependency for another reason, adding ESLint costs nothing more and is worth
+doing then.
 
 ## Tests
 

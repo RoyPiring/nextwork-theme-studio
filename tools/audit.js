@@ -448,6 +448,64 @@ check('contrast floor holds for every theme', () => {
   return themeIds.length + ' themes checked';
 });
 
+/* ------------------------------------------------------- shipped code ---
+ * Two properties a linter would give, without becoming the project's first
+ * dependency. See docs/maintenance/DEVELOPMENT.md for why that trade was made
+ * the way it was.
+ */
+check('shipped code runs in strict mode', () => {
+  /* Sloppy mode turns a mistyped assignment into a new global rather than an
+   * error, which is the one class of typo that survives every other check
+   * here: it parses, it runs, and it silently does nothing useful. */
+  /* The directive is the first statement of the file. Nothing else counts.
+   *
+   * Earlier versions of this tried to be accommodating and were wrong three
+   * times over, each in the same way: a regular expression cannot tell where
+   * one scope ends and the next begins, so every allowance it made left a
+   * shape that passed while running sloppy code. A wrapper proves nothing,
+   * because a sloppy function leaks a global exactly as top level does. A
+   * directive further down proves nothing, because it only takes effect in
+   * the prologue. A wrapper that closes before the end of the file proves
+   * nothing about what follows it.
+   *
+   * So the allowances are gone, and every shipped file now says it at the
+   * top. That makes the whole file strict whatever is inside it, and makes
+   * this check a single unambiguous question. */
+  function isStrict(body) {
+    const code = codeOnly(body).map(l => l.trim()).filter(Boolean);
+    if (!code.length) return true;                 /* nothing to leak */
+    /* The semicolon is required. Without it the next line can continue the
+     * expression - `'use strict'` followed by `+function(){}` is one additive
+     * expression and not a directive at all - and the file stays sloppy. */
+    return /^['"]use strict['"]\s*;$/.test(code[0]);
+  }
+
+  const loose = srcFiles.filter(f => !isStrict(fs.readFileSync(f, 'utf8')));
+  if (loose.length) {
+    fail(loose.map(rel).join(', ') +
+         ' - add a \'use strict\' directive, or a typo becomes a global');
+  }
+  return srcFiles.length + ' files';
+});
+
+check('no debugging left in shipped code', () => {
+  /* console.log and debugger are for working on something, not for shipping
+   * it. Real reporting in this codebase uses console.warn or console.error. */
+  const offenders = [];
+  srcFiles.forEach(f => {
+    codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
+      /* debugger only as a statement of its own. The bare word appears in
+       * ordinary prose and inside strings, and flagging those would make this
+       * something to work around rather than something to keep. */
+      if (/\bconsole\s*\.\s*log\s*\(/.test(line) || /^\s*debugger\s*;?\s*$/.test(line)) {
+        offenders.push(rel(f) + ':' + (i + 1));
+      }
+    });
+  });
+  if (offenders.length) fail(offenders.join(', '));
+  return 'clean';
+});
+
 /* ------------------------------------------------- the workflow itself ---
  * The branch rule requires one check, named `audit`, and that job passes only
  * if every other job passed. The whole arrangement rests on `audit` listing
