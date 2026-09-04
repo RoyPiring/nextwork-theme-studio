@@ -2084,6 +2084,113 @@
     });
   }
 
+  /* ---- progress bars ----------------------------------------------------
+   *
+   * A progress bar is two rectangles: a track, and a fill lying on it that is
+   * as wide as you have got so far. Everything it tells you is where one ends
+   * and the other begins, so the difference between those two colours *is*
+   * the feature - unlike a card, where the colour is only decoration.
+   *
+   * Nothing in the theming knew that. Both rectangles are painted from the
+   * same family of quiet neutrals, chosen so that a card sits calmly on a
+   * page and white text holds up on a button, and neither of those is a
+   * reason for two bars to be told apart. On some themes they landed within
+   * 1.06:1 of one another - which is not a faint bar, it is no bar at all.
+   *
+   * So this measures the pair as drawn and, when they are too close, repaints
+   * the fill in the theme's accent at whatever lightness clears the floor.
+   * Measuring rather than mapping means it holds for a theme somebody builds
+   * themselves, and for whatever the site paints these with next.
+   * --------------------------------------------------------------------- */
+
+  /* WCAG 1.4.11: a part of a control that carries meaning has to stand off
+   * what is behind it by 3:1. A progress bar is the example the guideline
+   * itself uses. */
+  const BAR_FLOOR = 3;
+  /* Aimed a little above the floor, because the value is snapped to whole
+   * degrees of lightness on the way out and rounding down through it would
+   * make the check that follows a lie. */
+  const BAR_TARGET = 3.2;
+
+  /* The colour actually behind an element: its own background if it has one,
+   * otherwise whatever it is sitting on. A track with no background of its
+   * own is common - the shape comes from a parent - and comparing against
+   * "transparent" would compare against nothing. */
+  function paintedBehind(el) {
+    let node = el;
+    for (let i = 0; node && i < 12; i++) {
+      const c = parseColour(getComputedStyle(node).backgroundColor);
+      if (c && c.a >= 0.5) return c;
+      node = node.parentElement;
+    }
+    return parseColour(getComputedStyle(document.body || document.documentElement)
+      .backgroundColor);
+  }
+
+  /* Track and fill, found by what a progress bar *is* rather than by what
+   * this one site happens to call it.
+   *
+   * The role is the reliable half and comes first. The shape is for the bars
+   * that carry no role: long, flat, one child of the same height starting
+   * hard against the left edge. A slider fails that last test - its thumb
+   * sits wherever the value is - and a divider fails it for having no child
+   * at all. */
+  function barPairs() {
+    const pairs = [];
+    const seen = [];
+    const consider = function (track) {
+      if (!track || seen.indexOf(track) !== -1) return;
+      seen.push(track);
+      const box = track.getBoundingClientRect();
+      if (box.height < 3 || box.height > 24 || box.width < 80) return;
+      if (box.width / box.height < 8) return;
+      const kids = track.children || [];
+      for (let i = 0; i < kids.length; i++) {
+        const fill = kids[i];
+        const f = fill.getBoundingClientRect();
+        if (f.width <= 0 || f.width >= box.width) continue;
+        if (Math.abs(f.height - box.height) > 3) continue;
+        if (Math.abs(f.left - box.left) > 2) continue;
+        pairs.push({ track: track, fill: fill });
+        return;
+      }
+    };
+
+    let roled;
+    try { roled = document.querySelectorAll('[role="progressbar"]'); }
+    catch (e) { roled = []; }
+    for (let i = 0; i < roled.length; i++) {
+      /* The role is sometimes on the track and sometimes on the fill inside
+       * it, and both readings are in the wild. */
+      consider(roled[i]);
+      consider(roled[i].parentElement);
+    }
+
+    let divs;
+    try { divs = document.querySelectorAll('div,span'); } catch (e) { divs = []; }
+    for (let i = 0; i < divs.length; i++) consider(divs[i]);
+    return pairs;
+  }
+
+  function rescueProgressBars(palette) {
+    barPairs().forEach(function (pair) {
+      if (pair.fill.dataset.nwtBar === '1') return;
+      const behind = paintedBehind(pair.track);
+      const front = parseColour(getComputedStyle(pair.fill).backgroundColor);
+      /* A fill with no colour of its own is drawn some other way - a gradient,
+       * an image, a border - and repainting it would put a flat block over
+       * something that may already be perfectly clear. */
+      if (!behind || !front || front.a < 0.5) return;
+      if (ratio(front, behind) >= BAR_FLOOR) return;
+
+      const trackHex = NWT.color.rgbToHex(behind);
+      const wanted = NWT.toneOf(palette.accent, trackHex, BAR_TARGET);
+      pair.fill.dataset.nwtBar = '1';
+      pair.fill.style.setProperty('background-color', wanted, 'important');
+      pair.fill.style.setProperty('background-image', 'none', 'important');
+    });
+  }
+
   /* Give every rescued element its colour back.
    *
    * The pass writes inline `!important` styles and stamps the element so it is
@@ -2091,13 +2198,13 @@
    * visible: turning the theme off left panels wearing the theme surface, and
    * switching theme left them wearing the *previous* theme, because the stamp
    * made them skip. */
-  const RESCUED = ['background-color', 'color', 'border-color',
+  const RESCUED = ['background-color', 'background-image', 'color', 'border-color',
                    'backdrop-filter', '-webkit-backdrop-filter', 'box-shadow'];
 
   function unrescue() {
     eachRoot(function (root) {
     let nodes;
-    try { nodes = root.querySelectorAll('[data-nwt-lit], [data-nwt-ground], [data-nwt-ink]'); }
+    try { nodes = root.querySelectorAll('[data-nwt-lit], [data-nwt-ground], [data-nwt-ink], [data-nwt-bar]'); }
     catch (e) { return; }
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
@@ -2105,10 +2212,12 @@
       delete el.dataset.nwtLit;
       delete el.dataset.nwtGround;
       delete el.dataset.nwtInk;
+      delete el.dataset.nwtBar;
       if (el.removeAttribute) {
         el.removeAttribute('data-nwt-lit');
         el.removeAttribute('data-nwt-ground');
         el.removeAttribute('data-nwt-ink');
+        el.removeAttribute('data-nwt-bar');
       }
     }
     });
@@ -2136,6 +2245,11 @@
       } catch (e) { /* never break the page */ }
       try {
         if (palette.ink) rescueInvisibleText(palette);
+      } catch (e) { /* never break the page */ }
+      /* Every theme, not only the dark ones. The worst pair measured was on a
+       * light theme, where nothing else in this pass runs at all. */
+      try {
+        rescueProgressBars(palette);
       } catch (e) { /* never break the page */ }
     }, 220);
   }
@@ -2185,6 +2299,7 @@
           base.ink = p.textPrimary;
           base.inkAlt = p.canvas;
           base.pageBg = p.canvas;
+          base.accent = p.accent;
           if (theme.mode !== 'light') base.panels = true;
           return base;
         })()

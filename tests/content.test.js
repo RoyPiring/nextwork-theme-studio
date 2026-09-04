@@ -1803,3 +1803,146 @@ test('closing the column takes the top band class with it', () => {
   assert.ok(!page.doc.documentElement.classList.contains('nwt-split-top'),
     'the page was left pushed down with nothing above it');
 });
+
+/* ------------------------------------------------------- progress bars */
+
+/* The pair the issue was reported with, read off the screenshot: a fill and a
+ * track a fifth of a step apart on a dark theme, and a twentieth of a step
+ * apart on Mount Fuji. Neither is a faint bar; neither is a bar at all. */
+const REPORTED_DARK = { trackBg: 'rgb(42, 47, 54)', fillBg: 'rgb(49, 60, 76)' };
+const REPORTED_LIGHT = { trackBg: 'rgb(251, 233, 238)', fillBg: 'rgb(244, 227, 233)' };
+
+function ratioOf(page, a, b) {
+  const rgb = function (s) {
+    const m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(s);
+    return m ? { r: +m[1], g: +m[2], b: +m[3] } : null;
+  };
+  const hex = function (s) {
+    const m = /^#([0-9a-f]{6})$/i.exec(String(s).trim());
+    return m ? { r: parseInt(m[1].slice(0, 2), 16), g: parseInt(m[1].slice(2, 4), 16),
+                 b: parseInt(m[1].slice(4, 6), 16) } : null;
+  };
+  const N = page.sandbox.NWT.color;
+  return N.contrastRatio(N.rgbToHex(hex(a) || rgb(a)), N.rgbToHex(hex(b) || rgb(b)));
+}
+
+function settle(page) { page.flush(); page.mutate(); page.flush(); }
+
+test('a progress bar too close to its own track is repainted', () => {
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const bar = page.addBar(REPORTED_DARK);
+  settle(page);
+
+  const painted = bar.fill.style.getPropertyValue('background-color');
+  assert.ok(painted, 'the fill was left the same colour as the track behind it');
+  assert.ok(ratioOf(page, painted, REPORTED_DARK.trackBg) >= 3,
+    'repainted, and still under the floor: ' +
+    ratioOf(page, painted, REPORTED_DARK.trackBg).toFixed(2) + ':1');
+});
+
+test('and on a light theme, where nothing else in the pass runs', () => {
+  /* The worst pair reported was Mount Fuji, which is light - so a fix that
+   * only ran on dark themes would have missed the one that prompted it. */
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'mountFuji' } });
+  const bar = page.addBar(REPORTED_LIGHT);
+  settle(page);
+
+  const painted = bar.fill.style.getPropertyValue('background-color');
+  assert.ok(painted, 'a light theme was left with a bar you cannot read');
+  assert.ok(ratioOf(page, painted, REPORTED_LIGHT.trackBg) >= 3,
+    'repainted, and still under the floor: ' +
+    ratioOf(page, painted, REPORTED_LIGHT.trackBg).toFixed(2) + ':1');
+});
+
+test('a bar that already reads clearly is left alone', () => {
+  /* The site gets to keep its own colours wherever they work. */
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const bar = page.addBar({ trackBg: 'rgb(30, 32, 34)', fillBg: 'rgb(150, 190, 255)' });
+  settle(page);
+  assert.strictEqual(bar.fill.style.getPropertyValue('background-color'), '');
+});
+
+test('the bar is found by its role as well as by its shape', () => {
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const bar = page.addBar(Object.assign({ role: 'progressbar' }, REPORTED_DARK));
+  settle(page);
+  assert.ok(bar.fill.style.getPropertyValue('background-color'));
+});
+
+test('a slider is not a progress bar', () => {
+  /* Its thumb sits wherever the value is, rather than hard against the left
+   * edge - which is the whole difference between showing a quantity and
+   * offering to change one. */
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const slider = page.addBar(Object.assign({ at: 0.05, fillLeft: 300 }, REPORTED_DARK));
+  settle(page);
+  assert.strictEqual(slider.fill.style.getPropertyValue('background-color'), '',
+    'a slider thumb was repainted as though it were progress');
+});
+
+test('a divider is not a progress bar', () => {
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const rule = page.addPanel({ backgroundColor: 'rgb(42, 47, 54)' },
+                             { width: 740, height: 2 });
+  settle(page);
+  assert.strictEqual(rule.style.getPropertyValue('background-color'), '');
+});
+
+test('a full-width bar is not repainted over the whole track', () => {
+  /* At 100% there is nothing behind it to stand off, and the shape test that
+   * finds a fill needs it to be narrower than what it sits in. */
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const bar = page.addBar(Object.assign({ at: 1 }, REPORTED_DARK));
+  settle(page);
+  assert.strictEqual(bar.fill.style.getPropertyValue('background-color'), '');
+});
+
+test('turning the theme off gives the bar its colour back', () => {
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const bar = page.addBar(REPORTED_DARK);
+  settle(page);
+  assert.ok(bar.fill.style.getPropertyValue('background-color'), 'precondition');
+
+  page.chrome.storage.local.set({ enabled: false });
+  page.flush();
+
+  assert.strictEqual(bar.fill.style.getPropertyValue('background-color'), '',
+    'the bar kept a colour from a theme that is no longer on');
+  assert.strictEqual(bar.fill.dataset.nwtBar, undefined,
+    'and kept its marker, so it can never be repainted again');
+});
+
+test('switching theme repaints the bar in the new accent', () => {
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const bar = page.addBar(REPORTED_DARK);
+  settle(page);
+  const first = bar.fill.style.getPropertyValue('background-color');
+
+  page.chrome.storage.local.set({ themeId: 'tokyoNight' });
+  settle(page);
+  const second = bar.fill.style.getPropertyValue('background-color');
+
+  assert.ok(second, 'the bar lost its repaint on a theme change');
+  assert.notStrictEqual(second, first, 'it kept the previous theme accent');
+});
+
+test('a fill drawn some other way is left as it is', () => {
+  /* A gradient, an image or a border has no background colour to compare, and
+   * a flat block painted over it would replace something that may already be
+   * perfectly readable with something that is merely different. */
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const bar = page.addBar({ trackBg: 'rgb(42, 47, 54)', fillBg: 'rgba(0, 0, 0, 0)' });
+  settle(page);
+  assert.strictEqual(bar.fill.style.getPropertyValue('background-color'), '');
+});
+
+test('a short wide chip is not a bar either', () => {
+  /* Nearly every element on a page has a child, and plenty of them are small
+   * and flat. A bar is long as well as flat - eight times its own height at
+   * least - and without that a badge with a dot in it is progress. */
+  const page = loadContentScript({ settings: { enabled: true, themeId: 'carbon' } });
+  const chip = page.addBar({ trackBg: 'rgb(42, 47, 54)', fillBg: 'rgb(49, 60, 76)',
+                             width: 120, height: 20, at: 0.5 });
+  settle(page);
+  assert.strictEqual(chip.fill.style.getPropertyValue('background-color'), '');
+});

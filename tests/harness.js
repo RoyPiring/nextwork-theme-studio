@@ -745,6 +745,26 @@ function loadContentScript(options) {
       doc.body.appendChild(el);
       return el;
     },
+    /* A progress bar the way a page draws one: a long flat track with a fill
+     * inside it, starting at the left edge and stopping partway across. */
+    addBar(opts) {
+      const o = Object.assign({ trackBg: 'rgb(42, 47, 54)', fillBg: 'rgb(49, 60, 76)',
+                                width: 740, height: 12, at: 0.5, left: 0, top: 100,
+                                role: null, tag: 'div' }, opts || {});
+      const track = doc.createElement(o.tag);
+      track._computed = { backgroundColor: o.trackBg };
+      track._rect = { left: o.left, top: o.top, width: o.width, height: o.height };
+      if (o.role) track.setAttribute('role', o.role);
+
+      const fill = doc.createElement('div');
+      fill._computed = { backgroundColor: o.fillBg };
+      fill._rect = { left: o.fillLeft === undefined ? o.left : o.fillLeft, top: o.top,
+                     width: Math.round(o.width * o.at),
+                     height: o.fillHeight === undefined ? o.height : o.fillHeight };
+      track.appendChild(fill);
+      doc.body.appendChild(track);
+      return { track: track, fill: fill };
+    },
     mutate(records) { observers.forEach(o => o.fn(records || [])); },
     /* Count how many times a walk started from the document root, which is
      * the cost the observer is supposed to stop paying. */

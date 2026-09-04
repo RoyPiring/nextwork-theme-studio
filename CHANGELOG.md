@@ -60,6 +60,17 @@ were never released.
 - **Session lengths of 15 and 30 minutes and an hour, or any length you like**,
   and a choice between counting down and counting up said in those words.
 
+### Fixed
+
+- Progress bars are visible again on every theme. The fill and the track were
+  both painted from the same family of quiet neutrals - colours chosen so a
+  card sits calmly on a page and white text holds up on a button, neither of
+  which is a reason for two bars to be told apart - and on some themes they
+  landed as close as 1.06:1. The extension now measures the pair as drawn and,
+  when they are too close, repaints the fill in the theme's accent at whatever
+  lightness clears the 3:1 that a part of a control needs. Reported in
+  [#20](https://github.com/RoyPiring/nextwork-theme-studio/issues/20).
+
 ### Changed
 
 - The popup is three tabs - Theme, Focus, Panels - and the Panels tab is two
