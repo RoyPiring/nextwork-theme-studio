@@ -1007,7 +1007,6 @@
    * --------------------------------------------------------------------- */
   const SPLIT_ID = 'nwt-split';
   const MAX_PANELS = 3;
-  let splitWatch = null;
 
   function splitEl() {
     let el = document.getElementById(SPLIT_ID);
@@ -1099,7 +1098,6 @@
   }
 
   function removeSplit() {
-    if (splitWatch) { clearTimeout(splitWatch); splitWatch = null; }
     const el = document.getElementById(SPLIT_ID);
     if (el) el.remove();
     document.documentElement.classList.remove('nwt-split-on');

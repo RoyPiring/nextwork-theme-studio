@@ -428,12 +428,10 @@ test('a site that is granted with no rule behind it is reported, not hidden', ()
     'it reported a rule that does not exist, which is what made this invisible');
 });
 
-/* ------------------------------------------------------------ side by side */
-/* The answer to the thing a frame could not do. A site refusing to be shown
- * inside another page is not refusing to exist beside one, and a window of its
- * own is not an embedding - so it signs in and behaves as it does in a tab. */
-
-const SCREEN = { left: 0, top: 0, width: 1600, height: 900 };
+/* ----------------------------------------------------------- rule reports */
+/* Whether a header rule was actually installed. A rule the browser refuses
+ * leaves no rule, no error and no trace, and the only symptom is a frame that
+ * stays blank - which is what four other things also look like. */
 
 test('a rule the browser rejects is written down, not swallowed', () => {
   /* updateDynamicRules reports failure the way the rest of the API does - by

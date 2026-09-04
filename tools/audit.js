@@ -221,6 +221,7 @@ function jsUnder(dir) {
 }
 const srcFiles = jsUnder(path.join(ROOT, 'src'));
 const toolFiles = jsUnder(path.join(ROOT, 'tools'));
+const testFiles = jsUnder(path.join(ROOT, 'tests'));
 
 check('all JavaScript parses', () => {
   srcFiles.concat(toolFiles).forEach(f => {
@@ -259,7 +260,13 @@ check('every source file is text', () => {
  * reported here rather than waiting to throw. */
 check('no function is declared and never named again', () => {
   const idle = [];
-  srcFiles.concat(toolFiles).forEach(f => {
+  /* The tests are read as well. The findings this was extended for were
+   * leftovers from a feature that had been removed - a helper for a test that
+   * went with it, and a constant for a window nothing opens any more - and a
+   * dead helper in a test file is the same fault as a dead one in the source:
+   * it says the code still does something it no longer does. */
+  const read = srcFiles.concat(toolFiles).concat(testFiles);
+  read.forEach(f => {
     unusedDeclarations(fs.readFileSync(f, 'utf8')).forEach(d => {
       idle.push(rel(f) + ':' + d.line + ' ' + d.name);
     });
@@ -269,7 +276,7 @@ check('no function is declared and never named again', () => {
          '\n    (each file is read on its own, so a name reached from' +
          '\n     another file by anything but an object needs a look)');
   }
-  return srcFiles.length + toolFiles.length + ' files';
+  return read.length + ' files';
 });
 
 /* -------------------------------------------------------------- no network */
