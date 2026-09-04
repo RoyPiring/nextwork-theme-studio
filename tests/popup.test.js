@@ -516,7 +516,8 @@ test('a site that will not be framed offers to be allowed', () => {
     enabled: true, companion: { enabled: true, url: DISCORD }
   });
   assert.notEqual(p.el('companion-access').style.display, 'none');
-  assert.match(p.el('companion-access-note').textContent, /discord\.com refuses/);
+  assert.ok(p.el('companion-access-note').textContent.includes('discord.com refuses'),
+    'it does not say which site refuses');
   assert.match(p.el('companion-access-btn').textContent, /^Allow discord\.com/);
 });
 
@@ -558,7 +559,12 @@ test('arriving from the pane leads with the site the pane asked about', () => {
     enabled: true,
     companion: { enabled: true, url: VIDEO, pending: DISCORD }
   });
-  assert.match(p.el('companion-access-note').textContent, /discord\.com/);
+  /* Read as text rather than matched as a pattern. An unanchored hostname in
+   * a regular expression is a real hazard where one is used to decide whether
+   * an address is trusted, and the scanner cannot tell that this one is only
+   * looking at a sentence on screen - so it does not use one. */
+  assert.ok(p.el('companion-access-note').textContent.includes('discord.com'),
+    'the site the pane asked about is not the one named');
   assert.equal(p.el('companion-access').getAttribute('data-asked'), '1');
 });
 
