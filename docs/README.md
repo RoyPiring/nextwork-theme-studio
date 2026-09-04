@@ -9,6 +9,8 @@ the extension. Everything here is the longer version.
 | --- | --- |
 | [Install on other browsers](install/) | Firefox and Safari, which need a packaged build |
 | [Themes and wallpapers](THEMES.md) | All 18 themes, and how the pictures are made |
+| [The focus timer](FOCUS.md) | Sessions, the alarm at the end of one, and the pill on the page |
+| [Panels and panes](PANELS.md) | Keeping Discord, a video or a document beside your work |
 | [Browser support](BROWSERS.md) | What differs between Chrome, Firefox and Safari |
 
 ## Understanding it
