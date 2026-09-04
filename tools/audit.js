@@ -213,7 +213,16 @@ check('no remote URLs in extension code', () => {
   srcFiles.forEach(f => {
     codeOnly(fs.readFileSync(f, 'utf8')).forEach((line, i) => {
       /* the SVG xmlns is a namespace identifier, never fetched */
-      const stripped = line.replace(/http:\/\/www\.w3\.org\/2000\/svg/g, '');
+      let stripped = line.replace(/http:\/\/www\.w3\.org\/2000\/svg/g, '');
+      /* The companion pane's player, allowed by name and only where it is
+       * declared. The extension still requests nothing itself: this is where
+       * a frame points when someone asks for a video beside their project,
+       * and the browser loads it the way it would a tab. Named here so that
+       * adding a second address is a change to this file, argued for on its
+       * own, rather than something that slips in beside this one. */
+      if (/^\s*const YOUTUBE_PLAYER = /.test(line)) {
+        stripped = stripped.replace(/https:\/\/www\.youtube\.com\/embed\//g, '');
+      }
       if (/https?:\/\//.test(stripped)) offenders.push(rel(f) + ':' + (i + 1));
     });
   });

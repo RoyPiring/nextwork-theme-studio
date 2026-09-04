@@ -374,10 +374,10 @@
       running: false,
       startedAt: 0,        /* epoch ms of the current run */
       accumulatedMs: 0,    /* time banked from previous runs */
-      targetMin: 25,
-      /* A session that ends silently has not really ended: the whole point
-       * is to look away from the screen, which is where the timer is. */
-      chime: true,       /* 0 counts up; anything else counts down */
+      targetMin: 25,     /* 0 counts up; anything else counts down */
+      /* A session that ends silently has not really ended: the whole point is
+       * to look away from the screen, which is where the timer is. */
+      chime: true,
       /* Where the pill was last dropped, as a fraction of the viewport, so it
        * lands in the same relative place on a different window size. null
        * means "wherever the stylesheet puts it". */
@@ -387,6 +387,28 @@
        * stylesheet works out. 1 is the size it has always been. */
       hudScale: 1,
       locked: false        /* locked: cannot be dragged, and clicks pass through */
+    },
+    /* A second thing on the page beside the project: a video while you build,
+     * a call you want to keep an eye on.
+     *
+     * It is a pane on the page rather than another window, so it stays where
+     * it was put and moves with the tab. Whether a given site will appear in
+     * one is not up to this extension: a site says whether it may be framed,
+     * and most say no. YouTube publishes a player made for exactly this and
+     * works; a site that refuses says so in the pane, with a button to open it
+     * in a window instead. */
+    companion: {
+      enabled: false,      /* show the pane at all */
+      url: '',             /* what is in it now */
+      /* Where it was left, as a fraction of the viewport, for the same reason
+       * the timer stores its place that way. */
+      x: null,
+      y: null,
+      w: 380,              /* px, and resizable by dragging the corner */
+      h: 260,
+      /* Saved places to put in it, as { label, url }. The list is the point:
+       * the pane holds one at a time and these are what to switch between. */
+      tiles: []
     },
     options: {
       dimImages: 0,          /* 0-40 % - knocks the glare off bright screenshots */
@@ -404,6 +426,92 @@
 
   /* Focus timer maths, shared by the popup, the badge and the on-page HUD so
    * they can never disagree about what time it is. */
+  /* The only remote address written anywhere in the shipped code.
+   *
+   * The extension makes no requests of its own, and the audit enforces that.
+   * This is not one of those: it is where a frame points when someone asks
+   * for a YouTube video in the companion pane, and the request that follows
+   * is the browser loading a page a person chose, the same as opening a tab.
+   * The audit allows this one literal by name and nothing else. */
+  const YOUTUBE_PLAYER = 'https://www.youtube.com/embed/';
+
+  /* What to actually put in the companion pane for a given address.
+   *
+   * A YouTube watch page will not appear in a frame, and neither will a
+   * youtu.be link - but YouTube publishes a player that will, at a different
+   * address. Pasting the link you have in the bar is the obvious thing to do,
+   * so the translation happens here rather than being something to know.
+   *
+   * Returns null for anything that is not an address this will open. http is
+   * refused because the page is https: a frame loading over http is blocked
+   * as mixed content, and the pane would sit there empty with no reason
+   * given. javascript: and data: are refused because they would run in the
+   * page rather than in a frame of their own.
+   */
+  /* A start time as the share button writes it: `90`, `90s`, `1m30s`, `1h2m3s`.
+   * Reading it as a plain number gets NaN for every form but the first, which
+   * silently dropped the timestamp on exactly the links people actually copy. */
+  function seconds(text) {
+    if (!text) return 0;
+    const plain = /^\d+$/.test(text) ? Number(text) : null;
+    if (plain !== null) return plain;
+    const parts = String(text).match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
+    if (!parts || !parts.slice(1).some(Boolean)) return 0;
+    return Number(parts[1] || 0) * 3600 + Number(parts[2] || 0) * 60 + Number(parts[3] || 0);
+  }
+
+  /* Sites that publish an address meant to be embedded. Framing one needs no
+   * permission from anybody, because the site already said yes by having it.
+   * Kept to what the extension itself produces rather than a list of hosts to
+   * keep up to date: anything else has to be asked for. */
+  function framesFreely(src) {
+    return typeof src === 'string' && src.indexOf(YOUTUBE_PLAYER) === 0;
+  }
+
+  function companionSrc(raw) {
+    const text = String(raw == null ? '' : raw).trim();
+    if (!text) return null;
+
+    let url;
+    try {
+      url = new URL(text);
+    } catch (e) {
+      /* The whole address, scheme included. Filling in a missing one would
+       * mean naming a scheme here, and the audit's rule about remote
+       * addresses in shipped code is worth more than saving eight
+       * characters - anything copied from a browser's address bar has it. */
+      return null;
+    }
+    if (url.protocol !== 'https:') return null;
+
+    /* Not the site the pane is sitting on.
+     *
+     * The frame is sandboxed with `allow-same-origin`, which a cross-origin
+     * page needs to reach its own cookies and stay signed in. Pointed back at
+     * nextwork.ai it means something else entirely: the framed document then
+     * shares an origin with its parent, and a sandbox does not restrain a
+     * document of the same origin - so the missing `allow-top-navigation`
+     * would restrain nothing, and the page in the pane could replace the tab.
+     * There is also nothing to want here: it is the page you are already on. */
+    if (/^(.*\.)?nextwork\.ai$/i.test(url.hostname)) return null;
+
+    const host = url.hostname.replace(/^www\./, '');
+    const video =
+      (host === 'youtube.com' || host === 'm.youtube.com') && url.pathname === '/watch'
+        ? url.searchParams.get('v')
+        : host === 'youtu.be' ? url.pathname.slice(1)
+        : (host === 'youtube.com' && url.pathname.startsWith('/shorts/'))
+          ? url.pathname.slice('/shorts/'.length)
+          : null;
+
+    if (video && /^[\w-]{6,20}$/.test(video)) {
+      const at = seconds(url.searchParams.get('t'));
+      return YOUTUBE_PLAYER + video + (at > 0 ? '?start=' + at : '');
+    }
+    /* Already a player address, or something else entirely: as given. */
+    return url.href;
+  }
+
   function focusElapsed(focus, now) {
     const f = Object.assign({}, DEFAULT_SETTINGS.focus, focus);
     return f.accumulatedMs + (f.running ? Math.max(0, (now || Date.now()) - f.startedAt) : 0);
@@ -1329,6 +1437,82 @@
            ' #nwt-focus[data-state="over"] { animation: none; } }');
     L.push('#nwt-focus[data-state="paused"] { opacity: .72; }');
 
+    /* ---- the companion pane ----
+     *
+     * A panel rather than a pill: it holds a frame, so it needs a bar to drag
+     * by and a corner to size from. The frame in the middle belongs to
+     * whatever is inside it, which is why neither of those is the whole
+     * surface. */
+    L.push('#nwt-companion { position: fixed; right: 24px; bottom: 24px;' +
+           ' z-index: 2147483646; display: flex; flex-direction: column;' +
+           ' overflow: hidden; border-radius: 12px;' +
+           ' border: 1px solid ' + p.panelEdge + ';' +
+           ' background: ' + p.surface + '; color: var(--nwt-text);' +
+           ' box-shadow: 0 10px 34px ' + rgba('#000000', light ? 0.16 : 0.44) + ';' +
+           ' font-family: inherit; }');
+    L.push('#nwt-companion[data-dragging="1"] { opacity: .92; }');
+
+    L.push('#nwt-companion .nwt-companion-bar { display: flex; align-items: center;' +
+           ' gap: 8px; padding: 6px 8px 6px 12px; cursor: grab;' +
+           ' background: ' + p.surfaceAlt + ';' +
+           ' border-bottom: 1px solid ' + p.panelEdge + '; flex: none;' +
+           ' user-select: none; }');
+    L.push('#nwt-companion[data-dragging="1"] .nwt-companion-bar { cursor: grabbing; }');
+    L.push('#nwt-companion .nwt-companion-title { flex: 1; min-width: 0;' +
+           ' overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' +
+           ' font-size: 12px; color: var(--nwt-text-dim); }');
+
+    /* Both buttons are the same size whatever glyph is in them, so the bar
+     * does not shift as the title changes. */
+    L.push('#nwt-companion .nwt-companion-bar button { flex: none; width: 22px;' +
+           ' height: 22px; display: grid; place-items: center; padding: 0;' +
+           ' border: 0; border-radius: 6px; background: transparent; cursor: pointer;' +
+           ' font: inherit; font-size: 13px; line-height: 1;' +
+           ' color: var(--nwt-text-dim); }');
+    L.push('#nwt-companion .nwt-companion-bar button:hover {' +
+           ' background: ' + rgba(p.accent, 0.16) + '; color: var(--nwt-text); }');
+
+    L.push('#nwt-companion .nwt-companion-body { position: relative; flex: 1;' +
+           ' min-height: 0; background: ' + p.canvas + '; }');
+    L.push('#nwt-companion .nwt-companion-frame { width: 100%; height: 100%;' +
+           ' border: 0; display: block; }');
+
+    /* The message sits over the frame rather than replacing it, so a frame
+     * that arrives late simply covers it. */
+    L.push('#nwt-companion .nwt-companion-refused { position: absolute; inset: 0;' +
+           ' display: flex; flex-direction: column; align-items: center;' +
+           ' justify-content: center; gap: 12px; padding: 18px; margin: 0;' +
+           ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
+           ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
+    L.push('#nwt-companion .nwt-companion-said { margin: 0; }');
+    /* Shown over a frame that loaded, since that is the only case where a
+     * blank rectangle has nothing else on it. Faint until you go near it. */
+    L.push('#nwt-companion .nwt-companion-hint { position: absolute; left: 50%;' +
+           ' bottom: 10px; transform: translateX(-50%); z-index: 2;' +
+           ' padding: 5px 11px; font: inherit; font-size: 11.5px;' +
+           ' cursor: pointer; white-space: nowrap; border-radius: 999px;' +
+           ' border: 1px solid ' + p.panelEdge + '; opacity: .55;' +
+           ' background: ' + p.surface + '; color: ' + p.textSecondary + '; }');
+    L.push('#nwt-companion .nwt-companion-hint:hover { opacity: 1; }');
+    L.push('#nwt-companion:not([data-state="ready"]) .nwt-companion-hint {' +
+           ' display: none; }');
+    L.push('#nwt-companion[data-state="ready"] .nwt-companion-refused {' +
+           ' display: none; }');
+    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused {' +
+           ' color: ' + p.status.warning[400] + '; }');
+
+    /* Big enough to find and dark enough to see. At 16px with a half-strength
+     * wash it was neither, and the first thing anyone asked was where the
+     * corner to drag was. */
+    L.push('#nwt-companion .nwt-companion-grip { position: absolute; right: 0;' +
+           ' bottom: 0; width: 22px; height: 22px; cursor: nwse-resize;' +
+           ' background: linear-gradient(135deg, transparent 46%, ' +
+           rgba(p.textMuted, 0.9) + ' 46%, ' + rgba(p.textMuted, 0.9) + ' 58%,' +
+           ' transparent 58%, transparent 68%, ' + rgba(p.textMuted, 0.9) + ' 68%,' +
+           ' ' + rgba(p.textMuted, 0.9) + ' 80%, transparent 80%); }');
+    L.push('#nwt-companion .nwt-companion-grip:hover { background-color: ' +
+           rgba(p.textMuted, 0.18) + '; }');
+
     /* Root surface last, so nothing above accidentally wins it. */
     /* scopeCSS turns this into `html body`. Meaningless inside a shadow root. */
     if (!shadow) {
@@ -1537,7 +1721,7 @@
   root.NWT = {
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
-    focusElapsed, focusRemaining, formatDuration,
+    focusElapsed, focusRemaining, formatDuration, companionSrc, framesFreely,
     cssReachesOut, withoutCssEscapes,
     toneOf,
     debounce,

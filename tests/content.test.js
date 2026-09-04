@@ -790,3 +790,205 @@ test('the in-flight guard does not clear itself before the write lands', () => {
   assert.equal(page.played.length, 1,
     'it chimed ' + page.played.length + ' times while the marker was in flight');
 });
+test('an open session never runs over, so it never chimes', () => {
+  /* Counting up has no end to reach. */
+  const page = loadContentScript({
+    settings: { focus: running({ targetMin: 0, accumulatedMs: 90 * 60000 }) }
+  });
+  page.flush();
+
+  assert.equal(page.doc.getElementById('nwt-focus').getAttribute('data-state'), 'running');
+  assert.deepEqual(page.played, []);
+});
+
+/* ------------------------------------------------------ the companion pane */
+
+function withPane(companion, rest) {
+  return loadContentScript({
+    settings: Object.assign({ enabled: true, companion:
+      Object.assign({ enabled: true, url: '' }, companion) }, rest)
+  });
+}
+const VIDEO = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+const EMBED = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+function pane(page) { return page.doc.getElementById('nwt-companion'); }
+function frameOf(page) { return pane(page).querySelector('.nwt-companion-frame'); }
+
+test('the pane appears only when it has been turned on', () => {
+  const off = withPane({ enabled: false, url: VIDEO });
+  off.flush();
+  assert.equal(pane(off), null, 'the pane appeared without being asked for');
+
+  const on = withPane({ url: VIDEO });
+  on.flush();
+  assert.ok(pane(on), 'the pane was turned on and did not appear');
+});
+
+test('turning the theme off takes the pane with it', () => {
+  /* One switch turns the extension off. Leaving a frame floating over the
+   * page after that would be the extension ignoring it. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.ok(pane(page), 'precondition: the pane is there');
+
+  page.chrome.storage.local.set({ enabled: false });
+  page.flush();
+  assert.equal(pane(page), null, 'the pane outlived the theme');
+});
+
+test('a video link is loaded as the player, not as the watch page', () => {
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.equal(frameOf(page).getAttribute('src'), EMBED);
+  assert.equal(pane(page).querySelector('.nwt-companion-title').textContent, 'youtube.com');
+});
+
+test('the name on the bar is the one that was saved with the tile', () => {
+  const page = withPane({ url: VIDEO, tiles: [{ label: 'Lecture', url: VIDEO }] });
+  page.flush();
+  assert.equal(pane(page).querySelector('.nwt-companion-title').textContent, 'Lecture');
+});
+
+const DISCORD = 'https://discord.com/channels/1/2';
+
+test('a player needs no permission, because the site published it to be framed', () => {
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+  assert.equal(frameOf(page).getAttribute('src'), EMBED);
+  assert.deepEqual(page.sent.filter(m => m.type === 'companion:allowed'), [],
+    'it asked permission for a site that had already said yes');
+});
+
+test('the arrow asks the extension for a window rather than opening one here', () => {
+  /* A window the browser makes holds anything at all, including every site
+   * that refuses to be framed whatever its headers say. `window.open` from
+   * the page is subject to the page's own policy on what it may open. */
+  const page = withPane({ url: DISCORD, w: 500, h: 400 });
+  page.flush();
+  pane(page).querySelector('.nwt-companion-out').click();
+  page.flush();
+
+  const asked = page.sent.filter(m => m.type === 'companion:window');
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0].url, DISCORD);
+  assert.deepEqual([asked[0].w, asked[0].h], [500, 400],
+    'the window did not arrive the shape the pane was left');
+});
+
+test('an address it cannot open leaves the frame empty rather than loading it', () => {
+  const page = withPane({ url: 'javascript:alert(1)' });
+  page.flush();
+
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'something that is not a web address was put in the frame');
+  assert.equal(pane(page).getAttribute('data-state'), 'empty');
+  assert.equal(pane(page).querySelector('.nwt-companion-out').style.display, 'none');
+});
+
+test('nothing chosen yet reads as an invitation, not as an error', () => {
+  const page = withPane({ url: '' });
+  page.flush();
+  assert.match(pane(page).querySelector('.nwt-companion-refused').textContent,
+    /Nothing chosen yet/);
+});
+
+test('a repaint does not reload a video that is already playing', () => {
+  /* Setting src again restarts it from the beginning. Any storage write -
+   * the timer ticking, a dial moving - repaints, so this has to hold. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const frame = frameOf(page);
+  let sets = 0;
+  const real = frame.setAttribute.bind(frame);
+  frame.setAttribute = function (n, v) { if (n === 'src') sets++; return real(n, v); };
+
+  page.chrome.storage.local.set({ hue: 20 });
+  page.flush();
+  page.chrome.storage.local.set({ hue: 40 });
+  page.flush();
+
+  assert.equal(sets, 0, 'the frame was reloaded ' + sets + ' times by an unrelated change');
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+});
+
+test('the frame is not allowed to navigate the tab it sits in', () => {
+  /* This used to read the `allow` attribute, which is a permissions policy and
+   * has nothing to say about navigation - so it asserted the absence of a word
+   * that could never have appeared there, and would have gone on passing if
+   * the frame had been given free rein. `sandbox` is the attribute that
+   * governs this, and a frame with no sandbox at all has no restriction. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const sandbox = frameOf(page).getAttribute('sandbox');
+
+  assert.ok(sandbox, 'the frame has no sandbox, so nothing restricts it');
+  assert.ok(!/allow-top-navigation/.test(sandbox),
+    'a page in the pane can replace the tab underneath it');
+  assert.ok(/allow-scripts/.test(sandbox), 'nothing would run, so nothing would load');
+  assert.equal(frameOf(page).getAttribute('referrerpolicy'), 'strict-origin-when-cross-origin');
+});
+
+test('the frame is not handed the clipboard', () => {
+  /* It was granted clipboard-write, unconditionally, to whatever address
+   * happened to be pasted in. Nothing in a pane beside your work needs it. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.ok(!/clipboard/.test(frameOf(page).getAttribute('allow') || ''),
+    'the frame was given the clipboard');
+});
+
+test('hiding the pane from its own corner turns it off for good', () => {
+  /* Not just removed from the page - it has to stay gone after a reload. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  pane(page).querySelector('.nwt-companion-hide').click();
+  page.flush();
+
+  assert.equal(page.stored.companion.enabled, false,
+    'closing the pane did not turn it off in storage');
+  assert.equal(pane(page), null, 'the pane is still on the page');
+});
+
+test('a site that will not be framed says so, and offers the way out', () => {
+  /* Trying is not a way to find out whether a site can be framed: a browser
+   * that blocks one navigates it to an error document and fires `load` on it
+   * just the same. So anything that is not a published player is assumed to
+   * refuse - wrong in the safe direction, since a window always works. */
+  const page = withPane({ url: DISCORD });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'blocked');
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'a site that will not be framed was loaded anyway, leaving a blank frame');
+  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
+    /will not be shown inside another page/);
+  assert.notEqual(pane(page).querySelector('.nwt-companion-out').style.display, 'none',
+    'the button that opens it in a window was hidden');
+});
+
+test('a frame that loaded still offers the way out', () => {
+  /* A frame that loaded is not a frame that shows anything, and nothing
+   * readable across the origin boundary says which happened. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const hint = pane(page).querySelector('.nwt-companion-hint');
+  assert.ok(hint, 'a frame that loaded and showed nothing would be a dead end');
+
+  hint.click();
+  page.flush();
+  assert.equal(page.sent.filter(m => m.type === 'companion:window').length, 1,
+    'the way out did not lead anywhere');
+});
+
+test('switching to another player does load the new one', () => {
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.equal(frameOf(page).getAttribute('src'), EMBED);
+
+  const other = 'https://www.youtube.com/watch?v=abcdefghijk';
+  page.chrome.storage.local.set({ companion: { enabled: true, url: other } });
+  page.flush();
+  assert.equal(frameOf(page).getAttribute('src'),
+               'https://www.youtube.com/embed/abcdefghijk');
+});

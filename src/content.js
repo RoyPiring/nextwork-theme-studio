@@ -365,7 +365,6 @@
     }
   }
 
-
   /* ---- dragging --------------------------------------------------------
    * Position is stored as a fraction of the viewport rather than pixels, so
    * the pill keeps its relative place when the window is resized. It is also
@@ -458,6 +457,336 @@
     const n = Number(focus.hudScale);
     if (!isFinite(n) || n <= 0) return 1;
     return Math.max(0.6, Math.min(3, n));
+  }
+
+  /* ---- the companion pane ----------------------------------------------
+   *
+   * A second thing on the page while you build: a video, a call you want to
+   * keep half an eye on. It is a pane on the page rather than another window,
+   * so it stays where it was put and goes away with the tab.
+   *
+   * Whether anything appears in it is not this extension's decision. A site
+   * says whether it may be framed and most say no, so the pane says so and
+   * offers to open it in a window instead. YouTube publishes a player made to
+   * be framed, which is why a watch link is turned into one.
+   */
+  const PANE_ID = 'nwt-companion';
+
+  function paneEl() {
+    let el = document.getElementById(PANE_ID);
+    if (el) return el;
+
+    el = document.createElement('div');
+    el.id = PANE_ID;
+
+    /* The bar is the handle. Dragging from anywhere else would fight with
+     * whatever is inside the frame. */
+    const bar = document.createElement('div');
+    bar.className = 'nwt-companion-bar';
+
+    const title = document.createElement('span');
+    title.className = 'nwt-companion-title';
+    bar.appendChild(title);
+
+    const openOut = document.createElement('button');
+    openOut.type = 'button';
+    openOut.className = 'nwt-companion-out';
+    openOut.title = 'Open in a window of its own';
+    openOut.textContent = '↗';
+    bar.appendChild(openOut);
+
+    const hide = document.createElement('button');
+    hide.type = 'button';
+    hide.className = 'nwt-companion-hide';
+    hide.title = 'Hide the pane';
+    hide.textContent = '×';
+    bar.appendChild(hide);
+
+    const body = document.createElement('div');
+    body.className = 'nwt-companion-body';
+
+    const frame = document.createElement('iframe');
+    frame.className = 'nwt-companion-frame';
+    /* `allow` is a permissions policy - what the page in here may use. It says
+     * nothing about navigation. `sandbox` is what governs that, and leaving
+     * `allow-top-navigation` out of the list is what stops a page in the pane
+     * from replacing the tab underneath it.
+     *
+     * `allow-same-origin` is not a hole here: it lets the framed page keep its
+     * own origin, which is what it needs to reach its own cookies and stay
+     * signed in. Without it a site would be given an opaque origin and would
+     * simply fail to load, which is not a security win, only a broken pane. */
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms ' +
+      'allow-popups allow-popups-to-escape-sandbox allow-presentation ' +
+      'allow-storage-access-by-user-activation');
+    frame.setAttribute('allow', 'autoplay; picture-in-picture; encrypted-media; fullscreen');
+    frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    body.appendChild(frame);
+
+    /* Shown when nothing arrives. */
+    const refused = document.createElement('div');
+    refused.className = 'nwt-companion-refused';
+    const said = document.createElement('p');
+    said.className = 'nwt-companion-said';
+    refused.appendChild(said);
+    body.appendChild(refused);
+
+    /* A frame that loaded is not the same as a frame that shows anything.
+     * Some sites answer with a page and then refuse to run inside another one,
+     * and there is nothing readable across the origin boundary to tell the
+     * difference - so rather than declare success and leave a white rectangle
+     * with no way out, the way out stays on screen. */
+    const hint = document.createElement('button');
+    hint.type = 'button';
+    hint.className = 'nwt-companion-hint';
+    hint.textContent = 'Nothing showing? Open it in a window';
+    body.appendChild(hint);
+
+    const grip = document.createElement('div');
+    grip.className = 'nwt-companion-grip';
+    grip.title = 'Drag to resize';
+
+    el.appendChild(bar);
+    el.appendChild(body);
+    el.appendChild(grip);
+    (document.body || document.documentElement).appendChild(el);
+    return el;
+  }
+
+  function removePane() {
+    const el = document.getElementById(PANE_ID);
+    if (el) el.remove();
+    /* Cleared with the element. Leaving it set meant that switching the theme
+     * off and on again rebuilt an empty pane: the address had not changed, so
+     * the guard below decided there was nothing to load into a frame that had
+     * just been created blank. */
+    paneShowing = '';
+  }
+
+  let paneShowing = '';
+
+  function paintPane(companion) {
+    const el = paneEl();
+    const src = NWT.companionSrc(companion.url);
+    const frame = el.querySelector('.nwt-companion-frame');
+    const refused = el.querySelector('.nwt-companion-said');
+
+    el.querySelector('.nwt-companion-title').textContent = label(companion);
+    /* Always offered. A window of its own holds anything, and it is the answer
+     * whenever the frame is not - so it should not be something that appears
+     * only once the pane has already failed. */
+    el.querySelector('.nwt-companion-out').style.display = src ? '' : 'none';
+
+    if (!src) {
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'empty');
+      refused.textContent = companion.url
+        ? 'That is not an address this can open. It has to start with https.'
+        : 'Nothing chosen yet. Add a link in the extension popup.';
+      paneShowing = '';
+      return;
+    }
+
+    /* Only reloaded when it actually changes: setting src again restarts a
+     * video that is already playing, and a repaint happens on every write. */
+    if (paneShowing === src) return;
+    paneShowing = src;
+    el.setAttribute('data-state', 'loading');
+    refused.textContent = 'Loading…';
+
+    /* A site that publishes a player means it to be framed. Everything else
+     * has to be assumed to refuse, because most do and because trying is not
+     * a way to find out: a browser that blocks a frame navigates it to an
+     * error document and fires `load` on it just the same, so there is no
+     * failure to catch and nothing to time out on.
+     *
+     * Assuming the worst sends a site that would have worked to a window it
+     * did not need. That is the safe direction to be wrong in - a window
+     * always works - and the alternative is a white rectangle with no
+     * explanation. Asking the browser for permission, which is what lets the
+     * rest of the web open in here, is a change of its own. */
+    if (!NWT.framesFreely(src)) {
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'blocked');
+      refused.textContent =
+        'This site will not be shown inside another page. That is its own ' +
+        'setting, not something an extension can change from here. The arrow ' +
+        'above opens it in a window of its own.';
+      return;
+    }
+    frame.setAttribute('src', src);
+    el.setAttribute('data-state', 'ready');
+  }
+
+
+  function label(companion) {
+    const match = (companion.tiles || []).filter(t => t && t.url === companion.url)[0];
+    if (match && match.label) return match.label;
+    try {
+      return new URL(NWT.companionSrc(companion.url) || companion.url).hostname
+        .replace(/^www\./, '');
+    } catch (e) {
+      return 'Companion';
+    }
+  }
+
+  function placePane(el, companion) {
+    const w = Math.max(240, Math.min(window.innerWidth - 16, Number(companion.w) || 380));
+    const h = Math.max(160, Math.min(window.innerHeight - 16, Number(companion.h) || 260));
+    el.style.width = w + 'px';
+    el.style.height = h + 'px';
+
+    if (companion.x == null || companion.y == null) {
+      el.style.left = el.style.top = '';
+      return;
+    }
+    const maxX = Math.max(0, window.innerWidth - w - 8);
+    const maxY = Math.max(0, window.innerHeight - h - 8);
+    el.style.left = Math.min(maxX, Math.max(8, companion.x * window.innerWidth)) + 'px';
+    el.style.top = Math.min(maxY, Math.max(8, companion.y * window.innerHeight)) + 'px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  }
+
+  function saveCompanion(patch) {
+    chrome.storage.local.get({ companion: {} }, function (stored) {
+      /* Nothing to merge into if the read failed, and overwriting the
+       * whole record with defaults would lose the saved tiles. */
+      if (chrome.runtime.lastError) return;
+      chrome.storage.local.set({
+        companion: Object.assign({}, NWT.DEFAULT_SETTINGS.companion, stored.companion, patch)
+      });
+    });
+  }
+
+  function wirePane(el) {
+    if (el.dataset.wired === '1') return;
+    el.dataset.wired = '1';
+
+    el.querySelector('.nwt-companion-hide').addEventListener('click', function (e) {
+      e.stopPropagation();
+      saveCompanion({ enabled: false });
+    });
+
+    /* The same thing the arrow does, said in words, for the case where the
+     * frame looked like it worked and showed nothing. */
+    el.querySelector('.nwt-companion-hint').addEventListener('click', function (e) {
+      e.stopPropagation();
+      el.querySelector('.nwt-companion-out').click();
+    });
+
+    el.querySelector('.nwt-companion-out').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ companion: {} }, function (stored) {
+        const c = stored.companion || {};
+        const src = NWT.companionSrc(c.url);
+        if (!src) return;
+        /* Opened by the extension rather than by `window.open` here. A window
+         * the browser makes for us is a real one - it holds anything at all,
+         * including every site that refuses to be framed under any headers,
+         * and it is not subject to this page's own policy on what it may
+         * open. The size is the pane's, so it arrives the shape you left it. */
+        chrome.runtime.sendMessage({
+          type: 'companion:window', url: src,
+          w: Number(c.w) || 380, h: Number(c.h) || 260
+        }, function () { void chrome.runtime.lastError; });
+      });
+    });
+
+    dragBy(el, el.querySelector('.nwt-companion-bar'), function (r) {
+      saveCompanion({ x: r.left / window.innerWidth, y: r.top / window.innerHeight });
+    });
+
+    resizeBy(el, el.querySelector('.nwt-companion-grip'), function (w, h) {
+      saveCompanion({ w: w, h: h });
+    });
+  }
+
+  /* Moving and resizing, each driven from one small part of the pane rather
+   * than the whole of it - the frame in the middle belongs to whatever is
+   * inside it, and a drag started there would fight with it. */
+  function dragBy(el, handle, done) {
+    let startX = 0, startY = 0, originX = 0, originY = 0, dragging = false;
+
+    handle.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) return;
+      const r = el.getBoundingClientRect();
+      startX = e.clientX; startY = e.clientY;
+      originX = r.left; originY = r.top;
+      dragging = true;
+      handle.setPointerCapture(e.pointerId);
+      el.setAttribute('data-dragging', '1');
+      e.preventDefault();
+    });
+
+    handle.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      const w = el.offsetWidth, h = el.offsetHeight;
+      const x = Math.min(window.innerWidth - w - 8, Math.max(8, originX + e.clientX - startX));
+      const y = Math.min(window.innerHeight - h - 8, Math.max(8, originY + e.clientY - startY));
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.style.right = el.style.bottom = 'auto';
+    });
+
+    function drop(e) {
+      if (!dragging) return;
+      dragging = false;
+      el.removeAttribute('data-dragging');
+      try { handle.releasePointerCapture(e.pointerId); } catch (err) { /* gone */ }
+      done(el.getBoundingClientRect());
+    }
+    handle.addEventListener('pointerup', drop);
+    handle.addEventListener('pointercancel', drop);
+  }
+
+  function resizeBy(el, grip, done) {
+    let startX = 0, startY = 0, startW = 0, startH = 0, sizing = false;
+
+    grip.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) return;
+      startX = e.clientX; startY = e.clientY;
+      startW = el.offsetWidth; startH = el.offsetHeight;
+      sizing = true;
+      grip.setPointerCapture(e.pointerId);
+      el.setAttribute('data-sizing', '1');
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    grip.addEventListener('pointermove', function (e) {
+      if (!sizing) return;
+      el.style.width = Math.max(240, startW + e.clientX - startX) + 'px';
+      el.style.height = Math.max(160, startH + e.clientY - startY) + 'px';
+    });
+
+    function stop(e) {
+      if (!sizing) return;
+      sizing = false;
+      el.removeAttribute('data-sizing');
+      try { grip.releasePointerCapture(e.pointerId); } catch (err) { /* gone */ }
+      done(el.offsetWidth, el.offsetHeight);
+    }
+    grip.addEventListener('pointerup', stop);
+    grip.addEventListener('pointercancel', stop);
+  }
+
+  function renderPane(settings) {
+    const companion = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
+    /* Anywhere on the site, not only on a project page. The timer is tied to a
+     * project because a session is about building one; something to keep in
+     * view while you work is not - you want it on the lesson you are reading
+     * and the dashboard you came from, and having it vanish when you navigate
+     * looks like the extension breaking rather than a rule being applied.
+     * The top frame only, so it is not drawn once per embedded frame. */
+    if (!settings.enabled || !companion.enabled || !TOP_FRAME) {
+      removePane();
+      return;
+    }
+    const el = paneEl();
+    paintPane(companion);
+    wirePane(el);
+    placePane(el, companion);
   }
 
   function renderHud(settings) {
@@ -977,6 +1306,7 @@
     if (!s.enabled) {
       remove();
       removeHud();
+      removePane();
       unrescue();                   /* inline styles outlive the stylesheet */
       groundPalette = null;
       shadowSheetFor('');           /* neutralise the adopted copies in place */
@@ -989,6 +1319,7 @@
     paintShadowRoots(shadowSheetFor(NWT.buildCSS(s, null, { shadow: true })));
     writeCache(true, s.themeId);
     renderHud(s);
+    renderPane(s);
 
     const theme = NWT.getTheme(s);
     /* One palette, one scheduler, one undo, whichever pass is wanted.

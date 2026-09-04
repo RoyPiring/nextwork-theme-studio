@@ -134,6 +134,7 @@
     renderThemes();
     renderDials();
     renderFocus();
+    renderCompanion();
   }
 
   /* A range input fires on every pixel of travel. Writing storage on each one
@@ -211,9 +212,138 @@
     if (f.running) focusTick = setInterval(renderFocus, 1000);
   }
 
+  /* ---- the companion pane ---- */
+
+  function companionState() {
+    return Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
+  }
+
+  function saveCompanion(patch) {
+    const companion = Object.assign({}, companionState(), patch);
+    save({ companion: companion });
+    renderCompanion();
+  }
+
+  function renderCompanion() {
+    const c = companionState();
+    const tiles = Array.isArray(c.tiles) ? c.tiles : [];
+
+    $('companionEnabled').checked = !!c.enabled;
+    $('companion-empty').style.display = tiles.length ? 'none' : '';
+
+    const host = $('companion-tiles');
+    host.textContent = '';
+    tiles.forEach(function (tile) {
+      /* Two real buttons side by side rather than one inside the other. A
+       * button nested in a button is invalid, and the browser gives the inner
+       * one no keyboard activation of its own - so reaching the × with Tab and
+       * pressing Enter used to fire the outer button and switch to the tile
+       * instead of removing it. */
+      const group = document.createElement('span');
+      group.className = 'tile';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tile-go';
+      btn.title = tile.url;
+      /* Which one is in the pane now, said the same way the session lengths
+       * say which is chosen. */
+      btn.setAttribute('aria-pressed', String(tile.url === c.url));
+      btn.textContent = tile.label;
+      /* Choosing one shows the pane: picking something to watch and then
+       * having to turn the pane on as well is a step with no meaning. */
+      btn.addEventListener('click', function () {
+        saveCompanion({ url: tile.url, enabled: true });
+      });
+
+      /* Its own control rather than a second click target on the tile: a row
+       * of things you go to should not lose one when you miss. */
+      const drop = document.createElement('button');
+      drop.type = 'button';
+      drop.className = 'drop';
+      drop.title = 'Remove ' + tile.label;
+      drop.setAttribute('aria-label', 'Remove ' + tile.label);
+      drop.textContent = '×';
+      drop.addEventListener('click', function () {
+        saveCompanion({
+          tiles: tiles.filter(function (t) { return t.url !== tile.url; }),
+          url: c.url === tile.url ? '' : c.url
+        });
+      });
+
+      group.appendChild(btn);
+      group.appendChild(drop);
+      host.appendChild(group);
+    });
+  }
+
+  function addTile() {
+    const field = $('companion-url');
+    const raw = field.value.trim();
+    const src = NWT.companionSrc(raw);
+
+    if (!src) {
+      field.setAttribute('aria-invalid', 'true');
+      /* Worded without the scheme spelled out. The audit forbids a remote
+       * address in shipped code and it is right to: an exception for prose
+       * is an exception, and the sentence reads the same either way. */
+      toastNote('That needs to be a full web address, starting with https.');
+      return;
+    }
+    field.removeAttribute('aria-invalid');
+
+    const c = companionState();
+    const tiles = (Array.isArray(c.tiles) ? c.tiles : [])
+      .filter(function (t) { return t.url !== raw; });
+    tiles.push({ label: labelFor(raw), url: raw });
+
+    field.value = '';
+    saveCompanion({ tiles: tiles, url: raw, enabled: true });
+  }
+
+  /* A short name from the address, since typing one for every link is a
+   * chore and the host is what a person recognises anyway. */
+  function labelFor(raw) {
+    try {
+      const host = new URL(raw).hostname.replace(/^www\./, '');
+      if (host === 'youtu.be' || /(^|\.)youtube\.com$/.test(host)) return 'YouTube';
+
+      /* The name, not the first thing before a dot. Taking the first label
+       * turned app.slack.com into "app" and mail.google.com into "mail",
+       * which names the subdomain rather than the site. The part before the
+       * public suffix is the one people recognise; two-part suffixes like
+       * .co.uk are the reason that is not simply the second-to-last. */
+      const parts = host.split('.');
+      const twoPart = /^(co|com|org|net|gov|ac|edu)$/;
+      const i = parts.length > 2 && twoPart.test(parts[parts.length - 2])
+        ? parts.length - 3 : parts.length - 2;
+      const name = parts[Math.max(0, i)] || host;
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    } catch (e) {
+      return 'Link';
+    }
+  }
+
+  function toastNote(text) {
+    const note = $('companion-note');
+    note.textContent = text;
+    setTimeout(function () {
+      note.textContent = 'The pane floats on the project page. ' +
+                         'Drag its bar to move it, its corner to resize.';
+    }, 3200);
+  }
+
   /* ---- wiring ---- */
   load(function () {
     renderAll();
+
+    $('companionEnabled').addEventListener('change', function () {
+      saveCompanion({ enabled: $('companionEnabled').checked });
+    });
+    $('companion-add').addEventListener('click', addTile);
+    $('companion-url').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') addTile();
+    });
 
     $('enabled').addEventListener('change', function () {
       save({ enabled: $('enabled').checked });

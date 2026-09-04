@@ -217,3 +217,11 @@ test('the service worker path loads its libraries by name', () => {
   env.flush();
   assert.strictEqual(env.badge.text, '', 'the worker did not run after importing');
 });
+
+/* ------------------------------- letting a site be shown inside the pane */
+/* This is the only place the extension changes what the browser does with
+ * someone else's response, so what it does and how far it reaches are worth
+ * more scrutiny than the rest of the file put together. */
+
+const DISCORD = 'https://discord.com/channels/1/2';
+

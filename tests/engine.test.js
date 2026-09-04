@@ -526,3 +526,86 @@ test('the over-state colour is readable on the pill in every theme', () => {
     assert.ok(r >= 4.5, id + ': over-state clock is ' + r.toFixed(2) + ':1 on the pill');
   }
 });
+test('a YouTube link becomes the player, which is the part that can be framed', () => {
+  /* A watch page refuses to appear in a frame. The player does not, and it is
+   * at a different address - so pasting the link from the address bar, which
+   * is the obvious thing to do, has to work. */
+  const embed = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+  assert.equal(NWT.companionSrc('https://www.youtube.com/watch?v=dQw4w9WgXcQ'), embed);
+  assert.equal(NWT.companionSrc('https://youtube.com/watch?v=dQw4w9WgXcQ'), embed);
+  assert.equal(NWT.companionSrc('https://m.youtube.com/watch?v=dQw4w9WgXcQ'), embed);
+  assert.equal(NWT.companionSrc('https://youtu.be/dQw4w9WgXcQ'), embed);
+  assert.equal(NWT.companionSrc('https://www.youtube.com/shorts/dQw4w9WgXcQ'), embed);
+});
+
+test('a timestamp on the link is kept', () => {
+  assert.equal(NWT.companionSrc('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=90'),
+               'https://www.youtube.com/embed/dQw4w9WgXcQ?start=90');
+});
+
+test('anything else is passed through as it was given', () => {
+  const url = 'https://discord.com/channels/1/2';
+  assert.equal(NWT.companionSrc(url), url);
+});
+
+test('an address the pane cannot open is refused', () => {
+  /* http would be blocked as mixed content on an https page and the pane
+   * would sit there empty; the others would run in the page rather than in a
+   * frame of their own. */
+  ['', '   ', null, undefined, 'not a url', 'example.com',
+   'http://example.com', 'javascript:alert(1)',
+   'data:text/html,<b>x</b>', 'file:///etc/passwd'].forEach(bad => {
+    assert.equal(NWT.companionSrc(bad), null, JSON.stringify(bad) + ' was accepted');
+  });
+});
+
+test('a video id that is not one is not turned into a player', () => {
+  /* Rather than building a player address around whatever was in v=. */
+  const odd = 'https://www.youtube.com/watch?v=' + '../../evil';
+  assert.ok(!String(NWT.companionSrc(odd)).includes('/embed/'),
+    'a bad id was built into a player address');
+});
+
+test('a timestamp is kept in every form the share button writes', () => {
+  /* Reading it as a plain number gave NaN for all but the first, and the
+   * start time was then silently dropped - on exactly the links people copy,
+   * since the share button writes seconds with a suffix. */
+  const base = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=';
+  const player = 'https://www.youtube.com/embed/dQw4w9WgXcQ?start=';
+  assert.equal(NWT.companionSrc(base + '90'), player + '90');
+  assert.equal(NWT.companionSrc(base + '90s'), player + '90');
+  assert.equal(NWT.companionSrc(base + '1m30s'), player + '90');
+  assert.equal(NWT.companionSrc(base + '1h2m3s'), player + '3723');
+  assert.equal(NWT.companionSrc(base + '2m'), player + '120');
+});
+
+test('a timestamp that is not one is dropped rather than passed on', () => {
+  const base = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=';
+  ['', 'soon', '-30', '1x2', '9e9'].forEach(bad => {
+    assert.equal(NWT.companionSrc(base + bad),
+      'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      JSON.stringify(bad) + ' was carried into the player address');
+  });
+});
+
+test('a player is known to need no permission; anything else is not', () => {
+  assert.equal(NWT.framesFreely('https://www.youtube.com/embed/x'), true);
+  ['https://www.youtube.com/watch?v=x', 'https://discord.com/channels/1/2',
+   'https://evil.example/embed/', '', null].forEach(other => {
+    assert.equal(NWT.framesFreely(other), false, JSON.stringify(other));
+  });
+});
+
+test('the pane will not point back at the site it sits on', () => {
+  /* The frame is sandboxed with allow-same-origin, which a cross-origin page
+   * needs to stay signed in. Pointed at nextwork.ai it means the opposite: the
+   * framed page then shares an origin with its parent, a sandbox does not
+   * restrain a same-origin document, and the missing allow-top-navigation
+   * stops restraining anything. */
+  ['https://nextwork.ai/projects/1', 'https://www.nextwork.ai/',
+   'https://app.nextwork.ai/x'].forEach(url => {
+    assert.equal(NWT.companionSrc(url), null, url + ' was accepted');
+  });
+  /* A different site that merely ends in something similar is not the same. */
+  assert.ok(NWT.companionSrc('https://nextwork.ai.example/x'));
+});
