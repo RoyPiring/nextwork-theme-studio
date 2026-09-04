@@ -1110,6 +1110,24 @@
     return Math.round(window.innerWidth * frac);
   }
 
+  /* The rule report, mirrored onto the page as an attribute.
+   *
+   * Nothing reads this but a person looking for why a frame is empty. It is
+   * here because every other way of finding out needs the browser's own
+   * extension pages, and the failure it describes - a rule that was never
+   * installed - is indistinguishable on the page from a site that will not be
+   * framed. One attribute turns a week of guessing into a glance. */
+  function reportRules(settings) {
+    const r = settings.ruleReport;
+    if (!TOP_FRAME || !document.documentElement) return;
+    if (!r) { document.documentElement.removeAttribute('data-nwt-rules'); return; }
+    try {
+      document.documentElement.setAttribute('data-nwt-rules', JSON.stringify({
+        wanted: r.wanted || [], installed: r.installed || [], error: r.error || ''
+      }));
+    } catch (e) { /* never break the page over a diagnostic */ }
+  }
+
   function renderSplit(settings) {
     const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
     if (!settings.enabled || !split.enabled || !TOP_FRAME) { removeSplit(); return; }
@@ -1825,6 +1843,7 @@
     renderHud(s);
     renderPane(s);
     renderSplit(s);
+    reportRules(s);
 
     const theme = NWT.getTheme(s);
     /* One palette, one scheduler, one undo, whichever pass is wanted.

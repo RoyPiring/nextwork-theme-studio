@@ -249,7 +249,30 @@ function syncRules(done) {
       chrome.declarativeNetRequest.updateDynamicRules({
         removeRuleIds: (existing || []).map(r => r.id),
         addRules: wanted
-      }, function () { if (done) done(hosts); });
+      }, function () {
+        /* Whether that worked, written down where it can be read.
+         *
+         * This call reports failure the way the rest of the API does - by
+         * setting lastError and carrying on - and it was being ignored. A rule
+         * the browser rejects therefore left no rule, no error and no trace,
+         * and the only visible symptom was a frame that stayed blank, which is
+         * also what a site refusing to be framed looks like. Days went into
+         * telling those two apart by guesswork. */
+        const failed = chrome.runtime.lastError && chrome.runtime.lastError.message;
+        chrome.declarativeNetRequest.getDynamicRules(function (now) {
+          chrome.storage.local.set({
+            ruleReport: {
+              at: Date.now(),
+              wanted: hosts,
+              installed: (now || []).map(function (r) {
+                return (r.condition && (r.condition.requestDomains || [])[0]) || String(r.id);
+              }),
+              error: failed || ''
+            }
+          });
+          if (done) done(hosts);
+        });
+      });
     });
   });
 }
