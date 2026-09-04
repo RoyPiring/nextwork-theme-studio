@@ -1450,11 +1450,12 @@ test('a repaint does not reload the split, and a rebuilt one is not left empty',
     'the rebuilt panel was left empty');
 });
 
-test('a refused Discord channel offers the widget rather than substituting it', () => {
-  /* The link named a channel, so that is what is loaded. When the browser
-   * refuses it - Discord's application will not be embedded by anyone - the
-   * widget is held out as a different thing you can choose, with its own
-   * button, instead of being swapped in behind your back. */
+
+test('a refused site offers to go beside the page, where it runs in full', () => {
+  /* A frame cannot hold an application that refuses to be embedded, and no
+   * permission changes that. A window of its own is not inside another page,
+   * so everything works there - signed in, messages, and a voice channel you
+   * can actually hear, which no embeddable view offers at all. */
   const page = loadContentScript({
     settings: { enabled: true,
       split: { enabled: true, url: 'https://discord.com/channels/1432837534118838355/99' } }
@@ -1463,40 +1464,28 @@ test('a refused Discord channel offers the widget rather than substituting it', 
   const el = page.doc.getElementById('nwt-split');
 
   assert.equal(el.getAttribute('data-state'), 'blocked');
-  assert.equal(el.getAttribute('data-instead'), '1', 'nothing was offered');
+  assert.equal(el.getAttribute('data-instead'), '1', 'no way forward was offered');
+  assert.match(el.querySelector('.nwt-split-instead').textContent, /beside the page/);
 
   el.querySelector('.nwt-split-instead').click();
   page.flush();
 
-  assert.equal(page.stored.split.url,
-    'https://discord.com/widget?id=1432837534118838355&theme=dark',
-    'choosing the widget did not switch to it');
+  const asked = page.sent.filter(m => m.type === 'companion:dock');
+  assert.equal(asked.length, 1, 'the button did not lead anywhere');
+  assert.equal(asked[0].url, 'https://discord.com/channels/1432837534118838355/99',
+    'it sent something other than the link that was refused');
+  assert.ok(asked[0].screen.width > 0,
+    'it asked for a split without saying how big the screen is');
+  assert.equal(page.stored.split.enabled, false,
+    'the panel was left holding a frame for something now beside the page');
 });
 
-test('nothing is offered for a site that publishes no other view', () => {
+test('a panel with no usable address offers nothing', () => {
   const page = loadContentScript({
-    settings: { enabled: true, split: { enabled: true, url: 'https://example.com/app' } }
+    settings: { enabled: true, split: { enabled: true, url: 'not a url' } }
   });
   page.flush();
   const el = page.doc.getElementById('nwt-split');
-  assert.equal(el.getAttribute('data-state'), 'blocked');
-  assert.notEqual(el.getAttribute('data-instead'), '1',
-    'it offered an alternative that does not exist');
-});
-
-test('a widget link goes straight into the frame and is never offered to itself', () => {
-  /* The premise the offer relies on: a published embed is not refused, so it
-   * never reaches the branch that would suggest replacing it with itself. */
-  const page = loadContentScript({
-    settings: { enabled: true, split: { enabled: true,
-      url: 'https://discord.com/widget?id=1432837534118838355&theme=dark' } }
-  });
-  page.flush();
-  const el = page.doc.getElementById('nwt-split');
-
-  assert.equal(el.getAttribute('data-state'), 'ready',
-    'a published embed was treated as a site that refuses to be framed');
-  assert.equal(el.querySelector('.nwt-split-frame').getAttribute('src'),
-    'https://discord.com/widget?id=1432837534118838355&theme=dark');
+  assert.equal(el.getAttribute('data-state'), 'empty');
   assert.notEqual(el.getAttribute('data-instead'), '1');
 });

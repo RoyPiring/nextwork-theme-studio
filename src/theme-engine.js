@@ -489,18 +489,6 @@
    * The audit allows this one literal by name and nothing else. */
   const YOUTUBE_PLAYER = 'https://www.youtube.com/embed/';
 
-  /* The second, and for the same reason as the first.
-   *
-   * Discord's application refuses to be shown inside another page, and no
-   * permission or header changes that in any way worth having. But Discord
-   * publishes a widget that is meant to be embedded - a read-only view of one
-   * server's channel and who is in it - and that address does not refuse.
-   *
-   * So a link to a channel is turned into a link to the widget, exactly as a
-   * link to a watch page is turned into a link to the player. The address bar
-   * gives you the first; the thing that can actually sit beside your work is
-   * the second; and nobody should have to know that. */
-  const DISCORD_WIDGET = 'https://discord.com/widget';
 
   /* What to actually put in the companion pane for a given address.
    *
@@ -532,27 +520,7 @@
    * Kept to what the extension itself produces rather than a list of hosts to
    * keep up to date: anything else has to be asked for. */
   function framesFreely(src) {
-    if (typeof src !== 'string') return false;
-    return src.indexOf(YOUTUBE_PLAYER) === 0 || src.indexOf(DISCORD_WIDGET) === 0;
-  }
-
-  /* The widget address for a Discord channel link, or nothing.
-   *
-   * Offered rather than substituted. A channel link means that channel, and
-   * quietly turning it into something else takes away what was asked for: the
-   * widget is a member list and an invite, not the conversation. Discord
-   * publishes no embeddable view of a channel's messages, so the honest shape
-   * is to load what was given, and to hold this out as a different thing you
-   * can choose when the first is refused. */
-  function discordWidget(raw) {
-    let url;
-    try { url = new URL(String(raw == null ? '' : raw).trim()); } catch (e) { return null; }
-    if (url.protocol !== 'https:') return null;
-    const host = url.hostname.replace(/^www\./, '');
-    if (host !== 'discord.com' && host !== 'discordapp.com') return null;
-    if (url.pathname === '/widget') return url.href;
-    const channel = /^\/channels\/(\d{5,25})(?:\/|$)/.exec(url.pathname);
-    return channel ? DISCORD_WIDGET + '?id=' + channel[1] + '&theme=dark' : null;
+    return typeof src === 'string' && src.indexOf(YOUTUBE_PLAYER) === 0;
   }
 
   function companionSrc(raw) {
@@ -1903,7 +1871,6 @@
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
     focusElapsed, focusRemaining, formatDuration, companionSrc, framesFreely,
-    discordWidget,
     cssReachesOut, withoutCssEscapes,
     toneOf,
     debounce,

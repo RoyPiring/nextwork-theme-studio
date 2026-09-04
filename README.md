@@ -120,18 +120,22 @@ its full width back.
 
 **A link is loaded as you gave it.** The one translation is YouTube: a watch
 address becomes the player, because the player is the same video and the watch
-page cannot be embedded at all. Nothing else is substituted — a link to a
-particular page means that page.
+page cannot be embedded at all. Nothing else is substituted.
 
-When a site refuses, the panel says so and offers what that site *does* publish
-for embedding, as a choice rather than a swap. For a Discord channel that is
-the server's widget: who is online, and an invite. It is not the conversation
-— Discord publishes no embeddable view of a channel's messages, and its full
-application cannot be framed by anyone. Taking your channel link and quietly
-showing you a member list instead would be answering a different question.
+**An application you sign in to cannot go in a frame.** Discord, a mail client
+and their kind refuse to be shown inside another page, and no permission,
+header or setting changes that — the refusal is specifically about being
+*inside* a page. There is no partial version worth having either: the read-only
+views such sites publish leave out the parts you wanted, and none of them
+carries a voice channel.
 
-The widget needs **Enable Server Widget** turned on in that server's settings,
-under Widget.
+So the panel offers to open it **beside the page** instead. One button: this
+window takes the left of the screen, that site takes the right, both as real
+browser windows. It runs in full there — signed in, every channel, and voice
+you can actually hear — because a window of its own is not inside another page.
+
+That is the honest division. Things built to be embedded go in the split;
+applications go beside it.
 
 **If a panel is empty, check your other extensions first.** A content blocker —
 Privacy Badger, uBlock and their kin — will replace a third-party frame with a

@@ -305,13 +305,6 @@ check('no remote URLs in extension code', () => {
       if (/^\s*const YOUTUBE_PLAYER = /.test(line)) {
         stripped = stripped.replace(/https:\/\/www\.youtube\.com\/embed\//g, '');
       }
-      /* And Discord's widget, on the same terms and for the same reason: an
-       * address a site publishes so that it can be embedded. Named here one
-       * line at a time, so a third is a change to this file that has to be
-       * argued for rather than something that slips in beside these two. */
-      if (/^\s*const DISCORD_WIDGET = /.test(line)) {
-        stripped = stripped.replace(/https:\/\/discord\.com\/widget/g, '');
-      }
       if (/https?:\/\//.test(stripped)) offenders.push(rel(f) + ':' + (i + 1));
     });
   });

@@ -1195,7 +1195,7 @@
       said.textContent =
         'This site refuses to be shown inside another page. Allow it in the ' +
         'extension popup, or use the arrow above to open it in a window.';
-      offerInstead(el, split.url);
+      offerInstead(el);
     });
   }
 
@@ -1216,27 +1216,29 @@
     }, 2500);
   }
 
-  /* A second thing to try, when the site publishes one.
+  /* The way out that actually gives you the whole site.
    *
-   * Discord's application will not be embedded, but Discord's widget will -
-   * the members of a server and an invite to it, which is not the channel but
-   * is something rather than an empty rectangle. It is put here as a choice
-   * because it is not what was asked for: the link named a channel. */
-  function offerInstead(el, rawUrl) {
+   * A frame cannot hold an application that refuses to be embedded, and no
+   * permission changes that - the refusal is about being inside another page.
+   * A window of its own is not inside another page, so everything works there:
+   * signed in, messages, and a voice channel you can hear, none of which any
+   * embeddable view offers.
+   *
+   * So the refusal offers to put it beside the page instead: this window takes
+   * the left of the screen, that site takes the right, and both are real
+   * browser windows. It is one button rather than a paragraph explaining why
+   * the panel is empty. */
+  function offerInstead(el) {
+    /* Only reached from the refusal, which is only reached once the address
+     * has been read and accepted - so there is always something to open. An
+     * address that cannot be parsed stops earlier, at the empty state, and
+     * never gets this far. */
     const button = el.querySelector('.nwt-split-instead');
-    /* Only where the site publishes something else. A link that is already the
-     * widget never arrives here: `framesFreely` sends it straight to the frame,
-     * so it is never refused and never asks for an alternative. */
-    const widget = NWT.discordWidget(rawUrl);
-    if (!widget) {
-      el.removeAttribute('data-instead');
-      return;
-    }
     el.setAttribute('data-instead', '1');
-    button.textContent = 'Show the server\u2019s widget instead';
-    button.title = 'Who is online in that server, which Discord does publish ' +
-                   'for embedding. Not the channel: Discord offers no ' +
-                   'embeddable view of its messages.';
+    button.textContent = 'Open it beside the page';
+    button.title = 'This window keeps the left of the screen and the site ' +
+                   'takes the right, both as real browser windows - where it ' +
+                   'runs in full, voice channels included.';
   }
 
   function splitLabel(split, src) {
@@ -1271,8 +1273,19 @@
       e.stopPropagation();
       chrome.storage.local.get({ split: {} }, function (stored) {
         if (chrome.runtime.lastError) return;
-        const widget = NWT.discordWidget((stored.split || {}).url);
-        if (widget) saveSplit({ url: widget });
+        const src = NWT.companionSrc((stored.split || {}).url);
+        if (!src) return;
+        /* The screen's own measurements, from the page: reading them in the
+         * worker needs a permission this does not want, and every page knows
+         * how big its own screen is. availWidth and availLeft, so a taskbar
+         * counts as taken rather than as somewhere to hide a window. */
+        chrome.runtime.sendMessage({
+          type: 'companion:dock', url: src,
+          screen: { left: screen.availLeft | 0, top: screen.availTop | 0,
+                    width: screen.availWidth, height: screen.availHeight }
+        }, function () { void chrome.runtime.lastError; });
+        /* The panel has nothing left to hold once it is beside the page. */
+        saveSplit({ enabled: false });
       });
     });
     el.querySelector('.nwt-split-out').addEventListener('click', function () {

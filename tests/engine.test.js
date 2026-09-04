@@ -610,20 +610,6 @@ test('the pane will not point back at the site it sits on', () => {
   assert.ok(NWT.companionSrc('https://nextwork.ai.example/x'));
 });
 
-test('a widget link is left as it is', () => {
-  const w = 'https://discord.com/widget?id=123456789&theme=dark';
-  assert.equal(NWT.companionSrc(w), w);
-});
-
-test('the widget needs no permission, because Discord published it to be framed', () => {
-  const widget = NWT.discordWidget('https://discord.com/channels/1432837534118838355/1');
-  assert.equal(NWT.framesFreely(widget), true,
-    'it would ask permission for something that already allows framing');
-  assert.equal(NWT.framesFreely('https://discord.com/channels/1/2'), false,
-    'the application itself does not frame freely and must not claim to');
-});
-
-
 test('a Discord channel link is kept as it was given', () => {
   /* A channel link means that channel. Quietly turning it into the widget
    * takes away what was asked for - the widget is a member list and an
@@ -633,25 +619,3 @@ test('a Discord channel link is kept as it was given', () => {
   assert.equal(NWT.companionSrc(channel), channel);
 });
 
-test('the widget for a channel link is available to offer', () => {
-  const widget = 'https://discord.com/widget?id=1432837534118838355&theme=dark';
-  assert.equal(NWT.discordWidget('https://discord.com/channels/1432837534118838355/99'), widget);
-  assert.equal(NWT.discordWidget('https://discord.com/channels/1432837534118838355'), widget);
-  assert.equal(NWT.discordWidget('https://discordapp.com/channels/1432837534118838355/1'), widget);
-});
-
-test('nothing is offered where there is no server to offer', () => {
-  ['https://discord.com/', 'https://discord.com/channels/@me',
-   'https://discord.com/channels/@me/123', 'https://www.youtube.com/watch?v=x',
-   'http://discord.com/channels/123456/1', 'not a url', ''
-  ].forEach(function (url) {
-    assert.equal(NWT.discordWidget(url), null, JSON.stringify(url) + ' produced one');
-  });
-});
-
-test('a widget link is already the widget, so nothing else is offered for it', () => {
-  const w = 'https://discord.com/widget?id=123456789&theme=dark';
-  assert.equal(NWT.companionSrc(w), w);
-  assert.equal(NWT.discordWidget(w), w);
-  assert.equal(NWT.framesFreely(w), true, 'it would ask permission for a published embed');
-});
