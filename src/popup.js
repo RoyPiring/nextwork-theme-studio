@@ -55,6 +55,10 @@
     r.setProperty('--ui-text-muted', p.textMuted);
     r.setProperty('--ui-accent', p.accent);
     r.setProperty('--ui-accent-text', p.accentText);
+    /* The same colour the pill on the page turns when a session runs over.
+     * It was a fixed value here and a palette colour there, so one state had
+     * two colours depending on where you were looking at it. */
+    r.setProperty('--ui-over', p.status.error[400]);
   }
 
   function allThemes() {
@@ -271,8 +275,16 @@
       const btn = e.target.closest('button[data-min]');
       if (!btn) return;
       /* The other thing that begins a new session: a different length is a
-       * different end to reach, and it has not been announced yet. */
-      saveFocus({ targetMin: Number(btn.dataset.min), chimedFor: 0 });
+       * different end to reach, and it has not been announced yet.
+       *
+       * Only when it actually differs. Clicking the length that is already
+       * chosen changes nothing about the session, and clearing the marker
+       * there re-announced an end that had already been announced - the same
+       * fault the resume path was fixed for, through another door. */
+      const chosen = Number(btn.dataset.min);
+      const patch = { targetMin: chosen };
+      if (chosen !== focusState().targetMin) patch.chimedFor = 0;
+      saveFocus(patch);
     });
 
     $('sceneBackdrop').addEventListener('change', function () {

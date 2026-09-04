@@ -1316,8 +1316,14 @@
            ' box-shadow: 0 0 0 6px ' + rgba(p.status.error[400], 0) + '; } }');
     L.push('#nwt-focus[data-state="over"] { border-color: ' + p.status.error[400] + ';' +
            ' animation: nwt-focus-over 1.1s ease-in-out infinite; }');
+    /* The clock itself is body-weight text, so it is held to the body floor
+     * rather than taken on trust. The palette's error tone lands at 4.49:1 on
+     * one theme's pill - close enough to look fine and still under the line -
+     * so it is lifted to the ratio instead of assumed to clear it. */
     L.push('#nwt-focus[data-state="over"] .nwt-focus-time { color: ' +
-           p.status.error[400] + '; }');
+           /* Just above the floor rather than exactly on it: landing on 4.5
+            * leaves the result a hair under once it is rounded to a colour. */
+           toneOf(p.status.error[400], p.surface, 4.6) + '; }');
     /* Still red, still obviously over, just not moving. */
     L.push('@media (prefers-reduced-motion: reduce) {' +
            ' #nwt-focus[data-state="over"] { animation: none; } }');

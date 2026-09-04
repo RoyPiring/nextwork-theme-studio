@@ -366,3 +366,20 @@ test('pausing and resuming does not clear the marker', () => {
   p.fire('focus-toggle', 'click');
   assert.ok(p.stored.focus.chimedFor, 'resuming cleared it');
 });
+
+test('choosing the length already chosen does not re-announce the session', () => {
+  /* Clicking the chip that is already selected changes nothing about the
+   * session, so clearing the marker there rang for an end that had already
+   * been announced - the same fault as the resume path, through another door. */
+  const p = openPopup({
+    focus: { running: true, startedAt: Date.now() - 26 * 60000,
+             accumulatedMs: 0, targetMin: 25, chime: true, chimedFor: 1 }
+  });
+  const chips = p.el('focus-targets').querySelectorAll('button[data-min]');
+  const same = chips.find(b => Number(b.dataset.min) === 25);
+
+  p.click(same);
+  assert.equal(p.stored.focus.targetMin, 25);
+  assert.ok(p.stored.focus.chimedFor,
+    're-picking the same length cleared the marker, so it will chime again');
+});

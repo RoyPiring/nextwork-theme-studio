@@ -29,40 +29,32 @@ test('a light panel gets repainted, a dark one is left alone', () => {
   assert.strictEqual(bg(dark), '', 'a dark panel should be untouched');
 });
 
-test('a stacked pane keeps its background instead of showing the page behind', () => {
-  /* The stylesheet makes .bg-paper transparent so the scenery can show through
-   * the page ground. That is right for the actual ground and wrong for every
-   * copy of it that is a panel stacked over something else. In a split view the
-   * documentation pane sat over the project page, went transparent, and the
-   * page underneath showed through it.
-   *
-   * The stylesheet decides by class name, which is all CSS can do. This is the
-   * runtime correcting it by measurement. */
-  const env = loadContentScript({ settings: { enabled: true, themeId: 'cherryBlossom' } });
+test('a small element is ignored however light it is', () => {
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'concrete' } });
+  const chip = env.addPanel(LIGHT, { width: 80, height: 24 });
+  env.flush();
+  env.mutate();
+  env.flush();
+  assert.strictEqual(bg(chip), '', 'a chip is not a panel');
+});
+
+test('turning the theme off gives panels their colour back', () => {
+  /* The inline style is written with !important and nothing removed it, so a
+   * panel kept the theme surface after the theme was switched off. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'concrete' } });
+  const panel = env.addPanel(LIGHT);
+  env.flush();
+  env.mutate();
+  env.flush();
+  assert.ok(bg(panel), 'precondition: the panel was repainted');
+
+  env.chrome.storage.local.set({ enabled: false });
   env.flush();
 
-  /* The real page ground: .bg-paper, full width, nothing positioned above it. */
-  const ground = env.doc.createElement('div');
-  ground.classList.add('bg-paper');
-  ground._rect = { left: 0, top: 0, width: 1440, height: 2000 };
-  env.doc.body.appendChild(ground);
-
-  /* A pane stacked over it, carrying no positioning class of its own. */
-  const shell = env.doc.createElement('div');
-  shell._computed = { position: 'fixed' };
-  env.doc.body.appendChild(shell);
-  const pane = env.doc.createElement('div');
-  pane.classList.add('bg-paper');
-  pane._rect = { left: 720, top: 0, width: 720, height: 900 };
-  shell.appendChild(pane);
-
-  env.mutate([{ addedNodes: [ground, shell] }]);
-  env.flush();
-
-  assert.ok(pane.style.getPropertyValue('background-color'),
-    'a pane inside a positioned ancestor should keep a background');
-  assert.strictEqual(ground.style.getPropertyValue('background-color'), '',
-    'the real page ground should stay transparent so the scenery shows');
+  assert.strictEqual(bg(panel), '',
+    'disabling the theme should remove the inline background');
+  assert.strictEqual(panel.dataset.nwtLit, undefined,
+    'and should clear the marker, or the panel can never be repainted again');
 });
 
 test('switching theme repaints panels instead of leaving the old colour', () => {
@@ -85,34 +77,6 @@ test('switching theme repaints panels instead of leaving the old colour', () => 
   assert.ok(second, 'the panel should still be repainted after the switch');
   assert.notStrictEqual(second, first,
     'the panel kept the previous theme colour');
-});
-
-test('turning the theme off gives panels their colour back', () => {
-  /* The inline style is written with !important and nothing removed it, so a
-   * panel kept the theme surface after the theme was switched off. */
-  const env = loadContentScript({ settings: { enabled: true, themeId: 'concrete' } });
-  const panel = env.addPanel(LIGHT);
-  env.flush();
-  env.mutate();
-  env.flush();
-  assert.ok(bg(panel), 'precondition: the panel was repainted');
-
-  env.chrome.storage.local.set({ enabled: false });
-  env.flush();
-
-  assert.strictEqual(bg(panel), '',
-    'disabling the theme should remove the inline background');
-  assert.strictEqual(panel.dataset.nwtLit, undefined,
-    'and should clear the marker, or the panel can never be repainted again');
-});
-
-test('a small element is ignored however light it is', () => {
-  const env = loadContentScript({ settings: { enabled: true, themeId: 'concrete' } });
-  const chip = env.addPanel(LIGHT, { width: 80, height: 24 });
-  env.flush();
-  env.mutate();
-  env.flush();
-  assert.strictEqual(bg(chip), '', 'a chip is not a panel');
 });
 
 test('the stylesheet is not rewritten when nothing changed', () => {
@@ -198,6 +162,42 @@ test('a mutation walks only what was added, not the whole page', () => {
 
   assert.ok(walked.fromRoot === 0,
     'the whole document was walked ' + walked.fromRoot + ' time(s) for one added node');
+});
+
+test('a stacked pane keeps its background instead of showing the page behind', () => {
+  /* The stylesheet makes .bg-paper transparent so the scenery can show through
+   * the page ground. That is right for the actual ground and wrong for every
+   * copy of it that is a panel stacked over something else. In a split view the
+   * documentation pane sat over the project page, went transparent, and the
+   * page underneath showed through it.
+   *
+   * The stylesheet decides by class name, which is all CSS can do. This is the
+   * runtime correcting it by measurement. */
+  const env = loadContentScript({ settings: { enabled: true, themeId: 'cherryBlossom' } });
+  env.flush();
+
+  /* The real page ground: .bg-paper, full width, nothing positioned above it. */
+  const ground = env.doc.createElement('div');
+  ground.classList.add('bg-paper');
+  ground._rect = { left: 0, top: 0, width: 1440, height: 2000 };
+  env.doc.body.appendChild(ground);
+
+  /* A pane stacked over it, carrying no positioning class of its own. */
+  const shell = env.doc.createElement('div');
+  shell._computed = { position: 'fixed' };
+  env.doc.body.appendChild(shell);
+  const pane = env.doc.createElement('div');
+  pane.classList.add('bg-paper');
+  pane._rect = { left: 720, top: 0, width: 720, height: 900 };
+  shell.appendChild(pane);
+
+  env.mutate([{ addedNodes: [ground, shell] }]);
+  env.flush();
+
+  assert.ok(pane.style.getPropertyValue('background-color'),
+    'a pane inside a positioned ancestor should keep a background');
+  assert.strictEqual(ground.style.getPropertyValue('background-color'), '',
+    'the real page ground should stay transparent so the scenery shows');
 });
 
 test('an inset card keeps its background, the full-width ground does not', () => {
@@ -760,4 +760,33 @@ test('the audio context is closed rather than left open', () => {
   page.flush();
   assert.equal(page.played.length, 1);
   assert.ok(page.played[0].closed, 'the context was left open after the chime');
+});
+
+test('the in-flight guard does not clear itself before the write lands', () => {
+  /* Between playing and the marker reaching storage, storage still says the
+   * session has not been announced. The guard reset at the top of the paint
+   * read that as "nothing has chimed", cleared the local flag, and the next
+   * paint a second later played again. */
+  const page = loadContentScript({
+    settings: { enabled: true, focus: { enabled: true, running: true,
+      startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
+      chime: true } }
+  });
+  /* Hold the write: the read it depends on is delivered, the set is not. */
+  const real = page.chrome.storage.local.set;
+  let held = [];
+  page.chrome.storage.local.set = function (patch, cb) { held.push([patch, cb]); };
+
+  page.flush();
+  assert.equal(page.played.length, 1, 'it did not chime once');
+
+  /* More paints while the marker is still in flight. */
+  page.chrome.storage.local.set = real;
+  page.chrome.storage.local.set({ hue: 5 });
+  page.flush();
+  page.chrome.storage.local.set({ hue: 6 });
+  page.flush();
+
+  assert.equal(page.played.length, 1,
+    'it chimed ' + page.played.length + ' times while the marker was in flight');
 });

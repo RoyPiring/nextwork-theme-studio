@@ -241,6 +241,10 @@
    * window and both play; the cost of losing that race is one duplicated
    * chime, which is worth less than the machinery to close it. */
   let chimed = false;
+  /* Set between playing and the write landing. Without it the reset below
+   * fires in that gap - storage still says nothing has been announced, so the
+   * guard clears itself and the next paint, a second later, plays again. */
+  let chimeWriting = false;
 
   function paintHud(focus) {
     const el = hudEl();
@@ -266,7 +270,7 @@
      * Nothing in the timer's own state distinguishes those two, so the flag is
      * cleared by whatever begins a new session - reset, or a change of length -
      * and by nothing else. */
-    if (!focus.chimedFor) chimed = false;
+    if (!focus.chimedFor && !chimeWriting) chimed = false;
     if (!over || !focus.chime || chimed || focus.chimedFor) return;
 
     /* Marked only once something was actually heard. A browser that has not
@@ -276,11 +280,20 @@
     if (!chime()) return;
 
     chimed = true;
+    chimeWriting = true;
     chrome.storage.local.get({ focus: {} }, function (stored) {
-      if (chrome.runtime.lastError) return;
+      /* Cleared when the write lands, not when this read returns. Clearing it
+       * here left the gap it exists to cover: the marker is not in storage
+       * until the set completes, so a paint in between saw nothing announced
+       * and played a second time.
+       *
+       * Cleared however it ends, including on failure - left set, this tab
+       * would never chime again for any later session. */
+      if (chrome.runtime.lastError) { chimeWriting = false; return; }
       const f = stored.focus || {};
-      if (f.chimedFor) return;
-      chrome.storage.local.set({ focus: Object.assign({}, f, { chimedFor: 1 }) });
+      if (f.chimedFor) { chimeWriting = false; return; }
+      chrome.storage.local.set({ focus: Object.assign({}, f, { chimedFor: 1 }) },
+        function () { chimeWriting = false; });
     });
   }
 
