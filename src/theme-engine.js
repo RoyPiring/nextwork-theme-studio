@@ -1992,6 +1992,10 @@
     L.push('@media (prefers-reduced-motion: reduce) {' +
            ' #nwt-focus[data-ringing="1"] { animation: none; } }');
 
+    /* A real <progress> has no child to repaint - its two halves are drawn
+     * by the browser - so it is told the accent and left to draw itself. */
+    L.push(prefix + 'progress { accent-color: ' + p.accent + '; }');
+
     /* Folded, it is its bar and nothing else. */
     L.push('.nwt-companion[data-collapsed="1"] { height: auto !important; }');
     L.push('.nwt-companion[data-collapsed="1"] .nwt-companion-body,' +

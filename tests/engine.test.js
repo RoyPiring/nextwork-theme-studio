@@ -766,3 +766,27 @@ test('every note is struck, not sounded', () => {
     'the notes are cut off rather than left to die away');
   assert.ok([...new Set(plan.map(n => n.hz))].length > 1, 'it is one note over and over');
 });
+
+/* ------------------------------------------------------- progress bars */
+
+test('every theme can reach the contrast floor a bar needs', () => {
+  /* The page pass repaints a fill that is too close to its track by taking
+   * the theme's accent to whatever lightness clears 3:1. That only works if
+   * the accent can get there from where it starts - an accent with nowhere to
+   * go would be silently left too close, on that theme only. */
+  THEMES.forEach(function (id) {
+    const p = NWT.buildPalette(NWT.getTheme(settings({ themeId: id })));
+    [p.surface, p.surfaceAlt, p.canvas, p.border].forEach(function (track) {
+      const got = NWT.toneOf(p.accent, track, 3.2);
+      const r = C(got, track);
+      assert.ok(r >= 3, id + ': accent reaches only ' + r.toFixed(2) + ':1 against ' + track);
+    });
+  });
+});
+
+test('the reported pairs are the failure they were reported as', () => {
+  /* Read off the two screenshots on the issue. Both are far under the 3:1 a
+   * part of a control needs, and the second is the one that prompted it. */
+  assert.ok(C('#313c4c', '#2a2f36') < 1.5, 'the dark pair now measures as readable');
+  assert.ok(C('#f4e3e9', '#fbe9ee') < 1.5, 'the Mount Fuji pair now measures as readable');
+});
