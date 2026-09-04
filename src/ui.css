@@ -266,6 +266,11 @@ a { color: var(--ui-accent); }
 /* Shown on hover or focus, so a row of tiles reads as places to go rather than
  * as a row of delete buttons - but always reachable, and always visible once
  * the keyboard is on it. */
+/* A tile that opens in a window rather than in the pane, marked so the row
+ * says which is which before you click. */
+#companion-tiles .tile-go.windowed::after {
+  content: " 97"; opacity: .7; font-size: 10px;
+}
 #companion-tiles .drop {
   flex: none; width: 20px; padding: 0; font-size: 13px; line-height: 1;
   color: var(--ui-text-muted); opacity: 0;

@@ -250,10 +250,32 @@
        * say which is chosen. */
       btn.setAttribute('aria-pressed', String(tile.url === c.url));
       btn.textContent = tile.label;
+      if (tile.windowed) {
+        btn.classList.add('windowed');
+        btn.title = tile.url +
+                    ' - opens in a window of its own.' +
+                    ' Shift-click to try it in the pane again.';
+      }
       /* Choosing one shows the pane: picking something to watch and then
-       * having to turn the pane on as well is a step with no meaning. */
-      btn.addEventListener('click', function () {
-        saveCompanion({ url: tile.url, enabled: true });
+       * having to turn the pane on as well is a step with no meaning.
+       *
+       * Unless it is one of the marked ones - a site that will not run inside
+       * another page - in which case choosing it means opening its window,
+       * because that is where it works. Shift undoes the mark, for a site
+       * that was marked by mistake or has since changed. */
+      btn.addEventListener('click', function (e) {
+        if (tile.windowed && !e.shiftKey) {
+          chrome.runtime.sendMessage({
+            type: 'companion:window', url: NWT.companionSrc(tile.url) || tile.url,
+            w: c.w, h: c.h
+          }, function () { void chrome.runtime.lastError; });
+          return;
+        }
+        const next = tiles.map(function (t) {
+          return t.url === tile.url ? Object.assign({}, t, { windowed: false }) : t;
+        });
+        saveCompanion({ url: tile.url, enabled: true,
+                        tiles: e.shiftKey ? next : tiles });
       });
 
       /* Its own control rather than a second click target on the tile: a row

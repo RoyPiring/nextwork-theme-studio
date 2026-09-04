@@ -735,6 +735,9 @@ function loadBackground(options) {
   const permissions = { origins: (opts.origins || []).slice() };
   let dynamicRules = [];
   const windows = [];
+  const windowUpdates = [];
+  const windowRemovedListeners = [];
+  const openWindowIds = new Set();
   /* Which extension page was opened to raise the browser's prompt. Whether it
    * is the popup or the options page depends on the browser, so what matters
    * is that one of them was. */
@@ -782,7 +785,28 @@ function loadBackground(options) {
       }
     },
     windows: {
-      create(o, cb) { windows.push(o); if (cb) cb({ id: windows.length }); }
+      create(o, cb) {
+        windows.push(o);
+        const id = windows.length;
+        openWindowIds.add(id);
+        /* Answered through the queue, the way the real one answers. Called
+         * straight back, it ran inside the caller's own callback - so it saw
+         * that call's `lastError` still set and read its own success as a
+         * failure. Chrome scopes lastError to one callback; so does this. */
+        if (cb) timers.push(function () { cb({ id: id }); });
+      },
+      /* Bringing one forward, and closing one. The pane reuses a window it
+       * already opened rather than making another, so both have to exist. */
+      update(id, o, cb) {
+        if (!openWindowIds.has(id)) {
+          chrome.runtime.lastError = { message: 'No window with id: ' + id };
+          try { if (cb) cb(); } finally { chrome.runtime.lastError = null; }
+          return;
+        }
+        windowUpdates.push({ id: id, options: o });
+        if (cb) cb({ id: id });
+      },
+      onRemoved: { addListener(fn) { windowRemovedListeners.push(fn); } }
     },
     commands: { onCommand: { addListener(fn) { commandListeners.push(fn); } } },
     action: {
@@ -894,6 +918,17 @@ function loadBackground(options) {
     rules() { return dynamicRules.slice(); },
     granted() { return permissions.origins.slice(); },
     windowsOpened() { return windows.slice(); },
+    /* Windows brought forward rather than opened again. */
+    windowsFocused() { return windowUpdates.slice(); },
+    /* Close one without telling the worker, which is what happens when it was
+     * asleep: there is no backlog of events to catch up on. */
+    forgetWindowQuietly(id) { openWindowIds.delete(id); },
+    /* Close one the way a person would, so the worker hears about it. */
+    closeWindow(id) {
+      openWindowIds.delete(id);
+      windowRemovedListeners.forEach(fn => fn(id));
+      flush();
+    },
     pagesOpened() { return pagesOpened.slice(); },
     /* Play the user refusing the browser's prompt. */
     refuseGrants() { grant = false; },

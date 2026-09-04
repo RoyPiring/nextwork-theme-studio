@@ -160,6 +160,32 @@ function originOf(url) {
 
 function pattern(origin) { return origin + '/*'; }
 
+/* Which link is showing in which window, so the same link is brought forward
+ * rather than opened again. Held in the worker rather than in storage: it is
+ * about windows that exist right now, and a worker that restarts has no
+ * windows it still knows about. */
+const paneWindows = Object.create(null);
+
+function openPaneWindow(msg, reply) {
+  chrome.windows.create({
+    url: msg.url, type: 'popup',
+    width: Math.max(320, Math.min(1600, Number(msg.w) || 480)),
+    height: Math.max(240, Math.min(1200, Number(msg.h) || 640))
+  }, function (win) {
+    if (chrome.runtime.lastError || !win) { reply({ opened: false }); return; }
+    paneWindows[msg.url] = win.id;
+    reply({ opened: true, reused: false });
+  });
+}
+
+if (chrome.windows && chrome.windows.onRemoved) {
+  chrome.windows.onRemoved.addListener(function (id) {
+    Object.keys(paneWindows).forEach(function (url) {
+      if (paneWindows[url] === id) delete paneWindows[url];
+    });
+  });
+}
+
 /* One rule per allowed site, rebuilt from what the browser says is granted
  * rather than from anything stored. A permission taken back in the browser's
  * own settings leaves storage untouched, and a rule outliving its permission
@@ -276,15 +302,30 @@ chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
     return true;
   }
 
-  /* A window of its own: a real browser window, so it holds anything at all,
-   * including the sites that refuse to be framed whatever the headers say. */
+  /* A window of its own: a real browser window, so it holds anything at all -
+   * including every site that will not run inside another page whatever its
+   * headers say, and including sites that need to be signed in, because a
+   * window is a first-party context and a frame on someone else's page is
+   * not. That last part is why Discord is blank in the pane and fine here.
+   *
+   * The same link reuses its window rather than opening another. Clicking
+   * twice used to leave two, which is the opposite of keeping one thing in
+   * view beside your work. */
   if (msg.type === 'companion:window') {
     if (!originOf(msg.url)) { reply({ opened: false }); return true; }
-    chrome.windows.create({
-      url: msg.url, type: 'popup',
-      width: Math.max(320, Math.min(1600, Number(msg.w) || 480)),
-      height: Math.max(240, Math.min(1200, Number(msg.h) || 640))
-    }, function () { reply({ opened: !chrome.runtime.lastError }); });
+
+    const known = paneWindows[msg.url];
+    if (known) {
+      chrome.windows.update(known, { focused: true, drawAttention: true },
+        function () {
+          if (!chrome.runtime.lastError) { reply({ opened: true, reused: true }); return; }
+          /* It was closed without us hearing. Forget it and open a new one. */
+          delete paneWindows[msg.url];
+          openPaneWindow(msg, reply);
+        });
+      return true;
+    }
+    openPaneWindow(msg, reply);
     return true;
   }
 });

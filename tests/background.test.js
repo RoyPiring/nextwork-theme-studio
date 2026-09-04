@@ -338,7 +338,7 @@ test('the pane can ask for a page that is able to raise the prompt', () => {
 test('a window is opened at the size the pane was left', () => {
   const bg = loadBackground();
   assert.deepEqual(bg.send({ type: 'companion:window', url: DISCORD, w: 500, h: 400 }),
-                   { opened: true });
+                   { opened: true, reused: false });
   const win = bg.windowsOpened()[0];
   assert.equal(win.url, DISCORD);
   assert.equal(win.type, 'popup');
@@ -409,4 +409,50 @@ test('a site that merely contains nextwork.ai in its name is not mistaken for it
   bg.startup();
   assert.deepEqual(bg.rules().map(r => r.condition.requestDomains[0]),
                    ['nextwork.ai.example']);
+});
+
+test('the same link is brought forward rather than opened twice', () => {
+  /* Two windows of the same thing is the opposite of keeping one thing in
+   * view beside your work. */
+  const bg = loadBackground();
+  assert.deepEqual(bg.send({ type: 'companion:window', url: DISCORD }),
+                   { opened: true, reused: false });
+  assert.deepEqual(bg.send({ type: 'companion:window', url: DISCORD }),
+                   { opened: true, reused: true });
+
+  assert.equal(bg.windowsOpened().length, 1, 'it opened a second window');
+  assert.equal(bg.windowsFocused().length, 1, 'it did not bring the first one forward');
+  assert.equal(bg.windowsFocused()[0].options.focused, true);
+});
+
+test('a different link gets a window of its own', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'companion:window', url: DISCORD });
+  bg.send({ type: 'companion:window', url: 'https://example.com/notes' });
+  assert.equal(bg.windowsOpened().length, 2);
+});
+
+test('closing the window means the next click opens a new one', () => {
+  /* The id is remembered, and a remembered id for a window that is gone would
+   * mean the link could never be opened again. */
+  const bg = loadBackground();
+  bg.send({ type: 'companion:window', url: DISCORD });
+  bg.closeWindow(1);
+
+  assert.deepEqual(bg.send({ type: 'companion:window', url: DISCORD }),
+                   { opened: true, reused: false });
+  assert.equal(bg.windowsOpened().length, 2);
+});
+
+test('a window closed without us hearing is recovered from, not given up on', () => {
+  /* The event can be missed - a worker that was asleep gets no backlog. The
+   * update fails, and that failure has to become a new window rather than a
+   * click that does nothing at all. */
+  const bg = loadBackground();
+  bg.send({ type: 'companion:window', url: DISCORD });
+  bg.forgetWindowQuietly(1);
+
+  assert.deepEqual(bg.send({ type: 'companion:window', url: DISCORD }),
+                   { opened: true, reused: false });
+  assert.equal(bg.windowsOpened().length, 2, 'the click did nothing');
 });

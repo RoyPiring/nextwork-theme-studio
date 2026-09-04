@@ -97,6 +97,24 @@ Allowing a site is worth understanding before you do it, and
 The short version: it applies only inside this pane, only to the site you
 named, and the browser can take it back at any time.
 
+**Some sites will not work in the pane whatever you allow, and Discord is one
+of them.** Removing the framing header lets the page load; it does not make the
+page work. Discord has to be signed in, and a frame sitting on someone else's
+site is not a first-party context, so it never sees your session — it paints
+its dark background and stops there. That is Discord's design, not a setting
+anywhere.
+
+For those, use the arrow. It opens a real browser window, which *is* a
+first-party context, so the site behaves exactly as it does in a tab. Press
+"open it in a window" once and the extension remembers: that tile opens its
+window from then on rather than showing you the same empty rectangle, and
+clicking it again brings the window you already have back to the front instead
+of opening another. Shift-click the tile to try it in the pane again.
+
+The rule of thumb: things built to be embedded — a YouTube video, a doc, a
+dashboard — live in the pane. Full applications you sign in to live in the
+window.
+
 ---
 
 ## Themes and wallpapers

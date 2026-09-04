@@ -629,6 +629,19 @@
      * only once the pane has already failed. */
     el.querySelector('.nwt-companion-out').style.display = src ? '' : 'none';
 
+    /* Marked as belonging in a window, either by choosing it that way or by
+     * giving up on the frame once. Drawing the rectangle again would repeat a
+     * failure that has already been seen. */
+    if (src && windowedNow(companion)) {
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'windowed');
+      refused.textContent =
+        label(companion) + ' opens in a window of its own - it will not run ' +
+        'inside another page. The arrow above brings it back if you close it.';
+      paneShowing = '';
+      return;
+    }
+
     if (!src) {
       frame.removeAttribute('src');
       el.setAttribute('data-state', 'empty');
@@ -668,6 +681,14 @@
         'This site refuses to be shown inside another page. Your browser can ' +
         'allow it here, or the arrow above opens it in a window of its own.';
     });
+  }
+
+  /* Whether the link showing now is one of the marked ones. */
+  function windowedNow(companion) {
+    const tile = (companion.tiles || []).filter(function (t) {
+      return t && t.url === companion.url;
+    })[0];
+    return !!(tile && tile.windowed);
   }
 
   function label(companion) {
@@ -725,11 +746,29 @@
      * which opens the page that can, with this site already named on it. The
      * alternative was a sentence telling you to go and find a button
      * elsewhere, which is how it read the first time and is not an answer. */
-    /* The same thing the arrow does, said in words, for the case where the
-     * frame looked like it worked. */
+    /* The way out, and a note of the fact for next time.
+     *
+     * Some sites answer with a page and then show nothing inside another one.
+     * Discord is the case this was asked for and the clearest example: it has
+     * to be signed in, a frame on someone else's page does not carry that
+     * sign-in, and its own dark shell paints before it gives up - so the pane
+     * shows a black rectangle rather than an error.
+     *
+     * Nothing readable across the origin boundary says so. But a person
+     * pressing this has just said it, so the link is marked and goes straight
+     * to a window from then on rather than failing the same way every time.
+     * The mark is undone from the popup. */
     el.querySelector('.nwt-companion-hint').addEventListener('click', function (e) {
       e.stopPropagation();
       el.querySelector('.nwt-companion-out').click();
+      chrome.storage.local.get({ companion: {} }, function (stored) {
+        if (chrome.runtime.lastError) return;
+        const c = stored.companion || {};
+        const tiles = (c.tiles || []).map(function (t) {
+          return t && t.url === c.url ? Object.assign({}, t, { windowed: true }) : t;
+        });
+        saveCompanion({ tiles: tiles });
+      });
     });
 
     el.querySelector('.nwt-companion-ask').addEventListener('click', function (e) {

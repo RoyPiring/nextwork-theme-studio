@@ -1062,3 +1062,57 @@ test('a policy report about something else is not mistaken for the pane', () => 
     'an unrelated policy report was blamed on the pane');
 });
 
+
+test('giving up on a frame remembers it, so the pane stops repeating the failure', () => {
+  /* Some sites answer with a page and then show nothing inside another one -
+   * Discord is the case this exists for, since it has to be signed in and a
+   * frame on someone else's page does not carry that. Nothing readable across
+   * the origin boundary says so, but a person pressing "open it in a window"
+   * has just said it. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD,
+      tiles: [{ label: 'Discord', url: DISCORD }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+
+  pane(page).querySelector('.nwt-companion-hint').click();
+  page.flush();
+
+  assert.equal(page.stored.companion.tiles[0].windowed, true,
+    'the choice was not remembered, so it will fail the same way next time');
+  assert.equal(page.sent.filter(m => m.type === 'companion:window').length, 1,
+    'it did not open the window it was asked for');
+});
+
+test('a link marked for a window is not framed again', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD,
+      tiles: [{ label: 'Discord', url: DISCORD, windowed: true }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'windowed');
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'a link known to fail in a frame was loaded into one anyway');
+  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
+    /opens in a window of its own/);
+});
+
+test('marking one link does not mark the others', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD,
+      tiles: [{ label: 'Discord', url: DISCORD },
+              { label: 'YouTube', url: VIDEO }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  pane(page).querySelector('.nwt-companion-hint').click();
+  page.flush();
+
+  const tiles = page.stored.companion.tiles;
+  assert.equal(tiles[0].windowed, true);
+  assert.ok(!tiles[1].windowed, 'an unrelated link was marked too');
+});
