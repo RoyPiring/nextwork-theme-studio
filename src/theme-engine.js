@@ -406,6 +406,12 @@
       y: null,
       w: 380,              /* px, and resizable by dragging the corner */
       h: 260,
+      /* Side by side: the page on the left of the screen and the companion in
+       * its own window on the right, both real browser windows. Set here so
+       * the pane knows to stand aside, and so it survives a reload. */
+      docked: false,
+      /* Where the page's window was before it was moved, to put it back. */
+      priorWindow: null,
       /* Bumped when a site is allowed or taken back. An open page caches what
        * it was told about a site, and this is how it learns the answer moved. */
       grantedAt: 0,
@@ -1511,6 +1517,17 @@
            rgba(p.accent, 0.26) + '; }');
     L.push('#nwt-companion:not([data-state="windowed"]) .nwt-companion-here {' +
            ' display: none; }');
+    /* The way back out of side-by-side, offered only while it is on. */
+    L.push('#nwt-companion .nwt-companion-undock { flex: none; padding: 7px 14px;' +
+           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
+    L.push('#nwt-companion .nwt-companion-undock:hover { background: ' +
+           rgba(p.accent, 0.26) + '; }');
+    L.push('#nwt-companion:not([data-state="docked"]) .nwt-companion-undock {' +
+           ' display: none; }');
+    L.push('#nwt-companion[data-state="docked"] .nwt-companion-refused {' +
+           ' color: var(--nwt-text); }');
     /* Shown over a frame that loaded, since that is the only case where a
      * blank rectangle has nothing else on it. Faint until you go near it. */
     L.push('#nwt-companion .nwt-companion-hint { position: absolute; left: 50%;' +

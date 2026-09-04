@@ -107,11 +107,20 @@ voice channel works; screen share, modals, downloads, pointer lock. The one
 thing held back is the ability to replace the tab underneath — nothing in the
 pane can navigate the page you are working on.
 
-**If a site still will not run here**, the arrow in the bar opens it in a real
-browser window instead. That always works. It reuses the window you already
-have rather than opening another, and if you want a link to go straight there
-every time, mark it in the popup — the pane keeps a "try it in the pane"
-button so that is never one-way.
+**Side by side, for anything the pane cannot hold.** Some sites refuse to be
+shown inside another page at all — Discord is the clearest example — and no
+setting on either side changes that. The ◧ button in the pane's bar answers it
+a different way: the page takes the left of your screen, the site takes the
+right, and both are real browser windows. A window is not an embedding, so a
+site that refuses to be framed signs in, joins a voice channel and behaves
+exactly as it does in a tab, because as far as it is concerned it is one.
+
+Press it again — or "Bring the page back to full width" on the pane — and your
+window goes back where it was, maximised if that is how you had it.
+
+The arrow ↗ beside it still opens a plain window wherever the browser puts it,
+without moving anything. Both reuse the window you already have rather than
+opening another.
 
 ---
 

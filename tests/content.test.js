@@ -1282,3 +1282,47 @@ test('a frame removed before the check does not report anything', () => {
   assert.notEqual(pane(page).getAttribute('data-state'), 'blocked',
     'a pane the site had torn out was reported as refused');
 });
+
+test('the pane asks for side by side with the screen it can actually see', () => {
+  /* An extension can only read the screen through a permission this does not
+   * want. The page already knows, and availWidth counts a taskbar as taken
+   * rather than covered over. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  pane(page).querySelector('.nwt-companion-dock').click();
+  page.flush();
+
+  const asked = page.sent.filter(m => m.type === 'companion:dock');
+  assert.equal(asked.length, 1, 'nothing was asked for');
+  assert.equal(asked[0].url, EMBED);
+  assert.ok(asked[0].screen.width > 0 && asked[0].screen.height > 0,
+    'it asked for a split without saying how big the screen is');
+});
+
+test('once side by side, the pane stands aside instead of holding an empty frame', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD, docked: true,
+      tiles: [{ label: 'Discord', url: DISCORD }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'docked');
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'it kept loading a frame for something that is in its own window');
+  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
+    /beside the page/);
+});
+
+test('the way back to full width is on the pane', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD, docked: true } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  pane(page).querySelector('.nwt-companion-undock').click();
+  page.flush();
+
+  assert.equal(page.sent.filter(m => m.type === 'companion:undock').length, 1,
+    'the way back did not lead anywhere');
+});

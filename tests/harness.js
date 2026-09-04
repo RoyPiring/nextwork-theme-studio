@@ -623,6 +623,12 @@ function loadContentScript(options) {
     window: win,
     document: doc,
     location: { pathname: opts.pathname || '/projects/abc' },
+    /* The screen the page can see. availWidth and availLeft rather than width
+     * and left, because a taskbar or a dock is space that is taken, not space
+     * to put a window under. */
+    screen: Object.assign({ width: 1600, height: 900, availWidth: 1600,
+                            availHeight: 860, availLeft: 0, availTop: 0 },
+                          opts.screen || {}),
     chrome,
     /* The address parser the browser has. Left out, new URL() threw, the
      * caller caught it, and a missing feature read as a considered "no" -
@@ -740,6 +746,11 @@ function loadBackground(options) {
   let dynamicRules = [];
   const windows = [];
   const windowUpdates = [];
+  /* The window the page is in: maximised, as most people leave them, which is
+   * the case where bounds are ignored until the state is changed first. */
+  const hostWindow = Object.assign(
+    { id: 7, left: 0, top: 0, width: 1512, height: 900, state: 'maximized' },
+    opts.hostWindow || {});
   const windowRemovedListeners = [];
   const openWindowIds = new Set();
   /* Which extension page was opened to raise the browser's prompt. Whether it
@@ -802,6 +813,12 @@ function loadBackground(options) {
       /* Bringing one forward, and closing one. The pane reuses a window it
        * already opened rather than making another, so both have to exist. */
       update(id, o, cb) {
+        if (id === hostWindow.id) {
+          Object.assign(hostWindow, o);
+          windowUpdates.push({ id: id, options: o });
+          if (cb) cb(Object.assign({}, hostWindow));
+          return;
+        }
         if (!openWindowIds.has(id)) {
           chrome.runtime.lastError = { message: 'No window with id: ' + id };
           try { if (cb) cb(); } finally { chrome.runtime.lastError = null; }
@@ -810,7 +827,18 @@ function loadBackground(options) {
         windowUpdates.push({ id: id, options: o });
         if (cb) cb({ id: id });
       },
-      onRemoved: { addListener(fn) { windowRemovedListeners.push(fn); } }
+      onRemoved: { addListener(fn) { windowRemovedListeners.push(fn); } },
+      /* The page's own window, so side-by-side has something to move and
+       * somewhere to put it back to. */
+      get(id, cb) {
+        const w = hostWindow.id === id ? hostWindow : null;
+        if (!w) {
+          chrome.runtime.lastError = { message: 'No window with id: ' + id };
+          try { cb(); } finally { chrome.runtime.lastError = null; }
+          return;
+        }
+        cb(Object.assign({}, w));
+      }
     },
     commands: { onCommand: { addListener(fn) { commandListeners.push(fn); } } },
     action: {
@@ -912,12 +940,18 @@ function loadBackground(options) {
     command(name) { commandListeners.forEach(fn => fn(name)); },
     /* Send a message the way a popup or content script would, and hand back
      * whatever the worker replied with. */
-    send(msg) {
+    /* `from` stands in for the sender: a message from a content script carries
+     * the tab and window it came from, and side-by-side needs that to know
+     * which window to move. */
+    send(msg, from) {
       let answer;
-      messageListeners.forEach(fn => fn(msg, {}, function (r) { answer = r; }));
+      const sender = from || { tab: { id: 1, windowId: hostWindow.id } };
+      messageListeners.forEach(fn => fn(msg, sender, function (r) { answer = r; }));
       flush();
       return answer;
     },
+    /* Where the page's window ended up. */
+    hostWindow() { return Object.assign({}, hostWindow); },
     /* What the browser would be enforcing right now. */
     rules() { return dynamicRules.slice(); },
     granted() { return permissions.origins.slice(); },

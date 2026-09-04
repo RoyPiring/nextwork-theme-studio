@@ -166,6 +166,29 @@ function pattern(origin) { return origin + '/*'; }
  * windows it still knows about. */
 const paneWindows = Object.create(null);
 
+/* Put the companion window in one exact place, reusing the one already open
+ * for this link rather than adding another beside it. */
+function placeCompanion(url, left, top, width, height, reply) {
+  const bounds = { left: left | 0, top: top | 0,
+                   width: Math.max(320, width | 0), height: Math.max(240, height | 0) };
+  const known = paneWindows[url];
+  if (known) {
+    chrome.windows.update(known, Object.assign({ state: 'normal' }, bounds),
+      function () {
+        if (!chrome.runtime.lastError) { reply({ docked: true, reused: true }); return; }
+        delete paneWindows[url];
+        placeCompanion(url, left, top, width, height, reply);
+      });
+    return;
+  }
+  chrome.windows.create(Object.assign({ url: url, type: 'popup' }, bounds),
+    function (win) {
+      if (chrome.runtime.lastError || !win) { reply({ docked: false }); return; }
+      paneWindows[url] = win.id;
+      reply({ docked: true, reused: false });
+    });
+}
+
 function openPaneWindow(msg, reply) {
   chrome.windows.create({
     url: msg.url, type: 'popup',
@@ -344,6 +367,101 @@ chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
    * The same link reuses its window rather than opening another. Clicking
    * twice used to leave two, which is the opposite of keeping one thing in
    * view beside your work. */
+  /* Side by side: the page keeps the left of the screen, the companion takes
+   * the right, and both are real browser windows.
+   *
+   * This is the answer to the thing the frame could not do. A site that
+   * refuses to be shown inside another page is not refusing to exist beside
+   * one - the refusal is about being embedded, and a window of its own is not
+   * an embedding. Discord signs in, connects to voice and behaves exactly as
+   * it does in a tab, because as far as it is concerned it is one.
+   *
+   * The screen's measurements come from the page rather than from an API,
+   * because reading them properly needs the `system.display` permission and
+   * every page already knows how big its own screen is. */
+  if (msg.type === 'companion:dock') {
+    const src = originOf(msg.url) ? msg.url : null;
+    const area = msg.screen || {};
+    const windowId = sender && sender.tab && sender.tab.windowId;
+    if (!src || !windowId || !(area.width > 0) || !(area.height > 0)) {
+      reply({ docked: false });
+      return true;
+    }
+
+    /* A little under two thirds for the work, the rest for what you are
+     * watching, with a floor under each so neither ends up too narrow to use.
+     *
+     * The floors are applied in the order that keeps them both true. Written
+     * the other way round - max(floor, min(width - other, share)) - the outer
+     * max wins on a small screen and hands the companion less than its own
+     * floor, which is the half more likely to be unusable. Below the width
+     * where both can be met, it is halved and said plainly rather than
+     * pretending one of them fits. */
+    const MIN_PAGE = 480, MIN_SIDE = 320;
+    const gap = 0;
+    const leftW = area.width < MIN_PAGE + MIN_SIDE
+      ? Math.round(area.width / 2)
+      : Math.min(Math.max(Math.round(area.width * 0.62), MIN_PAGE), area.width - MIN_SIDE);
+    const rightW = area.width - leftW - gap;
+
+    chrome.windows.get(windowId, function (win) {
+      if (chrome.runtime.lastError || !win) { reply({ docked: false }); return; }
+
+      /* Remembered so undocking can put the window back where it was. A
+       * maximised window reports bounds that are not where it would return
+       * to, so its state is kept as well. */
+      chrome.storage.local.get({ companion: {} }, function (stored) {
+        const companion = Object.assign({}, stored.companion, {
+          docked: true,
+          priorWindow: { left: win.left, top: win.top, width: win.width,
+                         height: win.height, state: win.state }
+        });
+        chrome.storage.local.set({ companion: companion }, function () {
+          /* Bounds are ignored while a window is maximised, so it is taken out
+           * of that state first and moved afterwards. */
+          chrome.windows.update(windowId, { state: 'normal' }, function () {
+            void chrome.runtime.lastError;
+            chrome.windows.update(windowId, {
+              left: area.left | 0, top: area.top | 0,
+              width: leftW, height: area.height
+            }, function () {
+              void chrome.runtime.lastError;
+              placeCompanion(src, (area.left | 0) + leftW + gap, area.top | 0,
+                             rightW, area.height, reply);
+            });
+          });
+        });
+      });
+    });
+    return true;
+  }
+
+  if (msg.type === 'companion:undock') {
+    const windowId = sender && sender.tab && sender.tab.windowId;
+    chrome.storage.local.get({ companion: {} }, function (stored) {
+      const c = stored.companion || {};
+      const prior = c.priorWindow;
+      const rest = Object.assign({}, c, { docked: false });
+      delete rest.priorWindow;
+      chrome.storage.local.set({ companion: rest }, function () {
+        if (windowId && prior && prior.width > 0) {
+          chrome.windows.update(windowId, {
+            left: prior.left | 0, top: prior.top | 0,
+            width: prior.width, height: prior.height
+          }, function () {
+            void chrome.runtime.lastError;
+            if (prior.state === 'maximized') {
+              chrome.windows.update(windowId, { state: 'maximized' },
+                function () { void chrome.runtime.lastError; });
+            }
+          });
+        }
+        reply({ docked: false });
+      });
+    });
+    return true;
+  }
+
   if (msg.type === 'companion:window') {
     if (!originOf(msg.url)) { reply({ opened: false }); return true; }
 

@@ -488,6 +488,16 @@
     title.className = 'nwt-companion-title';
     bar.appendChild(title);
 
+    /* Side by side. Distinct from the arrow beside it: that one opens a
+     * window wherever the browser puts it, this one gives the page and the
+     * companion half the screen each and keeps them there. */
+    const dock = document.createElement('button');
+    dock.type = 'button';
+    dock.className = 'nwt-companion-dock';
+    dock.title = 'Put it beside the page, each with half the screen';
+    dock.textContent = '◧';
+    bar.appendChild(dock);
+
     const openOut = document.createElement('button');
     openOut.type = 'button';
     openOut.className = 'nwt-companion-out';
@@ -557,6 +567,12 @@
     here.className = 'nwt-companion-here';
     here.textContent = 'Try it in the pane';
     refused.appendChild(here);
+
+    const undock = document.createElement('button');
+    undock.type = 'button';
+    undock.className = 'nwt-companion-undock';
+    undock.textContent = 'Bring the page back to full width';
+    refused.appendChild(undock);
 
     const ask = document.createElement('button');
     ask.type = 'button';
@@ -690,6 +706,19 @@
      * whenever the frame is not - so it should not be something that appears
      * only once the pane has already failed. */
     el.querySelector('.nwt-companion-out').style.display = src ? '' : 'none';
+
+    /* Side by side: the link is in its own window beside the page, so there
+     * is nothing for the frame to hold. The pane stays as the way back. */
+    if (src && companion.docked) {
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'docked');
+      refused.textContent =
+        label(companion) + ' is beside the page, in a window of its own. ' +
+        'That is the one place a site which refuses to be embedded still ' +
+        'works properly.';
+      paneShowing = '';
+      return;
+    }
 
     /* Marked as belonging in a window, either by choosing it that way or by
      * giving up on the frame once. Drawing the rectangle again would repeat a
@@ -853,6 +882,12 @@
       el.querySelector('.nwt-companion-out').click();
     });
 
+    el.querySelector('.nwt-companion-undock').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ type: 'companion:undock' },
+        function () { void chrome.runtime.lastError; });
+    });
+
     el.querySelector('.nwt-companion-here').addEventListener('click', function (e) {
       e.stopPropagation();
       chrome.storage.local.get({ companion: {} }, function (stored) {
@@ -871,6 +906,24 @@
         if (!src) return;
         chrome.runtime.sendMessage({ type: 'companion:ask', url: src },
           function () { void chrome.runtime.lastError; });
+      });
+    });
+
+    el.querySelector('.nwt-companion-dock').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ companion: {} }, function (stored) {
+        const c = stored.companion || {};
+        const src = NWT.companionSrc(c.url);
+        if (!src) return;
+        /* The screen's own measurements. An extension can only read these
+         * through a permission this does not want, and the page has them
+         * already - availWidth and availLeft, so a taskbar or a dock is
+         * counted as taken rather than covered over. */
+        chrome.runtime.sendMessage({
+          type: 'companion:dock', url: src,
+          screen: { left: screen.availLeft | 0, top: screen.availTop | 0,
+                    width: screen.availWidth, height: screen.availHeight }
+        }, function () { void chrome.runtime.lastError; });
       });
     });
 

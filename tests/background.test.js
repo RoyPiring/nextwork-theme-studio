@@ -493,3 +493,115 @@ test('a site that is granted with no rule behind it is reported, not hidden', ()
   assert.equal(gap.active, false,
     'it reported a rule that does not exist, which is what made this invisible');
 });
+
+/* ------------------------------------------------------------ side by side */
+/* The answer to the thing a frame could not do. A site refusing to be shown
+ * inside another page is not refusing to exist beside one, and a window of its
+ * own is not an embedding - so it signs in and behaves as it does in a tab. */
+
+const SCREEN = { left: 0, top: 0, width: 1600, height: 900 };
+
+test('the page keeps the left of the screen and the companion takes the right', () => {
+  const bg = loadBackground();
+  const out = bg.send({ type: 'companion:dock', url: DISCORD, screen: SCREEN });
+  assert.equal(out.docked, true);
+
+  const page = bg.hostWindow();
+  const side = bg.windowsOpened()[0];
+  assert.equal(page.left, 0, 'the page did not move to the left edge');
+  assert.equal(page.height, 900);
+  assert.equal(side.left, page.width, 'the two overlap or leave a gap');
+  assert.equal(page.width + side.width, SCREEN.width,
+    'together they do not fill the screen');
+  assert.equal(side.url, DISCORD);
+});
+
+test('a maximised window is taken out of that state before it is moved', () => {
+  /* Bounds are ignored while a window is maximised, so setting them first
+   * does nothing at all and the page stays full width under the companion. */
+  const bg = loadBackground();
+  bg.send({ type: 'companion:dock', url: DISCORD, screen: SCREEN });
+
+  const updates = bg.windowsFocused().filter(u => u.id === 7);
+  assert.ok(updates.length >= 2, 'the window was moved in a single update');
+  assert.equal(updates[0].options.state, 'normal',
+    'it was moved while still maximised, which a browser ignores');
+  assert.ok(updates[1].options.width > 0, 'nothing set the bounds afterwards');
+});
+
+test('neither half is left too narrow to use', () => {
+  /* The split is a proportion, and a proportion of a small screen is not.
+   * 820 is the width that catches it: 62% is 508, which leaves the companion
+   * 312 - under its floor - so the page has to give some back. Written with
+   * the floors in the wrong order the page keeps 480 and the companion gets
+   * 340 on this screen but less than its floor on smaller ones. */
+  const bg = loadBackground();
+  bg.send({ type: 'companion:dock', url: DISCORD,
+            screen: { left: 0, top: 0, width: 820, height: 700 } });
+  const page = bg.hostWindow();
+  const side = bg.windowsOpened()[0];
+  assert.ok(page.width >= 480, 'the page was squeezed to ' + page.width);
+  assert.ok(side.width >= 320, 'the companion was squeezed to ' + side.width);
+  assert.equal(page.width + side.width, 820);
+});
+
+test('a screen too small for both floors is halved rather than faked', () => {
+  /* Below the width where both minimums can hold, one of them has to give.
+   * Splitting it evenly is at least predictable; quietly handing the whole
+   * floor to one side and the remainder to the other is not. */
+  const bg = loadBackground();
+  bg.send({ type: 'companion:dock', url: DISCORD,
+            screen: { left: 0, top: 0, width: 700, height: 600 } });
+  const page = bg.hostWindow();
+  const side = bg.windowsOpened()[0];
+  assert.equal(page.width, 350);
+  assert.ok(Math.abs(page.width - side.width) <= 1,
+    'one side was given its floor and the other whatever was left');
+});
+
+test('undocking puts the page window back where it was', () => {
+  const bg = loadBackground();
+  const before = bg.hostWindow();
+  bg.send({ type: 'companion:dock', url: DISCORD, screen: SCREEN });
+  assert.notEqual(bg.hostWindow().width, before.width, 'precondition: it moved');
+
+  bg.send({ type: 'companion:undock' });
+  const after = bg.hostWindow();
+  assert.equal(after.width, before.width, 'the page was left at half width');
+  assert.equal(after.state, 'maximized',
+    'a window that had been maximised came back as a small one');
+  assert.equal(bg.stored.companion.docked, false);
+});
+
+test('docking twice moves the one window rather than opening another', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'companion:dock', url: DISCORD, screen: SCREEN });
+  bg.send({ type: 'companion:dock', url: DISCORD, screen: SCREEN });
+  assert.equal(bg.windowsOpened().length, 1, 'it opened a second window');
+});
+
+test('side by side is remembered, so a reload does not lose it', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'companion:dock', url: DISCORD, screen: SCREEN });
+  assert.equal(bg.stored.companion.docked, true);
+  assert.ok(bg.stored.companion.priorWindow.width > 0,
+    'nothing was remembered, so undocking has nowhere to put the window back');
+});
+
+test('a screen it was told nothing about is refused rather than guessed at', () => {
+  /* The measurements come from the page. A window moved to a size derived
+   * from nothing is a window somebody has to go and find. */
+  const bg = loadBackground();
+  [undefined, {}, { width: 0, height: 0 }, { width: 1600 }].forEach(function (screen) {
+    assert.deepEqual(bg.send({ type: 'companion:dock', url: DISCORD, screen: screen }),
+      { docked: false }, JSON.stringify(screen) + ' was accepted');
+  });
+  assert.deepEqual(bg.windowsOpened(), []);
+});
+
+test('docking an address that is not https is refused', () => {
+  const bg = loadBackground();
+  assert.deepEqual(bg.send({ type: 'companion:dock', url: 'javascript:alert(1)', screen: SCREEN }),
+    { docked: false });
+  assert.deepEqual(bg.windowsOpened(), []);
+});
