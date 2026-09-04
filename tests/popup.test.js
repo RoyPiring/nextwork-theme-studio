@@ -546,11 +546,14 @@ test('arriving from the pane leads with the site the pane asked about', () => {
     enabled: true,
     companion: { enabled: true, url: VIDEO, pending: DISCORD }
   });
-  /* Read as text rather than matched as a pattern. An unanchored hostname in
-   * a regular expression is a real hazard where one is used to decide whether
-   * an address is trusted, and the scanner cannot tell that this one is only
-   * looking at a sentence on screen - so it does not use one. */
-  assert.ok(p.el('companion-access-note').textContent.includes('discord.com'),
+  /* A sentence, read as a sentence.
+   *
+   * A bare hostname tested against a string is how a URL check is written
+   * badly - unanchored, matching anywhere - and the scanner flags the shape
+   * wherever it sees it. It cannot tell that this is a note on screen rather
+   * than an address being trusted, and it should not have to guess. Looking
+   * for the whole phrase is both a stronger assertion and not that shape. */
+  assert.ok(p.el('companion-access-note').textContent.includes('discord.com refuses'),
     'the site the pane asked about is not the one named');
   assert.equal(p.el('companion-access').getAttribute('data-asked'), '1');
 });
