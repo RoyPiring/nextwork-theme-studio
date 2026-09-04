@@ -474,6 +474,9 @@
 
   function paneEl() {
     let el = document.getElementById(PANE_ID);
+    /* The same check the split makes, for the same reason: a content blocker
+     * replaces the frame rather than removing the pane around it. */
+    if (el && !el.querySelector('.nwt-companion-frame')) { el.remove(); el = null; }
     if (el) return el;
 
     el = document.createElement('div');
@@ -487,6 +490,16 @@
     const title = document.createElement('span');
     title.className = 'nwt-companion-title';
     bar.appendChild(title);
+
+    /* Side by side. Distinct from the arrow beside it: that one opens a
+     * window wherever the browser puts it, this one gives the page and the
+     * companion half the screen each and keeps them there. */
+    const dock = document.createElement('button');
+    dock.type = 'button';
+    dock.className = 'nwt-companion-dock';
+    dock.title = 'Put it beside the page, each with half the screen';
+    dock.textContent = '◧';
+    bar.appendChild(dock);
 
     const openOut = document.createElement('button');
     openOut.type = 'button';
@@ -516,21 +529,62 @@
      * own origin, which is what it needs to reach its own cookies and stay
      * signed in. Without it a site would be given an opaque origin and would
      * simply fail to load, which is not a security win, only a broken pane. */
+    /* `sandbox` governs what the page in here may do; `allow` governs what
+     * hardware and features it may reach. They are different lists and both
+     * were too short.
+     *
+     * A full application needs more than a video does. A missing token here is
+     * not a polite refusal - the call throws inside their code and the boot
+     * stops wherever it got to, which from outside is a rectangle that stays
+     * whatever colour their loading screen is. Everything a real tab grants is
+     * granted, with one exception: `allow-top-navigation` stays out, so a page
+     * in the pane cannot replace the tab underneath it. That is the whole
+     * point of having a sandbox at all, and it is the only thing being held
+     * back. */
     frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms ' +
       'allow-popups allow-popups-to-escape-sandbox allow-presentation ' +
+      'allow-modals allow-downloads allow-pointer-lock allow-orientation-lock ' +
       'allow-storage-access-by-user-activation');
-    frame.setAttribute('allow', 'autoplay; picture-in-picture; encrypted-media; fullscreen');
+    /* The microphone is not a nicety here. Watching a voice channel while you
+     * build was the thing this was asked for, and a frame with no microphone
+     * cannot join one - the call fails inside their code and the channel
+     * simply never connects. Camera and screen share for the same reason. */
+    frame.setAttribute('allow',
+      'autoplay; microphone; camera; display-capture; speaker-selection; ' +
+      'picture-in-picture; encrypted-media; fullscreen');
     frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
     body.appendChild(frame);
 
-    /* Shown when nothing arrives. */
+    /* Shown when nothing arrives, with the way forward in it rather than a
+     * sentence pointing at a button somewhere else. */
     const refused = document.createElement('div');
     refused.className = 'nwt-companion-refused';
     const said = document.createElement('p');
     said.className = 'nwt-companion-said';
     refused.appendChild(said);
+
+    /* Only for a link that has been set to open in a window. Whatever put it
+     * there, the way back has to be where you are looking when you notice. */
+    const here = document.createElement('button');
+    here.type = 'button';
+    here.className = 'nwt-companion-here';
+    here.textContent = 'Try it in the pane';
+    refused.appendChild(here);
+
+    const undock = document.createElement('button');
+    undock.type = 'button';
+    undock.className = 'nwt-companion-undock';
+    undock.textContent = 'Bring the page back to full width';
+    refused.appendChild(undock);
+
+    const ask = document.createElement('button');
+    ask.type = 'button';
+    ask.className = 'nwt-companion-ask';
+    ask.textContent = 'Allow this site here';
+    refused.appendChild(ask);
     body.appendChild(refused);
 
+    /* Corner to resize from. */
     /* A frame that loaded is not the same as a frame that shows anything.
      * Some sites answer with a page and then refuse to run inside another one,
      * and there is nothing readable across the origin boundary to tell the
@@ -565,6 +619,85 @@
 
   let paneShowing = '';
 
+  /* A frame can also be stopped by the page it is drawn on, rather than by the
+   * site it points at: nextwork.ai sends its own content security policy, and
+   * a frame this script adds is subject to it like any other. That failure
+   * looks identical from the outside - a blank rectangle - but unlike a site's
+   * own refusal it announces itself, so it is worth listening for.
+   *
+   * Removing the host page's policy is not on the table. It protects the page
+   * being themed, and weakening the site you are working on to fit a video
+   * beside it is the wrong trade. So this reports it and offers the window. */
+  document.addEventListener('securitypolicyviolation', function (e) {
+    if (!/frame-src|child-src|default-src/.test(e.violatedDirective || '')) return;
+    if (!paneShowing || String(e.blockedURI || '').indexOf(paneShowing.slice(0, 40)) !== 0) return;
+    const el = document.getElementById(PANE_ID);
+    if (!el) return;
+    el.setAttribute('data-state', 'page-blocked');
+    el.querySelector('.nwt-companion-said').textContent =
+      'The page this pane sits on will not allow another site inside it. ' +
+      'That is nextwork.ai’s own setting, and not one worth overriding. ' +
+      'The arrow above opens the link in a window of its own.';
+  });
+
+  /* Whether a site is allowed to be framed here, as the browser sees it.
+   * Cached per address so a repaint - which happens on every storage write -
+   * is not a message round trip. */
+  const paneAllowed = Object.create(null);
+  let paneRefusalWatch = null;
+
+  /* Waiting to see whether a frame loads does not work: a browser that refuses
+   * one navigates it to an error document and fires `load` on it just the
+   * same, so there is nothing to time out on and nothing to catch. What can be
+   * known ahead of time is whether this site has been allowed, so that is what
+   * is asked, and the answer is what the pane reports. */
+  function askAllowed(url, then) {
+    if (url in paneAllowed) { then(paneAllowed[url]); return; }
+    try {
+      chrome.runtime.sendMessage({ type: 'companion:allowed', url: url }, function (r) {
+        if (chrome.runtime.lastError) { then({ allowed: false }); return; }
+        paneAllowed[url] = { allowed: !!(r && r.allowed), active: !!(r && r.active) };
+        then(paneAllowed[url]);
+      });
+    } catch (e) {
+      then({ allowed: false });
+    }
+  }
+
+
+  /* Whether the browser actually took the frame, asked of the layout.
+   *
+   * Earlier versions of this said there was no way to tell a refused frame
+   * from a working one - that a blocked frame fires `load` like any other and
+   * leaves nothing to catch. The first half is true and the second is not.
+   * A frame the browser refuses is given no layout box at all: it collapses to
+   * nothing and has no offsetParent, while a frame that loaded fills its
+   * container. Two frames in the same container at the same moment, one
+   * allowed and one refused, differ exactly there.
+   *
+   * So it is measured rather than assumed, a moment after the address is set.
+   * Anything else - a permission that was granted with no rule behind it, a
+   * rule that failed to install, a site that changed its mind - ends in the
+   * same place and is reported the same way, instead of as a black rectangle
+   * that has to be guessed at. */
+  function watchForRefusal(el, frame, src) {
+    if (paneRefusalWatch) clearTimeout(paneRefusalWatch);
+    paneRefusalWatch = setTimeout(function () {
+      if (paneShowing !== src) return;
+      if (!frame.isConnected) return;
+      const box = frame.getBoundingClientRect();
+      if (box.width > 0 && box.height > 0) return;
+
+      el.setAttribute('data-state', 'blocked');
+      el.querySelector('.nwt-companion-said').textContent =
+        label({ url: src, tiles: [] }) + ' would not open here: the browser ' +
+        'refused the frame, which it does by giving it no room at all. That is ' +
+        'the site’s own header saying no. If you have allowed it, turn the ' +
+        'extension off and on again so the rule that lifts it is rebuilt. The ' +
+        'arrow above opens it in a window meanwhile, which always works.';
+    }, 2500);
+  }
+
   function paintPane(companion) {
     const el = paneEl();
     const src = NWT.companionSrc(companion.url);
@@ -577,6 +710,32 @@
      * only once the pane has already failed. */
     el.querySelector('.nwt-companion-out').style.display = src ? '' : 'none';
 
+    /* Side by side: the link is in its own window beside the page, so there
+     * is nothing for the frame to hold. The pane stays as the way back. */
+    if (src && companion.docked) {
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'docked');
+      refused.textContent =
+        label(companion) + ' is beside the page, in a window of its own. ' +
+        'That is the one place a site which refuses to be embedded still ' +
+        'works properly.';
+      paneShowing = '';
+      return;
+    }
+
+    /* Marked as belonging in a window, either by choosing it that way or by
+     * giving up on the frame once. Drawing the rectangle again would repeat a
+     * failure that has already been seen. */
+    if (src && windowedNow(companion)) {
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'windowed');
+      refused.textContent =
+        label(companion) + ' is set to open in a window of its own. The arrow ' +
+        'above opens it; the button below tries it here instead.';
+      paneShowing = '';
+      return;
+    }
+
     if (!src) {
       frame.removeAttribute('src');
       el.setAttribute('data-state', 'empty');
@@ -588,36 +747,75 @@
     }
 
     /* Only reloaded when it actually changes: setting src again restarts a
-     * video that is already playing, and a repaint happens on every write. */
-    if (paneShowing === src) return;
+     * video that is already playing, and a repaint happens on every write.
+     *
+     * Asked of the frame, not of a variable beside it. This is the whole
+     * reason the pane could sit there empty for good.
+     *
+     * The site is a single-page app that rebuilds its body, and anything added
+     * to it goes with the rebuild - the pane included. The next paint calls
+     * paneEl(), finds nothing, and builds a fresh one whose iframe has no src
+     * at all. A module variable still held the old address, so this guard said
+     * "that is already showing" and returned, and nothing ever put an address
+     * into the new frame. The pane looked right, reported itself ready, and
+     * was a blank rectangle - which is exactly what a site refusing to be
+     * framed looks like, so it was read as one for days.
+     *
+     * The frame's own src cannot lie about it: a new element has none. */
+    if (frame.getAttribute('src') === src) { paneShowing = src; return; }
     paneShowing = src;
     el.setAttribute('data-state', 'loading');
     refused.textContent = 'Loading…';
 
-    /* A site that publishes a player means it to be framed. Everything else
-     * has to be assumed to refuse, because most do and because trying is not
-     * a way to find out: a browser that blocks a frame navigates it to an
-     * error document and fires `load` on it just the same, so there is no
-     * failure to catch and nothing to time out on.
-     *
-     * Assuming the worst sends a site that would have worked to a window it
-     * did not need. That is the safe direction to be wrong in - a window
-     * always works - and the alternative is a white rectangle with no
-     * explanation. Asking the browser for permission, which is what lets the
-     * rest of the web open in here, is a change of its own. */
-    if (!NWT.framesFreely(src)) {
+    /* Sites that publish a player mean it to be framed, so they need no
+     * permission and are not worth asking about. */
+    if (NWT.framesFreely(src)) {
+      frame.setAttribute('src', src);
+      el.setAttribute('data-state', 'ready');
+      watchForRefusal(el, frame, src);
+      return;
+    }
+
+    askAllowed(src, function (answer) {
+      /* Another address arrived while the answer was on its way. */
+      if (paneShowing !== src) return;
+
+      /* Granted and carried are two different facts, and only one of them was
+       * ever reported. A site could be allowed, say so, and still be refused,
+       * because the rule that removes the framing header was missing - which
+       * on the page is a blank rectangle and nothing else. Both are now said
+       * out loud, because guessing between them cost days. */
+      if (answer.allowed && !answer.active) {
+        frame.removeAttribute('src');
+        el.setAttribute('data-state', 'blocked');
+        refused.textContent =
+          'This site is allowed, but the rule that lets it through is not ' +
+          'installed, so the browser is still refusing it. Turn the extension ' +
+          'off and on again in your browser, or take the site back and allow ' +
+          'it once more. The arrow above opens it in a window meanwhile.';
+        return;
+      }
+      if (answer.allowed) {
+        frame.setAttribute('src', src);
+        el.setAttribute('data-state', 'ready');
+        watchForRefusal(el, frame, src);
+        return;
+      }
       frame.removeAttribute('src');
       el.setAttribute('data-state', 'blocked');
       refused.textContent =
-        'This site will not be shown inside another page. That is its own ' +
-        'setting, not something an extension can change from here. The arrow ' +
-        'above opens it in a window of its own.';
-      return;
-    }
-    frame.setAttribute('src', src);
-    el.setAttribute('data-state', 'ready');
+        'This site refuses to be shown inside another page. Your browser can ' +
+        'allow it here, or the arrow above opens it in a window of its own.';
+    });
   }
 
+  /* Whether the link showing now is one of the marked ones. */
+  function windowedNow(companion) {
+    const tile = (companion.tiles || []).filter(function (t) {
+      return t && t.url === companion.url;
+    })[0];
+    return !!(tile && tile.windowed);
+  }
 
   function label(companion) {
     const match = (companion.tiles || []).filter(t => t && t.url === companion.url)[0];
@@ -668,11 +866,68 @@
       saveCompanion({ enabled: false });
     });
 
-    /* The same thing the arrow does, said in words, for the case where the
-     * frame looked like it worked and showed nothing. */
+    /* The browser will only put its permission prompt in front of someone who
+     * clicked inside an extension page, and this is a content script - so this
+     * cannot raise the prompt itself. It hands the site to the extension,
+     * which opens the page that can, with this site already named on it. The
+     * alternative was a sentence telling you to go and find a button
+     * elsewhere, which is how it read the first time and is not an answer. */
+    /* A way out, and nothing more than that.
+     *
+     * This used to mark the link so it went to a window from then on. That
+     * read one press as a decision about where the link lives, and the pane
+     * then refused to try again - which is the opposite of what a pane on the
+     * page is for. Wanting to see something in a window once is not the same
+     * as wanting it out of the pane. Marking it is now something you do on
+     * purpose, from the popup. */
     el.querySelector('.nwt-companion-hint').addEventListener('click', function (e) {
       e.stopPropagation();
       el.querySelector('.nwt-companion-out').click();
+    });
+
+    el.querySelector('.nwt-companion-undock').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ type: 'companion:undock' },
+        function () { void chrome.runtime.lastError; });
+    });
+
+    el.querySelector('.nwt-companion-here').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ companion: {} }, function (stored) {
+        if (chrome.runtime.lastError) return;
+        const c = stored.companion || {};
+        saveCompanion({ tiles: (c.tiles || []).map(function (t) {
+          return t && t.url === c.url ? Object.assign({}, t, { windowed: false }) : t;
+        }) });
+      });
+    });
+
+    el.querySelector('.nwt-companion-ask').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ companion: {} }, function (stored) {
+        const src = NWT.companionSrc((stored.companion || {}).url);
+        if (!src) return;
+        chrome.runtime.sendMessage({ type: 'companion:ask', url: src },
+          function () { void chrome.runtime.lastError; });
+      });
+    });
+
+    el.querySelector('.nwt-companion-dock').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ companion: {} }, function (stored) {
+        const c = stored.companion || {};
+        const src = NWT.companionSrc(c.url);
+        if (!src) return;
+        /* The screen's own measurements. An extension can only read these
+         * through a permission this does not want, and the page has them
+         * already - availWidth and availLeft, so a taskbar or a dock is
+         * counted as taken rather than covered over. */
+        chrome.runtime.sendMessage({
+          type: 'companion:dock', url: src,
+          screen: { left: screen.availLeft | 0, top: screen.availTop | 0,
+                    width: screen.availWidth, height: screen.availHeight }
+        }, function () { void chrome.runtime.lastError; });
+      });
     });
 
     el.querySelector('.nwt-companion-out').addEventListener('click', function (e) {
@@ -771,7 +1026,334 @@
     grip.addEventListener('pointercancel', stop);
   }
 
+  /* ---- the split ---------------------------------------------------------
+   * One tab, two boxes: the page narrowed to the left, something else in the
+   * right, with a divider you drag. Not a panel floating over the work, and
+   * not a second window to manage - the page gives up part of its width and
+   * carries on working at the width it has.
+   *
+   * The right-hand box is still a frame, so a site that refuses to be embedded
+   * is refused here too. That is the same boundary the pane runs into, and it
+   * is reported the same way rather than left as an empty strip.
+   * --------------------------------------------------------------------- */
+  const SPLIT_ID = 'nwt-split';
+  let splitShowing = '';
+  let splitWatch = null;
+
+  function splitEl() {
+    let el = document.getElementById(SPLIT_ID);
+    /* Ours, and still whole.
+     *
+     * A content blocker does not remove a third-party frame, it swaps in a
+     * placeholder of its own - so the panel is still there, still the right
+     * size, and the element inside it is no longer the one this built. Every
+     * later paint then reads a frame that is not ours: no src to compare
+     * against, nothing to measure, and a panel that reports itself ready while
+     * showing somebody else's notice.
+     *
+     * Cheaper to rebuild than to reason about. If the frame is missing, the
+     * panel is not the one we made. */
+    if (el && !el.querySelector('.nwt-split-frame')) { el.remove(); el = null; }
+    if (el) return el;
+
+    el = document.createElement('div');
+    el.id = SPLIT_ID;
+
+    const grip = document.createElement('div');
+    grip.className = 'nwt-split-grip';
+    grip.title = 'Drag to change how the page is divided';
+    el.appendChild(grip);
+
+    const bar = document.createElement('div');
+    bar.className = 'nwt-split-bar';
+    const title = document.createElement('span');
+    title.className = 'nwt-split-title';
+    bar.appendChild(title);
+
+    const out = document.createElement('button');
+    out.type = 'button';
+    out.className = 'nwt-split-out';
+    out.title = 'Open in a window of its own';
+    out.textContent = '↗';
+    bar.appendChild(out);
+
+    const hide = document.createElement('button');
+    hide.type = 'button';
+    hide.className = 'nwt-split-hide';
+    hide.title = 'Give the page its full width back';
+    hide.textContent = '×';
+    bar.appendChild(hide);
+    el.appendChild(bar);
+
+    const body = document.createElement('div');
+    body.className = 'nwt-split-body';
+    const frame = document.createElement('iframe');
+    frame.className = 'nwt-split-frame';
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms ' +
+      'allow-popups allow-popups-to-escape-sandbox allow-presentation ' +
+      'allow-modals allow-downloads allow-pointer-lock allow-orientation-lock ' +
+      'allow-storage-access-by-user-activation');
+    frame.setAttribute('allow',
+      'autoplay; microphone; camera; display-capture; speaker-selection; ' +
+      'picture-in-picture; encrypted-media; fullscreen');
+    frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    body.appendChild(frame);
+
+    const said = document.createElement('p');
+    said.className = 'nwt-split-said';
+    body.appendChild(said);
+
+    /* Offered only where there is something to offer: a different view of the
+     * same site, published by that site to be embedded. */
+    const instead = document.createElement('button');
+    instead.type = 'button';
+    instead.className = 'nwt-split-instead';
+    body.appendChild(instead);
+    el.appendChild(body);
+
+    (document.body || document.documentElement).appendChild(el);
+    return el;
+  }
+
+  function removeSplit() {
+    if (splitWatch) { clearTimeout(splitWatch); splitWatch = null; }
+    const el = document.getElementById(SPLIT_ID);
+    if (el) el.remove();
+    document.documentElement.classList.remove('nwt-split-on');
+    document.documentElement.style.removeProperty('--nwt-split-w');
+    splitShowing = '';
+  }
+
+  /* Clamped rather than trusted: this comes from storage, and a divider
+   * dragged off either edge leaves one half unusable with no way back. */
+  function splitWidth(split) {
+    const f = Number(split.width);
+    const frac = isFinite(f) ? Math.max(0.18, Math.min(0.72, f)) : 0.36;
+    return Math.round(window.innerWidth * frac);
+  }
+
+  /* The rule report, mirrored onto the page as an attribute.
+   *
+   * Nothing reads this but a person looking for why a frame is empty. It is
+   * here because every other way of finding out needs the browser's own
+   * extension pages, and the failure it describes - a rule that was never
+   * installed - is indistinguishable on the page from a site that will not be
+   * framed. One attribute turns a week of guessing into a glance. */
+  function reportRules(settings) {
+    const r = settings.ruleReport;
+    if (!TOP_FRAME || !document.documentElement) return;
+    if (!r) { document.documentElement.removeAttribute('data-nwt-rules'); return; }
+    try {
+      document.documentElement.setAttribute('data-nwt-rules', JSON.stringify({
+        wanted: r.wanted || [], installed: r.installed || [], error: r.error || ''
+      }));
+    } catch (e) { /* never break the page over a diagnostic */ }
+  }
+
+  function renderSplit(settings) {
+    const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
+    if (!settings.enabled || !split.enabled || !TOP_FRAME) { removeSplit(); return; }
+
+    const el = splitEl();
+    document.documentElement.style.setProperty('--nwt-split-w', splitWidth(split) + 'px');
+    document.documentElement.classList.add('nwt-split-on');
+
+    const frame = el.querySelector('.nwt-split-frame');
+    const said = el.querySelector('.nwt-split-said');
+    const src = NWT.companionSrc(split.url);
+    el.querySelector('.nwt-split-title').textContent = splitLabel(split, src);
+    wireSplit(el);
+
+    if (!src) {
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'empty');
+      said.textContent = split.url
+        ? 'That is not an address this can open. It has to start with https.'
+        : 'Nothing chosen yet. Pick a link in the extension popup.';
+      splitShowing = '';
+      return;
+    }
+
+    /* Asked of the frame rather than of a variable beside it: the site rebuilds
+     * its body as it navigates, taking this with it, and a fresh element has no
+     * src however sure a variable is that it is already showing one. */
+    if (frame.getAttribute('src') === src) { splitShowing = src; return; }
+    splitShowing = src;
+    el.setAttribute('data-state', 'loading');
+    said.textContent = 'Loading…';
+
+    if (NWT.framesFreely(src)) {
+      frame.setAttribute('src', src);
+      el.setAttribute('data-state', 'ready');
+      watchSplitRefusal(el, frame, src);
+      return;
+    }
+    askAllowed(src, function (answer) {
+      if (splitShowing !== src) return;
+      if (answer.allowed && !answer.active) {
+        frame.removeAttribute('src');
+        el.setAttribute('data-state', 'blocked');
+        said.textContent =
+          'This site is allowed, but the rule that lets it through is not ' +
+          'installed, so the browser is still refusing it. Turn the extension ' +
+          'off and on again, or take the site back and allow it once more.';
+        return;
+      }
+      if (answer.allowed) {
+        frame.setAttribute('src', src);
+        el.setAttribute('data-state', 'ready');
+        watchSplitRefusal(el, frame, src);
+        return;
+      }
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'blocked');
+      said.textContent =
+        'This site refuses to be shown inside another page. Allow it in the ' +
+        'extension popup, or use the arrow above to open it in a window.';
+      offerInstead(el);
+    });
+  }
+
+  /* The same measurement the pane uses: a browser refuses a frame by giving it
+   * no room, so a strip that stays empty says why instead of just sitting
+   * there. */
+  function watchSplitRefusal(el, frame, src) {
+    if (splitWatch) clearTimeout(splitWatch);
+    splitWatch = setTimeout(function () {
+      if (splitShowing !== src || !frame.isConnected) return;
+      const box = frame.getBoundingClientRect();
+      if (box.width > 0 && box.height > 0) return;
+      el.setAttribute('data-state', 'blocked');
+      el.querySelector('.nwt-split-said').textContent =
+        'The browser refused this frame, which it does by giving it no room ' +
+        'at all. The arrow above opens it in a window instead, which always ' +
+        'works.';
+    }, 2500);
+  }
+
+  /* The way out that actually gives you the whole site.
+   *
+   * A frame cannot hold an application that refuses to be embedded, and no
+   * permission changes that - the refusal is about being inside another page.
+   * A window of its own is not inside another page, so everything works there:
+   * signed in, messages, and a voice channel you can hear, none of which any
+   * embeddable view offers.
+   *
+   * So the refusal offers to put it beside the page instead: this window takes
+   * the left of the screen, that site takes the right, and both are real
+   * browser windows. It is one button rather than a paragraph explaining why
+   * the panel is empty. */
+  function offerInstead(el) {
+    /* Only reached from the refusal, which is only reached once the address
+     * has been read and accepted - so there is always something to open. An
+     * address that cannot be parsed stops earlier, at the empty state, and
+     * never gets this far. */
+    const button = el.querySelector('.nwt-split-instead');
+    el.setAttribute('data-instead', '1');
+    button.textContent = 'Open it beside the page';
+    button.title = 'This window keeps the left of the screen and the site ' +
+                   'takes the right, both as real browser windows - where it ' +
+                   'runs in full, voice channels included.';
+  }
+
+  function splitLabel(split, src) {
+    try {
+      return new URL(src || split.url).hostname.replace(/^www\./, '');
+    } catch (e) {
+      return 'Split';
+    }
+  }
+
+  function saveSplit(patch) {
+    chrome.storage.local.get({ split: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      chrome.storage.local.set({
+        split: Object.assign({}, NWT.DEFAULT_SETTINGS.split, stored.split, patch)
+      });
+    });
+  }
+
+  function wireSplit(el) {
+    if (el.dataset.wired === '1') return;
+    el.dataset.wired = '1';
+
+    el.querySelector('.nwt-split-hide').addEventListener('click', function () {
+      saveSplit({ enabled: false });
+    });
+
+    /* Wired once, and reads the link at the moment it is pressed. Set as an
+     * onclick property inside the paint it was reassigned on every repaint,
+     * which is a listener that only works if the paint happened to run last. */
+    el.querySelector('.nwt-split-instead').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ split: {} }, function (stored) {
+        if (chrome.runtime.lastError) return;
+        const src = NWT.companionSrc((stored.split || {}).url);
+        if (!src) return;
+        /* The screen's own measurements, from the page: reading them in the
+         * worker needs a permission this does not want, and every page knows
+         * how big its own screen is. availWidth and availLeft, so a taskbar
+         * counts as taken rather than as somewhere to hide a window. */
+        chrome.runtime.sendMessage({
+          type: 'companion:dock', url: src,
+          screen: { left: screen.availLeft | 0, top: screen.availTop | 0,
+                    width: screen.availWidth, height: screen.availHeight }
+        }, function () { void chrome.runtime.lastError; });
+        /* The panel has nothing left to hold once it is beside the page. */
+        saveSplit({ enabled: false });
+      });
+    });
+    el.querySelector('.nwt-split-out').addEventListener('click', function () {
+      chrome.storage.local.get({ split: {} }, function (stored) {
+        const src = NWT.companionSrc((stored.split || {}).url);
+        if (!src) return;
+        chrome.runtime.sendMessage({ type: 'companion:window', url: src },
+          function () { void chrome.runtime.lastError; });
+      });
+    });
+
+    /* Dragging the divider. The width is written once the drag settles, for
+     * the same reason the dials are: every write reaches every open tab. */
+    const grip = el.querySelector('.nwt-split-grip');
+    let dragging = false;
+    const settle = NWT.debounce(function () {
+      const px = parseFloat(document.documentElement.style.getPropertyValue('--nwt-split-w'));
+      if (px > 0) saveSplit({ width: px / window.innerWidth });
+    }, 160);
+
+    grip.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      el.setAttribute('data-drag', '1');
+      try { grip.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+      if (e.preventDefault) e.preventDefault();
+    });
+    grip.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      /* Measured from the right edge of the window, so the divider lands under
+       * the pointer rather than drifting away from it. */
+      const px = Math.max(160, Math.min(window.innerWidth - 240,
+                                        window.innerWidth - e.clientX));
+      document.documentElement.style.setProperty('--nwt-split-w', Math.round(px) + 'px');
+      settle();
+    });
+    const stop = function (e) {
+      if (!dragging) return;
+      dragging = false;
+      el.removeAttribute('data-drag');
+      try { grip.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      settle.flush();
+    };
+    grip.addEventListener('pointerup', stop);
+    grip.addEventListener('pointercancel', stop);
+  }
+
+  let paneGrantSeen = 0;
+  /* The last settings the pane was drawn from, so it can be drawn again
+   * without waiting for something else to change. */
+  let paneSettings = null;
+
   function renderPane(settings) {
+    paneSettings = settings;
     const companion = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
     /* Anywhere on the site, not only on a project page. The timer is tied to a
      * project because a session is about building one; something to keep in
@@ -782,6 +1364,16 @@
     if (!settings.enabled || !companion.enabled || !TOP_FRAME) {
       removePane();
       return;
+    }
+    /* A site was allowed, or taken back, since the last paint. The cached
+     * answers are stale and the frame has to be given another go - without
+     * this, granting permission would leave the pane sitting on its refusal
+     * until something else happened to change the address. */
+    const granted = Number(companion.grantedAt) || 0;
+    if (granted !== paneGrantSeen) {
+      paneGrantSeen = granted;
+      Object.keys(paneAllowed).forEach(function (k) { delete paneAllowed[k]; });
+      paneShowing = '';
     }
     const el = paneEl();
     paintPane(companion);
@@ -1307,6 +1899,7 @@
       remove();
       removeHud();
       removePane();
+      removeSplit();
       unrescue();                   /* inline styles outlive the stylesheet */
       groundPalette = null;
       shadowSheetFor('');           /* neutralise the adopted copies in place */
@@ -1320,6 +1913,8 @@
     writeCache(true, s.themeId);
     renderHud(s);
     renderPane(s);
+    renderSplit(s);
+    reportRules(s);
 
     const theme = NWT.getTheme(s);
     /* One palette, one scheduler, one undo, whichever pass is wanted.
@@ -1387,6 +1982,14 @@
   const observer = new MutationObserver(function (records) {
     if (!lastCSS) return;
     if (!document.getElementById(STYLE_ID)) apply(lastCSS);
+
+    /* The same defence the stylesheet has always had, which the pane needed
+     * just as much and did not have. This site rebuilds its body as it
+     * navigates, and everything added to it goes with the rebuild. The pane
+     * then stayed gone until something else happened to change - and when it
+     * did come back it came back empty, because the guard that decides whether
+     * to load anything was reading a variable rather than the frame. */
+    if (paneSettings && !document.getElementById(PANE_ID)) renderPane(paneSettings);
 
     /* Only the subtrees that were actually added. A page that mounts a single
      * component should cost one small walk, not a walk of the document. */

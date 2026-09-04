@@ -67,20 +67,102 @@ check('every referenced file exists', () => {
 });
 
 check('permissions stay minimal', () => {
-  /* storage only. activeTab was requested for a while and never used: the
-   * popup's reload button calls chrome.tabs.reload() with no arguments, which
-   * needs no permission at all. */
-  const allowed = ['storage'];
+  /* storage, and declarativeNetRequest for the companion pane. activeTab was
+   * requested for a while and never used: the popup's reload button calls
+   * chrome.tabs.reload() with no arguments, which needs no permission at all.
+   *
+   * declarativeNetRequest is the narrow form on purpose. It cannot read a
+   * request or its response; it can only carry rules the browser applies. Each
+   * rule is confined to a sub-frame, for a site the user granted by name, and
+   * - because modifyHeaders is applied only where the extension holds host
+   * access to both ends of a request - to frames opened by the one site below.
+   * The version that can read traffic is declarativeNetRequestFeedback, and it
+   * stays out. */
+  const allowed = ['storage', 'declarativeNetRequest'];
   const extra = (manifest.permissions || []).filter(p => !allowed.includes(p));
   if (extra.length) fail('unexpected permission(s): ' + extra.join(', '));
+
+  /* Optional host access is what the pane asks for, one site at a time, and
+   * only when the user clicks. Nothing here is granted at install: the browser
+   * prompts, names the site, and can take it back. The pattern is pinned so
+   * that widening it - to http, or to a scheme with no origin - is a change to
+   * this line rather than a quiet edit to the manifest. */
+  const optional = manifest.optional_host_permissions || [];
+  if (optional.length && JSON.stringify(optional) !== JSON.stringify(['https://*/*'])) {
+    fail('optional_host_permissions is wider than expected: ' + optional.join(', '));
+  }
+  /* Host access at install, which has to be the site being themed and nothing
+   * else. It is here rather than absent because a header rule is only applied
+   * when the extension has host access to both ends of the request - the site
+   * being loaded and the page that asked for it. The pane's frames are asked
+   * for by nextwork.ai, so without this the rules were installed, reported as
+   * present, and silently never applied.
+   *
+   * It adds no reach the extension did not already have: the content script
+   * has run on exactly these two patterns since the beginning, and the browser
+   * asks about them at install either way. */
+  const hosts = manifest.host_permissions || [];
+  const expected = ['https://nextwork.ai/*', 'https://*.nextwork.ai/*'];
+  if (JSON.stringify(hosts) !== JSON.stringify(expected)) {
+    fail('host access should be exactly the themed site: ' + hosts.join(', '));
+  }
+  /* The content script's own matches must not drift away from them either. */
+  const matches = (manifest.content_scripts || []).reduce(
+    (all, cs) => all.concat(cs.matches || []), []);
+  matches.forEach(m => {
+    if (!expected.includes(m)) fail('a content script matches ' + m);
+  });
+
   /* Everything below is another way to widen reach without touching
    * `permissions`, so each one has to be absent rather than merely unchecked. */
-  ['host_permissions', 'optional_permissions', 'optional_host_permissions',
-   'web_accessible_resources', 'externally_connectable',
-   'content_security_policy'].forEach(key => {
+  ['optional_permissions', 'web_accessible_resources',
+   'externally_connectable', 'content_security_policy'].forEach(key => {
     if (manifest[key]) fail(key + ' should not be needed');
   });
-  return (manifest.permissions || []).join(', ');
+  return (manifest.permissions || []).join(', ') +
+         (optional.length ? ' (+ optional hosts, granted per site)' : '');
+});
+
+/* The rules the pane installs are the one place this extension changes what a
+ * browser does with someone else's response, so what they may contain is
+ * checked rather than trusted to review. */
+check('header rules stay scoped to the pane', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'background.js'), 'utf8');
+
+  /* Sub-frames only. Without it the rule would apply to whole pages you
+   * navigate to, not just to what the pane puts in a frame.
+   *
+   * Read from the code rather than from the file, because the file also talks
+   * about this in prose. An earlier version of this check searched the whole
+   * text for `initiatorDomains: ['nextwork.ai']`, and when that condition was
+   * removed the check went on passing - it was matching the comment that
+   * explained the removal. A check that a sentence can satisfy is not a check.
+   *
+   * What keeps this narrow is not a condition in the rule. `modifyHeaders` is
+   * applied only where the extension holds host access to both ends of the
+   * request, and the only initiator it holds is nextwork.ai, which the
+   * permission check above pins. */
+  const code = codeOnly(src).join('\n');
+  if (!/resourceTypes:\s*\['sub_frame'\]/.test(code)) {
+    fail('a header rule is not restricted to sub-frames');
+  }
+  if (/resourceTypes:\s*\[[^\]]*main_frame/.test(code)) {
+    fail('a header rule reaches whole pages, not just frames');
+  }
+  /* Removing framing headers is the whole point. Adding or replacing one, or
+   * touching a request on its way out, is not, and would not be visible in a
+   * diff that only grew a line. */
+  const ops = code.match(/operation:\s*'(\w+)'/g) || [];
+  const notRemove = ops.filter(o => !/'remove'/.test(o));
+  if (notRemove.length) fail('a header rule does something other than remove: ' + notRemove.join(', '));
+  if (/requestHeaders:/.test(code)) fail('a rule modifies request headers');
+
+  const headers = (code.match(/header:\s*'([\w-]+)'/g) || []).map(h => h.split("'")[1]);
+  const permitted = ['x-frame-options', 'content-security-policy',
+                     'content-security-policy-report-only'];
+  const unexpected = headers.filter(h => !permitted.includes(h));
+  if (unexpected.length) fail('unexpected header(s) removed: ' + unexpected.join(', '));
+  return headers.length + ' headers, frames only';
 });
 
 check('manifest and package version agree', () => {
@@ -228,6 +310,24 @@ check('no remote URLs in extension code', () => {
   });
   if (offenders.length) fail(offenders.join(', '));
   return 'clean';
+});
+
+/* The check above reads only the JavaScript, which left the two HTML pages
+ * unexamined - and they are the files where a remote address does the most
+ * damage, because a `src` or `href` in markup is fetched with no code to
+ * review. A placeholder had already appeared in one of them and nothing
+ * noticed. */
+check('no remote URLs in extension markup', () => {
+  const offenders = [];
+  ['src/options.html', 'src/popup.html'].forEach(name => {
+    const file = path.join(ROOT, name);
+    fs.readFileSync(file, 'utf8').split(/\r?\n/).forEach((line, i) => {
+      const stripped = line.replace(/http:\/\/www\.w3\.org\/2000\/svg/g, '');
+      if (/https?:\/\//.test(stripped)) offenders.push(name + ':' + (i + 1));
+    });
+  });
+  if (offenders.length) fail(offenders.join(', '));
+  return '2 files';
 });
 
 check('no eval or HTML injection', () => {

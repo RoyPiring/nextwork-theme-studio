@@ -203,6 +203,9 @@ class FakeElement {
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
   removeEventListener() {}
   getBoundingClientRect() { return Object.assign({}, this._rect); }
+  /* Bringing an element into view. Nothing is laid out here, so it records
+   * that it was asked rather than pretending to scroll. */
+  scrollIntoView() { this.scrolledIntoView = true; }
   setPointerCapture() {}
   releasePointerCapture() {}
   /* Recorded rather than ignored, so a test can tell whether the cursor was
@@ -531,7 +534,11 @@ function loadContentScript(options) {
           if (msg && msg.type === 'companion:allowed') {
             let origin = '';
             try { origin = new URL(msg.url).origin; } catch (e) { origin = ''; }
-            cb({ allowed: !!origin && allowedOrigins.includes(origin), origin: origin });
+            const allowed = !!origin && allowedOrigins.includes(origin);
+            /* Granted and carried are separate facts in the worker, so they
+             * are separate here. `inert` plays the state that cost days: the
+             * site allowed, and no rule behind it. */
+            cb({ allowed: allowed, active: allowed && !opts.inert, origin: origin });
             return;
           }
           cb({});
@@ -619,6 +626,12 @@ function loadContentScript(options) {
     window: win,
     document: doc,
     location: { pathname: opts.pathname || '/projects/abc' },
+    /* The screen the page can see. availWidth and availLeft rather than width
+     * and left, because a taskbar or a dock is space that is taken, not space
+     * to put a window under. */
+    screen: Object.assign({ width: 1600, height: 900, availWidth: 1600,
+                            availHeight: 860, availLeft: 0, availTop: 0 },
+                          opts.screen || {}),
     chrome,
     /* The address parser the browser has. Left out, new URL() threw, the
      * caller caught it, and a missing feature read as a considered "no" -
@@ -735,6 +748,15 @@ function loadBackground(options) {
   const permissions = { origins: (opts.origins || []).slice() };
   let dynamicRules = [];
   const windows = [];
+  const windowUpdates = [];
+  const windowsRemoved = [];
+  /* The window the page is in: maximised, as most people leave them, which is
+   * the case where bounds are ignored until the state is changed first. */
+  const hostWindow = Object.assign(
+    { id: 7, left: 0, top: 0, width: 1512, height: 900, state: 'maximized' },
+    opts.hostWindow || {});
+  const windowRemovedListeners = [];
+  const openWindowIds = new Set();
   /* Which extension page was opened to raise the browser's prompt. Whether it
    * is the popup or the options page depends on the browser, so what matters
    * is that one of them was. */
@@ -776,13 +798,67 @@ function loadBackground(options) {
     declarativeNetRequest: {
       getDynamicRules(cb) { cb(dynamicRules.slice()); },
       updateDynamicRules(o, cb) {
+        /* A browser refuses a rule the way it refuses everything else: it sets
+         * lastError and carries on. `rulesFail` plays that. */
+        if (opts.rulesFail) {
+          chrome.runtime.lastError = { message: opts.rulesFail };
+          try { if (cb) cb(); } finally { chrome.runtime.lastError = null; }
+          return;
+        }
         const drop = new Set(o.removeRuleIds || []);
         dynamicRules = dynamicRules.filter(r => !drop.has(r.id)).concat(o.addRules || []);
         if (cb) cb();
       }
     },
     windows: {
-      create(o, cb) { windows.push(o); if (cb) cb({ id: windows.length }); }
+      create(o, cb) {
+        windows.push(o);
+        const id = windows.length;
+        openWindowIds.add(id);
+        /* Answered through the queue, the way the real one answers. Called
+         * straight back, it ran inside the caller's own callback - so it saw
+         * that call's `lastError` still set and read its own success as a
+         * failure. Chrome scopes lastError to one callback; so does this. */
+        if (cb) timers.push(function () { cb({ id: id }); });
+      },
+      /* Bringing one forward, and closing one. The pane reuses a window it
+       * already opened rather than making another, so both have to exist. */
+      update(id, o, cb) {
+        if (id === hostWindow.id) {
+          Object.assign(hostWindow, o);
+          windowUpdates.push({ id: id, options: o });
+          if (cb) cb(Object.assign({}, hostWindow));
+          return;
+        }
+        if (!openWindowIds.has(id)) {
+          chrome.runtime.lastError = { message: 'No window with id: ' + id };
+          try { if (cb) cb(); } finally { chrome.runtime.lastError = null; }
+          return;
+        }
+        windowUpdates.push({ id: id, options: o });
+        if (cb) cb({ id: id });
+      },
+      onRemoved: { addListener(fn) { windowRemovedListeners.push(fn); } },
+      remove(id, cb) {
+        openWindowIds.delete(id);
+        windowsRemoved.push(id);
+        if (cb) timers.push(function () { cb(); });
+      },
+      /* The window the popup belongs to, which is the window the page is in.
+       * The arrangement is driven from the popup, so this is how it finds the
+       * window it has to move. */
+      getCurrent(cb) { cb(Object.assign({}, hostWindow)); },
+      /* The page's own window, so side-by-side has something to move and
+       * somewhere to put it back to. */
+      get(id, cb) {
+        const w = hostWindow.id === id ? hostWindow : null;
+        if (!w) {
+          chrome.runtime.lastError = { message: 'No window with id: ' + id };
+          try { cb(); } finally { chrome.runtime.lastError = null; }
+          return;
+        }
+        cb(Object.assign({}, w));
+      }
     },
     commands: { onCommand: { addListener(fn) { commandListeners.push(fn); } } },
     action: {
@@ -884,16 +960,35 @@ function loadBackground(options) {
     command(name) { commandListeners.forEach(fn => fn(name)); },
     /* Send a message the way a popup or content script would, and hand back
      * whatever the worker replied with. */
-    send(msg) {
+    /* `from` stands in for the sender: a message from a content script carries
+     * the tab and window it came from, and side-by-side needs that to know
+     * which window to move. */
+    send(msg, from) {
       let answer;
-      messageListeners.forEach(fn => fn(msg, {}, function (r) { answer = r; }));
+      const sender = from || { tab: { id: 1, windowId: hostWindow.id } };
+      messageListeners.forEach(fn => fn(msg, sender, function (r) { answer = r; }));
       flush();
       return answer;
     },
+    /* Where the page's window ended up. */
+    hostWindow() { return Object.assign({}, hostWindow); },
     /* What the browser would be enforcing right now. */
     rules() { return dynamicRules.slice(); },
     granted() { return permissions.origins.slice(); },
     windowsOpened() { return windows.slice(); },
+    /* Windows brought forward rather than opened again. */
+    windowsFocused() { return windowUpdates.slice(); },
+    /* Windows the extension closed itself. */
+    windowsClosed() { return windowsRemoved.slice(); },
+    /* Close one without telling the worker, which is what happens when it was
+     * asleep: there is no backlog of events to catch up on. */
+    forgetWindowQuietly(id) { openWindowIds.delete(id); },
+    /* Close one the way a person would, so the worker hears about it. */
+    closeWindow(id) {
+      openWindowIds.delete(id);
+      windowRemovedListeners.forEach(fn => fn(id));
+      flush();
+    },
     pagesOpened() { return pagesOpened.slice(); },
     /* Play the user refusing the browser's prompt. */
     refuseGrants() { grant = false; },
@@ -947,6 +1042,31 @@ function loadPage(options) {
   parseDocument(fs.readFileSync(path.join(ROOT, opts.page), 'utf8'), doc);
 
   const chrome = {
+    /* Granting a site is done from the options page, not the popup: a browser
+     * closes the popup to show its prompt, and closing the page cancels the
+     * request that page made. */
+    permissions: {
+      getAll(cb) { cb({ origins: allowedOrigins.map(o => o + '/*'), permissions: [] }); },
+      contains(req, cb) {
+        cb((req.origins || []).every(o => allowedOrigins.includes(o.replace(/\/\*$/, ''))));
+      },
+      request(req, cb) {
+        if (grantsAllowed) {
+          (req.origins || []).forEach(function (o) {
+            const origin = o.replace(/\/\*$/, '');
+            if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin);
+          });
+        }
+        cb(grantsAllowed);
+      },
+      remove(req, cb) {
+        (req.origins || []).forEach(function (o) {
+          const at = allowedOrigins.indexOf(o.replace(/\/\*$/, ''));
+          if (at >= 0) allowedOrigins.splice(at, 1);
+        });
+        cb(true);
+      }
+    },
     runtime: {
       lastError: null,
       id: 'test',
@@ -1039,6 +1159,11 @@ function loadPage(options) {
     window: win,
     document: doc,
     location: { pathname: '/' + path.basename(opts.page) },
+    /* The popup is on the same screen as the page it arranges, so this is
+     * where the measurements for that arrangement come from. */
+    screen: Object.assign({ width: 1600, height: 900, availWidth: 1600,
+                            availHeight: 860, availLeft: 0, availTop: 0 },
+                          opts.screen || {}),
     chrome,
     URLSearchParams,
     Blob: FakeBlob,
@@ -1185,6 +1310,9 @@ function loadPage(options) {
       return el;
     },
     click(el, extra) { return dispatch(el, 'click', extra); },
+    /* Any event on any element. `fire` needs an id, and the rows built at
+     * render time do not have one. */
+    fireOn(el, type, extra) { return dispatch(el, type, extra); },
     /* Every message the page sent the extension, and which sites the browser
      * would now report as allowed. */
     sent() { return sentMessages.slice(); },

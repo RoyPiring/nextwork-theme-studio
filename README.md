@@ -85,10 +85,91 @@ both can be turned off.
 a tile; the pane floats over the page with that link in it, and you drag its
 bar to move it and its corner to resize it. It stays where you put it.
 
-A YouTube link works — paste the address from your browser's bar and it plays.
-Most other sites, Discord among them, refuse to be shown inside another page.
-That is their own setting, and the pane does not fight it: it says so, and the
-arrow in its bar opens the site in a small window of its own instead.
+A YouTube link works straight away — paste the address from your browser's bar
+and it plays. Most other sites, Discord among them, refuse to be shown inside
+another page. The pane says so and offers you two ways on: **allow this site**,
+which asks your browser for permission to set that refusal aside for this one
+frame, or the arrow in its bar, which opens the site in a small window of its
+own and needs no permission at all.
+
+Allowing a site is worth understanding before you do it, and
+[SECURITY.md](SECURITY.md) explains what it changes and how far it reaches.
+The short version: it applies only inside this pane, only to the site you
+named, and the browser can take it back at any time.
+
+**Signing in inside the pane.** A frame on another site gets its own storage,
+kept separate from the tab you would normally use. So a site you are signed
+into in a tab may still ask you to sign in the first time it appears in the
+pane. Do it once, in the pane, and it is remembered there from then on.
+
+The pane is given what an application needs: the microphone and camera, so a
+voice channel works; screen share, modals, downloads, pointer lock. The one
+thing held back is the ability to replace the tab underneath — nothing in the
+pane can navigate the page you are working on.
+
+### Split the page
+
+The tab divided in two: your work narrowed to the left, something else in the
+right, with a divider you drag. Not a panel floating over the page and not a
+second window to manage — the page gives up part of its width and carries on
+working at the width it has, reflowing its own layout to fit.
+
+Paste a link in the **Split** tab and press Show. Drag the divider on the page
+itself, or use **Panel width** in the popup. The × on its bar gives the page
+its full width back.
+
+**A link is loaded as you gave it.** The one translation is YouTube: a watch
+address becomes the player, because the player is the same video and the watch
+page cannot be embedded at all. Nothing else is substituted.
+
+**An application you sign in to cannot go in a frame.** Discord, a mail client
+and their kind refuse to be shown inside another page, and no permission,
+header or setting changes that — the refusal is specifically about being
+*inside* a page. There is no partial version worth having either: the read-only
+views such sites publish leave out the parts you wanted, and none of them
+carries a voice channel.
+
+So the panel offers to open it **beside the page** instead. One button: this
+window takes the left of the screen, that site takes the right, both as real
+browser windows. It runs in full there — signed in, every channel, and voice
+you can actually hear — because a window of its own is not inside another page.
+
+That is the honest division. Things built to be embedded go in the split;
+applications go beside it.
+
+**If a panel is empty, check your other extensions first.** A content blocker —
+Privacy Badger, uBlock and their kin — will replace a third-party frame with a
+placeholder, and from the page that looks exactly like the site refusing. They
+generally offer an "allow on this site" button in the space where the frame
+should be.
+
+### Beside the page
+
+A second, separate section, because there are two different problems here and
+one answer cannot serve both.
+
+The pane above puts a site **inside** the page, in a frame. That works only for
+sites that publish something meant to be embedded — a video player, a document
+viewer. Most applications refuse to be embedded at all, and no permission
+changes that: the refusal is specifically about being inside another page.
+
+**Beside the page** uses real browser windows instead. A window is not an
+embedding, so a site that will not be framed — Discord, a mail client, anything
+you sign in to — opens, signs in, joins a voice channel and behaves exactly as
+it does in a tab, because as far as it is concerned it *is* one.
+
+Paste a link, and it becomes a row with its own switch. Turn it on and its
+window opens beside your work; turn it off and the window closes. Close a
+window from its own corner and the switch follows. Up to four at once: one or
+two share the right-hand column, three or four make a grid of quarters. A fifth
+is refused rather than shrinking the rest into slivers.
+
+**Page keeps** is how much of the screen your work holds — the rest is shared
+among whatever is open beside it. Turn **Arrange** off and your window goes
+back exactly where it was, maximised if that is how you had it.
+
+The rule of thumb: **a video goes in the pane, an application goes beside the
+page.**
 
 ---
 

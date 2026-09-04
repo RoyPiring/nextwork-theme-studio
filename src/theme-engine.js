@@ -406,9 +406,63 @@
       y: null,
       w: 380,              /* px, and resizable by dragging the corner */
       h: 260,
+      /* Side by side: the page on the left of the screen and the companion in
+       * its own window on the right, both real browser windows. Set here so
+       * the pane knows to stand aside, and so it survives a reload. */
+      docked: false,
+      /* Where the page's window was before it was moved, to put it back. */
+      priorWindow: null,
+      /* Bumped when a site is allowed or taken back. An open page caches what
+       * it was told about a site, and this is how it learns the answer moved. */
+      grantedAt: 0,
+      /* A site the pane sent you here to answer for. The prompt can only be
+       * raised from an extension page, so the pane writes down what it wanted
+       * and the popup leads with it. */
+      pending: '',
       /* Saved places to put in it, as { label, url }. The list is the point:
        * the pane holds one at a time and these are what to switch between. */
       tiles: []
+    },
+    /* The page narrowed to one side, and something else in the other - one
+     * tab, split down the middle, with a divider you can drag.
+     *
+     * This is the arrangement people mean by "split screen": not a panel
+     * floating on top of the work, and not a second window to manage, but the
+     * page giving up part of its width so something can sit beside it and stay
+     * there while you scroll and navigate.
+     *
+     * The page is narrowed rather than scaled, so its own layout reflows to
+     * the width it has been given and stays readable. */
+    split: {
+      enabled: false,
+      url: '',
+      /* How much of the window the panel takes, as a fraction, so it holds
+       * its proportion when the window is resized. */
+      width: 0.36
+    },
+    /* Beside the page, rather than inside it.
+     *
+     * A separate feature from the pane above, because the two answer different
+     * questions and the difference is not cosmetic. The pane puts a site in a
+     * frame on the page, which only works for sites that publish something
+     * meant to be embedded - a video player, a document. Most applications
+     * refuse to be embedded at all, and no permission changes that: the
+     * refusal is about being inside another page.
+     *
+     * These are real browser windows, arranged around the page rather than
+     * drawn on it. A window is not an embedding, so a site that will not be
+     * framed signs in and behaves exactly as it does in a tab. Discord belongs
+     * here; a YouTube video belongs in the pane. Keeping them as one feature
+     * meant every site had to pretend to be the other. */
+    windows: {
+      enabled: false,
+      /* Per cent of the screen the page keeps. The rest is shared out among
+       * whatever is open beside it. */
+      split: 62,
+      /* { label, url, on } - `on` is whether its window is open now. */
+      items: [],
+      /* Where the page's window was before it was first moved. */
+      priorWindow: null
     },
     options: {
       dimImages: 0,          /* 0-40 % - knocks the glare off bright screenshots */
@@ -434,6 +488,7 @@
    * is the browser loading a page a person chose, the same as opening a tab.
    * The audit allows this one literal by name and nothing else. */
   const YOUTUBE_PLAYER = 'https://www.youtube.com/embed/';
+
 
   /* What to actually put in the companion pane for a given address.
    *
@@ -496,6 +551,7 @@
     if (/^(.*\.)?nextwork\.ai$/i.test(url.hostname)) return null;
 
     const host = url.hostname.replace(/^www\./, '');
+
     const video =
       (host === 'youtube.com' || host === 'm.youtube.com') && url.pathname === '/watch'
         ? url.searchParams.get('v')
@@ -1485,6 +1541,36 @@
            ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
            ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
     L.push('#nwt-companion .nwt-companion-said { margin: 0; }');
+    /* Offered here rather than described here. Being told to go and find a
+     * button on another surface is not an answer to "how do I allow this". */
+    L.push('#nwt-companion .nwt-companion-ask { flex: none; padding: 7px 14px;' +
+           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
+    L.push('#nwt-companion .nwt-companion-ask:hover { background: ' +
+           rgba(p.accent, 0.26) + '; }');
+    /* Each of these belongs to one state and nothing else. */
+    L.push('#nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
+           ' display: none; }');
+    L.push('#nwt-companion .nwt-companion-here { flex: none; padding: 7px 14px;' +
+           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
+    L.push('#nwt-companion .nwt-companion-here:hover { background: ' +
+           rgba(p.accent, 0.26) + '; }');
+    L.push('#nwt-companion:not([data-state="windowed"]) .nwt-companion-here {' +
+           ' display: none; }');
+    /* The way back out of side-by-side, offered only while it is on. */
+    L.push('#nwt-companion .nwt-companion-undock { flex: none; padding: 7px 14px;' +
+           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
+    L.push('#nwt-companion .nwt-companion-undock:hover { background: ' +
+           rgba(p.accent, 0.26) + '; }');
+    L.push('#nwt-companion:not([data-state="docked"]) .nwt-companion-undock {' +
+           ' display: none; }');
+    L.push('#nwt-companion[data-state="docked"] .nwt-companion-refused {' +
+           ' color: var(--nwt-text); }');
     /* Shown over a frame that loaded, since that is the only case where a
      * blank rectangle has nothing else on it. Faint until you go near it. */
     L.push('#nwt-companion .nwt-companion-hint { position: absolute; left: 50%;' +
@@ -1498,12 +1584,75 @@
            ' display: none; }');
     L.push('#nwt-companion[data-state="ready"] .nwt-companion-refused {' +
            ' display: none; }');
-    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused {' +
+    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused,' +
+           ' #nwt-companion[data-state="page-blocked"] .nwt-companion-refused {' +
            ' color: ' + p.status.warning[400] + '; }');
 
     /* Big enough to find and dark enough to see. At 16px with a half-strength
      * wash it was neither, and the first thing anyone asked was where the
      * corner to drag was. */
+    /* ---- the split ----------------------------------------------------
+     * One tab, two boxes. The page gives up part of its width and something
+     * else sits in the rest of it, staying there while you scroll and
+     * navigate. The page is narrowed rather than scaled, so its own layout
+     * reflows to the width it has and stays readable at that size. */
+    L.push('html.nwt-split-on { width: calc(100% - var(--nwt-split-w, 36%))' +
+           ' !important; overflow-x: hidden !important; }');
+    /* Fixed to the window rather than to the narrowed page, so it keeps the
+     * right-hand strip whatever the page does with its own layout. */
+    L.push('#nwt-split { position: fixed; top: 0; right: 0; height: 100vh;' +
+           ' width: var(--nwt-split-w, 36%); z-index: 2147483645;' +
+           ' display: flex; flex-direction: column; box-sizing: border-box;' +
+           ' border-left: 1px solid ' + p.panelEdge + ';' +
+           ' background: ' + p.surface + '; color: var(--nwt-text);' +
+           ' font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }');
+    L.push('#nwt-split .nwt-split-bar { display: flex; align-items: center;' +
+           ' gap: 6px; padding: 6px 8px; flex: none; cursor: default;' +
+           ' border-bottom: 1px solid ' + p.panelEdge + ';' +
+           ' background: ' + p.surfaceAlt + '; }');
+    L.push('#nwt-split .nwt-split-title { flex: 1; min-width: 0; font-size: 12px;' +
+           ' font-weight: 600; overflow: hidden; text-overflow: ellipsis;' +
+           ' white-space: nowrap; color: var(--nwt-text); }');
+    L.push('#nwt-split .nwt-split-bar button { flex: none; width: 24px;' +
+           ' height: 24px; padding: 0; font: inherit; font-size: 13px;' +
+           ' cursor: pointer; border-radius: 6px; border: 0;' +
+           ' background: transparent; color: var(--nwt-text-dim); }');
+    L.push('#nwt-split .nwt-split-bar button:hover { background: ' +
+           rgba(p.textMuted, 0.18) + '; color: var(--nwt-text); }');
+    L.push('#nwt-split .nwt-split-body { position: relative; flex: 1;' +
+           ' min-height: 0; }');
+    L.push('#nwt-split .nwt-split-frame { width: 100%; height: 100%; border: 0;' +
+           ' display: block; background: ' + p.canvas + '; }');
+    L.push('#nwt-split .nwt-split-said { position: absolute; inset: 0; margin: 0;' +
+           ' display: flex; flex-direction: column; align-items: center;' +
+           ' justify-content: center; gap: 12px; padding: 20px;' +
+           ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
+           ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
+    L.push('#nwt-split[data-state="ready"] .nwt-split-said { display: none; }');
+    L.push('#nwt-split[data-state="blocked"] .nwt-split-said { color: ' +
+           p.status.warning[400] + '; }');
+    L.push('#nwt-split .nwt-split-instead { position: absolute; left: 50%;' +
+           ' bottom: 22%; transform: translateX(-50%); z-index: 2;' +
+           ' padding: 8px 14px; font: inherit; font-size: 12.5px;' +
+           ' cursor: pointer; border-radius: 8px;' +
+           ' border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.16) + '; color: ' + p.textPrimary + '; }');
+    L.push('#nwt-split .nwt-split-instead:hover { background: ' +
+           rgba(p.accent, 0.3) + '; }');
+    /* Only where the site publishes something else worth trying. */
+    L.push('#nwt-split:not([data-state="blocked"]) .nwt-split-instead,' +
+           ' #nwt-split:not([data-instead="1"]) .nwt-split-instead {' +
+           ' display: none; }');
+    /* The divider. Wider than it looks, because a 1px target is a target you
+     * miss; the line is drawn by the border beside it. */
+    L.push('#nwt-split .nwt-split-grip { position: absolute; left: -4px; top: 0;' +
+           ' bottom: 0; width: 9px; cursor: col-resize; z-index: 1; }');
+    L.push('#nwt-split .nwt-split-grip:hover, #nwt-split[data-drag="1"]' +
+           ' .nwt-split-grip { background: ' + rgba(p.accent, 0.5) + '; }');
+    /* While dragging, the frame must not swallow the pointer - a cross-origin
+     * frame takes every move event over it and the divider stops halfway. */
+    L.push('#nwt-split[data-drag="1"] .nwt-split-frame { pointer-events: none; }');
+
     L.push('#nwt-companion .nwt-companion-grip { position: absolute; right: 0;' +
            ' bottom: 0; width: 22px; height: 22px; cursor: nwse-resize;' +
            ' background: linear-gradient(135deg, transparent 46%, ' +

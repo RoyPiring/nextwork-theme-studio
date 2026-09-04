@@ -512,3 +512,86 @@ test('a character above the basic range decodes to the same text', async () => {
   assert.deepEqual(customThemes(q), {},
     'an escape above the basic range hid what followed it');
 });
+
+/* ------------------------------------------- allowing a site to be framed */
+
+test('allowing a site is done here, and it is granted', () => {
+  /* This lives on the options page and not in the popup, and that is the point
+   * of it rather than a layout choice. `permissions.request` has to come from
+   * an extension page in response to a click - and a browser closes the popup
+   * to put its own prompt on screen, which cancels the request the popup made.
+   * The prompt never resolves, nothing is granted, and nothing reports a
+   * failure. An options page is a tab: it does not close. */
+  const p = openEditor({});
+  p.set('sites-url', 'https://discord.com/channels/1/2');
+  p.click(p.el('sites-add'));
+  p.flush();
+
+  assert.deepEqual(p.granted(), ['https://discord.com'],
+    'the site was not granted');
+  assert.equal(p.el('sites-url').value, '', 'the field kept what it just granted');
+});
+
+test('granting tells the open pages the answer moved', () => {
+  /* They cache what they were told about a site, so a grant that nothing
+   * announced leaves them sitting on a refusal. */
+  const p = openEditor({});
+  p.set('sites-url', 'https://discord.com/channels/1/2');
+  p.click(p.el('sites-add'));
+  p.flush();
+  assert.ok(p.stored.companion.grantedAt > 0, 'nothing told the pages to look again');
+  assert.equal(p.stored.companion.pending, '', 'the question was left standing');
+});
+
+test('a refused prompt is reported, not treated as success', () => {
+  const p = openEditor({});
+  p.refuseGrants();
+  p.set('sites-url', 'https://discord.com/channels/1/2');
+  p.click(p.el('sites-add'));
+  p.flush();
+
+  assert.deepEqual(p.granted(), []);
+  /* And it must not behave as though it worked: the field keeps what you
+   * typed so you can try again, and nothing tells the open pages to look
+   * for a permission that was never given. */
+  assert.equal(p.el('sites-url').value, 'https://discord.com/channels/1/2',
+    'it cleared the field, so a refused grant looks like a successful one');
+  assert.ok(!(p.stored.companion && p.stored.companion.grantedAt),
+    'it told the open pages a site was allowed when it was not');
+});
+
+test('an address that is not https is refused before the browser is asked', () => {
+  const p = openEditor({});
+  ['notes.txt', 'http://discord.com', 'javascript:alert(1)'].forEach(function (bad) {
+    p.set('sites-url', bad);
+    p.click(p.el('sites-add'));
+    p.flush();
+  });
+  assert.deepEqual(p.granted(), []);
+  assert.equal(p.el('sites-url').getAttribute('aria-invalid'), 'true');
+});
+
+test('what is allowed is listed, and can be taken back', () => {
+  const p = openEditor({}, { allowed: ['https://discord.com'] });
+  p.flush();
+  const rows = p.el('sites-list').querySelectorAll('button');
+  assert.equal(rows.length, 1, 'the allowed site was not listed');
+
+  p.click(rows[0]);
+  p.flush();
+  assert.deepEqual(p.granted(), [], 'it could not be taken back');
+});
+
+test('nextwork.ai is not listed as something you allowed', () => {
+  /* It is host access the extension ships with, not a site anyone granted,
+   * and offering to take it back would break the theme. */
+  const p = openEditor({}, { allowed: ['https://nextwork.ai', 'https://discord.com'] });
+  p.flush();
+  assert.equal(p.el('sites-list').querySelectorAll('button').length, 1);
+});
+
+test('a site the pane asked about is filled in, so it is not typed twice', () => {
+  const p = openEditor({ companion: { pending: 'https://discord.com/channels/1/2' } });
+  p.flush();
+  assert.equal(p.el('sites-url').value, 'https://discord.com/channels/1/2');
+});

@@ -609,3 +609,13 @@ test('the pane will not point back at the site it sits on', () => {
   /* A different site that merely ends in something similar is not the same. */
   assert.ok(NWT.companionSrc('https://nextwork.ai.example/x'));
 });
+
+test('a Discord channel link is kept as it was given', () => {
+  /* A channel link means that channel. Quietly turning it into the widget
+   * takes away what was asked for - the widget is a member list and an
+   * invite, not the conversation - so the link is loaded as given and the
+   * widget is offered separately when that link is refused. */
+  const channel = 'https://discord.com/channels/1432837534118838355/1433926582124286082';
+  assert.equal(NWT.companionSrc(channel), channel);
+});
+

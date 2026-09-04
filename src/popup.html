@@ -19,6 +19,13 @@
     <p class="tiny muted" id="status">Loading&#8230;</p>
   </header>
 
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tab-theme" data-tab="theme" aria-selected="true">Theme</button>
+    <button type="button" role="tab" id="tab-focus" data-tab="focus" aria-selected="false">Focus</button>
+    <button type="button" role="tab" id="tab-split" data-tab="split" aria-selected="false">Split</button>
+  </div>
+
+  <div class="tab-panel" id="panel-theme">
   <div class="switch-row">
     <label class="switch-item" title="Toggle the theme (Alt+Shift+D)">
       <span class="switch-label">Theme</span>
@@ -73,6 +80,9 @@
     </div>
   </div>
 
+  </div><!-- /panel-theme -->
+
+  <div class="tab-panel" id="panel-focus" hidden>
   <section class="card focus" id="focus-panel">
     <div class="row between">
       <h2 class="section-title">Focus</h2>
@@ -113,6 +123,34 @@
     </div>
   </section>
 
+  </div><!-- /panel-focus -->
+
+  <div class="tab-panel" id="panel-split" hidden>
+  <section class="stack dimmable" id="split-panel">
+    <div class="row between">
+      <span class="section-title">Split the page</span>
+      <label class="switch-item" title="Divide this tab between the page and something else">
+        <span class="switch-label">Split</span>
+        <span class="switch"><input type="checkbox" id="splitEnabled"><span></span></span>
+      </label>
+    </div>
+
+    <div class="card stack">
+      <p class="tiny muted" id="split-lead">The page moves over and shares the tab. Drag the divider on the page to change how it is divided.</p>
+      <div class="row">
+        <input type="url" id="split-url" placeholder="Paste a link" aria-label="Address to show beside the page">
+        <button id="split-set" title="Show this beside the page">Show</button>
+      </div>
+      <div class="field">
+        <div class="row between">
+          <label for="split-width">Panel width</label><output id="split-width-out"></output>
+        </div>
+        <input type="range" id="split-width" min="18" max="72" step="1">
+      </div>
+      <p class="tiny muted" id="split-note">A video or a document sits here. An application you sign in to &mdash; Discord, mail &mdash; cannot be put inside a page by anyone; the panel offers to open it beside the page instead, where it runs in full.</p>
+    </div>
+  </section>
+
   <section class="stack dimmable" id="companion-panel">
     <div class="row between">
       <span class="section-title">Beside your work</span>
@@ -131,9 +169,46 @@
         <button id="companion-add" title="Save this as a tile">Add</button>
       </div>
 
+      <div class="row between access" id="companion-access">
+        <span class="tiny muted" id="companion-access-note"></span>
+        <button class="ghost tiny" id="companion-access-btn">Allow it here</button>
+      </div>
+
       <p class="tiny muted" id="companion-note">The pane floats on the project page. Drag its bar to move it, its corner to resize.</p>
     </div>
   </section>
+
+  <section class="stack dimmable" id="windows-panel">
+    <div class="row between">
+      <span class="section-title">Beside the page</span>
+      <label class="switch-item" title="Arrange these around the page">
+        <span class="switch-label">Arrange</span>
+        <span class="switch"><input type="checkbox" id="windowsEnabled"><span></span></span>
+      </label>
+    </div>
+
+    <div class="card stack">
+      <p class="tiny muted" id="windows-lead">For sites that will not sit inside a page &mdash; Discord, a mail client, anything you sign in to. Each opens as its own small browser window beside your work, up to four.</p>
+
+      <div class="stack" id="windows-list"></div>
+      <p class="tiny muted" id="windows-empty">Nothing here yet. Paste a link below.</p>
+
+      <div class="row">
+        <input type="url" id="windows-url" placeholder="Paste a link" aria-label="Address to open beside the page">
+        <button id="windows-add" title="Save this">Add</button>
+      </div>
+
+      <div class="field">
+        <div class="row between">
+          <label for="windows-split">Page keeps</label><output id="windows-split-out"></output>
+        </div>
+        <input type="range" id="windows-split" min="35" max="80" step="1">
+      </div>
+      <p class="tiny muted" id="windows-note">Turning one on opens its window. Closing a window turns it off. &ldquo;Arrange&rdquo; off puts your page back to full size.</p>
+    </div>
+  </section>
+
+  </div><!-- /panel-split -->
 
   <footer>
     <button class="primary" id="open-editor">Open editor</button>

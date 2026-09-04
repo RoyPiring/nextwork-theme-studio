@@ -193,6 +193,30 @@
     </main>
   </div>
 
+  <section class="card stack" id="sites-panel">
+    <div class="row between">
+      <h2>Sites allowed beside your page</h2>
+      <span class="tiny muted" id="sites-state"></span>
+    </div>
+    <p class="tiny muted">
+      Most sites refuse to be shown inside another page. Allowing one here lets
+      the extension remove that refusal for a frame your page opened, and
+      nowhere else. The browser asks first, and can take it back at any time
+      from its own settings.
+    </p>
+    <div class="stack" id="sites-list"></div>
+    <p class="tiny muted" id="sites-empty">Nothing allowed yet.</p>
+    <div class="row">
+      <input type="url" id="sites-url" placeholder="Paste a link" aria-label="Site to allow">
+      <button id="sites-add" class="primary">Allow this site</button>
+    </div>
+    <p class="tiny muted" id="sites-note">
+      This has to be done here rather than in the popup: a browser closes the
+      popup to show its permission prompt, which cancels the request before it
+      is answered.
+    </p>
+  </section>
+
   <div class="toast" id="toast" hidden></div>
 
   <script src="wallpapers.js"></script>
