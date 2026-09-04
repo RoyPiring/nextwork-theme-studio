@@ -118,9 +118,22 @@ Paste a link in the **Split** tab and press Show. Drag the divider on the page
 itself, or use **Panel width** in the popup. The × on its bar gives the page
 its full width back.
 
-The right-hand half is a frame, so the same rule applies as to the pane: a
-video or a document works, an application that refuses to be embedded does not.
-When one is refused it says so rather than sitting there empty.
+**Links are translated to whatever part of the site can actually be embedded.**
+A YouTube watch address becomes the player. A Discord channel address becomes
+that server's widget — the channel and who is online in it — because Discord's
+full application refuses to be shown inside another page and nothing changes
+that. Both are published by those sites for embedding, so neither needs any
+permission. Paste the address from your browser's bar and it works.
+
+The Discord widget needs **Enable Server Widget** turned on in that server's
+settings, under Widget. Without it Discord answers with an ordinary page, which
+refuses to be framed like the rest of the application.
+
+**If a panel is empty, check your other extensions first.** A content blocker —
+Privacy Badger, uBlock and their kin — will replace a third-party frame with a
+placeholder, and from the page that looks exactly like the site refusing. They
+generally offer an "allow on this site" button in the space where the frame
+should be.
 
 ### Beside the page
 

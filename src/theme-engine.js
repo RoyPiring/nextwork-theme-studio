@@ -489,6 +489,19 @@
    * The audit allows this one literal by name and nothing else. */
   const YOUTUBE_PLAYER = 'https://www.youtube.com/embed/';
 
+  /* The second, and for the same reason as the first.
+   *
+   * Discord's application refuses to be shown inside another page, and no
+   * permission or header changes that in any way worth having. But Discord
+   * publishes a widget that is meant to be embedded - a read-only view of one
+   * server's channel and who is in it - and that address does not refuse.
+   *
+   * So a link to a channel is turned into a link to the widget, exactly as a
+   * link to a watch page is turned into a link to the player. The address bar
+   * gives you the first; the thing that can actually sit beside your work is
+   * the second; and nobody should have to know that. */
+  const DISCORD_WIDGET = 'https://discord.com/widget';
+
   /* What to actually put in the companion pane for a given address.
    *
    * A YouTube watch page will not appear in a frame, and neither will a
@@ -519,7 +532,8 @@
    * Kept to what the extension itself produces rather than a list of hosts to
    * keep up to date: anything else has to be asked for. */
   function framesFreely(src) {
-    return typeof src === 'string' && src.indexOf(YOUTUBE_PLAYER) === 0;
+    if (typeof src !== 'string') return false;
+    return src.indexOf(YOUTUBE_PLAYER) === 0 || src.indexOf(DISCORD_WIDGET) === 0;
   }
 
   function companionSrc(raw) {
@@ -550,6 +564,21 @@
     if (/^(.*\.)?nextwork\.ai$/i.test(url.hostname)) return null;
 
     const host = url.hostname.replace(/^www\./, '');
+
+    /* A Discord channel link carries the server it belongs to as the first
+     * part of its path, which is exactly what the widget needs:
+     *   /channels/<server>/<channel>  ->  /widget?id=<server>
+     * The widget shows that server's chosen channel and who is online in it.
+     * It is not the whole application and does not pretend to be - the full
+     * one cannot be embedded by anybody, including Discord. */
+    if (host === 'discord.com' || host === 'discordapp.com') {
+      if (url.pathname === '/widget') return url.href;
+      const channel = /^\/channels\/(\d{5,25})(?:\/|$)/.exec(url.pathname);
+      if (channel) {
+        return DISCORD_WIDGET + '?id=' + channel[1] + '&theme=dark';
+      }
+    }
+
     const video =
       (host === 'youtube.com' || host === 'm.youtube.com') && url.pathname === '/watch'
         ? url.searchParams.get('v')

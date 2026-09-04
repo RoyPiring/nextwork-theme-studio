@@ -609,3 +609,39 @@ test('the pane will not point back at the site it sits on', () => {
   /* A different site that merely ends in something similar is not the same. */
   assert.ok(NWT.companionSrc('https://nextwork.ai.example/x'));
 });
+
+test('a Discord channel link becomes the widget, which is the part that embeds', () => {
+  /* Discord's application refuses to be shown inside another page and nothing
+   * changes that. The widget is published to be embedded and sends no framing
+   * header at all - so a channel link is turned into a widget link, exactly as
+   * a watch page is turned into a player. The server is the first part of the
+   * path, which is what the widget needs. */
+  const widget = 'https://discord.com/widget?id=1432837534118838355&theme=dark';
+  assert.equal(NWT.companionSrc('https://discord.com/channels/1432837534118838355/1433926582124286082'), widget);
+  assert.equal(NWT.companionSrc('https://discord.com/channels/1432837534118838355'), widget);
+  assert.equal(NWT.companionSrc('https://discordapp.com/channels/1432837534118838355/99'), widget);
+});
+
+test('a widget link is left as it is', () => {
+  const w = 'https://discord.com/widget?id=123456789&theme=dark';
+  assert.equal(NWT.companionSrc(w), w);
+});
+
+test('the widget needs no permission, because Discord published it to be framed', () => {
+  const widget = NWT.companionSrc('https://discord.com/channels/1432837534118838355/1');
+  assert.equal(NWT.framesFreely(widget), true,
+    'it would ask permission for something that already allows framing');
+  assert.equal(NWT.framesFreely('https://discord.com/channels/1/2'), false,
+    'the application itself does not frame freely and must not claim to');
+});
+
+test('a Discord link that names no server is left alone rather than guessed at', () => {
+  /* Better to hand it on and let it refuse than to build a widget address
+   * around something that is not a server id. */
+  ['https://discord.com/', 'https://discord.com/channels/@me',
+   'https://discord.com/channels/@me/123', 'https://discord.com/login'
+  ].forEach(function (url) {
+    const out = NWT.companionSrc(url);
+    assert.ok(!String(out).includes('/widget'), url + ' was turned into a widget');
+  });
+});
