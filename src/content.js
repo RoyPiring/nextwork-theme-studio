@@ -1087,6 +1087,13 @@
     const said = document.createElement('p');
     said.className = 'nwt-split-said';
     body.appendChild(said);
+
+    /* Offered only where there is something to offer: a different view of the
+     * same site, published by that site to be embedded. */
+    const instead = document.createElement('button');
+    instead.type = 'button';
+    instead.className = 'nwt-split-instead';
+    body.appendChild(instead);
     el.appendChild(body);
 
     (document.body || document.documentElement).appendChild(el);
@@ -1188,6 +1195,7 @@
       said.textContent =
         'This site refuses to be shown inside another page. Allow it in the ' +
         'extension popup, or use the arrow above to open it in a window.';
+      offerInstead(el, split.url);
     });
   }
 
@@ -1206,6 +1214,29 @@
         'at all. The arrow above opens it in a window instead, which always ' +
         'works.';
     }, 2500);
+  }
+
+  /* A second thing to try, when the site publishes one.
+   *
+   * Discord's application will not be embedded, but Discord's widget will -
+   * the members of a server and an invite to it, which is not the channel but
+   * is something rather than an empty rectangle. It is put here as a choice
+   * because it is not what was asked for: the link named a channel. */
+  function offerInstead(el, rawUrl) {
+    const button = el.querySelector('.nwt-split-instead');
+    /* Only where the site publishes something else. A link that is already the
+     * widget never arrives here: `framesFreely` sends it straight to the frame,
+     * so it is never refused and never asks for an alternative. */
+    const widget = NWT.discordWidget(rawUrl);
+    if (!widget) {
+      el.removeAttribute('data-instead');
+      return;
+    }
+    el.setAttribute('data-instead', '1');
+    button.textContent = 'Show the server\u2019s widget instead';
+    button.title = 'Who is online in that server, which Discord does publish ' +
+                   'for embedding. Not the channel: Discord offers no ' +
+                   'embeddable view of its messages.';
   }
 
   function splitLabel(split, src) {
@@ -1231,6 +1262,18 @@
 
     el.querySelector('.nwt-split-hide').addEventListener('click', function () {
       saveSplit({ enabled: false });
+    });
+
+    /* Wired once, and reads the link at the moment it is pressed. Set as an
+     * onclick property inside the paint it was reassigned on every repaint,
+     * which is a listener that only works if the paint happened to run last. */
+    el.querySelector('.nwt-split-instead').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ split: {} }, function (stored) {
+        if (chrome.runtime.lastError) return;
+        const widget = NWT.discordWidget((stored.split || {}).url);
+        if (widget) saveSplit({ url: widget });
+      });
     });
     el.querySelector('.nwt-split-out').addEventListener('click', function () {
       chrome.storage.local.get({ split: {} }, function (stored) {

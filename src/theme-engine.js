@@ -536,6 +536,25 @@
     return src.indexOf(YOUTUBE_PLAYER) === 0 || src.indexOf(DISCORD_WIDGET) === 0;
   }
 
+  /* The widget address for a Discord channel link, or nothing.
+   *
+   * Offered rather than substituted. A channel link means that channel, and
+   * quietly turning it into something else takes away what was asked for: the
+   * widget is a member list and an invite, not the conversation. Discord
+   * publishes no embeddable view of a channel's messages, so the honest shape
+   * is to load what was given, and to hold this out as a different thing you
+   * can choose when the first is refused. */
+  function discordWidget(raw) {
+    let url;
+    try { url = new URL(String(raw == null ? '' : raw).trim()); } catch (e) { return null; }
+    if (url.protocol !== 'https:') return null;
+    const host = url.hostname.replace(/^www\./, '');
+    if (host !== 'discord.com' && host !== 'discordapp.com') return null;
+    if (url.pathname === '/widget') return url.href;
+    const channel = /^\/channels\/(\d{5,25})(?:\/|$)/.exec(url.pathname);
+    return channel ? DISCORD_WIDGET + '?id=' + channel[1] + '&theme=dark' : null;
+  }
+
   function companionSrc(raw) {
     const text = String(raw == null ? '' : raw).trim();
     if (!text) return null;
@@ -564,20 +583,6 @@
     if (/^(.*\.)?nextwork\.ai$/i.test(url.hostname)) return null;
 
     const host = url.hostname.replace(/^www\./, '');
-
-    /* A Discord channel link carries the server it belongs to as the first
-     * part of its path, which is exactly what the widget needs:
-     *   /channels/<server>/<channel>  ->  /widget?id=<server>
-     * The widget shows that server's chosen channel and who is online in it.
-     * It is not the whole application and does not pretend to be - the full
-     * one cannot be embedded by anybody, including Discord. */
-    if (host === 'discord.com' || host === 'discordapp.com') {
-      if (url.pathname === '/widget') return url.href;
-      const channel = /^\/channels\/(\d{5,25})(?:\/|$)/.exec(url.pathname);
-      if (channel) {
-        return DISCORD_WIDGET + '?id=' + channel[1] + '&theme=dark';
-      }
-    }
 
     const video =
       (host === 'youtube.com' || host === 'm.youtube.com') && url.pathname === '/watch'
@@ -1658,6 +1663,18 @@
     L.push('#nwt-split[data-state="ready"] .nwt-split-said { display: none; }');
     L.push('#nwt-split[data-state="blocked"] .nwt-split-said { color: ' +
            p.status.warning[400] + '; }');
+    L.push('#nwt-split .nwt-split-instead { position: absolute; left: 50%;' +
+           ' bottom: 22%; transform: translateX(-50%); z-index: 2;' +
+           ' padding: 8px 14px; font: inherit; font-size: 12.5px;' +
+           ' cursor: pointer; border-radius: 8px;' +
+           ' border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.16) + '; color: ' + p.textPrimary + '; }');
+    L.push('#nwt-split .nwt-split-instead:hover { background: ' +
+           rgba(p.accent, 0.3) + '; }');
+    /* Only where the site publishes something else worth trying. */
+    L.push('#nwt-split:not([data-state="blocked"]) .nwt-split-instead,' +
+           ' #nwt-split:not([data-instead="1"]) .nwt-split-instead {' +
+           ' display: none; }');
     /* The divider. Wider than it looks, because a 1px target is a target you
      * miss; the line is drawn by the border beside it. */
     L.push('#nwt-split .nwt-split-grip { position: absolute; left: -4px; top: 0;' +
@@ -1886,6 +1903,7 @@
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
     focusElapsed, focusRemaining, formatDuration, companionSrc, framesFreely,
+    discordWidget,
     cssReachesOut, withoutCssEscapes,
     toneOf,
     debounce,

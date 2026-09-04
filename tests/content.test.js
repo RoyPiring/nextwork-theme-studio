@@ -1449,3 +1449,54 @@ test('a repaint does not reload the split, and a rebuilt one is not left empty',
   assert.equal(splitFrame(page).getAttribute('src'), EMBED,
     'the rebuilt panel was left empty');
 });
+
+test('a refused Discord channel offers the widget rather than substituting it', () => {
+  /* The link named a channel, so that is what is loaded. When the browser
+   * refuses it - Discord's application will not be embedded by anyone - the
+   * widget is held out as a different thing you can choose, with its own
+   * button, instead of being swapped in behind your back. */
+  const page = loadContentScript({
+    settings: { enabled: true,
+      split: { enabled: true, url: 'https://discord.com/channels/1432837534118838355/99' } }
+  });
+  page.flush();
+  const el = page.doc.getElementById('nwt-split');
+
+  assert.equal(el.getAttribute('data-state'), 'blocked');
+  assert.equal(el.getAttribute('data-instead'), '1', 'nothing was offered');
+
+  el.querySelector('.nwt-split-instead').click();
+  page.flush();
+
+  assert.equal(page.stored.split.url,
+    'https://discord.com/widget?id=1432837534118838355&theme=dark',
+    'choosing the widget did not switch to it');
+});
+
+test('nothing is offered for a site that publishes no other view', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, split: { enabled: true, url: 'https://example.com/app' } }
+  });
+  page.flush();
+  const el = page.doc.getElementById('nwt-split');
+  assert.equal(el.getAttribute('data-state'), 'blocked');
+  assert.notEqual(el.getAttribute('data-instead'), '1',
+    'it offered an alternative that does not exist');
+});
+
+test('a widget link goes straight into the frame and is never offered to itself', () => {
+  /* The premise the offer relies on: a published embed is not refused, so it
+   * never reaches the branch that would suggest replacing it with itself. */
+  const page = loadContentScript({
+    settings: { enabled: true, split: { enabled: true,
+      url: 'https://discord.com/widget?id=1432837534118838355&theme=dark' } }
+  });
+  page.flush();
+  const el = page.doc.getElementById('nwt-split');
+
+  assert.equal(el.getAttribute('data-state'), 'ready',
+    'a published embed was treated as a site that refuses to be framed');
+  assert.equal(el.querySelector('.nwt-split-frame').getAttribute('src'),
+    'https://discord.com/widget?id=1432837534118838355&theme=dark');
+  assert.notEqual(el.getAttribute('data-instead'), '1');
+});

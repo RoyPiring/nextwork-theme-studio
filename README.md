@@ -118,16 +118,20 @@ Paste a link in the **Split** tab and press Show. Drag the divider on the page
 itself, or use **Panel width** in the popup. The × on its bar gives the page
 its full width back.
 
-**Links are translated to whatever part of the site can actually be embedded.**
-A YouTube watch address becomes the player. A Discord channel address becomes
-that server's widget — the channel and who is online in it — because Discord's
-full application refuses to be shown inside another page and nothing changes
-that. Both are published by those sites for embedding, so neither needs any
-permission. Paste the address from your browser's bar and it works.
+**A link is loaded as you gave it.** The one translation is YouTube: a watch
+address becomes the player, because the player is the same video and the watch
+page cannot be embedded at all. Nothing else is substituted — a link to a
+particular page means that page.
 
-The Discord widget needs **Enable Server Widget** turned on in that server's
-settings, under Widget. Without it Discord answers with an ordinary page, which
-refuses to be framed like the rest of the application.
+When a site refuses, the panel says so and offers what that site *does* publish
+for embedding, as a choice rather than a swap. For a Discord channel that is
+the server's widget: who is online, and an invite. It is not the conversation
+— Discord publishes no embeddable view of a channel's messages, and its full
+application cannot be framed by anyone. Taking your channel link and quietly
+showing you a member list instead would be answering a different question.
+
+The widget needs **Enable Server Widget** turned on in that server's settings,
+under Widget.
 
 **If a panel is empty, check your other extensions first.** A content blocker —
 Privacy Badger, uBlock and their kin — will replace a third-party frame with a
