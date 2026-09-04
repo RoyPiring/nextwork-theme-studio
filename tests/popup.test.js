@@ -321,18 +321,24 @@ test('the editor and reload buttons act and then close the popup', () => {
 /* ------------------------------------------------------ the companion pane */
 
 const VIDEO = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-function tiles(p) { return p.el('companion-tiles').querySelectorAll('.tile-go'); }
-function drops(p) { return p.el('companion-tiles').querySelectorAll('.drop'); }
-
-test('the saved link is the one that was typed, not the player address', () => {
-  /* The tile is what a person recognises and what they would send to someone
-   * else; turning it into a player address is the pane's job, at the point it
-   * loads it. */
-  const p = openPopup({ enabled: true });
-  p.set('companion-url', VIDEO);
+function paneRows(p) { return p.el('companion-panes').querySelectorAll('.beside-item'); }
+function drops(p) { return p.el('companion-panes').querySelectorAll('.drop'); }
+function paneNames(p) {
+  return paneRows(p).map(function (r) { return r.querySelector('.grow').textContent; });
+}
+function addLink(p, url) {
+  p.set('companion-url', url);
   p.click(p.el('companion-add'));
   p.flush();
-  assert.equal(p.stored.companion.tiles[0].url, VIDEO);
+}
+
+test('the saved link is the one that was typed, not the player address', () => {
+  /* What is stored is what a person recognises and would send to someone
+   * else; turning it into a player address is the pane's job, at the point
+   * it loads it. */
+  const p = openPopup({ enabled: true });
+  addLink(p, VIDEO);
+  assert.equal(p.stored.companion.panes[0].url, VIDEO);
 });
 
 test('an address the pane cannot open is refused and nothing is saved', () => {
@@ -348,14 +354,13 @@ test('an address the pane cannot open is refused and nothing is saved', () => {
   assert.equal(p.stored.companion, undefined, 'a bad address was saved anyway');
 });
 
-test('adding the same link twice leaves one tile', () => {
+test('adding a link that is already open does not open it twice', () => {
+  /* Add adds. It used to toggle, which meant pressing it on something
+   * already open closed it - the opposite of what the word says. */
   const p = openPopup({ enabled: true });
-  ['first', 'second'].forEach(function () {
-    p.set('companion-url', VIDEO);
-    p.click(p.el('companion-add'));
-    p.flush();
-  });
-  assert.equal(p.stored.companion.tiles.length, 1);
+  addLink(p, VIDEO);
+  addLink(p, VIDEO);
+  assert.equal(p.stored.companion.panes.length, 1);
 });
 
 test('the cross is a button in its own right, not a span inside another', () => {
@@ -365,7 +370,7 @@ test('the cross is a button in its own right, not a span inside another', () => 
    * switching to the thing you were trying to remove. */
   const p = openPopup({
     enabled: true,
-    companion: { enabled: true, url: VIDEO, tiles: [{ label: 'YouTube', url: VIDEO }] }
+    companion: { enabled: true, panes: [{ url: VIDEO }] }
   });
   /* What a keyboard can do with it follows from what it is, and that is what
    * this checks - the browser supplies Enter and Space activation for a real
@@ -374,7 +379,7 @@ test('the cross is a button in its own right, not a span inside another', () => 
   const drop = drops(p)[0];
   assert.equal(drop.tagName.toLowerCase(), 'button',
     'the cross is not a button, so a keyboard cannot press it');
-  assert.equal(drop.parentElement.tagName.toLowerCase(), 'span',
+  assert.notEqual(drop.parentElement.tagName.toLowerCase(), 'button',
     'the cross is nested inside another button, which no keyboard can reach past');
   assert.ok(drop.getAttribute('aria-label'), 'the cross says nothing to a screen reader');
 });
@@ -389,8 +394,7 @@ test('the switch turns the pane off without losing what was saved', () => {
   p.flush();
 
   assert.equal(p.stored.companion.enabled, false);
-  assert.equal(p.stored.companion.tiles.length, 1, 'turning it off dropped the tiles');
-  assert.equal(p.stored.companion.url, VIDEO);
+  assert.equal(p.stored.companion.url, VIDEO, 'turning it off dropped what was in it');
 });
 
 test('the popup opens on the pane as it was left', () => {
@@ -402,12 +406,73 @@ test('the popup opens on the pane as it was left', () => {
   assert.equal(p.el('companion-empty').style.display, 'none');
 });
 
-test('the timer offers the short sessions as well as the long ones', () => {
-  /* Five and ten minutes are the ones you reach for to start at all. */
+test('the timer offers three lengths and admits the rest exists', () => {
+  /* Six lengths and a spare wrapped onto two ragged rows and made you read
+   * the whole set to find the one you wanted. Three cover almost every
+   * session; the fourth is Custom, which is a request to be asked rather
+   * than a length. */
   const p = openPopup({ enabled: true });
   const lengths = [...p.el('focus-targets').querySelectorAll('button')]
     .map(b => Number(b.dataset.min));
-  assert.deepEqual(lengths, [5, 10, 15, 25, 45, 60, 0]);
+  assert.deepEqual(lengths, [15, 30, 60, -1]);
+});
+
+test('which way the timer runs is said in words', () => {
+  /* It was called "Open", which is only obvious once you have pressed it and
+   * watched the clock go the wrong way. */
+  const p = openPopup({ enabled: true, focus: { targetMin: 25 } });
+  const ways = [...p.el('focus-way').querySelectorAll('button')]
+    .map(b => b.dataset.way + ':' + b.getAttribute('aria-pressed'));
+  assert.deepEqual(ways, ['down:true', 'up:false']);
+  assert.equal(p.el('focus-targets').hidden, false);
+});
+
+test('counting up puts the length away rather than losing it', () => {
+  const p = openPopup({ enabled: true, focus: { targetMin: 30 } });
+  p.click(p.el('focus-way').querySelectorAll('[data-way="up"]')[0]);
+  p.flush();
+  assert.equal(p.stored.focus.targetMin, 0);
+  assert.equal(p.stored.focus.downMin, 30, 'the length it was on was lost');
+  assert.equal(p.el('focus-targets').hidden, true, 'a length is offered with no end to reach');
+
+  p.click(p.el('focus-way').querySelectorAll('[data-way="down"]')[0]);
+  p.flush();
+  assert.equal(p.stored.focus.targetMin, 30, 'it came back on a different length');
+});
+
+test('a custom length is asked for, not guessed at', () => {
+  const p = openPopup({ enabled: true, focus: { targetMin: 30 } });
+  assert.equal(p.el('focus-custom-row').hidden, true);
+
+  p.click(p.el('focus-targets').querySelectorAll('[data-min="-1"]')[0]);
+  assert.equal(p.el('focus-custom-row').hidden, false, 'Custom asked nothing');
+
+  p.set('focus-custom-min', '90');
+  p.click(p.el('focus-custom-set'));
+  p.flush();
+  assert.equal(p.stored.focus.targetMin, 90);
+});
+
+test('a length that is not one of the three shows itself', () => {
+  /* The default is twenty-five minutes, which is nobody's idea of a custom
+   * length - but it is not one of the three, so the box has to say so rather
+   * than leave four unpressed buttons and no explanation. */
+  const p = openPopup({ enabled: true, focus: { targetMin: 25 } });
+  assert.equal(p.el('focus-custom-row').hidden, false);
+  assert.equal(p.el('focus-custom-min').value, '25');
+  assert.equal(
+    p.el('focus-targets').querySelectorAll('[data-min="-1"]')[0].getAttribute('aria-pressed'),
+    'true');
+});
+
+test('a custom length of nothing is refused', () => {
+  const p = openPopup({ enabled: true, focus: { targetMin: 30 } });
+  p.click(p.el('focus-targets').querySelectorAll('[data-min="-1"]')[0]);
+  p.set('focus-custom-min', '0');
+  p.click(p.el('focus-custom-set'));
+  p.flush();
+  assert.equal(p.stored.focus.targetMin, 30, 'a length of nothing was written');
+  assert.equal(p.el('focus-custom-min').getAttribute('aria-invalid'), 'true');
 });
 
 test('the sound can be turned off on its own', () => {
@@ -471,10 +536,8 @@ test('a link is named for the site, not for whatever is in front of the dot', ()
   ];
   cases.forEach(function (pair) {
     const p = openPopup({ enabled: true });
-    p.set('companion-url', pair[0]);
-    p.click(p.el('companion-add'));
-    p.flush();
-    assert.equal(p.stored.companion.tiles[0].label, pair[1], pair[0]);
+    addLink(p, pair[0]);
+    assert.deepEqual(paneNames(p), [pair[1]], pair[0]);
   });
 });
 
@@ -500,8 +563,8 @@ test('choosing a different length lets the new end be announced', () => {
     focus: { running: true, startedAt: Date.now() - 26 * 60000,
              accumulatedMs: 0, targetMin: 25, chime: true, chimedFor: 1 }
   });
-  p.click(p.el('focus-targets').querySelectorAll('button[data-min]')[4]);
-  assert.equal(p.stored.focus.targetMin, 45);
+  p.click(p.el('focus-targets').querySelectorAll('button[data-min]')[1]);
+  assert.equal(p.stored.focus.targetMin, 30);
   assert.ok(!p.stored.focus.chimedFor,
     'the new end was already marked as announced');
 });
@@ -524,14 +587,14 @@ test('choosing the length already chosen does not re-announce the session', () =
    * session, so clearing the marker there rang for an end that had already
    * been announced - the same fault as the resume path, through another door. */
   const p = openPopup({
-    focus: { running: true, startedAt: Date.now() - 26 * 60000,
-             accumulatedMs: 0, targetMin: 25, chime: true, chimedFor: 1 }
+    focus: { running: true, startedAt: Date.now() - 31 * 60000,
+             accumulatedMs: 0, targetMin: 30, chime: true, chimedFor: 1 }
   });
   const chips = p.el('focus-targets').querySelectorAll('button[data-min]');
-  const same = chips.find(b => Number(b.dataset.min) === 25);
+  const same = chips.find(b => Number(b.dataset.min) === 30);
 
   p.click(same);
-  assert.equal(p.stored.focus.targetMin, 25);
+  assert.equal(p.stored.focus.targetMin, 30);
   assert.ok(p.stored.focus.chimedFor,
     're-picking the same length cleared the marker, so it will chime again');
 });
@@ -558,9 +621,10 @@ test('every control still exists behind its tab', () => {
    * fail here rather than shipping as a switch that does nothing. */
   const p = openPopup({ enabled: true });
   ['enabled', 'sceneBackdrop', 'focusEnabled', 'themes', 'hue',
-   'focus-toggle', 'focus-targets', 'focus-chime',
-   'splitEnabled', 'split-url', 'split-width',
-   'companionEnabled', 'companion-tiles']
+   'focus-toggle', 'focus-targets', 'focus-way', 'focus-custom-min',
+   'focus-custom-set', 'focus-chime',
+   'splitEnabled', 'split-url', 'split-width', 'split-side',
+   'companionEnabled', 'companion-panes', 'companion-url']
     .forEach(function (id) { assert.ok(p.el(id), id + ' is missing'); });
 });
 
@@ -672,49 +736,48 @@ test('the split panel opens on what was saved', () => {
   assert.equal(p.el('split-panels').querySelectorAll('.beside-item').length, 1);
 });
 
-test('adding a link saves it and opens its pane in one step', () => {
+test('adding a link opens its pane in one step', () => {
+  /* Filing a link away and then finding it again in a second list is two
+   * steps where the instruction was one. */
   const p = openPopup({ enabled: true });
-  p.set('companion-url', VIDEO);
-  p.click(p.el('companion-add'));
-  p.flush();
+  addLink(p, VIDEO);
 
   const c = p.stored.companion;
   assert.equal(c.enabled, true, 'the pane was left switched off');
-  assert.deepEqual(c.tiles, [{ label: 'YouTube', url: VIDEO }]);
   assert.equal(c.panes.length, 1, 'nothing was opened');
   assert.equal(c.panes[0].url, VIDEO);
+  assert.deepEqual(paneNames(p), ['YouTube']);
 });
 
-test('a tile is a switch: clicking it opens a pane, clicking again closes it', () => {
-  /* A row of buttons that only ever add is a row you cannot undo from. */
+test('a pane can be folded from the list, the way a panel can', () => {
   const p = openPopup({
-    enabled: true,
-    companion: { enabled: true, tiles: [{ label: 'YouTube', url: VIDEO }] }
+    enabled: true, companion: { enabled: true, panes: [{ url: VIDEO }] }
   });
-  const tile = tiles(p)[0];
-  assert.equal(tile.getAttribute('aria-pressed'), 'false');
+  const fold = paneRows(p)[0].querySelectorAll('button')[0];
+  assert.equal(fold.textContent, 'Fold');
 
-  p.click(tile);
+  p.click(fold);
   p.flush();
-  assert.equal(p.stored.companion.panes.length, 1);
-  assert.equal(tiles(p)[0].getAttribute('aria-pressed'), 'true');
+  assert.equal(p.stored.companion.panes[0].collapsed, true);
+  assert.match(paneNames(p)[0], /folded/);
+});
 
-  p.click(tiles(p)[0]);
+test('closing the last pane turns the feature off with it', () => {
+  const p = openPopup({
+    enabled: true, companion: { enabled: true, panes: [{ url: VIDEO }] }
+  });
+  p.click(drops(p)[0]);
   p.flush();
   assert.deepEqual(p.stored.companion.panes, []);
   assert.equal(p.stored.companion.enabled, false, 'the last pane closed and it stayed on');
 });
 
-test('two panes can be open at once, and a fourth is refused', () => {
+test('three panes can be open at once, and a fourth is refused', () => {
   /* One thing you are watching and one you are talking in is the whole point
    * of a list. Three is where the page has more extension on it than page. */
-  const p = openPopup({
-    enabled: true,
-    companion: { enabled: true, tiles: [
-      { label: 'A', url: 'https://a.example/' }, { label: 'B', url: 'https://b.example/' },
-      { label: 'C', url: 'https://c.example/' }, { label: 'D', url: 'https://d.example/' }] }
-  });
-  tiles(p).forEach(function (t, i) { if (i < 4) { p.click(tiles(p)[i]); p.flush(); } });
+  const p = openPopup({ enabled: true });
+  ['https://a.example/', 'https://b.example/', 'https://c.example/', 'https://d.example/']
+    .forEach(function (u) { addLink(p, u); });
 
   assert.equal(p.stored.companion.panes.length, 3, 'it opened a fourth');
   assert.deepEqual(p.stored.companion.panes.map(x => x.url),
@@ -723,31 +786,26 @@ test('two panes can be open at once, and a fourth is refused', () => {
 
 test('each new pane opens a little clear of the last', () => {
   /* A second landing exactly on the first reads as nothing having happened. */
-  const p = openPopup({
-    enabled: true,
-    companion: { enabled: true, tiles: [
-      { label: 'A', url: 'https://a.example/' }, { label: 'B', url: 'https://b.example/' }] }
-  });
-  p.click(tiles(p)[0]); p.flush();
-  p.click(tiles(p)[1]); p.flush();
+  const p = openPopup({ enabled: true });
+  addLink(p, 'https://a.example/');
+  addLink(p, 'https://b.example/');
 
   const panes = p.stored.companion.panes;
   assert.equal(panes.length, 2);
   assert.notEqual(panes[0].offset, panes[1].offset, 'the second landed on the first');
 });
 
-test('removing a tile closes its pane as well', () => {
+test('the cross closes that pane and leaves the others', () => {
   const p = openPopup({
     enabled: true,
-    companion: { enabled: true, tiles: [{ label: 'YouTube', url: VIDEO }],
-                 panes: [{ url: VIDEO, w: 380, h: 260 }] }
+    companion: { enabled: true, panes: [
+      { url: 'https://a.example/' }, { url: 'https://b.example/' }] }
   });
   p.click(drops(p)[0]);
   p.flush();
 
-  assert.deepEqual(p.stored.companion.tiles, []);
-  assert.deepEqual(p.stored.companion.panes, [],
-    'the tile went but its pane was left on the page with no way to close it');
+  assert.deepEqual(p.stored.companion.panes.map(x => x.url), ['https://b.example/']);
+  assert.equal(p.stored.companion.enabled, true, 'closing one closed the lot');
 });
 
 test('the focus switch is in the focus panel, not the theme row', () => {
@@ -800,25 +858,6 @@ test('which edge the band sits on is two buttons', () => {
   assert.equal(p.stored.split.side, 'right');
   assert.deepEqual(p.stored.split.panels.map(function (q) { return q.url; }), [VIDEO],
     'changing where it sits emptied it');
-});
-
-test('the row starts with the two it was built for, not empty', () => {
-  /* An empty box is a feature you have to guess at. Both are removed with one
-   * click, and once the list has been touched they are not offered again. */
-  const p = openPopup({ enabled: true });
-  const names = tiles(p).map(function (b) { return b.textContent; });
-  assert.deepEqual(names, ['YouTube', 'Discord']);
-});
-
-test('removing a suggestion is remembered, so it does not come back', () => {
-  const p = openPopup({ enabled: true });
-  p.click(drops(p)[0]);
-  p.flush();
-
-  assert.equal(p.stored.companion.tilesTouched, true,
-    'the list was left looking untouched, so the suggestions refill it');
-  const names = tiles(p).map(function (b) { return b.textContent; });
-  assert.deepEqual(names, ['Discord'], 'the suggestion came back');
 });
 
 test('what is allowed is listed in the panel, and can be taken back there', () => {

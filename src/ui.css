@@ -136,6 +136,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .switch-item .switch input:checked + span::after { transform: translateX(15px); }
 
 /* ---- focus panel ---- */
+/* The heading, the state and the switch on one line, with room enough that
+ * "paused Show" reads as two things rather than one. */
+#focus-panel > .row.between { gap: 10px; margin-bottom: 2px; }
+#focus-panel .switch-inline { gap: 7px; }
+#focus-custom-row[hidden] { display: none; }
 .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
   color: var(--ui-text-muted); font-weight: 600; }
 .focus { gap: 10px; }
@@ -333,12 +338,14 @@ a { color: var(--ui-accent); }
  * and the other as a poster. */
 #companion-access-note, #split-access-note { margin: 0; }
 
-input[type="url"] {
+/* The custom length is a number, and it should not look like a different
+ * kind of control from every other field in the panel. */
+input[type="number"], input[type="url"] {
   flex: 1; min-width: 0; padding: 6px 8px; font: inherit; font-size: 12px;
   color: var(--ui-text); background: var(--ui-surface-alt);
   border: 1px solid var(--ui-border); border-radius: 7px;
 }
-input[type="url"]:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 1px; }
+input[type="number"]:focus-visible, input[type="url"]:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 1px; }
 input[type="url"]::placeholder { color: var(--ui-text-muted); }
 input[type="url"][aria-invalid="true"] { border-color: #f0a77a; }
 

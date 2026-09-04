@@ -367,8 +367,6 @@
    * in a list, and the audit allows these two lines by name for that reason,
    * the same way it allows the player below. A fourth remote address is a
    * change to the audit that has to be argued for on its own. */
-  const STARTER_YOUTUBE = 'https://www.youtube.com';
-  const STARTER_DISCORD = 'https://discord.com/channels/@me';
 
   const DEFAULT_SETTINGS = {
     /* Everything the extension puts on the page, out of the way for a moment.
@@ -399,6 +397,9 @@
       startedAt: 0,        /* epoch ms of the current run */
       accumulatedMs: 0,    /* time banked from previous runs */
       targetMin: 25,     /* 0 counts up; anything else counts down */
+      /* The length to come back to when counting down is chosen again, so
+       * switching to counting up and back does not silently lose it. */
+      downMin: 25,
       /* A session that ends silently has not really ended: the whole point is
        * to look away from the screen, which is where the timer is. */
       chime: true,
@@ -444,23 +445,15 @@
        * `url` above is what a single pane used to be, and is folded in here on
        * first read so nothing written before this is lost. */
       panes: [],
-      /* Two to begin with, because an empty list is a feature you have to
-       * guess at. These are the two this was built for - something to watch
-       * and somewhere to talk - and both are removed with one click if they
-       * are not yours.
+      /* There was a row of suggestions here - YouTube and Discord, offered
+       * before anything had been saved - and a second list behind it of the
+       * places you had kept. Two lists for one feature: one of what is open
+       * and one of what could be, each with its own controls, and pressing
+       * something in the second was the only way to reach the first.
        *
-       * Discord's own address rather than a particular server: it opens on
-       * whatever you were last in, which is the useful thing to land on. */
-      starters: [
-        { label: 'YouTube', url: STARTER_YOUTUBE },
-        { label: 'Discord', url: STARTER_DISCORD }
-      ],
-      /* Set the first time the list is added to or removed from, so the two
-       * above stop standing in for it. Without it, removing both starters
-       * would leave an empty list that the starters immediately refilled. */
-      tilesTouched: false,
-      /* Saved places to put in it, as { label, url }. The list is the point:
-       * the pane holds one at a time and these are what to switch between. */
+       * The panels beside the page never had that and never needed it. This
+       * is the same shape now: what is open is the list, adding a link opens
+       * it, and closing it is the same cross that closes a panel. */
       tiles: []
     },
     /* The page narrowed to one side, and something else in the other - one

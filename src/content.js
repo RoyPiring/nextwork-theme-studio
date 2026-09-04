@@ -822,7 +822,7 @@
       el.style.left = el.style.top = '';
       /* Stepped down and left of the one before it, so a second pane does not
        * land exactly on the first and look as though nothing happened. */
-      const step = Math.round((Number(companion.offset) || index * 0.04) * 240);
+      const step = Math.round((Number(companion.offset) || index * 0.12) * 240);
       el.style.right = (24 + step) + 'px';
       el.style.bottom = (24 + step) + 'px';
       return;

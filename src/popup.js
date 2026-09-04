@@ -188,6 +188,23 @@
   }
 
   let focusTick = null;
+  /* The three offered outright. Anything else is a custom length, which is
+   * how the box below knows whether to show itself. */
+  const PRESET_MINUTES = [15, 30, 60];
+  /* Whether the custom box is open because it was asked for, rather than
+   * because the length in force happens not to be one of the three. */
+  let customOpen = false;
+
+  /* A different length is a different end to reach, and it has not been
+   * announced yet - but only when it actually differs. Setting the length
+   * already in force changes nothing about the session, and clearing the
+   * marker there re-announced an end that had already been announced. */
+  function setLength(minutes) {
+    const f = focusState();
+    const patch = { targetMin: minutes, downMin: minutes };
+    if (minutes !== f.targetMin) patch.chimedFor = 0;
+    saveFocus(patch);
+  }
 
   function renderFocus() {
     const f = focusState();
@@ -206,9 +223,31 @@
     $('focus-size').value = String(Math.round((f.hudScale || 1) * 100));
     $('focus-size-out').textContent = $('focus-size').value + '%';
 
-    [...$('focus-targets').querySelectorAll('button')].forEach(function (b) {
-      b.setAttribute('aria-pressed', String(Number(b.dataset.min) === f.targetMin));
+    /* Which way it runs, said in words. "Open" meant counting up, which is
+     * only obvious once you have pressed it and watched the clock go the
+     * wrong way. */
+    [...$('focus-way').querySelectorAll('button')].forEach(function (b) {
+      b.setAttribute('aria-pressed', String((b.dataset.way === 'up') === !counting));
     });
+    $('focus-targets').hidden = !counting;
+
+    /* Four lengths rather than six and a spare: three that cover almost every
+     * session, and one that admits the rest exists. */
+    const preset = PRESET_MINUTES.indexOf(f.targetMin) !== -1;
+    [...$('focus-targets').querySelectorAll('button')].forEach(function (b) {
+      const m = Number(b.dataset.min);
+      b.setAttribute('aria-pressed',
+        String(m < 0 ? (counting && !preset) : m === f.targetMin));
+    });
+
+    /* The box stays open while it is being typed in, and otherwise appears
+     * only when the length in force is not one of the three. */
+    const showCustom = counting && (customOpen || !preset);
+    $('focus-custom-row').hidden = !showCustom;
+    if (!customOpen) {
+      $('focus-custom-min').value =
+        String(counting && f.targetMin ? f.targetMin : (f.downMin || 25));
+    }
 
     if (focusTick) { clearInterval(focusTick); focusTick = null; }
     if (f.running) focusTick = setInterval(renderFocus, 1000);
@@ -230,6 +269,12 @@
    * are watching and one you are talking in - and three is where a page has
    * more of the extension on it than of itself. */
   const MAX_PANES = 3;
+  /* How far each new pane lands from the one before it, as a fraction of the
+   * step the page turns it into. A tenth of that step was about ten pixels,
+   * which is close enough to landing on top of it that the second pane read
+   * as nothing having happened - which is the thing the stagger exists to
+   * prevent. This is a window cascade: enough to see the one underneath. */
+  const CASCADE = 0.12;
 
   function openPanes() {
     const c = companionState();
@@ -242,7 +287,7 @@
     const already = panes.some(function (x) { return x.url === url; });
     if (already) {
       const rest = panes.filter(function (x) { return x.url !== url; });
-      saveCompanion({ panes: rest, enabled: rest.length > 0 });
+      saveCompanion({ panes: rest, url: '', enabled: rest.length > 0 });
       return;
     }
     if (panes.length >= MAX_PANES) {
@@ -251,78 +296,70 @@
     }
     /* Each one opens a little below and right of the last, so a second does
      * not land exactly on the first and look like nothing happened. */
-    const step = panes.length * 0.04;
     saveCompanion({
       enabled: true,
-      panes: panes.concat([{ url: url, x: null, y: null, w: 380, h: 260, offset: step }])
+      panes: panes.concat([{ url: url, x: null, y: null, w: 380, h: 260,
+                             offset: panes.length * CASCADE }])
     });
   }
 
+  /* What is open, listed the way the panels beside the page are listed.
+   *
+   * There were two lists here once: a row of places you had saved and,
+   * behind it, the panes those opened. Two lists for one feature, and the
+   * only way to reach the second was to press something in the first. This
+   * is the one that matters - what is on the page now - and adding a link
+   * opens it rather than filing it away for later. */
   function renderCompanion() {
     const c = companionState();
-    /* The starters stand in until something is saved, so the row is never an
-     * empty box you have to guess the purpose of. Adding or removing anything
-     * writes a real list, and they are not offered again. */
-    const saved = Array.isArray(c.tiles) ? c.tiles : [];
-    const tiles = saved.length || c.tilesTouched ? saved : (c.starters || []);
-    const open = openPanes().map(function (x) { return x.url; });
+    const panes = openPanes();
 
     $('companionEnabled').checked = !!c.enabled;
-    $('companion-empty').style.display = tiles.length ? 'none' : '';
+    $('companion-empty').style.display = panes.length ? 'none' : '';
+    /* Three is the ceiling: past that a page has more of the extension on it
+     * than of itself. */
+    $('companion-add').disabled = panes.length >= MAX_PANES;
 
-    const host = $('companion-tiles');
+    const host = $('companion-panes');
     host.textContent = '';
-    tiles.forEach(function (tile) {
-      /* Two real buttons side by side rather than one inside the other. A
-       * button nested in a button is invalid, and the browser gives the inner
-       * one no keyboard activation of its own - so reaching the × with Tab and
-       * pressing Enter used to fire the outer button and switch to the tile
-       * instead of removing it. */
-      const group = document.createElement('span');
-      group.className = 'tile';
+    panes.forEach(function (pane, i) {
+      const row = document.createElement('div');
+      row.className = 'row between beside-item';
 
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'tile-go';
-      btn.title = tile.url;
-      /* Which one is in the pane now, said the same way the session lengths
-       * say which is chosen. */
-      btn.setAttribute('aria-pressed', String(open.indexOf(tile.url) !== -1));
-      btn.textContent = tile.label;
-      /* Choosing one shows the pane: picking something to watch and then
-       * having to turn the pane on as well is a step with no meaning.
-       *
-       * A tile already on screen is taken off it, so the same click both opens
-       * and closes and the row reads as a set of switches rather than a set of
-       * buttons that only ever add.
-       *
-       * Unless it is one of the marked ones - a site that will not run inside
-       * another page - in which case choosing it means opening its window,
-       * because that is where it works. Shift undoes the mark, for a site
-       * that was marked by mistake or has since changed. */
-      btn.addEventListener('click', function () { togglePane(tile.url); });
+      const name = document.createElement('span');
+      name.className = 'grow';
+      name.title = pane.url;
+      name.textContent = labelFor(pane.url) + (pane.collapsed ? ' \u00b7 folded' : '');
+      row.appendChild(name);
 
-      /* Its own control rather than a second click target on the tile: a row
-       * of things you go to should not lose one when you miss. */
+      const fold = document.createElement('button');
+      fold.type = 'button';
+      fold.className = 'tiny ghost';
+      fold.textContent = pane.collapsed ? 'Open' : 'Fold';
+      fold.title = pane.collapsed
+        ? 'Show this pane again'
+        : 'Fold it down to its bar, keeping its place on the page';
+      fold.addEventListener('click', function () {
+        saveCompanion({ panes: panes.map(function (q, k) {
+          return k === i ? Object.assign({}, q, { collapsed: !q.collapsed }) : q;
+        }) });
+      });
+      row.appendChild(fold);
+
       const drop = document.createElement('button');
       drop.type = 'button';
       drop.className = 'drop';
-      drop.title = 'Remove ' + tile.label;
-      drop.setAttribute('aria-label', 'Remove ' + tile.label);
-      drop.textContent = '×';
+      drop.title = 'Close this pane';
+      drop.setAttribute('aria-label', 'Close ' + labelFor(pane.url));
+      drop.textContent = '\u00d7';
       drop.addEventListener('click', function () {
-        const panes = openPanes().filter(function (x) { return x.url !== tile.url; });
-        saveCompanion({
-          tiles: tiles.filter(function (t) { return t.url !== tile.url; }),
-          tilesTouched: true,
-          panes: panes,
-          enabled: panes.length > 0 && c.enabled
-        });
+        const rest = panes.filter(function (q, k) { return k !== i; });
+        /* The address that came before the list goes with it, or reading it
+         * back would put the pane straight up again. */
+        saveCompanion({ panes: rest, url: '', enabled: rest.length > 0 && c.enabled });
       });
-
-      group.appendChild(btn);
-      group.appendChild(drop);
-      host.appendChild(group);
+      row.appendChild(drop);
+      host.appendChild(row);
     });
 
     renderAccess(c);
@@ -443,12 +480,13 @@
     });
   }
 
-  function addTile() {
+  /* Adding one opens it. Filing a link away and then having to find it again
+   * in a second list is two steps where the instruction was one. */
+  function addPane() {
     const field = $('companion-url');
     const raw = field.value.trim();
-    const src = NWT.companionSrc(raw);
 
-    if (!src) {
+    if (!NWT.companionSrc(raw)) {
       field.setAttribute('aria-invalid', 'true');
       /* Worded without the scheme spelled out. The audit forbids a remote
        * address in shipped code and it is right to: an exception for prose
@@ -456,15 +494,17 @@
       toastNote('That needs to be a full web address, starting with https.');
       return;
     }
+    const panes = openPanes();
+    if (panes.some(function (x) { return x.url === raw; })) {
+      toastNote('That one is already open.');
+      return;
+    }
+    if (panes.length >= MAX_PANES) {
+      toastNote('Three panes is as many as a page can hold and stay usable.');
+      return;
+    }
     field.removeAttribute('aria-invalid');
-
-    const c = companionState();
-    const tiles = (Array.isArray(c.tiles) ? c.tiles : [])
-      .filter(function (t) { return t.url !== raw; });
-    tiles.push({ label: labelFor(raw), url: raw });
-
     field.value = '';
-    saveCompanion({ tiles: tiles, tilesTouched: true, enabled: true });
     togglePane(raw);
   }
 
@@ -682,7 +722,7 @@
     $('companionEnabled').addEventListener('change', function () {
       saveCompanion({ enabled: $('companionEnabled').checked });
     });
-    $('companion-add').addEventListener('click', addTile);
+    $('companion-add').addEventListener('click', addPane);
     $('companion-access-btn').addEventListener('click', askAllow);
 
     ['theme', 'focus', 'split'].forEach(function (name) {
@@ -791,17 +831,42 @@
     $('focus-targets').addEventListener('click', function (e) {
       const btn = e.target.closest('button[data-min]');
       if (!btn) return;
-      /* The other thing that begins a new session: a different length is a
-       * different end to reach, and it has not been announced yet.
-       *
-       * Only when it actually differs. Clicking the length that is already
-       * chosen changes nothing about the session, and clearing the marker
-       * there re-announced an end that had already been announced - the same
-       * fault the resume path was fixed for, through another door. */
       const chosen = Number(btn.dataset.min);
-      const patch = { targetMin: chosen };
-      if (chosen !== focusState().targetMin) patch.chimedFor = 0;
-      saveFocus(patch);
+      /* Custom is a request to be asked, not a length. */
+      if (chosen < 0) {
+        customOpen = true;
+        renderFocus();
+        $('focus-custom-min').focus();
+        return;
+      }
+      customOpen = false;
+      setLength(chosen);
+    });
+
+    $('focus-custom-set').addEventListener('click', function () {
+      const wanted = Math.round(Number($('focus-custom-min').value) || 0);
+      if (!(wanted > 0)) {
+        $('focus-custom-min').setAttribute('aria-invalid', 'true');
+        return;
+      }
+      $('focus-custom-min').removeAttribute('aria-invalid');
+      customOpen = false;
+      setLength(Math.min(600, wanted));
+    });
+
+    /* Counting up has no length, so choosing it puts the one in force away
+     * rather than losing it: coming back finds the session you had. */
+    $('focus-way').addEventListener('click', function (e) {
+      const btn = e.target.closest('button[data-way]');
+      if (!btn) return;
+      const f = focusState();
+      customOpen = false;
+      if (btn.dataset.way === 'up') {
+        if (!f.targetMin) return;
+        saveFocus({ downMin: f.targetMin, targetMin: 0, chimedFor: 0 });
+        return;
+      }
+      setLength(f.downMin || 25);
     });
 
     $('sceneBackdrop').addEventListener('change', function () {

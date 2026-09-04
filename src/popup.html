@@ -95,14 +95,21 @@
       <span class="group-label">Session</span>
       <div class="focus-clock" id="focus-clock">25:00</div>
 
+      <div class="chips" id="focus-way" role="group" aria-label="Which way the timer runs">
+        <button type="button" data-way="down" title="Run out a set length and say when it is up">Count down</button>
+        <button type="button" data-way="up" title="Count up with no end to reach">Count up</button>
+      </div>
+
       <div class="chips" id="focus-targets" role="group" aria-label="Session length">
-        <button type="button" data-min="5">5m</button>
-        <button type="button" data-min="10">10m</button>
         <button type="button" data-min="15">15m</button>
-        <button type="button" data-min="25">25m</button>
-        <button type="button" data-min="45">45m</button>
-        <button type="button" data-min="60">60m</button>
-        <button type="button" data-min="0" title="Count up with no end">Open</button>
+        <button type="button" data-min="30">30m</button>
+        <button type="button" data-min="60">1h</button>
+        <button type="button" data-min="-1" title="Any length you like">Custom</button>
+      </div>
+      <div class="row" id="focus-custom-row">
+        <input type="number" id="focus-custom-min" min="1" max="600" step="5"
+               aria-label="Session length in minutes">
+        <button id="focus-custom-set">Set</button>
       </div>
 
       <div class="row" style="gap:8px">
@@ -183,13 +190,13 @@
           <span class="switch sm"><input type="checkbox" id="companionEnabled"><span></span></span>
         </label>
       </div>
-      <div class="chips" id="companion-tiles" role="group" aria-label="Saved places"></div>
-      <p class="tiny muted" id="companion-empty">Nothing saved yet.</p>
+      <div class="stack" id="companion-panes"></div>
+      <p class="tiny muted" id="companion-empty">Nothing open yet.</p>
       <div class="row">
         <input type="url" id="companion-url" placeholder="Paste a link" aria-label="Address to open beside your work">
-        <button id="companion-add" title="Save this as a tile">Add</button>
+        <button id="companion-add" title="Open a pane for this">Add</button>
       </div>
-      <p class="tiny muted" id="companion-note">Press one to open it. Up to three.</p>
+      <p class="tiny muted" id="companion-note">Up to three. Drag a pane's bar to move it.</p>
     </div>
 
     <div class="focus-group" id="companion-access">

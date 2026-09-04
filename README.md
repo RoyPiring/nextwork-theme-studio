@@ -75,18 +75,23 @@ The 18 built-in themes cannot be edited. Change a colour and the extension
 makes you a copy, leaving the original alone. Your themes are saved on your own
 computer. They are never uploaded.
 
-**Focus timer.** Choose 5, 10, 15, 25, 45 or 60 minutes, or count up. A pill
-appears in the corner while you work. It only shows on project pages, keeps
+**Focus timer.** Count down or count up — said in those words, because the
+control that used to mean counting up was called *Open* and only made sense
+once you had pressed it. Counting down offers 15 minutes, 30, an hour, or
+**Custom** for any length you like; the length you were on is kept while you
+count up, so switching back finds the session you had. A pill appears in the
+corner while you work. It only shows on project pages, keeps
 running across tabs, and counts past zero so you can see when you go over. When
 the session reaches its length it can chime and flash red until you look at it;
 both can be turned off.
 
-**Beside your work.** For one screen. Paste a link in the popup and it becomes
-a tile; the pane floats over the page with that link in it, and you drag its
+**Beside your work.** For one screen. Paste a link under **Panels → Floating**
+and press Add; a pane opens on the page with that link in it, and you drag its
 bar to move it and its corner to resize it. It stays where you put it.
 
-The row starts with YouTube and Discord, since those are the two this was built
-for; remove either with one click and it is not offered again.
+The list in the popup is what is open, not what you have saved for later —
+the same shape as the panels beside the page, with a **Fold** control and an ×
+on each row.
 
 **YouTube and Discord work differently, and the panel follows that.** A Discord
 link is the thing itself — you are signed in and it opens where you left off.
@@ -96,13 +101,13 @@ pointed at YouTube asks *which video*, in the panel, with a box to paste a link
 into. Paste one and it plays there. Your sign-in comes with it, so Premium and
 your history work as they do in a tab.
 
-A tile is a switch: click it to open its pane, click it again to close. Each
-pane has a fold control that collapses it to its bar — for getting something
-out of the way for a minute without closing it and setting it up again — and
-nothing loads behind a folded bar. **Up to three can be open at once** — something you are watching and something you are
-talking in — and each new one opens a little clear of the last so it does not
-land on top of it. Each keeps its own place and size, and the × on a pane
-closes that pane rather than the lot.
+Each pane has a fold control that collapses it to its bar — for getting
+something out of the way for a minute without closing it and setting it up
+again — and nothing loads behind a folded bar. **Up to three can be open at
+once** — something you are watching and something you are talking in — and
+each new one lands a window's-cascade clear of the last, so a second does not
+sit on the first and read as nothing having happened. Each keeps its own place
+and size, and the × on a pane closes that pane rather than the lot.
 
 A YouTube link works straight away — paste the address from your browser's bar
 and it plays. Most other sites, Discord among them, refuse to be shown inside
