@@ -941,6 +941,18 @@
 
     handle.addEventListener('pointerdown', function (e) {
       if (e.button !== 0) return;
+      /* A control in the bar is a control, not somewhere to take hold of the
+       * pane.
+       *
+       * The bar is the drag handle and the fold and close buttons sit on it.
+       * Taking the pointer here captured it for the bar, so the release went
+       * to the bar as well - and a browser only raises a click when the press
+       * and the release land on the same element. Neither button ever saw
+       * one. From the outside that is a fold arrow that does not fold and a
+       * cross that does not close, with nothing in the console to say why. */
+      if (e.target && e.target.closest && e.target.closest('button, input, a, select')) {
+        return;
+      }
       const r = el.getBoundingClientRect();
       startX = e.clientX; startY = e.clientY;
       originX = r.left; originY = r.top;

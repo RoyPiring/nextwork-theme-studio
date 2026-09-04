@@ -1578,6 +1578,33 @@ test('a split panel pointed at YouTube itself asks in the panel', () => {
     .querySelector('.nwt-panel-frame').getAttribute('src'), EMBED);
 });
 
+test('a control in the bar is a control, not a place to take hold of the pane', () => {
+  /* The bar is the drag handle and the fold and close buttons sit on it.
+   * Taking the pointer on the bar captured it there, so the release went to
+   * the bar too - and a browser only raises a click when the press and the
+   * release land on the same element. Neither button ever saw one: a fold
+   * arrow that would not fold and a cross that would not close, with nothing
+   * anywhere to say why. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const el = pane(page);
+  const bar = el.querySelector('.nwt-companion-bar');
+
+  const press = { type: 'pointerdown', button: 0, clientX: 10, clientY: 10, pointerId: 1 };
+
+  el.querySelector('.nwt-companion-fold').dispatchEvent(Object.assign({}, press));
+  assert.equal(el.getAttribute('data-dragging'), null,
+    'pressing the fold arrow started a drag, which swallows its click');
+
+  el.querySelector('.nwt-companion-hide').dispatchEvent(Object.assign({}, press));
+  assert.equal(el.getAttribute('data-dragging'), null,
+    'pressing the cross started a drag, which swallows its click');
+
+  /* The bar itself still moves the pane - that is what it is for. */
+  bar.dispatchEvent(Object.assign({}, press));
+  assert.equal(el.getAttribute('data-dragging'), '1', 'the bar stopped moving the pane');
+});
+
 /* ----------------------------------------------------- out of the way */
 
 function dock(page) { return page.doc.getElementById('nwt-dock'); }
