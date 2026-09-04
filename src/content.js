@@ -228,16 +228,130 @@
     if (el) el.remove();
   }
 
+  /* The chime is played once, when the session first goes past its length.
+   *
+   * "Once" has to mean once across every open project page, not once per page.
+   * Each tab runs its own copy of this script and they all cross the end of
+   * the session in the same second, so a marker held only in the page meant
+   * three open tabs chimed three times, over the top of each other.
+   *
+   * So the marker goes in storage, where every tab can see it, and the local
+   * copy below only stops this tab from playing twice while that write is
+   * still in flight. Two tabs can still both reach the crossing inside that
+   * window and both play; the cost of losing that race is one duplicated
+   * chime, which is worth less than the machinery to close it. */
+  let chimed = false;
+
   function paintHud(focus) {
     const el = hudEl();
     const counting = focus.targetMin > 0;
     const value = counting ? NWT.focusRemaining(focus) : NWT.focusElapsed(focus);
+    const over = focus.running && counting && value < 0;
+
     el.querySelector('.nwt-focus-time').textContent = NWT.formatDuration(value);
     el.querySelector('.nwt-focus-label').textContent =
-      !focus.running ? 'paused' : (counting && value < 0 ? 'over' : 'focus');
+      !focus.running ? 'paused' : (over ? 'over' : 'focus');
     el.setAttribute('data-state',
-      !focus.running ? 'paused' : (counting && value < 0 ? 'over' : 'running'));
+      !focus.running ? 'paused' : (over ? 'over' : 'running'));
+
+    /* A flag, not a session id.
+     *
+     * It used to compare against `startedAt`, on the reasoning that a new
+     * session has a new start time. It does - but so does a resumed one:
+     * pausing banks the elapsed time and starting again sets `startedAt` to
+     * now, because that is how the clock adds up. So a session that had
+     * already run over, paused and restarted, looked like a session that had
+     * never been announced, and rang a second time for the same end.
+     *
+     * Nothing in the timer's own state distinguishes those two, so the flag is
+     * cleared by whatever begins a new session - reset, or a change of length -
+     * and by nothing else. */
+    if (!focus.chimedFor) chimed = false;
+    if (!over || !focus.chime || chimed || focus.chimedFor) return;
+
+    /* Marked only once something was actually heard. A browser that has not
+     * been interacted with yet refuses to make a sound, and says so by handing
+     * back a context that runs silently rather than by failing - so marking
+     * first meant a session announced to nobody, and never announced again. */
+    if (!chime()) return;
+
+    chimed = true;
+    chrome.storage.local.get({ focus: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const f = stored.focus || {};
+      if (f.chimedFor) return;
+      chrome.storage.local.set({ focus: Object.assign({}, f, { chimedFor: 1 }) });
+    });
   }
+
+  /* A short two-note chime, built rather than fetched.
+   *
+   * The extension never loads anything, and that is not a rule to work around
+   * for a sound: an audio file would be a request, or a payload to carry.
+   * Two oscillators cost nothing and are quieter to ship.
+   *
+   * Everything here is wrapped: audio is not worth a broken timer. A page
+   * with no audio, a browser that refuses one before it has been clicked, a
+   * device with nothing to play through - each ends with the sound missing,
+   * which is what the flashing pill is also there for. */
+  /* Answers whether anything was actually heard, which is not the same as
+   * whether this ran without throwing.
+   *
+   * A browser will not let a page make a sound until someone has interacted
+   * with it. That refusal is not an error: `new AudioContext()` succeeds and
+   * hands back a *suspended* context, every call on it works, and nothing
+   * comes out. Treated as success, the session was marked as announced and
+   * would never be announced again - so a timer that ran over on a tab you
+   * had opened and not yet clicked was silent for good, rather than silent
+   * until you touched the page. */
+  function chime() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return false;
+      const ctx = new Ctx();
+
+      if (ctx.state === 'suspended') {
+        /* Worth asking. It is granted only if the page has been interacted
+         * with, in which case a context usually starts running anyway. */
+        try { ctx.resume(); } catch (e) { /* nothing else to try */ }
+      }
+      if (ctx.state !== 'running') {
+        try { ctx.close(); } catch (e) { /* already gone */ }
+        return false;
+      }
+
+      const play = (hz, at, seconds) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = hz;
+        /* Eased in and out. A square-edged tone clicks at both ends, which
+         * reads as a fault rather than a chime. */
+        gain.gain.setValueAtTime(0, ctx.currentTime + at);
+        gain.gain.linearRampToValueAtTime(0.14, ctx.currentTime + at + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + seconds);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + at);
+        osc.stop(ctx.currentTime + at + seconds + 0.02);
+      };
+
+      /* A fifth apart, the second a little softer: two notes read as a signal
+       * where one reads as a notification from something else. */
+      play(880, 0, 0.28);
+      play(1320, 0.16, 0.34);
+
+      /* Closed once it has finished, so a long session does not leave a
+       * context open for every chime it played. */
+      setTimeout(function () {
+        try { ctx.close(); } catch (e) { /* already closed */ }
+      }, 1200);
+      return true;
+    } catch (e) {
+      /* No sound. The pill is still flashing. */
+      return false;
+    }
+  }
+
 
   /* ---- dragging --------------------------------------------------------
    * Position is stored as a fraction of the viewport rather than pixels, so

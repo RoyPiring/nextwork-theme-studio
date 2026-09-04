@@ -317,3 +317,52 @@ test('the editor and reload buttons act and then close the popup', () => {
   assert.equal(p.opened.reloadedTabs, 1);
   assert.equal(p.opened.closed, 2);
 });
+
+test('the timer offers the short sessions as well as the long ones', () => {
+  /* Five and ten minutes are the ones you reach for to start at all. */
+  const p = openPopup({ enabled: true });
+  const lengths = [...p.el('focus-targets').querySelectorAll('button')]
+    .map(b => Number(b.dataset.min));
+  assert.deepEqual(lengths, [5, 10, 15, 25, 45, 60, 0]);
+});
+
+test('reset lets the next session be announced', () => {
+  /* The chime marker says "this session has already been announced". Nothing
+   * in the timer's own state separates a resumed session from a new one - the
+   * clock has to move startedAt forward either way - so reset is what has to
+   * clear it. Left set, the first session would chime and every one after it
+   * would be silent. */
+  const p = openPopup({
+    focus: { running: true, startedAt: Date.now() - 26 * 60000,
+             accumulatedMs: 0, targetMin: 25, chime: true, chimedFor: 1 }
+  });
+  p.fire('focus-reset', 'click');
+  assert.ok(!p.stored.focus.chimedFor,
+    'reset left the session marked as already announced, so the next one is silent');
+});
+
+test('choosing a different length lets the new end be announced', () => {
+  /* The other thing that begins a session: 45 minutes is an end that has not
+   * been reached yet, whatever happened with the last one. */
+  const p = openPopup({
+    focus: { running: true, startedAt: Date.now() - 26 * 60000,
+             accumulatedMs: 0, targetMin: 25, chime: true, chimedFor: 1 }
+  });
+  p.click(p.el('focus-targets').querySelectorAll('button[data-min]')[4]);
+  assert.equal(p.stored.focus.targetMin, 45);
+  assert.ok(!p.stored.focus.chimedFor,
+    'the new end was already marked as announced');
+});
+
+test('pausing and resuming does not clear the marker', () => {
+  /* If it did, the fix would be undone: a session that had run over, paused
+   * and started again would look new and chime for the same end twice. */
+  const p = openPopup({
+    focus: { running: true, startedAt: Date.now() - 26 * 60000,
+             accumulatedMs: 0, targetMin: 25, chime: true, chimedFor: 1 }
+  });
+  p.fire('focus-toggle', 'click');
+  assert.ok(p.stored.focus.chimedFor, 'pausing cleared it');
+  p.fire('focus-toggle', 'click');
+  assert.ok(p.stored.focus.chimedFor, 'resuming cleared it');
+});

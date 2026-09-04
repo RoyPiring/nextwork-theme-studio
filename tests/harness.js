@@ -497,6 +497,7 @@ function loadContentScript(options) {
   const observers = [];
   const timers = [];
   const reads = [];
+  const played = [];
 
   const chrome = {
     runtime: { lastError: null, id: 'test', onMessage: { addListener() {} } },
@@ -522,6 +523,46 @@ function loadContentScript(options) {
   const win = {
     innerWidth: 1440,
     innerHeight: 900,
+    /* Enough of Web Audio to see whether a sound was asked for, and what it
+     * would have been. Nothing is played: the point is that the timer asks
+     * once when a session runs over, and never twice. */
+    AudioContext: class {
+      constructor() {
+        this.currentTime = 0;
+        this.destination = { name: 'destination' };
+        this.notes = [];
+        this.closed = false;
+        /* A browser refuses to make a sound on a page nobody has interacted
+         * with yet, and it refuses by handing back a context in this state
+         * rather than by throwing - so a caller that only guards against an
+         * exception believes it played something. `silenced` puts the harness
+         * in that state, since it is the difference between a chime that was
+         * missed once and one that can never happen again. */
+        this.state = opts.silenced ? 'suspended' : 'running';
+        this.resumed = 0;
+        played.push(this);
+      }
+      resume() { this.resumed++; return Promise.resolve(); }
+      createOscillator() {
+        const note = { type: '', frequency: { value: 0 }, startedAt: null };
+        this.notes.push(note);
+        return Object.assign(note, {
+          connect(next) { return next; },
+          start(at) { note.startedAt = at; },
+          stop() {}
+        });
+      }
+      createGain() {
+        return {
+          gain: {
+            setValueAtTime() {}, linearRampToValueAtTime() {},
+            exponentialRampToValueAtTime() {}
+          },
+          connect(next) { return next; }
+        };
+      }
+      close() { this.closed = true; }
+    },
     localStorage: {
       _v: {},
       getItem(k) { return k in this._v ? this._v[k] : null; },
@@ -593,6 +634,8 @@ function loadContentScript(options) {
 
   return {
     doc, chrome, window: win, sandbox, flush, stored, reads,
+    /* Every sound the page tried to make. */
+    played,
     /* Add a panel the rescue pass will consider. */
     addPanel(computed, rect) {
       const el = doc.createElement('div');

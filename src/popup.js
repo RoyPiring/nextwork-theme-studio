@@ -195,6 +195,7 @@
     $('focus-toggle').textContent = f.running ? 'Pause' : (NWT.focusElapsed(f) ? 'Resume' : 'Start');
     $('focusEnabled').checked = !!f.enabled;
     $('focus-locked').checked = !!f.locked;
+    $('focus-chime').checked = !!f.chime;
     $('focus-size').value = String(Math.round((f.hudScale || 1) * 100));
     $('focus-size-out').textContent = $('focus-size').value + '%';
 
@@ -249,18 +250,29 @@
       renderAll();
     });
 
+    $('focus-chime').addEventListener('change', function () {
+      saveFocus({ chime: $('focus-chime').checked });
+    });
+
     $('focus-locked').addEventListener('change', function () {
       saveFocus({ locked: $('focus-locked').checked });
     });
 
     $('focus-reset').addEventListener('click', function () {
-      saveFocus({ running: false, startedAt: 0, accumulatedMs: 0 });
+      /* `chimedFor` says this session has already been announced. Reset is one
+       * of the two things that begins a new one, so it is cleared here. It is
+       * deliberately not cleared by pause and resume: the clock has to move
+       * `startedAt` forward to keep adding up, which made a resumed session
+       * indistinguishable from a fresh one, and rang for the same end twice. */
+      saveFocus({ running: false, startedAt: 0, accumulatedMs: 0, chimedFor: 0 });
     });
 
     $('focus-targets').addEventListener('click', function (e) {
       const btn = e.target.closest('button[data-min]');
       if (!btn) return;
-      saveFocus({ targetMin: Number(btn.dataset.min) });
+      /* The other thing that begins a new session: a different length is a
+       * different end to reach, and it has not been announced yet. */
+      saveFocus({ targetMin: Number(btn.dataset.min), chimedFor: 0 });
     });
 
     $('sceneBackdrop').addEventListener('change', function () {
