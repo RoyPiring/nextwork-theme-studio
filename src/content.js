@@ -501,6 +501,17 @@
     body.appendChild(refused);
 
     /* Corner to resize from. */
+    /* A frame that loaded is not the same as a frame that shows anything.
+     * Some sites answer with a page and then refuse to run inside another one,
+     * and there is nothing readable across the origin boundary to tell the
+     * difference - so rather than declare success and leave a white rectangle
+     * with no way out, the way out stays on screen. */
+    const hint = document.createElement('button');
+    hint.type = 'button';
+    hint.className = 'nwt-companion-hint';
+    hint.textContent = 'Nothing showing? Open it in a window';
+    body.appendChild(hint);
+
     const grip = document.createElement('div');
     grip.className = 'nwt-companion-grip';
     grip.title = 'Drag to resize';
@@ -523,6 +534,27 @@
   }
 
   let paneShowing = '';
+
+  /* A frame can also be stopped by the page it is drawn on, rather than by the
+   * site it points at: nextwork.ai sends its own content security policy, and
+   * a frame this script adds is subject to it like any other. That failure
+   * looks identical from the outside - a blank rectangle - but unlike a site's
+   * own refusal it announces itself, so it is worth listening for.
+   *
+   * Removing the host page's policy is not on the table. It protects the page
+   * being themed, and weakening the site you are working on to fit a video
+   * beside it is the wrong trade. So this reports it and offers the window. */
+  document.addEventListener('securitypolicyviolation', function (e) {
+    if (!/frame-src|child-src|default-src/.test(e.violatedDirective || '')) return;
+    if (!paneShowing || String(e.blockedURI || '').indexOf(paneShowing.slice(0, 40)) !== 0) return;
+    const el = document.getElementById(PANE_ID);
+    if (!el) return;
+    el.setAttribute('data-state', 'page-blocked');
+    el.querySelector('.nwt-companion-said').textContent =
+      'The page this pane sits on will not allow another site inside it. ' +
+      'That is nextwork.ai’s own setting, and not one worth overriding. ' +
+      'The arrow above opens the link in a window of its own.';
+  });
 
   /* Whether a site is allowed to be framed here, as the browser sees it.
    * Cached per address so a repaint - which happens on every storage write -
@@ -655,6 +687,13 @@
      * which opens the page that can, with this site already named on it. The
      * alternative was a sentence telling you to go and find a button
      * elsewhere, which is how it read the first time and is not an answer. */
+    /* The same thing the arrow does, said in words, for the case where the
+     * frame looked like it worked. */
+    el.querySelector('.nwt-companion-hint').addEventListener('click', function (e) {
+      e.stopPropagation();
+      el.querySelector('.nwt-companion-out').click();
+    });
+
     el.querySelector('.nwt-companion-ask').addEventListener('click', function (e) {
       e.stopPropagation();
       chrome.storage.local.get({ companion: {} }, function (stored) {

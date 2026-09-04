@@ -1497,9 +1497,21 @@
     /* Only the blocked state has anything to ask for. */
     L.push('#nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
            ' display: none; }');
+    /* Shown over a frame that loaded, since that is the only case where a
+     * blank rectangle has nothing else on it. Faint until you go near it. */
+    L.push('#nwt-companion .nwt-companion-hint { position: absolute; left: 50%;' +
+           ' bottom: 10px; transform: translateX(-50%); z-index: 2;' +
+           ' padding: 5px 11px; font: inherit; font-size: 11.5px;' +
+           ' cursor: pointer; white-space: nowrap; border-radius: 999px;' +
+           ' border: 1px solid ' + p.panelEdge + '; opacity: .55;' +
+           ' background: ' + p.surface + '; color: ' + p.textSecondary + '; }');
+    L.push('#nwt-companion .nwt-companion-hint:hover { opacity: 1; }');
+    L.push('#nwt-companion:not([data-state="ready"]) .nwt-companion-hint {' +
+           ' display: none; }');
     L.push('#nwt-companion[data-state="ready"] .nwt-companion-refused {' +
            ' display: none; }');
-    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused {' +
+    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused,' +
+           ' #nwt-companion[data-state="page-blocked"] .nwt-companion-refused {' +
            ' color: ' + p.status.warning[400] + '; }');
 
     /* Big enough to find and dark enough to see. At 16px with a half-strength

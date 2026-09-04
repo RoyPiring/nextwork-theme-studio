@@ -323,6 +323,13 @@ class FakeDocument {
     return hits.map(function (h) { return h.el; });
   }
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
+  /* The document is where a browser reports a policy violation, which is the
+   * one signal that separates "this page will not hold a frame" from "this
+   * site will not be framed" - two failures that otherwise look the same. */
+  dispatchEvent(event) {
+    (this.listeners[event.type] || []).forEach(fn => fn.call(this, event));
+    return true;
+  }
 }
 
 /* Enough of an HTML parser for the extension's own two pages.

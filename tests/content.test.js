@@ -938,3 +938,57 @@ test('choosing a different length makes an end that has not been reached yet', (
   page.flush();
   assert.equal(page.played.length, 2, 'passing the new end was never announced');
 });
+
+test('a frame the page itself blocks says so, rather than staying blank', () => {
+  /* Two different failures look identical from outside: the site refusing to
+   * be framed, and nextwork.ai's own policy refusing to hold a frame. Unlike
+   * the first, the second announces itself, so there is no excuse for showing
+   * a white rectangle and leaving it at that. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+
+  page.doc.dispatchEvent({ type: 'securitypolicyviolation', violatedDirective: 'frame-src', blockedURI: DISCORD });
+
+  assert.equal(pane(page).getAttribute('data-state'), 'page-blocked');
+  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
+    /will not allow another site inside it/);
+});
+
+test('a policy report about something else is not mistaken for the pane', () => {
+  /* The page reports every violation it has, most of which are its own. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+
+  [{ violatedDirective: 'img-src', blockedURI: DISCORD },
+   { violatedDirective: 'frame-src', blockedURI: 'https://ads.example/x' }
+  ].forEach(function (report) {
+    page.doc.dispatchEvent(Object.assign({ type: 'securitypolicyviolation' }, report));
+  });
+  assert.equal(pane(page).getAttribute('data-state'), 'ready',
+    'an unrelated policy report was blamed on the pane');
+});
+
+test('a frame that loaded still offers the way out', () => {
+  /* A frame that loaded is not a frame that shows anything: some sites answer
+   * with a page and then decline to run inside another one, and nothing
+   * readable across the origin says which happened. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  const hint = pane(page).querySelector('.nwt-companion-hint');
+  assert.ok(hint, 'a frame that loaded and showed nothing would be a dead end');
+
+  hint.click();
+  page.flush();
+  assert.equal(page.sent.filter(m => m.type === 'companion:window').length, 1,
+    'the way out did not lead anywhere');
+});
