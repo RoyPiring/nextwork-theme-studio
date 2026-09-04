@@ -500,18 +500,6 @@ test('a player is not offered, because it needs no permission', () => {
   assert.equal(p.el('companion-access').style.display, 'none');
 });
 
-test('allowing a site records it and tells the open pages to look again', () => {
-  const p = openPopup({ enabled: true, companion: { enabled: true, url: DISCORD } });
-  p.click(p.el('companion-access-btn'));
-  p.flush();
-
-  assert.deepEqual(p.granted(), ['https://discord.com'],
-    'the site was not allowed');
-  assert.ok(p.stored.companion.grantedAt > 0,
-    'nothing told the open pages the answer had changed, so the pane stays refused');
-  assert.match(p.el('companion-access-btn').textContent, /Take it back/);
-});
-
 test('taking a site back is the same control, the other way round', () => {
   const p = openPopup({
     enabled: true, companion: { enabled: true, url: DISCORD }
@@ -520,22 +508,6 @@ test('taking a site back is the same control, the other way round', () => {
   p.click(p.el('companion-access-btn'));
   p.flush();
   assert.deepEqual(p.granted(), []);
-});
-
-test('a refused prompt says so rather than looking like it worked', () => {
-  const p = openPopup({ enabled: true, companion: { enabled: true, url: DISCORD } });
-  p.refuseGrants();
-  /* Every line the note was given, rather than the one left on it at the end.
-   * The message puts itself away after a few seconds, and the harness runs
-   * every timer it holds without regard for when it was due - so by the time
-   * anything can be read, the note has already been put back. */
-  const said = watchText(p.el('companion-note'));
-  p.fireOnly('companion-access-btn', 'click');
-  p.flush();
-
-  assert.deepEqual(p.granted(), []);
-  assert.ok(said.some(t => /did not grant/.test(t)),
-    'a refused prompt was never reported; the note only said ' + JSON.stringify(said));
 });
 
 test('arriving from the pane leads with the site the pane asked about', () => {
@@ -548,38 +520,6 @@ test('arriving from the pane leads with the site the pane asked about', () => {
   });
   assert.match(p.el('companion-access-note').textContent, /discord\.com/);
   assert.equal(p.el('companion-access').getAttribute('data-asked'), '1');
-});
-
-test('answering that question puts the site in the pane and clears it', () => {
-  /* Coming from the pane's own button is a request to see the thing, not to
-   * change a setting - so being granted has to finish the job. */
-  const p = openPopup({
-    enabled: true,
-    companion: { enabled: true, url: VIDEO, pending: DISCORD }
-  });
-  p.click(p.el('companion-access-btn'));
-  p.flush();
-
-  assert.deepEqual(p.granted(), ['https://discord.com']);
-  assert.equal(p.stored.companion.url, DISCORD,
-    'permission was granted but the pane was left showing something else');
-  assert.equal(p.stored.companion.pending, '',
-    'the question was left standing after it had been answered');
-});
-
-test('a question that is refused is still cleared', () => {
-  /* Otherwise every later visit to the popup reopens a question that was
-   * already answered no. */
-  const p = openPopup({
-    enabled: true,
-    companion: { enabled: true, url: VIDEO, pending: DISCORD }
-  });
-  p.refuseGrants();
-  p.click(p.el('companion-access-btn'));
-  p.flush();
-
-  assert.equal(p.stored.companion.pending, '');
-  assert.equal(p.stored.companion.url, VIDEO, 'a refused site was put in the pane anyway');
 });
 
 test('a link is named for the site, not for whatever is in front of the dot', () => {
@@ -876,4 +816,33 @@ test('the split panel opens on what was saved', () => {
   assert.equal(p.el('splitEnabled').checked, true);
   assert.equal(p.el('split-url').value, VIDEO);
   assert.equal(p.el('split-width-out').textContent, '50%');
+});
+
+test('asking to allow a site sends you where the prompt survives', () => {
+  /* The popup cannot grant anything. `permissions.request` has to come from an
+   * extension page in response to a click, and a popup is one - but the browser
+   * closes the popup to put its prompt on screen, and closing the page cancels
+   * the request. Nothing is granted and nothing says so. */
+  const p = openPopup({ enabled: true, companion: { enabled: true, url: DISCORD } });
+  p.click(p.el('companion-access-btn'));
+  p.flush();
+
+  assert.equal(p.opened.optionsPage, 1, 'it tried to ask from the popup again');
+  assert.equal(p.stored.companion.pending, DISCORD,
+    'the site was not written down, so that page opens asking about nothing');
+  assert.deepEqual(p.sent().filter(m => m.type === 'companion:allow'), [],
+    'it still asked the worker to raise a prompt the popup cannot survive');
+});
+
+test('taking a site back is still done from here, since nothing is prompted', () => {
+  /* Only granting needs the prompt. Removing one does not, so it stays where
+   * you are already looking. */
+  const p = openPopup({
+    enabled: true, companion: { enabled: true, url: DISCORD }
+  }, { allowed: ['https://discord.com'] });
+  p.click(p.el('companion-access-btn'));
+  p.flush();
+
+  assert.deepEqual(p.granted(), []);
+  assert.equal(p.opened.optionsPage, 0, 'it opened a page for something it could do itself');
 });

@@ -568,6 +568,116 @@
     });
   });
 
+/* ---- sites allowed to be framed --------------------------------------
+   *
+   * This lives on the options page and not in the popup, and that is the whole
+   * point of it rather than a layout preference.
+   *
+   * `chrome.permissions.request` has to be called from an extension page, in
+   * response to a click. A popup is an extension page, so it looks like the
+   * right home for it - but the browser closes the popup in order to put its
+   * own prompt on screen, and closing the page cancels the request that page
+   * made. The prompt never resolves, nothing is granted, and nothing reports a
+   * failure: `permissions.getAll` simply goes on returning what it returned
+   * before.
+   *
+   * That is what had been happening. Every "allow this site" click looked like
+   * it worked, no site was ever granted, no rule was ever built, and the only
+   * symptom was a frame that stayed empty - which is also exactly what a site
+   * refusing to be framed looks like.
+   *
+   * An options page is a tab. It does not close, so the prompt survives. */
+  function sitePattern(url) {
+    try {
+      const u = new URL(url);
+      return u.protocol === 'https:' ? u.origin + '/*' : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function renderSites() {
+    chrome.permissions.getAll(function (granted) {
+      const origins = ((granted && granted.origins) || [])
+        .filter(function (o) { return !/nextwork\.ai/.test(o); });
+      $('sites-empty').hidden = origins.length > 0;
+      $('sites-state').textContent = origins.length
+        ? origins.length + ' allowed'
+        : '';
+
+      const host = $('sites-list');
+      host.textContent = '';
+      origins.forEach(function (pattern) {
+        const row = document.createElement('div');
+        row.className = 'row between';
+        const name = document.createElement('span');
+        name.textContent = pattern.replace(/^https:\/\//, '').replace(/\/\*$/, '');
+        row.appendChild(name);
+
+        const drop = document.createElement('button');
+        drop.type = 'button';
+        drop.className = 'tiny';
+        drop.textContent = 'Take it back';
+        drop.addEventListener('click', function () {
+          chrome.permissions.remove({ origins: [pattern] }, function () {
+            toast('Taken back');
+            bumpGrant();
+            renderSites();
+          });
+        });
+        row.appendChild(drop);
+        host.appendChild(row);
+      });
+    });
+  }
+
+  /* Open pages cache what they were told about a site, so they are told that
+   * the answer moved. */
+  function bumpGrant() {
+    chrome.storage.local.get({ companion: {} }, function (stored) {
+      chrome.storage.local.set({
+        companion: Object.assign({}, stored.companion,
+                                 { grantedAt: Date.now(), pending: '' })
+      });
+    });
+  }
+
+  function allowSite() {
+    const field = $('sites-url');
+    const pattern = sitePattern(field.value.trim());
+    if (!pattern) {
+      field.setAttribute('aria-invalid', 'true');
+      toast('That needs to be a full web address, starting with https.');
+      return;
+    }
+    field.removeAttribute('aria-invalid');
+    chrome.permissions.request({ origins: [pattern] }, function (given) {
+      if (chrome.runtime.lastError || !given) {
+        toast('The browser did not grant that.');
+        return;
+      }
+      field.value = '';
+      toast('Allowed. It can now open beside your page.');
+      bumpGrant();
+      renderSites();
+    });
+  }
+
+  $('sites-add').addEventListener('click', allowSite);
+  $('sites-url').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') allowSite();
+  });
+  /* The pane cannot raise the prompt itself, so it writes down what it wanted
+   * and sends you here. Fill it in rather than making you paste it twice. */
+  chrome.storage.local.get({ companion: {} }, function (stored) {
+    const pending = (stored.companion || {}).pending;
+    if (pending) {
+      $('sites-url').value = pending;
+      $('sites-panel').scrollIntoView({ block: 'center' });
+    }
+  });
+  renderSites();
+
   chrome.storage.onChanged.addListener(function (changes, area) {
     if (!settings) return;              /* a change can land before load() returns */
     /* Only react to changes made elsewhere (the popup or the shortcut). */

@@ -753,3 +753,37 @@ test('an address that is not https is left out of the arrangement', () => {
   assert.equal(bg.windowsOpened().length, 1);
   assert.equal(bg.windowsOpened()[0].url, DISCORD);
 });
+
+test('a rule the browser rejects is written down, not swallowed', () => {
+  /* updateDynamicRules reports failure the way the rest of the API does - by
+   * setting lastError and carrying on - and that was being ignored. A rejected
+   * rule left no rule, no error and no trace, and the only symptom was a frame
+   * that stayed blank, which is what four other things also look like. */
+  const bg = loadBackground({ origins: ['https://discord.com/*'], rulesFail: 'Rule limit exceeded' });
+  bg.startup();
+  bg.flush();
+
+  assert.equal(bg.stored.ruleReport.error, 'Rule limit exceeded',
+    'the browser refused the rule and nothing recorded it');
+  assert.deepEqual(bg.stored.ruleReport.wanted, ['discord.com']);
+  assert.deepEqual(bg.stored.ruleReport.installed, [],
+    'it reported a rule that was never installed');
+});
+
+test('a rule that installs is reported as installed', () => {
+  const bg = loadBackground({ origins: ['https://discord.com/*'] });
+  bg.startup();
+  bg.flush();
+  assert.equal(bg.stored.ruleReport.error, '');
+  assert.deepEqual(bg.stored.ruleReport.installed, ['discord.com']);
+});
+
+test('nothing granted is reported as nothing wanted', () => {
+  /* This is the state that hid the real fault for weeks: no sites granted, so
+   * no rules, no error - and a frame that looked exactly like a refusal. */
+  const bg = loadBackground();
+  bg.startup();
+  bg.flush();
+  assert.deepEqual(bg.stored.ruleReport.wanted, []);
+  assert.deepEqual(bg.stored.ruleReport.installed, []);
+});

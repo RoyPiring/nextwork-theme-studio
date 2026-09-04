@@ -203,6 +203,9 @@ class FakeElement {
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
   removeEventListener() {}
   getBoundingClientRect() { return Object.assign({}, this._rect); }
+  /* Bringing an element into view. Nothing is laid out here, so it records
+   * that it was asked rather than pretending to scroll. */
+  scrollIntoView() { this.scrolledIntoView = true; }
   setPointerCapture() {}
   releasePointerCapture() {}
   /* Recorded rather than ignored, so a test can tell whether the cursor was
@@ -795,6 +798,13 @@ function loadBackground(options) {
     declarativeNetRequest: {
       getDynamicRules(cb) { cb(dynamicRules.slice()); },
       updateDynamicRules(o, cb) {
+        /* A browser refuses a rule the way it refuses everything else: it sets
+         * lastError and carries on. `rulesFail` plays that. */
+        if (opts.rulesFail) {
+          chrome.runtime.lastError = { message: opts.rulesFail };
+          try { if (cb) cb(); } finally { chrome.runtime.lastError = null; }
+          return;
+        }
         const drop = new Set(o.removeRuleIds || []);
         dynamicRules = dynamicRules.filter(r => !drop.has(r.id)).concat(o.addRules || []);
         if (cb) cb();
@@ -1032,6 +1042,31 @@ function loadPage(options) {
   parseDocument(fs.readFileSync(path.join(ROOT, opts.page), 'utf8'), doc);
 
   const chrome = {
+    /* Granting a site is done from the options page, not the popup: a browser
+     * closes the popup to show its prompt, and closing the page cancels the
+     * request that page made. */
+    permissions: {
+      getAll(cb) { cb({ origins: allowedOrigins.map(o => o + '/*'), permissions: [] }); },
+      contains(req, cb) {
+        cb((req.origins || []).every(o => allowedOrigins.includes(o.replace(/\/\*$/, ''))));
+      },
+      request(req, cb) {
+        if (grantsAllowed) {
+          (req.origins || []).forEach(function (o) {
+            const origin = o.replace(/\/\*$/, '');
+            if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin);
+          });
+        }
+        cb(grantsAllowed);
+      },
+      remove(req, cb) {
+        (req.origins || []).forEach(function (o) {
+          const at = allowedOrigins.indexOf(o.replace(/\/\*$/, ''));
+          if (at >= 0) allowedOrigins.splice(at, 1);
+        });
+        cb(true);
+      }
+    },
     runtime: {
       lastError: null,
       id: 'test',

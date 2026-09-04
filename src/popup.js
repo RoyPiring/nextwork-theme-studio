@@ -352,7 +352,21 @@
 
     chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
       if (chrome.runtime.lastError) return;
-      const next = (r && r.allowed) ? 'companion:forget' : 'companion:allow';
+      /* Granting is done on the options page, never from here.
+       *
+       * `permissions.request` has to come from an extension page in response
+       * to a click, and a popup is one - but the browser closes the popup to
+       * put its own prompt on screen, and closing the page cancels the request
+       * that page made. Nothing is granted and nothing reports a failure. Every
+       * click of this button did exactly that, for weeks, while the frame it
+       * was meant to unblock stayed empty. */
+      if (!(r && r.allowed)) {
+        saveCompanion({ pending: src });
+        chrome.runtime.openOptionsPage();
+        window.close();
+        return;
+      }
+      const next = 'companion:forget';
       chrome.runtime.sendMessage({ type: next, url: src }, function (done) {
         if (chrome.runtime.lastError) return;
         const granted = next === 'companion:allow' && !!(done && done.allowed);
