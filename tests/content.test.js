@@ -1063,29 +1063,6 @@ test('a policy report about something else is not mistaken for the pane', () => 
 });
 
 
-test('giving up on a frame remembers it, so the pane stops repeating the failure', () => {
-  /* Some sites answer with a page and then show nothing inside another one -
-   * Discord is the case this exists for, since it has to be signed in and a
-   * frame on someone else's page does not carry that. Nothing readable across
-   * the origin boundary says so, but a person pressing "open it in a window"
-   * has just said it. */
-  const page = loadContentScript({
-    settings: { enabled: true, companion: { enabled: true, url: DISCORD,
-      tiles: [{ label: 'Discord', url: DISCORD }] } },
-    allowed: ['https://discord.com']
-  });
-  page.flush();
-  assert.equal(pane(page).getAttribute('data-state'), 'ready');
-
-  pane(page).querySelector('.nwt-companion-hint').click();
-  page.flush();
-
-  assert.equal(page.stored.companion.tiles[0].windowed, true,
-    'the choice was not remembered, so it will fail the same way next time');
-  assert.equal(page.sent.filter(m => m.type === 'companion:window').length, 1,
-    'it did not open the window it was asked for');
-});
-
 test('a link marked for a window is not framed again', () => {
   const page = loadContentScript({
     settings: { enabled: true, companion: { enabled: true, url: DISCORD,
@@ -1098,21 +1075,77 @@ test('a link marked for a window is not framed again', () => {
   assert.equal(frameOf(page).getAttribute('src'), null,
     'a link known to fail in a frame was loaded into one anyway');
   assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
-    /opens in a window of its own/);
+    /set to open in a window of its own/);
 });
 
-test('marking one link does not mark the others', () => {
+
+test('opening a window once does not move the link out of the pane', () => {
+  /* One press of "open it in a window" is not a decision about where a link
+   * lives. It used to be taken as one - the link was marked and the pane
+   * refused to try again - which is the opposite of what a pane on the page
+   * is for. */
   const page = loadContentScript({
     settings: { enabled: true, companion: { enabled: true, url: DISCORD,
-      tiles: [{ label: 'Discord', url: DISCORD },
-              { label: 'YouTube', url: VIDEO }] } },
+      tiles: [{ label: 'Discord', url: DISCORD }] } },
     allowed: ['https://discord.com']
   });
   page.flush();
   pane(page).querySelector('.nwt-companion-hint').click();
   page.flush();
 
-  const tiles = page.stored.companion.tiles;
-  assert.equal(tiles[0].windowed, true);
-  assert.ok(!tiles[1].windowed, 'an unrelated link was marked too');
+  assert.equal(page.sent.filter(m => m.type === 'companion:window').length, 1,
+    'it did not open the window that was asked for');
+  assert.ok(!page.stored.companion.tiles[0].windowed,
+    'one press was taken as a decision to stop using the pane');
+  assert.equal(pane(page).getAttribute('data-state'), 'ready',
+    'the pane stopped showing it');
+});
+
+test('a link set to open in a window can be brought back from the pane', () => {
+  /* Wherever the setting came from, the way back has to be where you are
+   * looking when you notice it. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD,
+      tiles: [{ label: 'Discord', url: DISCORD, windowed: true }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'windowed');
+
+  pane(page).querySelector('.nwt-companion-here').click();
+  page.flush();
+
+  assert.ok(!page.stored.companion.tiles[0].windowed, 'the setting was not lifted');
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+  assert.equal(frameOf(page).getAttribute('src'), DISCORD);
+});
+
+test('the frame may reach the microphone, or a voice channel cannot connect', () => {
+  /* Watching a voice channel while you build was the thing this was asked
+   * for. A frame with no microphone cannot join one: the call fails inside
+   * their code and the channel never connects, with nothing on the outside to
+   * say why. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const allow = frameOf(page).getAttribute('allow') || '';
+  ['microphone', 'camera', 'display-capture'].forEach(function (feature) {
+    assert.ok(allow.split(/;\s*/).includes(feature),
+      'the frame cannot use the ' + feature + '; it may use: ' + allow);
+  });
+});
+
+test('the frame is allowed what an application needs, minus the tab', () => {
+  /* A missing sandbox token is not a polite refusal - the call throws inside
+   * their code and the boot stops wherever it got to, which from outside is a
+   * rectangle that stays whatever colour their loading screen is. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const sandbox = frameOf(page).getAttribute('sandbox') || '';
+  ['allow-scripts', 'allow-same-origin', 'allow-forms', 'allow-popups',
+   'allow-modals', 'allow-downloads'].forEach(function (token) {
+    assert.ok(sandbox.split(/\s+/).includes(token),
+      'the frame is missing ' + token);
+  });
+  assert.ok(!/allow-top-navigation/.test(sandbox),
+    'a page in the pane can replace the tab underneath it');
 });

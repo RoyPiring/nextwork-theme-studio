@@ -1500,8 +1500,16 @@
            ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
     L.push('#nwt-companion .nwt-companion-ask:hover { background: ' +
            rgba(p.accent, 0.26) + '; }');
-    /* Only the blocked state has anything to ask for. */
+    /* Each of these belongs to one state and nothing else. */
     L.push('#nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
+           ' display: none; }');
+    L.push('#nwt-companion .nwt-companion-here { flex: none; padding: 7px 14px;' +
+           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
+    L.push('#nwt-companion .nwt-companion-here:hover { background: ' +
+           rgba(p.accent, 0.26) + '; }');
+    L.push('#nwt-companion:not([data-state="windowed"]) .nwt-companion-here {' +
            ' display: none; }');
     /* Shown over a frame that loaded, since that is the only case where a
      * blank rectangle has nothing else on it. Faint until you go near it. */

@@ -516,10 +516,29 @@
      * own origin, which is what it needs to reach its own cookies and stay
      * signed in. Without it a site would be given an opaque origin and would
      * simply fail to load, which is not a security win, only a broken pane. */
+    /* `sandbox` governs what the page in here may do; `allow` governs what
+     * hardware and features it may reach. They are different lists and both
+     * were too short.
+     *
+     * A full application needs more than a video does. A missing token here is
+     * not a polite refusal - the call throws inside their code and the boot
+     * stops wherever it got to, which from outside is a rectangle that stays
+     * whatever colour their loading screen is. Everything a real tab grants is
+     * granted, with one exception: `allow-top-navigation` stays out, so a page
+     * in the pane cannot replace the tab underneath it. That is the whole
+     * point of having a sandbox at all, and it is the only thing being held
+     * back. */
     frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms ' +
       'allow-popups allow-popups-to-escape-sandbox allow-presentation ' +
+      'allow-modals allow-downloads allow-pointer-lock allow-orientation-lock ' +
       'allow-storage-access-by-user-activation');
-    frame.setAttribute('allow', 'autoplay; picture-in-picture; encrypted-media; fullscreen');
+    /* The microphone is not a nicety here. Watching a voice channel while you
+     * build was the thing this was asked for, and a frame with no microphone
+     * cannot join one - the call fails inside their code and the channel
+     * simply never connects. Camera and screen share for the same reason. */
+    frame.setAttribute('allow',
+      'autoplay; microphone; camera; display-capture; speaker-selection; ' +
+      'picture-in-picture; encrypted-media; fullscreen');
     frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
     body.appendChild(frame);
 
@@ -530,6 +549,14 @@
     const said = document.createElement('p');
     said.className = 'nwt-companion-said';
     refused.appendChild(said);
+
+    /* Only for a link that has been set to open in a window. Whatever put it
+     * there, the way back has to be where you are looking when you notice. */
+    const here = document.createElement('button');
+    here.type = 'button';
+    here.className = 'nwt-companion-here';
+    here.textContent = 'Try it in the pane';
+    refused.appendChild(here);
 
     const ask = document.createElement('button');
     ask.type = 'button';
@@ -636,8 +663,8 @@
       frame.removeAttribute('src');
       el.setAttribute('data-state', 'windowed');
       refused.textContent =
-        label(companion) + ' opens in a window of its own - it will not run ' +
-        'inside another page. The arrow above brings it back if you close it.';
+        label(companion) + ' is set to open in a window of its own. The arrow ' +
+        'above opens it; the button below tries it here instead.';
       paneShowing = '';
       return;
     }
@@ -746,28 +773,27 @@
      * which opens the page that can, with this site already named on it. The
      * alternative was a sentence telling you to go and find a button
      * elsewhere, which is how it read the first time and is not an answer. */
-    /* The way out, and a note of the fact for next time.
+    /* A way out, and nothing more than that.
      *
-     * Some sites answer with a page and then show nothing inside another one.
-     * Discord is the case this was asked for and the clearest example: it has
-     * to be signed in, a frame on someone else's page does not carry that
-     * sign-in, and its own dark shell paints before it gives up - so the pane
-     * shows a black rectangle rather than an error.
-     *
-     * Nothing readable across the origin boundary says so. But a person
-     * pressing this has just said it, so the link is marked and goes straight
-     * to a window from then on rather than failing the same way every time.
-     * The mark is undone from the popup. */
+     * This used to mark the link so it went to a window from then on. That
+     * read one press as a decision about where the link lives, and the pane
+     * then refused to try again - which is the opposite of what a pane on the
+     * page is for. Wanting to see something in a window once is not the same
+     * as wanting it out of the pane. Marking it is now something you do on
+     * purpose, from the popup. */
     el.querySelector('.nwt-companion-hint').addEventListener('click', function (e) {
       e.stopPropagation();
       el.querySelector('.nwt-companion-out').click();
+    });
+
+    el.querySelector('.nwt-companion-here').addEventListener('click', function (e) {
+      e.stopPropagation();
       chrome.storage.local.get({ companion: {} }, function (stored) {
         if (chrome.runtime.lastError) return;
         const c = stored.companion || {};
-        const tiles = (c.tiles || []).map(function (t) {
-          return t && t.url === c.url ? Object.assign({}, t, { windowed: true }) : t;
-        });
-        saveCompanion({ tiles: tiles });
+        saveCompanion({ tiles: (c.tiles || []).map(function (t) {
+          return t && t.url === c.url ? Object.assign({}, t, { windowed: false }) : t;
+        }) });
       });
     });
 
