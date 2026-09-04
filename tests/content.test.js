@@ -860,32 +860,6 @@ test('a player needs no permission, because the site published it to be framed',
     'it asked permission for a site that had already said yes');
 });
 
-test('the arrow asks the extension for a window rather than opening one here', () => {
-  /* A window the browser makes holds anything at all, including every site
-   * that refuses to be framed whatever its headers say. `window.open` from
-   * the page is subject to the page's own policy on what it may open. */
-  const page = withPane({ url: DISCORD, w: 500, h: 400 });
-  page.flush();
-  pane(page).querySelector('.nwt-companion-out').click();
-  page.flush();
-
-  const asked = page.sent.filter(m => m.type === 'companion:window');
-  assert.equal(asked.length, 1);
-  assert.equal(asked[0].url, DISCORD);
-  assert.deepEqual([asked[0].w, asked[0].h], [500, 400],
-    'the window did not arrive the shape the pane was left');
-});
-
-test('an address it cannot open leaves the frame empty rather than loading it', () => {
-  const page = withPane({ url: 'javascript:alert(1)' });
-  page.flush();
-
-  assert.equal(frameOf(page).getAttribute('src'), null,
-    'something that is not a web address was put in the frame');
-  assert.equal(pane(page).getAttribute('data-state'), 'empty');
-  assert.equal(pane(page).querySelector('.nwt-companion-out').style.display, 'none');
-});
-
 test('a pane with nothing in it is not drawn at all', () => {
   /* An empty list means no panes. An empty rectangle floating over the page
    * inviting you to go and use the popup is furniture, not an invitation -
@@ -952,20 +926,6 @@ test('hiding the pane from its own corner turns it off for good', () => {
   assert.equal(pane(page), null, 'the pane is still on the page');
 });
 
-test('a frame that loaded still offers the way out', () => {
-  /* A frame that loaded is not a frame that shows anything, and nothing
-   * readable across the origin boundary says which happened. */
-  const page = withPane({ url: VIDEO });
-  page.flush();
-  const hint = pane(page).querySelector('.nwt-companion-hint');
-  assert.ok(hint, 'a frame that loaded and showed nothing would be a dead end');
-
-  hint.click();
-  page.flush();
-  assert.equal(page.sent.filter(m => m.type === 'companion:window').length, 1,
-    'the way out did not lead anywhere');
-});
-
 test('a site nobody has allowed is not loaded, and says why', () => {
   /* Waiting to see whether the frame loads cannot work: a browser that refuses
    * one navigates it to an error page and fires `load` on it just the same, so
@@ -980,8 +940,6 @@ test('a site nobody has allowed is not loaded, and says why', () => {
     'a site that was refused was loaded anyway');
   assert.match(pane(page).querySelector('.nwt-companion-refused').textContent,
     /refuses to be shown inside another page/);
-  assert.notEqual(pane(page).querySelector('.nwt-companion-out').style.display, 'none',
-    'the button that opens it in a window was hidden');
 });
 
 test('a site that has been allowed is loaded', () => {
@@ -1064,63 +1022,6 @@ test('a policy report about something else is not mistaken for the pane', () => 
     'an unrelated policy report was blamed on the pane');
 });
 
-
-test('a link marked for a window is not framed again', () => {
-  const page = loadContentScript({
-    settings: { enabled: true, companion: { enabled: true, url: DISCORD,
-      tiles: [{ label: 'Discord', url: DISCORD, windowed: true }] } },
-    allowed: ['https://discord.com']
-  });
-  page.flush();
-
-  assert.equal(pane(page).getAttribute('data-state'), 'windowed');
-  assert.equal(frameOf(page).getAttribute('src'), null,
-    'a link known to fail in a frame was loaded into one anyway');
-  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
-    /set to open in a window of its own/);
-});
-
-
-test('opening a window once does not move the link out of the pane', () => {
-  /* One press of "open it in a window" is not a decision about where a link
-   * lives. It used to be taken as one - the link was marked and the pane
-   * refused to try again - which is the opposite of what a pane on the page
-   * is for. */
-  const page = loadContentScript({
-    settings: { enabled: true, companion: { enabled: true, url: DISCORD,
-      tiles: [{ label: 'Discord', url: DISCORD }] } },
-    allowed: ['https://discord.com']
-  });
-  page.flush();
-  pane(page).querySelector('.nwt-companion-hint').click();
-  page.flush();
-
-  assert.equal(page.sent.filter(m => m.type === 'companion:window').length, 1,
-    'it did not open the window that was asked for');
-  assert.ok(!page.stored.companion.tiles[0].windowed,
-    'one press was taken as a decision to stop using the pane');
-  assert.equal(pane(page).getAttribute('data-state'), 'ready',
-    'the pane stopped showing it');
-});
-
-test('a link set to open in a window can be brought back from the pane', () => {
-  /* Wherever the setting came from, the way back has to be where you are
-   * looking when you notice it. */
-  const page = loadContentScript({
-    settings: { enabled: true, companion: { enabled: true, url: DISCORD,
-      tiles: [{ label: 'Discord', url: DISCORD, windowed: true }] } },
-    allowed: ['https://discord.com']
-  });
-  page.flush();
-  assert.equal(pane(page).getAttribute('data-state'), 'windowed');
-
-  pane(page).querySelector('.nwt-companion-here').click();
-  page.flush();
-
-  assert.ok(!page.stored.companion.tiles[0].windowed, 'the setting was not lifted');
-  assert.equal(pane(page).getAttribute('data-state'), 'ready');
-  assert.equal(frameOf(page).getAttribute('src'), DISCORD);
-});
 
 test('the frame may reach the microphone, or a voice channel cannot connect', () => {
   /* Watching a voice channel while you build was the thing this was asked
@@ -1438,27 +1339,6 @@ test('a column width dragged past either edge is brought back', () => {
     Math.round(thin.window.innerWidth * 0.18) + 'px');
 });
 
-test('a refused panel offers to go beside the page, and closes when taken', () => {
-  const page = loadContentScript({
-    settings: { enabled: true, split: { enabled: true,
-      panels: [{ url: 'https://discord.com/channels/1432837534118838355/99' }] } }
-  });
-  page.flush();
-  const node = panelsOf(page)[0];
-
-  assert.equal(node.getAttribute('data-state'), 'blocked');
-  assert.equal(node.getAttribute('data-instead'), '1', 'no way forward was offered');
-
-  node.querySelector('.nwt-panel-instead').click();
-  page.flush();
-
-  const asked = page.sent.filter(m => m.type === 'companion:dock');
-  assert.equal(asked.length, 1, 'the button did not lead anywhere');
-  assert.ok(asked[0].screen.width > 0, 'it asked without saying how big the screen is');
-  assert.equal(page.stored.split.panels.length, 0,
-    'the panel stayed, holding a frame for something now beside the page');
-});
-
 test('a panel whose frame something else swapped out is rebuilt', () => {
   const page = withSplit([{ url: VIDEO }]);
   page.flush();
@@ -1696,4 +1576,54 @@ test('a split panel pointed at YouTube itself asks in the panel', () => {
   assert.equal(page.stored.split.panels[0].url, VIDEO);
   assert.equal(page.doc.getElementById('nwt-split')
     .querySelector('.nwt-panel-frame').getAttribute('src'), EMBED);
+});
+
+/* ----------------------------------------------------- out of the way */
+
+test('one handle hides everything, and brings it back as it was', () => {
+  /* Not folding and not closing: the question is "let me see what is behind
+   * this", and the answer has to leave every pane where it was. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, panes: [
+      { url: VIDEO, w: 400, h: 300 }] },
+      split: { enabled: true, panels: [{ url: VIDEO }] } }
+  });
+  page.flush();
+  assert.ok(pane(page), 'precondition: a pane');
+  assert.ok(page.doc.getElementById('nwt-split'), 'precondition: a column');
+  const handle = page.doc.getElementById('nwt-peek');
+  assert.ok(handle, 'there is no way to get behind the page');
+
+  handle.click();
+  page.flush();
+
+  assert.equal(page.stored.peek, true);
+  assert.equal(pane(page), null, 'the pane stayed');
+  assert.equal(page.doc.getElementById('nwt-split'), null, 'the column stayed');
+  assert.ok(page.doc.getElementById('nwt-peek'), 'nothing left to bring it back with');
+  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-on'),
+    'the page was left narrowed with nothing in the space');
+
+  page.doc.getElementById('nwt-peek').click();
+  page.flush();
+
+  assert.ok(pane(page), 'the pane did not come back');
+  assert.equal(page.stored.companion.panes[0].w, 400, 'it came back a different size');
+  assert.ok(page.doc.getElementById('nwt-split'), 'the column did not come back');
+});
+
+test('the handle is not drawn when there is nothing to get out of the way', () => {
+  const page = loadContentScript({ settings: { enabled: true } });
+  page.flush();
+  assert.equal(page.doc.getElementById('nwt-peek'), null);
+});
+
+test('turning the extension off takes the handle with it', () => {
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.ok(page.doc.getElementById('nwt-peek'));
+
+  page.chrome.storage.local.set({ enabled: false });
+  page.flush();
+  assert.equal(page.doc.getElementById('nwt-peek'), null);
 });

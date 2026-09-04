@@ -106,10 +106,16 @@ closes that pane rather than the lot.
 
 A YouTube link works straight away — paste the address from your browser's bar
 and it plays. Most other sites, Discord among them, refuse to be shown inside
-another page. The pane says so and offers you two ways on: **allow this site**,
+another page. The pane says so and offers you the way on: **allow this site**,
 which asks your browser for permission to set that refusal aside for this one
-frame, or the arrow in its bar, which opens the site in a small window of its
-own and needs no permission at all.
+frame. The button is in the pane, beside the site it is about.
+
+**Getting everything out of the way for a moment.** A small handle sits on the
+right edge of the page whenever anything is open. Press it and every pane and
+panel goes; press it again and they all come back exactly as they were —
+same places, same sizes, same addresses. Nothing is closed and nothing is
+folded. It is for the times you need to see the page underneath and then carry
+straight on.
 
 Allowing a site is worth understanding before you do it, and
 [SECURITY.md](SECURITY.md) explains what it changes and how far it reaches.
@@ -159,13 +165,15 @@ header or setting changes that — the refusal is specifically about being
 views such sites publish leave out the parts you wanted, and none of them
 carries a voice channel.
 
-So the panel offers to open it **beside the page** instead. One button: this
-window takes the left of the screen, that site takes the right, both as real
-browser windows. It runs in full there — signed in, every channel, and voice
-you can actually hear — because a window of its own is not inside another page.
+So the panel offers the one thing that can change it: **allow this site**,
+which asks your browser to set that refusal aside for this frame. The button
+sits in the panel, next to the site it is about, and the list of what you have
+allowed is in the same place — each with a way to take it back.
 
-That is the honest division. Things built to be embedded go in the split;
-applications go beside it.
+Some sites will still refuse after that, and the panel says so rather than
+leaving a white rectangle. Everything here stays inside the browser tab; there
+is no window opened somewhere else, because a window somewhere else is the
+thing this was built to avoid.
 
 **If a panel is empty, check your other extensions first.** A content blocker —
 Privacy Badger, uBlock and their kin — will replace a third-party frame with a

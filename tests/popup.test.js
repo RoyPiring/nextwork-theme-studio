@@ -536,24 +536,6 @@ test('choosing the length already chosen does not re-announce the session', () =
     're-picking the same length cleared the marker, so it will chime again');
 });
 
-test('a link marked for a window opens one instead of filling the pane', () => {
-  const p = openPopup({
-    enabled: true,
-    companion: { enabled: true, url: VIDEO, tiles: [
-      { label: 'YouTube', url: VIDEO },
-      { label: 'Discord', url: DISCORD, windowed: true }] }
-  });
-  const marked = tiles(p)[1];
-  assert.ok(marked.classList.contains('windowed'), 'the row does not say which is which');
-
-  p.click(marked);
-  p.flush();
-  assert.equal(p.sent().filter(m => m.type === 'companion:window').length, 1,
-    'it did not open the window');
-  assert.equal(p.stored.companion.url, VIDEO,
-    'it pointed the pane at a link known not to work in one');
-});
-
 test('the popup opens on one tab and switches between three', () => {
   /* Three unrelated things share this popup, and in one column you scrolled
    * past two features to reach the third. */

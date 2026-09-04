@@ -505,13 +505,6 @@
     fold.className = 'nwt-companion-fold';
     bar.appendChild(fold);
 
-    const openOut = document.createElement('button');
-    openOut.type = 'button';
-    openOut.className = 'nwt-companion-out';
-    openOut.title = 'Open in a window of its own';
-    openOut.textContent = '↗';
-    bar.appendChild(openOut);
-
     const hide = document.createElement('button');
     hide.type = 'button';
     hide.className = 'nwt-companion-hide';
@@ -605,17 +598,6 @@
     body.appendChild(refused);
 
     /* Corner to resize from. */
-    /* A frame that loaded is not the same as a frame that shows anything.
-     * Some sites answer with a page and then refuse to run inside another one,
-     * and there is nothing readable across the origin boundary to tell the
-     * difference - so rather than declare success and leave a white rectangle
-     * with no way out, the way out stays on screen. */
-    const hint = document.createElement('button');
-    hint.type = 'button';
-    hint.className = 'nwt-companion-hint';
-    hint.textContent = 'Nothing showing? Open it in a window';
-    body.appendChild(hint);
-
     const grip = document.createElement('div');
     grip.className = 'nwt-companion-grip';
     grip.title = 'Drag to resize';
@@ -759,10 +741,6 @@
     const refused = el.querySelector('.nwt-companion-said');
 
     el.querySelector('.nwt-companion-title').textContent = label(companion);
-    /* Always offered. A window of its own holds anything, and it is the answer
-     * whenever the frame is not - so it should not be something that appears
-     * only once the pane has already failed. */
-    el.querySelector('.nwt-companion-out').style.display = src ? '' : 'none';
 
     /* Side by side: the link is in its own window beside the page, so there
      * is nothing for the frame to hold. The pane stays as the way back. */
@@ -980,11 +958,6 @@
      * page is for. Wanting to see something in a window once is not the same
      * as wanting it out of the pane. Marking it is now something you do on
      * purpose, from the popup. */
-    el.querySelector('.nwt-companion-hint').addEventListener('click', function (e) {
-      e.stopPropagation();
-      el.querySelector('.nwt-companion-out').click();
-    });
-
     el.querySelector('.nwt-companion-undock').addEventListener('click', function (e) {
       e.stopPropagation();
       chrome.runtime.sendMessage({ type: 'companion:undock' },
@@ -1031,24 +1004,6 @@
     el.querySelector('.nwt-companion-fold').addEventListener('click', function (e) {
       e.stopPropagation();
       savePane(index, { collapsed: el.getAttribute('data-collapsed') !== '1' });
-    });
-
-    el.querySelector('.nwt-companion-out').addEventListener('click', function (e) {
-      e.stopPropagation();
-      chrome.storage.local.get({ companion: {} }, function (stored) {
-        const c = stored.companion || {};
-        const src = NWT.companionSrc(c.url);
-        if (!src) return;
-        /* Opened by the extension rather than by `window.open` here. A window
-         * the browser makes for us is a real one - it holds anything at all,
-         * including every site that refuses to be framed under any headers,
-         * and it is not subject to this page's own policy on what it may
-         * open. The size is the pane's, so it arrives the shape you left it. */
-        chrome.runtime.sendMessage({
-          type: 'companion:window', url: src,
-          w: Number(c.w) || 380, h: Number(c.h) || 260
-        }, function () { void chrome.runtime.lastError; });
-      });
     });
 
     /* Its own place and its own size, so moving one pane does not move the
@@ -1185,12 +1140,6 @@
     const title = document.createElement('span');
     title.className = 'nwt-panel-title';
     bar.appendChild(title);
-    const out = document.createElement('button');
-    out.type = 'button';
-    out.className = 'nwt-panel-out';
-    out.title = 'Open in a window of its own';
-    out.textContent = '↗';
-    bar.appendChild(out);
     const hide = document.createElement('button');
     hide.type = 'button';
     hide.className = 'nwt-panel-hide';
@@ -1281,7 +1230,8 @@
   function renderSplit(settings) {
     const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
     const panels = splitPanels(split);
-    if (!settings.enabled || !split.enabled || !TOP_FRAME || !panels.length) {
+    if (!settings.enabled || !split.enabled || !TOP_FRAME || !panels.length
+        || settings.peek) {
       removeSplit();
       return;
     }
@@ -1301,7 +1251,6 @@
       const node = panelEl(el, i);
       node.style.setProperty('--nwt-panel-share', (shares[i] * 100).toFixed(3) + '%');
       node.setAttribute('data-collapsed', panel.collapsed ? '1' : '0');
-      node.setAttribute('data-url', panel.url || '');
       node.querySelector('.nwt-panel-fold').textContent = panel.collapsed ? '▸' : '▾';
       node.querySelector('.nwt-panel-fold').title =
         panel.collapsed ? 'Open this panel' : 'Fold it down to its bar';
@@ -1389,16 +1338,12 @@
     }, 2500);
   }
 
-  /* A frame cannot hold an application that refuses to be embedded, and no
-   * permission changes that. A window of its own is not inside another page,
-   * so everything works there - signed in, and a voice channel you can hear. */
+  /* Nothing to offer but the permission, which the message above already
+   * points at. Everything this does is inside the browser now, and a button
+   * that leads out of the page is not an answer to a page that will not hold
+   * something. */
   function offerInstead(node) {
-    const button = node.querySelector('.nwt-panel-instead');
-    node.setAttribute('data-instead', '1');
-    button.textContent = 'Open it beside the page';
-    button.title = 'This window keeps the left of the screen and the site ' +
-                   'takes the right, both as real browser windows - where it ' +
-                   'runs in full, voice channels included.';
+    node.removeAttribute('data-instead');
   }
 
   function panelLabel(panel, src) {
@@ -1467,33 +1412,8 @@
       e.stopPropagation();
       savePanel(index, { collapsed: node.getAttribute('data-collapsed') !== '1' });
     });
-    node.querySelector('.nwt-panel-out').addEventListener('click', function (e) {
-      e.stopPropagation();
-      const src = NWT.companionSrc(currentPanelUrl(node));
-      if (!src) return;
-      chrome.runtime.sendMessage({ type: 'companion:window', url: src },
-        function () { void chrome.runtime.lastError; });
-    });
-    node.querySelector('.nwt-panel-instead').addEventListener('click', function (e) {
-      e.stopPropagation();
-      const src = NWT.companionSrc(currentPanelUrl(node));
-      if (!src) return;
-      chrome.runtime.sendMessage({
-        type: 'companion:dock', url: src,
-        screen: { left: screen.availLeft | 0, top: screen.availTop | 0,
-                  width: screen.availWidth, height: screen.availHeight }
-      }, function () { void chrome.runtime.lastError; });
-      dropPanel(index);
-    });
-
     /* Sharing the column between this panel and the one above it. */
     dragRows(node, index);
-  }
-
-  /* Read from the element rather than closed over, so a panel that is
-   * re-rendered with a different address still acts on the current one. */
-  function currentPanelUrl(node) {
-    return node.getAttribute('data-url') || '';
   }
 
   function dragRows(node, index) {
@@ -1590,6 +1510,47 @@
     grip.addEventListener('pointercancel', stop);
   }
 
+  /* ---- out of the way ----------------------------------------------------
+   * One press hides everything this extension has put on the page, and the
+   * next brings it all back exactly as it was. Nothing is closed and nothing
+   * is folded: the question it answers is "let me see what is behind this",
+   * not "I am finished with it", and those want different answers.
+   * --------------------------------------------------------------------- */
+  const PEEK_ID = 'nwt-peek';
+
+  function peekEl() {
+    let el = document.getElementById(PEEK_ID);
+    if (el) return el;
+    el = document.createElement('button');
+    el.id = PEEK_ID;
+    el.type = 'button';
+    el.addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ peek: false }, function (stored) {
+        if (chrome.runtime.lastError) return;
+        chrome.storage.local.set({ peek: !stored.peek });
+      });
+    });
+    (document.body || document.documentElement).appendChild(el);
+    return el;
+  }
+
+  function removePeek() {
+    const el = document.getElementById(PEEK_ID);
+    if (el) el.remove();
+  }
+
+  /* Drawn only when there is something to get out of the way, so a page with
+   * nothing on it does not grow a control for hiding nothing. */
+  function renderPeek(settings, showing) {
+    if (!settings.enabled || !TOP_FRAME || !showing) { removePeek(); return; }
+    const el = peekEl();
+    el.textContent = settings.peek ? '\u25C0 Panels' : 'Hide \u25B6';
+    el.title = settings.peek
+      ? 'Bring the panels back, exactly as they were'
+      : 'Put everything out of the way for a moment. Nothing is closed.';
+  }
+
   let paneGrantSeen = 0;
   /* The last settings the pane was drawn from, so it can be drawn again
    * without waiting for something else to change. */
@@ -1611,7 +1572,8 @@
      * project because a session is about building one; something to keep in
      * view while you work is not. The top frame only, so it is not drawn once
      * per embedded frame. */
-    if (!settings.enabled || !companion.enabled || !TOP_FRAME || !panes.length) {
+    if (!settings.enabled || !companion.enabled || !TOP_FRAME || !panes.length
+        || settings.peek) {
       removePane();
       return;
     }
@@ -2160,6 +2122,7 @@
       removeHud();
       removePane();
       removeSplit();
+      removePeek();
       unrescue();                   /* inline styles outlive the stylesheet */
       groundPalette = null;
       shadowSheetFor('');           /* neutralise the adopted copies in place */
@@ -2174,6 +2137,13 @@
     renderHud(s);
     renderPane(s);
     renderSplit(s);
+    /* Whether anything would be on the page if it were not being peeked past,
+     * which is what decides whether the handle is worth drawing. */
+    const companionOn = (s.companion || {}).enabled &&
+      paneList(Object.assign({}, NWT.DEFAULT_SETTINGS.companion, s.companion)).length;
+    const splitOn = (s.split || {}).enabled &&
+      splitPanels(Object.assign({}, NWT.DEFAULT_SETTINGS.split, s.split)).length;
+    renderPeek(s, !!(companionOn || splitOn));
     reportRules(s);
 
     const theme = NWT.getTheme(s);

@@ -371,6 +371,14 @@
   const STARTER_DISCORD = 'https://discord.com/channels/@me';
 
   const DEFAULT_SETTINGS = {
+    /* Everything the extension puts on the page, out of the way for a moment.
+     *
+     * Separate from folding each pane and from turning anything off, because
+     * it answers a different question: not "I am done with this" but "I need
+     * to see what is behind it". So it changes nothing about what is open -
+     * every pane keeps its place, its size and its address - and one press
+     * brings it all back exactly as it was. */
+    peek: false,
     enabled: true,
     themeId: 'concrete',
     /* User-made themes live here, keyed by id. */
@@ -1787,6 +1795,18 @@
            ' .nwt-split-grip { background: ' + rgba(p.accent, 0.5) + '; }');
     /* While dragging, no frame may swallow the pointer - a cross-origin frame
      * takes every move event over it and the divider stops halfway. */
+
+    /* The handle that gets everything out of the way. Small, on the edge, and
+     * the only thing left on the page while it is pressed - so there is always
+     * something to press to bring it back. */
+    L.push('#nwt-peek { position: fixed; right: 0; bottom: 96px;' +
+           ' z-index: 2147483647; padding: 7px 10px 7px 9px;' +
+           ' font: 600 11px/1 ui-sans-serif, system-ui, sans-serif;' +
+           ' letter-spacing: .04em; cursor: pointer;' +
+           ' border-radius: 8px 0 0 8px; border: 1px solid ' + p.panelEdge + ';' +
+           ' border-right: 0; background: ' + p.surfaceAlt + ';' +
+           ' color: ' + p.textSecondary + '; opacity: .55; }');
+    L.push('#nwt-peek:hover { opacity: 1; color: ' + p.textPrimary + '; }');
 
     /* Folded, it is its bar and nothing else. */
     L.push('.nwt-companion[data-collapsed="1"] { height: auto !important; }');
