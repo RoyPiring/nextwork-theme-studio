@@ -680,8 +680,22 @@
     }
 
     /* Only reloaded when it actually changes: setting src again restarts a
-     * video that is already playing, and a repaint happens on every write. */
-    if (paneShowing === src) return;
+     * video that is already playing, and a repaint happens on every write.
+     *
+     * Asked of the frame, not of a variable beside it. This is the whole
+     * reason the pane could sit there empty for good.
+     *
+     * The site is a single-page app that rebuilds its body, and anything added
+     * to it goes with the rebuild - the pane included. The next paint calls
+     * paneEl(), finds nothing, and builds a fresh one whose iframe has no src
+     * at all. A module variable still held the old address, so this guard said
+     * "that is already showing" and returned, and nothing ever put an address
+     * into the new frame. The pane looked right, reported itself ready, and
+     * was a blank rectangle - which is exactly what a site refusing to be
+     * framed looks like, so it was read as one for days.
+     *
+     * The frame's own src cannot lie about it: a new element has none. */
+    if (frame.getAttribute('src') === src) { paneShowing = src; return; }
     paneShowing = src;
     el.setAttribute('data-state', 'loading');
     refused.textContent = 'Loading…';
@@ -904,8 +918,12 @@
   }
 
   let paneGrantSeen = 0;
+  /* The last settings the pane was drawn from, so it can be drawn again
+   * without waiting for something else to change. */
+  let paneSettings = null;
 
   function renderPane(settings) {
+    paneSettings = settings;
     const companion = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
     /* Anywhere on the site, not only on a project page. The timer is tied to a
      * project because a session is about building one; something to keep in
@@ -1531,6 +1549,14 @@
   const observer = new MutationObserver(function (records) {
     if (!lastCSS) return;
     if (!document.getElementById(STYLE_ID)) apply(lastCSS);
+
+    /* The same defence the stylesheet has always had, which the pane needed
+     * just as much and did not have. This site rebuilds its body as it
+     * navigates, and everything added to it goes with the rebuild. The pane
+     * then stayed gone until something else happened to change - and when it
+     * did come back it came back empty, because the guard that decides whether
+     * to load anything was reading a variable rather than the frame. */
+    if (paneSettings && !document.getElementById(PANE_ID)) renderPane(paneSettings);
 
     /* Only the subtrees that were actually added. A page that mounts a single
      * component should cost one small walk, not a walk of the document. */

@@ -1149,3 +1149,62 @@ test('the frame is allowed what an application needs, minus the tab', () => {
   assert.ok(!/allow-top-navigation/.test(sandbox),
     'a page in the pane can replace the tab underneath it');
 });
+
+test('the pane comes back when the page tears it out, with its link in it', () => {
+  /* The site is a single-page app that rebuilds its body as it navigates, and
+   * everything added to it goes with the rebuild. Two faults met here, and
+   * between them the pane was a blank rectangle that read as a site refusing
+   * to be framed:
+   *
+   *   - nothing put the pane back, so it stayed gone;
+   *   - and when it was rebuilt, the guard that decides whether to load
+   *     anything compared against a variable that still held the old address,
+   *     so it decided the new empty frame was already showing it.
+   */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.equal(frameOf(page).getAttribute('src'), EMBED, 'precondition');
+
+  /* The page throws it away, as this one does. */
+  pane(page).remove();
+  assert.equal(pane(page), null);
+
+  page.mutate([{ addedNodes: [] }]);
+  page.flush();
+
+  assert.ok(pane(page), 'the pane never came back');
+  assert.equal(frameOf(page).getAttribute('src'), EMBED,
+    'the pane came back empty, which looks exactly like a site refusing to load');
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+});
+
+test('a rebuilt pane loads a site that needed permission, too', () => {
+  /* The same path, through the branch that has to ask first. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  assert.equal(frameOf(page).getAttribute('src'), DISCORD, 'precondition');
+
+  pane(page).remove();
+  page.mutate([{ addedNodes: [] }]);
+  page.flush();
+
+  assert.equal(frameOf(page).getAttribute('src'), DISCORD,
+    'the rebuilt pane was left empty');
+});
+
+test('a pane still on the page is not reloaded by an unrelated mutation', () => {
+  /* The site mutates constantly. Reloading on each one would restart a video
+   * every time anything on the page changed. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const frame = frameOf(page);
+  let sets = 0;
+  const real = frame.setAttribute.bind(frame);
+  frame.setAttribute = function (n, v) { if (n === 'src') sets++; return real(n, v); };
+
+  for (let i = 0; i < 5; i++) { page.mutate([{ addedNodes: [] }]); page.flush(); }
+  assert.equal(sets, 0, 'the frame was reloaded ' + sets + ' times by page churn');
+});
