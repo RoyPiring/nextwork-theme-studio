@@ -225,3 +225,188 @@ test('the service worker path loads its libraries by name', () => {
 
 const DISCORD = 'https://discord.com/channels/1/2';
 
+test('nothing is allowed until it is asked for', () => {
+  const bg = loadBackground();
+  assert.deepEqual(bg.rules(), [], 'a rule existed before anyone granted anything');
+  assert.deepEqual(bg.send({ type: 'companion:allowed', url: DISCORD }), 
+                   { allowed: false, origin: 'https://discord.com' });
+});
+
+test('allowing a site installs one rule, and only for the pane', () => {
+  /* The whole safety of this rests on the two conditions below. Without
+   * `initiatorDomains` the site loses its framing protection everywhere on the
+   * web; without `sub_frame` it loses it on pages you navigate to normally. */
+  const bg = loadBackground();
+  assert.deepEqual(bg.send({ type: 'companion:allow', url: DISCORD }),
+                   { allowed: true, origin: 'https://discord.com' });
+
+  const rules = bg.rules();
+  assert.equal(rules.length, 1);
+  assert.deepEqual(rules[0].condition.initiatorDomains, ['nextwork.ai'],
+    'the rule applies to that site framed by anything, anywhere on the web');
+  assert.deepEqual(rules[0].condition.resourceTypes, ['sub_frame'],
+    'the rule applies to whole pages, not just frames');
+  assert.deepEqual(rules[0].condition.requestDomains, ['discord.com']);
+});
+
+test('the rule only removes headers, and only the framing ones', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'companion:allow', url: DISCORD });
+  const action = bg.rules()[0].action;
+
+  assert.equal(action.type, 'modifyHeaders');
+  assert.equal(action.requestHeaders, undefined, 'it changes the request on its way out');
+  assert.deepEqual(action.responseHeaders.map(h => h.operation), ['remove', 'remove', 'remove'],
+    'a header is set or added rather than removed');
+  assert.deepEqual(action.responseHeaders.map(h => h.header),
+    ['x-frame-options', 'content-security-policy', 'content-security-policy-report-only']);
+});
+
+test('the extension cannot grant itself anything', () => {
+  /* The browser asks, and the answer is the browser's. Refusing has to leave
+   * no rule behind, or the permission and what is enforced disagree. */
+  const bg = loadBackground();
+  bg.refuseGrants();
+  assert.deepEqual(bg.send({ type: 'companion:allow', url: DISCORD }), { allowed: false });
+  assert.deepEqual(bg.rules(), [], 'a rule was installed for a permission that was refused');
+  assert.deepEqual(bg.granted(), []);
+});
+
+test('taking a site back removes its rule', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'companion:allow', url: DISCORD });
+  assert.equal(bg.rules().length, 1);
+
+  assert.deepEqual(bg.send({ type: 'companion:forget', url: DISCORD }), { allowed: false });
+  assert.deepEqual(bg.rules(), [], 'the rule outlived the permission it came from');
+  assert.deepEqual(bg.granted(), []);
+});
+
+test('a permission taken back in the browser takes its rule with it', () => {
+  /* Revoking from the browser's own settings tells the extension nothing but
+   * this event. A rule that survived it would be a header quietly missing
+   * from a site nobody had allowed. */
+  const bg = loadBackground({ origins: ['https://discord.com/*'] });
+  bg.startup();
+  assert.equal(bg.rules().length, 1, 'precondition: a granted site has its rule');
+
+  bg.chrome.permissions.remove({ origins: ['https://discord.com/*'] }, function () {});
+  bg.flush();
+  assert.deepEqual(bg.rules(), []);
+});
+
+test('the rules are rebuilt from the browser, not from what was stored', () => {
+  /* Two grants must not leave two rules for one site, and a site the browser
+   * no longer reports must not keep one. */
+  const bg = loadBackground();
+  bg.send({ type: 'companion:allow', url: DISCORD });
+  bg.send({ type: 'companion:allow', url: 'https://discord.com/channels/9/9' });
+  assert.equal(bg.rules().length, 1, 'granting the same site twice left two rules');
+});
+
+test('nextwork.ai is never given a rule of its own', () => {
+  /* It is the page the pane sits on. Stripping its headers would weaken the
+   * site being themed, which is the one thing this must not touch. */
+  const bg = loadBackground({ origins: ['https://nextwork.ai/*', 'https://discord.com/*'] });
+  bg.startup();
+  const domains = bg.rules().map(r => r.condition.requestDomains[0]);
+  assert.deepEqual(domains, ['discord.com']);
+});
+
+test('an address that is not https is refused before anything is asked', () => {
+  const bg = loadBackground();
+  ['http://discord.com', 'javascript:alert(1)', 'not a url', ''].forEach(function (bad) {
+    assert.deepEqual(bg.send({ type: 'companion:allow', url: bad }), { allowed: false },
+      JSON.stringify(bad) + ' was accepted');
+  });
+  assert.deepEqual(bg.rules(), []);
+  assert.deepEqual(bg.granted(), []);
+});
+
+test('the pane can ask for a page that is able to raise the prompt', () => {
+  /* A content script cannot show the browser's permission prompt, so it hands
+   * the site over and the extension opens a page that can, with the site
+   * written down for it. */
+  const bg = loadBackground();
+  assert.deepEqual(bg.send({ type: 'companion:ask', url: DISCORD }), { opened: true });
+  assert.equal(bg.stored.companion.pending, DISCORD,
+    'the site was not written down, so the page would open asking about nothing');
+  assert.equal(bg.pagesOpened().length, 1,
+    'no page was opened, so the prompt could never be raised');
+});
+
+test('a window is opened at the size the pane was left', () => {
+  const bg = loadBackground();
+  assert.deepEqual(bg.send({ type: 'companion:window', url: DISCORD, w: 500, h: 400 }),
+                   { opened: true });
+  const win = bg.windowsOpened()[0];
+  assert.equal(win.url, DISCORD);
+  assert.equal(win.type, 'popup');
+  assert.deepEqual([win.width, win.height], [500, 400]);
+});
+
+test('a window size out of any sane range is clamped rather than obeyed', () => {
+  /* This comes from storage, and a window of nine thousand pixels is not one
+   * anybody can find again. */
+  const bg = loadBackground();
+  bg.send({ type: 'companion:window', url: DISCORD, w: 99999, h: -5 });
+  const win = bg.windowsOpened()[0];
+  assert.ok(win.width <= 1600 && win.width >= 320, 'width was ' + win.width);
+  assert.ok(win.height <= 1200 && win.height >= 240, 'height was ' + win.height);
+});
+
+test('a message that is not the pane is left alone', () => {
+  /* The listener shares the worker with everything else. Replying to messages
+   * it does not own would break whatever sent them. */
+  const bg = loadBackground();
+  assert.equal(bg.send({ type: 'something:else' }), undefined);
+  assert.equal(bg.send({}), undefined);
+});
+
+test('two allowed sites get two rules, with ids that cannot collide', () => {
+  /* The id used to be a hash of the host folded into 900,000 buckets. Two
+   * hosts landing on the same number produced two rules with one id, which the
+   * browser rejects as a batch - so an unlucky pair of sites would have
+   * uninstalled every rule, including the ones that were working, silently. */
+  const bg = loadBackground({
+    origins: ['https://discord.com/*', 'https://notion.so/*', 'https://figma.com/*']
+  });
+  bg.startup();
+
+  const rules = bg.rules();
+  assert.equal(rules.length, 3);
+  assert.equal(new Set(rules.map(r => r.id)).size, 3, 'two rules share an id');
+  assert.deepEqual(rules.map(r => r.condition.requestDomains[0]).sort(),
+                   ['discord.com', 'figma.com', 'notion.so']);
+});
+
+test('an all-sites grant is dropped rather than turned into a rule for the web', () => {
+  /* The manifest asks for optional access to https sites, and a browser has
+   * its own ways to grant all of them at once. That comes back as a wildcard,
+   * and a rule built around one would strip framing headers everywhere. */
+  const bg = loadBackground({
+    origins: ['https://*/*', 'https://*.discord.com/*', '<all_urls>',
+              'http://discord.com/*', 'https://discord.com/*',
+              /* Not wildcards, but not hostnames either. The outer shape check
+               * lets these through, so something has to look at the host. */
+              'https://not a host/*', 'https://-lead.example/*',
+              'https://trail-.example/*', 'https://no-dot/*',
+              'https://under_score.example/*', 'https:///*']
+  });
+  bg.startup();
+
+  assert.deepEqual(bg.rules().map(r => r.condition.requestDomains[0]), ['discord.com'],
+    'something other than a plain https host was made into a rule');
+});
+
+test('a site that merely contains nextwork.ai in its name is not mistaken for it', () => {
+  /* The exclusion was a substring test, so it also skipped a different site
+   * that happened to have the name inside it - which belongs to somebody
+   * else and would silently never be allowed. */
+  const bg = loadBackground({
+    origins: ['https://nextwork.ai.example/*', 'https://app.nextwork.ai/*']
+  });
+  bg.startup();
+  assert.deepEqual(bg.rules().map(r => r.condition.requestDomains[0]),
+                   ['nextwork.ai.example']);
+});

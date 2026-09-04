@@ -406,6 +406,13 @@
       y: null,
       w: 380,              /* px, and resizable by dragging the corner */
       h: 260,
+      /* Bumped when a site is allowed or taken back. An open page caches what
+       * it was told about a site, and this is how it learns the answer moved. */
+      grantedAt: 0,
+      /* A site the pane sent you here to answer for. The prompt can only be
+       * raised from an extension page, so the pane writes down what it wanted
+       * and the popup leads with it. */
+      pending: '',
       /* Saved places to put in it, as { label, url }. The list is the point:
        * the pane holds one at a time and these are what to switch between. */
       tiles: []
@@ -1485,6 +1492,17 @@
            ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
            ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
     L.push('#nwt-companion .nwt-companion-said { margin: 0; }');
+    /* Offered here rather than described here. Being told to go and find a
+     * button on another surface is not an answer to "how do I allow this". */
+    L.push('#nwt-companion .nwt-companion-ask { flex: none; padding: 7px 14px;' +
+           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
+    L.push('#nwt-companion .nwt-companion-ask:hover { background: ' +
+           rgba(p.accent, 0.26) + '; }');
+    /* Only the blocked state has anything to ask for. */
+    L.push('#nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
+           ' display: none; }');
     /* Shown over a frame that loaded, since that is the only case where a
      * blank rectangle has nothing else on it. Faint until you go near it. */
     L.push('#nwt-companion .nwt-companion-hint { position: absolute; left: 50%;' +
@@ -1498,7 +1516,8 @@
            ' display: none; }');
     L.push('#nwt-companion[data-state="ready"] .nwt-companion-refused {' +
            ' display: none; }');
-    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused {' +
+    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused,' +
+           ' #nwt-companion[data-state="page-blocked"] .nwt-companion-refused {' +
            ' color: ' + p.status.warning[400] + '; }');
 
     /* Big enough to find and dark enough to see. At 16px with a half-strength

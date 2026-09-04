@@ -15,14 +15,18 @@ It restyles one site in your browser. That is the whole capability.
 | --- | --- | --- |
 | Network requests | none from the extension's own code | `tools/audit.js`, in CI |
 | Remote code | none | no `eval`, no `new Function`, no remote scripts |
-| Permissions | `storage` | audit fails on anything else |
+| Permissions | `storage`, `declarativeNetRequest` | audit fails on anything else |
 | Host access | `https://nextwork.ai/*` and `https://*.nextwork.ai/*` | audit fails on any other match pattern |
 | Data leaving the device | none | `tools/audit.js`, in CI |
 
-`storage` holds your themes, and it is the only permission requested. The
-popup's reload button calls `chrome.tabs.reload()` with no arguments, which
-needs no permission at all. `activeTab` was requested for a while, never used,
-and has been removed.
+`storage` holds your themes. `declarativeNetRequest` is the companion pane's,
+and is explained below. The popup's reload button calls `chrome.tabs.reload()`
+with no arguments, which needs no permission at all. `activeTab` was requested
+for a while, never used, and has been removed.
+
+Host access at install is still nextwork.ai and nothing else. Any other site
+is optional, granted one at a time by you, through the browser's own prompt,
+and revocable from the browser's settings without going near the extension.
 
 Your themes are in `chrome.storage.local`, which does not sync. They stay on the
 machine you made them on.
@@ -38,12 +42,53 @@ The frame is sandboxed without `allow-top-navigation`, so a page inside it
 cannot replace the tab it sits in, and carries the referrer policy
 `strict-origin-when-cross-origin`.
 
-**What it cannot do.** Most sites refuse to be shown inside another page,
-using `X-Frame-Options` or a `frame-ancestors` policy. Those headers exist to
-stop a page you are signed in to being framed by someone else and clicked
-through invisibly, and this extension does not interfere with them: a site that
-refuses is reported as refusing, and offered in a window of its own instead.
-That path changes no headers and works everywhere.
+**The part that deserves your attention.** Most sites refuse to be shown inside
+another page, using `X-Frame-Options` or a `frame-ancestors` policy. Those
+headers exist to stop a page you are signed in to being framed by someone else
+and clicked through invisibly. For the pane to hold such a site, the extension
+has to remove them, and that is a real reduction in the protection that site
+asked for.
+
+So it is scoped as tightly as the API allows, and the audit checks each of
+these rather than trusting a reviewer to notice:
+
+| | |
+| --- | --- |
+| When | Only after you name a site and the browser's own prompt is accepted |
+| Where | Only in a sub-frame opened by a nextwork.ai page. The same site framed anywhere else on the web keeps every header it sent |
+| What | Only `x-frame-options` and the two `content-security-policy` headers, and only removed, never added or replaced. Request headers are never touched |
+| Undo | One control in the popup, or the browser's own permission settings. The rules are rebuilt from what the browser reports as granted, so revoking there takes the rule with it |
+
+Three things about that table are narrower than they may sound, and each is
+worth saying plainly rather than leaving to be discovered:
+
+- **"A frame a nextwork.ai page opened" is not the same as "this pane."** The
+  rule API has no condition for *a frame this extension created*. In practice
+  the pane is the only thing framing these sites — but if nextwork.ai itself
+  were ever made to frame an allowed site, that frame would get the stripped
+  headers too.
+- **A rule covers the host you named and hosts under it.** Granting
+  `example.com` also matches `cdn.example.com`. The permission you granted is
+  the narrower of the two and the browser enforces it, but the rule as written
+  is the wider one.
+- **A host permission is broader than the rules built from it.** Allowing a
+  site means the extension *could* fetch that site with your cookies attached.
+  It does not — the audit rejects every network call in `src/` and CI runs it
+  on every change — but you are consenting to the permission, not to our
+  restraint, and those are different things.
+
+`content-security-policy` is removed whole rather than edited, because the API
+can remove or replace a header, not reach inside one and drop a single
+directive. That is a wider cut than `frame-ancestors` alone and is the honest
+cost of the feature.
+
+The pane will not point at nextwork.ai itself. A same-origin frame is not
+restrained by its sandbox, so the missing `allow-top-navigation` would stop
+meaning anything — and it is the page you are already looking at.
+
+If you would rather not do any of this, the arrow on the pane opens the site in
+a window of its own instead. That path needs no permission, changes no headers,
+and works for every site.
 
 The single remote address written anywhere in the source is YouTube's player,
 used to turn a link to a video into the form that can be framed; the audit

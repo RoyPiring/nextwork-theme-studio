@@ -275,6 +275,74 @@
       group.appendChild(drop);
       host.appendChild(group);
     });
+
+    renderAccess(c);
+  }
+
+  /* Whether the site in the pane has been allowed to be shown inside a page,
+   * and the control that asks for it. Most sites refuse to be framed, and the
+   * refusal is theirs - so the only honest options are to ask the browser for
+   * permission to set that aside for this one frame, or to open the site in a
+   * window of its own. Both are offered; neither happens quietly. */
+  function renderAccess(c) {
+    const row = $('companion-access');
+    /* `pending` is set when the pane's own button sent you here, and names the
+     * site you were looking at. It wins over whatever the pane is pointed at
+     * now, because it is the question you actually asked. */
+    const src = NWT.companionSrc(c.pending || c.url);
+
+    if (!src || NWT.framesFreely(src)) { row.style.display = 'none'; return; }
+    row.style.display = '';
+    row.setAttribute('data-asked', c.pending ? '1' : '0');
+
+    chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
+      if (chrome.runtime.lastError) return;
+      const allowed = !!(r && r.allowed);
+      const host = (r && r.origin ? r.origin : src).replace(/^https:\/\//, '');
+      $('companion-access-note').textContent = allowed
+        ? host + ' is allowed to open in the pane.'
+        : host + ' refuses to be shown inside another page.';
+      const btn = $('companion-access-btn');
+      btn.textContent = allowed ? 'Take it back' : 'Allow ' + host;
+      btn.title = allowed
+        ? 'Stop opening ' + host + ' in the pane, and remove its permission'
+        : 'Ask the browser for permission to open ' + host + ' in the pane';
+      /* Put the cursor on the answer, so pressing Enter is enough for someone
+       * who arrived here from the pane with one question. */
+      if (c.pending && !allowed) btn.focus();
+    });
+  }
+
+  /* The prompt the browser shows has to follow a click, which is why this is
+   * wired to a button rather than done for you when a link is added. */
+  function toggleAccess() {
+    const c = companionState();
+    const asked = c.pending || c.url;
+    const src = NWT.companionSrc(asked);
+    if (!src) return;
+
+    chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
+      if (chrome.runtime.lastError) return;
+      const next = (r && r.allowed) ? 'companion:forget' : 'companion:allow';
+      chrome.runtime.sendMessage({ type: next, url: src }, function (done) {
+        if (chrome.runtime.lastError) return;
+        const granted = next === 'companion:allow' && !!(done && done.allowed);
+        /* The pane caches what it was told, so it is told that this changed.
+         * Without it, allowing a site would leave an open page sitting on its
+         * refusal until something else happened to move. The question is
+         * cleared at the same time: it has now been answered either way.
+         *
+         * Being granted also puts the site in the pane, because arriving here
+         * from the pane's own button is not a request to change a setting - it
+         * is a request to see the thing. */
+        const patch = { grantedAt: Date.now(), pending: '' };
+        if (granted && c.pending) { patch.url = c.pending; patch.enabled = true; }
+        saveCompanion(patch);
+        if (next === 'companion:allow' && !granted) {
+          toastNote('The browser did not grant that. It can be opened in a window instead.');
+        }
+      });
+    });
   }
 
   function addTile() {
@@ -341,6 +409,7 @@
       saveCompanion({ enabled: $('companionEnabled').checked });
     });
     $('companion-add').addEventListener('click', addTile);
+    $('companion-access-btn').addEventListener('click', toggleAccess);
     $('companion-url').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') addTile();
     });

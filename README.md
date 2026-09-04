@@ -85,10 +85,17 @@ both can be turned off.
 a tile; the pane floats over the page with that link in it, and you drag its
 bar to move it and its corner to resize it. It stays where you put it.
 
-A YouTube link works — paste the address from your browser's bar and it plays.
-Most other sites, Discord among them, refuse to be shown inside another page.
-That is their own setting, and the pane does not fight it: it says so, and the
-arrow in its bar opens the site in a small window of its own instead.
+A YouTube link works straight away — paste the address from your browser's bar
+and it plays. Most other sites, Discord among them, refuse to be shown inside
+another page. The pane says so and offers you two ways on: **allow this site**,
+which asks your browser for permission to set that refusal aside for this one
+frame, or the arrow in its bar, which opens the site in a small window of its
+own and needs no permission at all.
+
+Allowing a site is worth understanding before you do it, and
+[SECURITY.md](SECURITY.md) explains what it changes and how far it reaches.
+The short version: it applies only inside this pane, only to the site you
+named, and the browser can take it back at any time.
 
 ---
 

@@ -523,14 +523,22 @@
     frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
     body.appendChild(frame);
 
-    /* Shown when nothing arrives. */
+    /* Shown when nothing arrives, with the way forward in it rather than a
+     * sentence pointing at a button somewhere else. */
     const refused = document.createElement('div');
     refused.className = 'nwt-companion-refused';
     const said = document.createElement('p');
     said.className = 'nwt-companion-said';
     refused.appendChild(said);
+
+    const ask = document.createElement('button');
+    ask.type = 'button';
+    ask.className = 'nwt-companion-ask';
+    ask.textContent = 'Allow this site here';
+    refused.appendChild(ask);
     body.appendChild(refused);
 
+    /* Corner to resize from. */
     /* A frame that loaded is not the same as a frame that shows anything.
      * Some sites answer with a page and then refuse to run inside another one,
      * and there is nothing readable across the origin boundary to tell the
@@ -565,6 +573,50 @@
 
   let paneShowing = '';
 
+  /* A frame can also be stopped by the page it is drawn on, rather than by the
+   * site it points at: nextwork.ai sends its own content security policy, and
+   * a frame this script adds is subject to it like any other. That failure
+   * looks identical from the outside - a blank rectangle - but unlike a site's
+   * own refusal it announces itself, so it is worth listening for.
+   *
+   * Removing the host page's policy is not on the table. It protects the page
+   * being themed, and weakening the site you are working on to fit a video
+   * beside it is the wrong trade. So this reports it and offers the window. */
+  document.addEventListener('securitypolicyviolation', function (e) {
+    if (!/frame-src|child-src|default-src/.test(e.violatedDirective || '')) return;
+    if (!paneShowing || String(e.blockedURI || '').indexOf(paneShowing.slice(0, 40)) !== 0) return;
+    const el = document.getElementById(PANE_ID);
+    if (!el) return;
+    el.setAttribute('data-state', 'page-blocked');
+    el.querySelector('.nwt-companion-said').textContent =
+      'The page this pane sits on will not allow another site inside it. ' +
+      'That is nextwork.ai’s own setting, and not one worth overriding. ' +
+      'The arrow above opens the link in a window of its own.';
+  });
+
+  /* Whether a site is allowed to be framed here, as the browser sees it.
+   * Cached per address so a repaint - which happens on every storage write -
+   * is not a message round trip. */
+  const paneAllowed = Object.create(null);
+
+  /* Waiting to see whether a frame loads does not work: a browser that refuses
+   * one navigates it to an error document and fires `load` on it just the
+   * same, so there is nothing to time out on and nothing to catch. What can be
+   * known ahead of time is whether this site has been allowed, so that is what
+   * is asked, and the answer is what the pane reports. */
+  function askAllowed(url, then) {
+    if (url in paneAllowed) { then(paneAllowed[url]); return; }
+    try {
+      chrome.runtime.sendMessage({ type: 'companion:allowed', url: url }, function (r) {
+        if (chrome.runtime.lastError) { then(false); return; }
+        paneAllowed[url] = !!(r && r.allowed);
+        then(paneAllowed[url]);
+      });
+    } catch (e) {
+      then(false);
+    }
+  }
+
   function paintPane(companion) {
     const el = paneEl();
     const src = NWT.companionSrc(companion.url);
@@ -594,30 +646,29 @@
     el.setAttribute('data-state', 'loading');
     refused.textContent = 'Loading…';
 
-    /* A site that publishes a player means it to be framed. Everything else
-     * has to be assumed to refuse, because most do and because trying is not
-     * a way to find out: a browser that blocks a frame navigates it to an
-     * error document and fires `load` on it just the same, so there is no
-     * failure to catch and nothing to time out on.
-     *
-     * Assuming the worst sends a site that would have worked to a window it
-     * did not need. That is the safe direction to be wrong in - a window
-     * always works - and the alternative is a white rectangle with no
-     * explanation. Asking the browser for permission, which is what lets the
-     * rest of the web open in here, is a change of its own. */
-    if (!NWT.framesFreely(src)) {
+    /* Sites that publish a player mean it to be framed, so they need no
+     * permission and are not worth asking about. */
+    if (NWT.framesFreely(src)) {
+      frame.setAttribute('src', src);
+      el.setAttribute('data-state', 'ready');
+      return;
+    }
+
+    askAllowed(src, function (allowed) {
+      /* Another address arrived while the answer was on its way. */
+      if (paneShowing !== src) return;
+      if (allowed) {
+        frame.setAttribute('src', src);
+        el.setAttribute('data-state', 'ready');
+        return;
+      }
       frame.removeAttribute('src');
       el.setAttribute('data-state', 'blocked');
       refused.textContent =
-        'This site will not be shown inside another page. That is its own ' +
-        'setting, not something an extension can change from here. The arrow ' +
-        'above opens it in a window of its own.';
-      return;
-    }
-    frame.setAttribute('src', src);
-    el.setAttribute('data-state', 'ready');
+        'This site refuses to be shown inside another page. Your browser can ' +
+        'allow it here, or the arrow above opens it in a window of its own.';
+    });
   }
-
 
   function label(companion) {
     const match = (companion.tiles || []).filter(t => t && t.url === companion.url)[0];
@@ -668,11 +719,27 @@
       saveCompanion({ enabled: false });
     });
 
+    /* The browser will only put its permission prompt in front of someone who
+     * clicked inside an extension page, and this is a content script - so this
+     * cannot raise the prompt itself. It hands the site to the extension,
+     * which opens the page that can, with this site already named on it. The
+     * alternative was a sentence telling you to go and find a button
+     * elsewhere, which is how it read the first time and is not an answer. */
     /* The same thing the arrow does, said in words, for the case where the
-     * frame looked like it worked and showed nothing. */
+     * frame looked like it worked. */
     el.querySelector('.nwt-companion-hint').addEventListener('click', function (e) {
       e.stopPropagation();
       el.querySelector('.nwt-companion-out').click();
+    });
+
+    el.querySelector('.nwt-companion-ask').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ companion: {} }, function (stored) {
+        const src = NWT.companionSrc((stored.companion || {}).url);
+        if (!src) return;
+        chrome.runtime.sendMessage({ type: 'companion:ask', url: src },
+          function () { void chrome.runtime.lastError; });
+      });
     });
 
     el.querySelector('.nwt-companion-out').addEventListener('click', function (e) {
@@ -771,6 +838,8 @@
     grip.addEventListener('pointercancel', stop);
   }
 
+  let paneGrantSeen = 0;
+
   function renderPane(settings) {
     const companion = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
     /* Anywhere on the site, not only on a project page. The timer is tied to a
@@ -782,6 +851,16 @@
     if (!settings.enabled || !companion.enabled || !TOP_FRAME) {
       removePane();
       return;
+    }
+    /* A site was allowed, or taken back, since the last paint. The cached
+     * answers are stale and the frame has to be given another go - without
+     * this, granting permission would leave the pane sitting on its refusal
+     * until something else happened to change the address. */
+    const granted = Number(companion.grantedAt) || 0;
+    if (granted !== paneGrantSeen) {
+      paneGrantSeen = granted;
+      Object.keys(paneAllowed).forEach(function (k) { delete paneAllowed[k]; });
+      paneShowing = '';
     }
     const el = paneEl();
     paintPane(companion);

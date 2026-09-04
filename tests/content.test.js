@@ -950,23 +950,6 @@ test('hiding the pane from its own corner turns it off for good', () => {
   assert.equal(pane(page), null, 'the pane is still on the page');
 });
 
-test('a site that will not be framed says so, and offers the way out', () => {
-  /* Trying is not a way to find out whether a site can be framed: a browser
-   * that blocks one navigates it to an error document and fires `load` on it
-   * just the same. So anything that is not a published player is assumed to
-   * refuse - wrong in the safe direction, since a window always works. */
-  const page = withPane({ url: DISCORD });
-  page.flush();
-
-  assert.equal(pane(page).getAttribute('data-state'), 'blocked');
-  assert.equal(frameOf(page).getAttribute('src'), null,
-    'a site that will not be framed was loaded anyway, leaving a blank frame');
-  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
-    /will not be shown inside another page/);
-  assert.notEqual(pane(page).querySelector('.nwt-companion-out').style.display, 'none',
-    'the button that opens it in a window was hidden');
-});
-
 test('a frame that loaded still offers the way out', () => {
   /* A frame that loaded is not a frame that shows anything, and nothing
    * readable across the origin boundary says which happened. */
@@ -981,14 +964,101 @@ test('a frame that loaded still offers the way out', () => {
     'the way out did not lead anywhere');
 });
 
-test('switching to another player does load the new one', () => {
-  const page = withPane({ url: VIDEO });
+test('a site nobody has allowed is not loaded, and says why', () => {
+  /* Waiting to see whether the frame loads cannot work: a browser that refuses
+   * one navigates it to an error page and fires `load` on it just the same, so
+   * there is no failure to catch and nothing to time out on. What is knowable
+   * in advance is whether this site has been allowed, so that is what is
+   * asked - and someone looking at the pane is told which it is. */
+  const page = withPane({ url: DISCORD });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'blocked');
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'a site that was refused was loaded anyway');
+  assert.match(pane(page).querySelector('.nwt-companion-refused').textContent,
+    /refuses to be shown inside another page/);
+  assert.notEqual(pane(page).querySelector('.nwt-companion-out').style.display, 'none',
+    'the button that opens it in a window was hidden');
+});
+
+test('a site that has been allowed is loaded', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+  assert.equal(frameOf(page).getAttribute('src'), DISCORD);
+});
+
+test('allowing a site while the page is open loads it without a reload', () => {
+  /* The answer is cached, so being granted permission has to be able to reach
+   * a page that has already been told no. Without this, allowing a site left
+   * the pane sitting on its refusal until something else changed. */
+  const page = withPane({ url: DISCORD });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'blocked');
+
+  page.allow('https://discord.com');
+  page.chrome.storage.local.set({
+    companion: { enabled: true, url: DISCORD, grantedAt: 1234 }
+  });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+  assert.equal(frameOf(page).getAttribute('src'), DISCORD);
+});
+
+test('switching to another link does load the new one', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: VIDEO } },
+    allowed: ['https://example.com']
+  });
   page.flush();
   assert.equal(frameOf(page).getAttribute('src'), EMBED);
 
-  const other = 'https://www.youtube.com/watch?v=abcdefghijk';
-  page.chrome.storage.local.set({ companion: { enabled: true, url: other } });
+  page.chrome.storage.local.set({
+    companion: { enabled: true, url: 'https://example.com/notes' }
+  });
   page.flush();
-  assert.equal(frameOf(page).getAttribute('src'),
-               'https://www.youtube.com/embed/abcdefghijk');
+  assert.equal(frameOf(page).getAttribute('src'), 'https://example.com/notes');
 });
+
+test('a frame the page itself blocks says so, rather than staying blank', () => {
+  /* Two different failures look identical from outside: the site refusing to
+   * be framed, and nextwork.ai's own policy refusing to hold a frame. Unlike
+   * the first, the second announces itself, so there is no excuse for showing
+   * a white rectangle and leaving it at that. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+
+  page.doc.dispatchEvent({ type: 'securitypolicyviolation', violatedDirective: 'frame-src', blockedURI: DISCORD });
+
+  assert.equal(pane(page).getAttribute('data-state'), 'page-blocked');
+  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
+    /will not allow another site inside it/);
+});
+
+test('a policy report about something else is not mistaken for the pane', () => {
+  /* The page reports every violation it has, most of which are its own. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+
+  [{ violatedDirective: 'img-src', blockedURI: DISCORD },
+   { violatedDirective: 'frame-src', blockedURI: 'https://ads.example/x' }
+  ].forEach(function (report) {
+    page.doc.dispatchEvent(Object.assign({ type: 'securitypolicyviolation' }, report));
+  });
+  assert.equal(pane(page).getAttribute('data-state'), 'ready',
+    'an unrelated policy report was blamed on the pane');
+});
+
