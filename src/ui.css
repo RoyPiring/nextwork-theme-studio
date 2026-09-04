@@ -136,14 +136,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .switch-item .switch input:checked + span::after { transform: translateX(15px); }
 
 /* ---- focus panel ---- */
-/* The heading, the state and the switch on one line, with room enough that
- * "paused Show" reads as two things rather than one. */
-#focus-panel > .row.between { gap: 10px; margin-bottom: 2px; }
-#focus-panel .switch-inline { gap: 7px; }
+/* The heading, the state and the switch on one line - but not crowded into
+ * one another, and not sitting straight on top of the group below. */
+#focus-panel > .row.between { gap: 12px; margin-bottom: 6px; padding: 2px 0; }
+#focus-panel > .row.between > .row { gap: 12px; }
+#focus-panel .switch-inline { gap: 8px; }
 #focus-custom-row[hidden] { display: none; }
 .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
   color: var(--ui-text-muted); font-weight: 600; }
-.focus { gap: 10px; }
+/* The two groups in this panel are separate things - running a session, and
+ * how the pill is drawn on the page - and they were touching, edge on edge,
+ * reading as one long box with a line through it.
+ *
+ * There was a `gap` here before and it did nothing: a card is a block, and a
+ * gap needs a flex container to be a gap of. */
+.focus { display: flex; flex-direction: column; gap: 14px; }
 /* Two groups, because the panel has two jobs and the tiles for them looked
  * identical: picking a session length and pressing Start sat in the same flat
  * run of buttons as the settings for where the pill is drawn. Boxing each one

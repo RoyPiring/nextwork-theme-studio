@@ -382,10 +382,17 @@
       .filter(function (u) { return u && !NWT.framesFreely(u); })[0];
     const src = NWT.companionSrc(c.pending) || needs || null;
 
-    if (!src || NWT.framesFreely(src)) { row.style.display = 'none'; return; }
-    row.style.display = '';
     row.setAttribute('data-asked', c.pending ? '1' : '0');
-    renderAllowed('allowed-list');
+    /* Nothing open is asking, which is not the same as nothing to show: what
+     * has already been allowed is listed either way, and taking one back is
+     * something you do long after the pane that needed it was closed. The
+     * note waits for the list, because what it says depends on how long it
+     * turned out to be. */
+    const resting = !src || NWT.framesFreely(src);
+    renderAllowed('allowed-list', function (count) {
+      if (resting) restAccess('companion', count);
+    });
+    if (resting) return;
 
     chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
       if (chrome.runtime.lastError) return;
@@ -409,11 +416,22 @@
     });
   }
 
+  /* Said when nothing open is waiting on a permission. The list above is
+   * still the answer to "what have I allowed?", so the group stays and only
+   * the button - which would have nothing to ask for - goes. */
+  function restAccess(which, count) {
+    $(which + '-access-btn').hidden = true;
+    $(which + '-access-note').textContent = count
+      ? 'These can open inside the page.'
+      : 'Nothing allowed yet. Add a link that refuses to be framed and the ' +
+        'button to ask for it appears here.';
+  }
+
   /* What the browser says is allowed, listed in the section whose links it
    * applies to. Both sections have their own copy for that reason: one control
    * outside them both meant looking at a list of panels and finding the thing
    * that governs them somewhere else. */
-  function renderAllowed(listId) {
+  function renderAllowed(listId, after) {
     chrome.permissions.getAll(function (granted) {
       if (chrome.runtime.lastError) return;
       const origins = ((granted && granted.origins) || [])
@@ -441,6 +459,7 @@
         row.appendChild(drop);
         host.appendChild(row);
       });
+      if (after) after(origins.length);
     });
   }
 
@@ -640,13 +659,14 @@
 
   /* The same block, for the split's own list. */
   function renderSplitAccess() {
-    const row = $('split-access');
     const panels = splitPanels()
       .map(function (x) { return x && NWT.companionSrc(x.url); })
       .filter(function (u) { return u && !NWT.framesFreely(u); });
     const src = panels[0];
-    if (!src) { row.style.display = 'none'; return; }
-    row.style.display = '';
+    renderAllowed('split-allowed-list', function (count) {
+      if (!src) restAccess('split', count);
+    });
+    if (!src) return;
 
     chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
       if (chrome.runtime.lastError) return;
@@ -662,7 +682,6 @@
       btn.textContent = 'Allow ' + host;
       btn.title = 'Ask the browser for permission to open ' + host + ' here';
       btn.hidden = allowed;
-      renderAllowed('split-allowed-list');
     });
   }
 

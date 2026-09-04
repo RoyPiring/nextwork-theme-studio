@@ -508,8 +508,33 @@ test('a site that will not be framed offers to be allowed', () => {
 });
 
 test('a player is not offered, because it needs no permission', () => {
+  /* The group stays - it is where what you have allowed is listed, and taking
+   * one back is something you do long after the pane that needed it closed -
+   * but there is nothing to ask for, so nothing offers to ask. */
   const p = openPopup({ enabled: true, companion: { enabled: true, url: VIDEO } });
-  assert.equal(p.el('companion-access').style.display, 'none');
+  assert.notEqual(p.el('companion-access').style.display, 'none');
+  assert.equal(p.el('companion-access-btn').hidden, true);
+  assert.match(p.el('companion-access-note').textContent, /Nothing allowed yet/);
+});
+
+test('what you have allowed is listed with nothing open at all', () => {
+  /* It used to be shown only while something was asking, so a permission
+   * could be granted and then become impossible to find - let alone take
+   * back - the moment its pane was closed. */
+  const p = openPopup({ enabled: true }, { allowed: ['https://discord.com'] });
+  assert.notEqual(p.el('companion-access').style.display, 'none');
+  assert.deepEqual(
+    [...p.el('allowed-list').querySelectorAll('.beside-item')]
+      .map(function (r) { return r.querySelector('.tiny').textContent; }),
+    ['discord.com']);
+  assert.match(p.el('companion-access-note').textContent, /can open inside the page/);
+  assert.equal(p.el('companion-access-btn').hidden, true);
+});
+
+test('and both halves say so when nothing is allowed', () => {
+  const p = openPopup({ enabled: true });
+  assert.match(p.el('companion-access-note').textContent, /Nothing allowed yet/);
+  assert.match(p.el('split-access-note').textContent, /Nothing allowed yet/);
 });
 
 test('arriving from the pane leads with the site the pane asked about', () => {
