@@ -499,18 +499,6 @@ test('the sound can be turned off on its own', () => {
 
 const DISCORD = 'https://discord.com/channels/1/2';
 
-/* Record what an element is told to say, in order. */
-function watchText(el) {
-  const said = [];
-  let value = el.textContent;
-  Object.defineProperty(el, 'textContent', {
-    configurable: true,
-    get() { return value; },
-    set(v) { value = v; said.push(v); }
-  });
-  return said;
-}
-
 test('a site that will not be framed offers to be allowed', () => {
   const p = openPopup({
     enabled: true, companion: { enabled: true, url: DISCORD }
