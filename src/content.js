@@ -635,12 +635,12 @@
     if (url in paneAllowed) { then(paneAllowed[url]); return; }
     try {
       chrome.runtime.sendMessage({ type: 'companion:allowed', url: url }, function (r) {
-        if (chrome.runtime.lastError) { then(false); return; }
-        paneAllowed[url] = !!(r && r.allowed);
+        if (chrome.runtime.lastError) { then({ allowed: false }); return; }
+        paneAllowed[url] = { allowed: !!(r && r.allowed), active: !!(r && r.active) };
         then(paneAllowed[url]);
       });
     } catch (e) {
-      then(false);
+      then({ allowed: false });
     }
   }
 
@@ -708,10 +708,26 @@
       return;
     }
 
-    askAllowed(src, function (allowed) {
+    askAllowed(src, function (answer) {
       /* Another address arrived while the answer was on its way. */
       if (paneShowing !== src) return;
-      if (allowed) {
+
+      /* Granted and carried are two different facts, and only one of them was
+       * ever reported. A site could be allowed, say so, and still be refused,
+       * because the rule that removes the framing header was missing - which
+       * on the page is a blank rectangle and nothing else. Both are now said
+       * out loud, because guessing between them cost days. */
+      if (answer.allowed && !answer.active) {
+        frame.removeAttribute('src');
+        el.setAttribute('data-state', 'blocked');
+        refused.textContent =
+          'This site is allowed, but the rule that lets it through is not ' +
+          'installed, so the browser is still refusing it. Turn the extension ' +
+          'off and on again in your browser, or take the site back and allow ' +
+          'it once more. The arrow above opens it in a window meanwhile.';
+        return;
+      }
+      if (answer.allowed) {
         frame.setAttribute('src', src);
         el.setAttribute('data-state', 'ready');
         return;

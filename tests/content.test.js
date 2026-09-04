@@ -1208,3 +1208,23 @@ test('a pane still on the page is not reloaded by an unrelated mutation', () => 
   for (let i = 0; i < 5; i++) { page.mutate([{ addedNodes: [] }]); page.flush(); }
   assert.equal(sets, 0, 'the frame was reloaded ' + sets + ' times by page churn');
 });
+
+test('a site allowed with no rule behind it says so, instead of a blank frame', () => {
+  /* Granted and carried are two different facts and only one was reported. A
+   * site could be allowed, the pane could say ready, and the browser could
+   * still refuse it - because the rule that removes the framing header was
+   * missing. On the page that is a blank rectangle and nothing else, which is
+   * indistinguishable from the site refusing, and it cost days. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com'],
+    inert: true
+  });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'blocked');
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'it loaded a frame the browser was always going to refuse');
+  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
+    /allowed, but the rule that lets it through is not installed/);
+});

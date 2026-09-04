@@ -72,10 +72,12 @@ check('permissions stay minimal', () => {
    * chrome.tabs.reload() with no arguments, which needs no permission at all.
    *
    * declarativeNetRequest is the narrow form on purpose. It cannot read a
-   * request or its response; it can only carry rules the browser applies, and
-   * every rule this extension installs is scoped to a sub-frame that
-   * nextwork.ai opened, for a site the user granted by name. The version that
-   * can read traffic is declarativeNetRequestFeedback, and it stays out. */
+   * request or its response; it can only carry rules the browser applies. Each
+   * rule is confined to a sub-frame, for a site the user granted by name, and
+   * - because modifyHeaders is applied only where the extension holds host
+   * access to both ends of a request - to frames opened by the one site below.
+   * The version that can read traffic is declarativeNetRequestFeedback, and it
+   * stays out. */
   const allowed = ['storage', 'declarativeNetRequest'];
   const extra = (manifest.permissions || []).filter(p => !allowed.includes(p));
   if (extra.length) fail('unexpected permission(s): ' + extra.join(', '));
@@ -127,23 +129,35 @@ check('permissions stay minimal', () => {
 check('header rules stay scoped to the pane', () => {
   const src = fs.readFileSync(path.join(ROOT, 'src', 'background.js'), 'utf8');
 
-  /* Only a frame nextwork.ai opened, and only a sub-frame. Without either of
-   * these the rule would apply to the site everywhere on the web. */
-  if (!/initiatorDomains:\s*\['nextwork\.ai'\]/.test(src)) {
-    fail('a header rule is not restricted to frames nextwork.ai opened');
-  }
-  if (!/resourceTypes:\s*\['sub_frame'\]/.test(src)) {
+  /* Sub-frames only. Without it the rule would apply to whole pages you
+   * navigate to, not just to what the pane puts in a frame.
+   *
+   * Read from the code rather than from the file, because the file also talks
+   * about this in prose. An earlier version of this check searched the whole
+   * text for `initiatorDomains: ['nextwork.ai']`, and when that condition was
+   * removed the check went on passing - it was matching the comment that
+   * explained the removal. A check that a sentence can satisfy is not a check.
+   *
+   * What keeps this narrow is not a condition in the rule. `modifyHeaders` is
+   * applied only where the extension holds host access to both ends of the
+   * request, and the only initiator it holds is nextwork.ai, which the
+   * permission check above pins. */
+  const code = codeOnly(src).join('\n');
+  if (!/resourceTypes:\s*\['sub_frame'\]/.test(code)) {
     fail('a header rule is not restricted to sub-frames');
+  }
+  if (/resourceTypes:\s*\[[^\]]*main_frame/.test(code)) {
+    fail('a header rule reaches whole pages, not just frames');
   }
   /* Removing framing headers is the whole point. Adding or replacing one, or
    * touching a request on its way out, is not, and would not be visible in a
    * diff that only grew a line. */
-  const ops = src.match(/operation:\s*'(\w+)'/g) || [];
+  const ops = code.match(/operation:\s*'(\w+)'/g) || [];
   const notRemove = ops.filter(o => !/'remove'/.test(o));
   if (notRemove.length) fail('a header rule does something other than remove: ' + notRemove.join(', '));
-  if (/requestHeaders:/.test(src)) fail('a rule modifies request headers');
+  if (/requestHeaders:/.test(code)) fail('a rule modifies request headers');
 
-  const headers = (src.match(/header:\s*'([\w-]+)'/g) || []).map(h => h.split("'")[1]);
+  const headers = (code.match(/header:\s*'([\w-]+)'/g) || []).map(h => h.split("'")[1]);
   const permitted = ['x-frame-options', 'content-security-policy',
                      'content-security-policy-report-only'];
   const unexpected = headers.filter(h => !permitted.includes(h));

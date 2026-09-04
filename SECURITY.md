@@ -55,18 +55,20 @@ these rather than trusting a reviewer to notice:
 | | |
 | --- | --- |
 | When | Only after you name a site and the browser's own prompt is accepted |
-| Where | Only in a sub-frame opened by a nextwork.ai page. The same site framed anywhere else on the web keeps every header it sent |
+| Where | Only in a sub-frame, and only where the extension holds host access to the page that opened it — which is nextwork.ai and nothing else. The same site framed anywhere else on the web keeps every header it sent |
 | What | Only `x-frame-options` and the two `content-security-policy` headers, and only removed, never added or replaced. Request headers are never touched |
 | Undo | One control in the popup, or the browser's own permission settings. The rules are rebuilt from what the browser reports as granted, so revoking there takes the rule with it |
 
 Three things about that table are narrower than they may sound, and each is
 worth saying plainly rather than leaving to be discovered:
 
-- **"A frame a nextwork.ai page opened" is not the same as "this pane."** The
-  rule API has no condition for *a frame this extension created*. In practice
-  the pane is the only thing framing these sites — but if nextwork.ai itself
-  were ever made to frame an allowed site, that frame would get the stripped
-  headers too.
+- **"A frame nextwork.ai opened" is not the same as "this pane."** Nothing in
+  the rule API expresses *a frame this extension created*. What confines it is
+  the permission model: header rules are applied only where the extension holds
+  host access to both ends of a request, and the only page it holds access to
+  is nextwork.ai. In practice the pane is the only thing framing these sites —
+  but if nextwork.ai itself were ever made to frame an allowed site, that frame
+  would get the stripped headers too.
 - **A rule covers the host you named and hosts under it.** Granting
   `example.com` also matches `cdn.example.com`. The permission you granted is
   the narrower of the two and the browser enforces it, but the rule as written

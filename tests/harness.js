@@ -531,7 +531,11 @@ function loadContentScript(options) {
           if (msg && msg.type === 'companion:allowed') {
             let origin = '';
             try { origin = new URL(msg.url).origin; } catch (e) { origin = ''; }
-            cb({ allowed: !!origin && allowedOrigins.includes(origin), origin: origin });
+            const allowed = !!origin && allowedOrigins.includes(origin);
+            /* Granted and carried are separate facts in the worker, so they
+             * are separate here. `inert` plays the state that cost days: the
+             * site allowed, and no rule behind it. */
+            cb({ allowed: allowed, active: allowed && !opts.inert, origin: origin });
             return;
           }
           cb({});

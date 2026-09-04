@@ -209,11 +209,16 @@ function syncRules(done) {
           action: { type: 'modifyHeaders', responseHeaders: FRAME_HEADERS },
           condition: {
             requestDomains: [host],
-            /* Frames opened by a nextwork.ai page. That is narrower than the
-             * whole web and wider than this pane alone - there is no condition
-             * for "a frame this extension created" - so it is written down as
-             * what it is rather than as what would be nicer. */
-            initiatorDomains: ['nextwork.ai'],
+            /* Sub-frames only. A page you navigate to normally is untouched.
+             *
+             * There was an `initiatorDomains: ['nextwork.ai']` here as well,
+             * and taking it out is not a loosening. `modifyHeaders` is only
+             * applied where the extension holds host access to *both* ends of
+             * the request, and the only initiator it holds access to is
+             * nextwork.ai - the browser already confines this to exactly what
+             * that condition described. It was restating the permission model,
+             * and it was the one condition that could silently fail to match
+             * and leave the rule installed, correct-looking and inert. */
             resourceTypes: ['sub_frame']
           }
         };

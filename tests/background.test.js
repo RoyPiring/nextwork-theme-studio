@@ -242,11 +242,17 @@ test('allowing a site installs one rule, and only for the pane', () => {
 
   const rules = bg.rules();
   assert.equal(rules.length, 1);
-  assert.deepEqual(rules[0].condition.initiatorDomains, ['nextwork.ai'],
-    'the rule applies to that site framed by anything, anywhere on the web');
   assert.deepEqual(rules[0].condition.resourceTypes, ['sub_frame'],
     'the rule applies to whole pages, not just frames');
   assert.deepEqual(rules[0].condition.requestDomains, ['discord.com']);
+  /* What confines this is not a condition in the rule. `modifyHeaders` is
+   * applied only where the extension holds host access to both ends of the
+   * request, and the only initiator it holds is nextwork.ai. An
+   * `initiatorDomains` clause restating that was carried here for a while; it
+   * added nothing the browser was not already enforcing, and it could fail to
+   * match while looking perfectly correct in the rule list. */
+  assert.equal(rules[0].condition.initiatorDomains, undefined,
+    'the rule carries a condition that only restates the permission model');
 });
 
 test('the rule only removes headers, and only the framing ones', () => {
