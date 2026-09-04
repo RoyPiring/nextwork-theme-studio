@@ -92,6 +92,13 @@ If you would rather not do any of this, the arrow on the pane opens the site in
 a window of its own instead. That path needs no permission, changes no headers,
 and works for every site.
 
+**When a site is refused, the pane says so.** A browser that refuses a frame
+gives it no layout box at all — it collapses to nothing, while a frame that
+loaded fills its container. The pane measures that shortly after loading, so a
+refusal is reported rather than left as an empty rectangle: whether the site
+said no, or the site was allowed and the rule carrying that permission is not
+installed, you are told which.
+
 The single remote address written anywhere in the source is YouTube's player,
 used to turn a link to a video into the form that can be framed; the audit
 allows that one literal by name and rejects every other, in the markup as well

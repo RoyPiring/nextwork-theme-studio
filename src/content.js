@@ -625,6 +625,7 @@
    * Cached per address so a repaint - which happens on every storage write -
    * is not a message round trip. */
   const paneAllowed = Object.create(null);
+  let paneRefusalWatch = null;
 
   /* Waiting to see whether a frame loads does not work: a browser that refuses
    * one navigates it to an error document and fires `load` on it just the
@@ -642,6 +643,40 @@
     } catch (e) {
       then({ allowed: false });
     }
+  }
+
+
+  /* Whether the browser actually took the frame, asked of the layout.
+   *
+   * Earlier versions of this said there was no way to tell a refused frame
+   * from a working one - that a blocked frame fires `load` like any other and
+   * leaves nothing to catch. The first half is true and the second is not.
+   * A frame the browser refuses is given no layout box at all: it collapses to
+   * nothing and has no offsetParent, while a frame that loaded fills its
+   * container. Two frames in the same container at the same moment, one
+   * allowed and one refused, differ exactly there.
+   *
+   * So it is measured rather than assumed, a moment after the address is set.
+   * Anything else - a permission that was granted with no rule behind it, a
+   * rule that failed to install, a site that changed its mind - ends in the
+   * same place and is reported the same way, instead of as a black rectangle
+   * that has to be guessed at. */
+  function watchForRefusal(el, frame, src) {
+    if (paneRefusalWatch) clearTimeout(paneRefusalWatch);
+    paneRefusalWatch = setTimeout(function () {
+      if (paneShowing !== src) return;
+      if (!frame.isConnected) return;
+      const box = frame.getBoundingClientRect();
+      if (box.width > 0 && box.height > 0) return;
+
+      el.setAttribute('data-state', 'blocked');
+      el.querySelector('.nwt-companion-said').textContent =
+        label({ url: src, tiles: [] }) + ' would not open here: the browser ' +
+        'refused the frame, which it does by giving it no room at all. That is ' +
+        'the site’s own header saying no. If you have allowed it, turn the ' +
+        'extension off and on again so the rule that lifts it is rebuilt. The ' +
+        'arrow above opens it in a window meanwhile, which always works.';
+    }, 2500);
   }
 
   function paintPane(companion) {
@@ -705,6 +740,7 @@
     if (NWT.framesFreely(src)) {
       frame.setAttribute('src', src);
       el.setAttribute('data-state', 'ready');
+      watchForRefusal(el, frame, src);
       return;
     }
 
@@ -730,6 +766,7 @@
       if (answer.allowed) {
         frame.setAttribute('src', src);
         el.setAttribute('data-state', 'ready');
+        watchForRefusal(el, frame, src);
         return;
       }
       frame.removeAttribute('src');

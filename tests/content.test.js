@@ -1228,3 +1228,57 @@ test('a site allowed with no rule behind it says so, instead of a blank frame', 
   assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
     /allowed, but the rule that lets it through is not installed/);
 });
+
+test('a frame the browser refuses is noticed, because it is given no room', () => {
+  /* This is the signal earlier versions said did not exist. A refused frame
+   * fires `load` like any other, so waiting for an error catches nothing - but
+   * the browser gives it no layout box at all. It collapses to zero while a
+   * frame that loaded fills its container. Measuring that is the difference
+   * between reporting what happened and showing a black rectangle. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'ready', 'precondition');
+
+  /* The browser refuses the next one: no box at the moment it is measured. */
+  frameOf(page)._rect = { left: 0, top: 0, width: 0, height: 0 };
+  page.chrome.storage.local.set({
+    companion: { enabled: true, url: 'https://discord.com/channels/9/9' }
+  });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'blocked',
+    'a refused frame was left reported as working');
+  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
+    /refused the frame/);
+});
+
+test('a frame that did load is left alone', () => {
+  /* The same measurement must not condemn a frame that is working, or every
+   * video would be replaced by an error message a moment after it started. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+  assert.equal(frameOf(page).getAttribute('src'), EMBED,
+    'a frame that loaded was condemned by the same measurement');
+});
+
+test('a frame removed before the check does not report anything', () => {
+  /* The pane can be torn off the page by the site between setting the address
+   * and measuring it. A detached element has no box either, and calling that
+   * a refusal would put an error on a pane that was simply rebuilt. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const frame = frameOf(page);
+  frame._rect = { left: 0, top: 0, width: 0, height: 0 };
+  frame.isConnected = false;
+  page.chrome.storage.local.set({
+    companion: { enabled: true, url: 'https://www.youtube.com/watch?v=abcdefghijk' }
+  });
+  page.flush();
+
+  assert.notEqual(pane(page).getAttribute('data-state'), 'blocked',
+    'a pane the site had torn out was reported as refused');
+});
