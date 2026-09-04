@@ -746,6 +746,7 @@ function loadBackground(options) {
   let dynamicRules = [];
   const windows = [];
   const windowUpdates = [];
+  const windowsRemoved = [];
   /* The window the page is in: maximised, as most people leave them, which is
    * the case where bounds are ignored until the state is changed first. */
   const hostWindow = Object.assign(
@@ -828,6 +829,15 @@ function loadBackground(options) {
         if (cb) cb({ id: id });
       },
       onRemoved: { addListener(fn) { windowRemovedListeners.push(fn); } },
+      remove(id, cb) {
+        openWindowIds.delete(id);
+        windowsRemoved.push(id);
+        if (cb) timers.push(function () { cb(); });
+      },
+      /* The window the popup belongs to, which is the window the page is in.
+       * The arrangement is driven from the popup, so this is how it finds the
+       * window it has to move. */
+      getCurrent(cb) { cb(Object.assign({}, hostWindow)); },
       /* The page's own window, so side-by-side has something to move and
        * somewhere to put it back to. */
       get(id, cb) {
@@ -958,6 +968,8 @@ function loadBackground(options) {
     windowsOpened() { return windows.slice(); },
     /* Windows brought forward rather than opened again. */
     windowsFocused() { return windowUpdates.slice(); },
+    /* Windows the extension closed itself. */
+    windowsClosed() { return windowsRemoved.slice(); },
     /* Close one without telling the worker, which is what happens when it was
      * asleep: there is no backlog of events to catch up on. */
     forgetWindowQuietly(id) { openWindowIds.delete(id); },
@@ -1112,6 +1124,11 @@ function loadPage(options) {
     window: win,
     document: doc,
     location: { pathname: '/' + path.basename(opts.page) },
+    /* The popup is on the same screen as the page it arranges, so this is
+     * where the measurements for that arrangement come from. */
+    screen: Object.assign({ width: 1600, height: 900, availWidth: 1600,
+                            availHeight: 860, availLeft: 0, availTop: 0 },
+                          opts.screen || {}),
     chrome,
     URLSearchParams,
     Blob: FakeBlob,
@@ -1258,6 +1275,9 @@ function loadPage(options) {
       return el;
     },
     click(el, extra) { return dispatch(el, 'click', extra); },
+    /* Any event on any element. `fire` needs an id, and the rows built at
+     * render time do not have one. */
+    fireOn(el, type, extra) { return dispatch(el, type, extra); },
     /* Every message the page sent the extension, and which sites the browser
      * would now report as allowed. */
     sent() { return sentMessages.slice(); },

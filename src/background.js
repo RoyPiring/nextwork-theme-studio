@@ -280,8 +280,118 @@ chrome.runtime.onStartup.addListener(function () { syncRules(); });
 chrome.runtime.onInstalled.addListener(function () { syncRules(); });
 syncRules();
 
+/* ---------------------------------------------------------------------------
+ * Beside the page: real windows, arranged.
+ *
+ * The page keeps a column on the left; everything open beside it shares the
+ * column on the right. One or two go in a single column, three or four in a
+ * grid of two, because a quarter of a screen is still usable and a sixth is
+ * not - so four is the ceiling.
+ * ------------------------------------------------------------------------- */
+
+const MIN_PAGE = 420;   /* narrower than this and the work is not workable */
+const MIN_SIDE = 300;   /* narrower than this and the companion is decorative */
+const MAX_BESIDE = 4;
+
+function layoutFor(area, splitPct, count) {
+  const width = area.width | 0, height = area.height | 0;
+  const left = area.left | 0, top = area.top | 0;
+
+  /* The floors in the order that keeps them both true. The other order lets
+   * the page take its minimum and hands the companions whatever is left,
+   * which on a small screen is less than their own. Below the width where
+   * both can hold, it is halved and said plainly rather than faked. */
+  const wanted = Math.round(width * (Math.max(30, Math.min(85, splitPct)) / 100));
+  const pageW = width < MIN_PAGE + MIN_SIDE
+    ? Math.round(width / 2)
+    : Math.min(Math.max(wanted, MIN_PAGE), width - MIN_SIDE);
+
+  const page = { left: left, top: top, width: pageW, height: height };
+  const n = Math.max(0, Math.min(MAX_BESIDE, count | 0));
+  if (!n) return { page: page, cells: [] };
+
+  const colX = left + pageW;
+  const colW = width - pageW;
+  const cols = n >= 3 ? 2 : 1;
+  const rows = Math.ceil(n / cols);
+  const cellW = Math.floor(colW / cols);
+  const cellH = Math.floor(height / rows);
+
+  const cells = [];
+  for (let i = 0; i < n; i++) {
+    const c = i % cols, r = (i - c) / cols;
+    cells.push({
+      left: colX + c * cellW,
+      top: top + r * cellH,
+      /* The last in a row takes the remainder, so rounding never leaves a
+       * stripe of desktop showing down the middle. */
+      width: c === cols - 1 ? colW - c * cellW : cellW,
+      height: r === rows - 1 ? height - r * cellH : cellH
+    });
+  }
+  return { page: page, cells: cells };
+}
+
+/* Move a window that already exists, or make one. Answers with its id so the
+ * caller can record it, and with nothing if the browser refused. */
+function placeOne(url, rect, then) {
+  const known = besideWindows[url];
+  const bounds = { left: rect.left, top: rect.top,
+                   width: Math.max(200, rect.width), height: Math.max(180, rect.height) };
+  if (known) {
+    chrome.windows.update(known, { state: 'normal' }, function () {
+      void chrome.runtime.lastError;
+      chrome.windows.update(known, bounds, function () {
+        if (!chrome.runtime.lastError) { then(known); return; }
+        /* Closed without us hearing - a worker that was asleep gets no
+         * backlog - so it is made again rather than given up on. */
+        delete besideWindows[url];
+        placeOne(url, rect, then);
+      });
+    });
+    return;
+  }
+  chrome.windows.create(Object.assign({ url: url, type: 'popup' }, bounds),
+    function (win) {
+      if (chrome.runtime.lastError || !win) { then(null); return; }
+      besideWindows[url] = win.id;
+      then(win.id);
+    });
+}
+
+/* Which link is in which window. Held in the worker, not in storage: it is
+ * about windows that exist right now, and a worker that restarts has none it
+ * still knows about. */
+const besideWindows = Object.create(null);
+
+if (chrome.windows && chrome.windows.onRemoved) {
+  chrome.windows.onRemoved.addListener(function (id) {
+    /* A window closed from its own corner is the same instruction as turning
+     * it off in the popup, and has to be recorded as one - otherwise the
+     * popup goes on claiming it is open and the next arrangement reopens it. */
+    let closed = null;
+    Object.keys(besideWindows).forEach(function (url) {
+      if (besideWindows[url] === id) { closed = url; delete besideWindows[url]; }
+    });
+    if (!closed) return;
+    chrome.storage.local.get({ windows: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const w = stored.windows || {};
+      const items = (w.items || []).map(function (it) {
+        return it && it.url === closed ? Object.assign({}, it, { on: false }) : it;
+      });
+      chrome.storage.local.set({ windows: Object.assign({}, w, { items: items }) });
+    });
+  });
+}
+
 chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
-  if (!msg || typeof msg.type !== 'string' || msg.type.indexOf('companion:') !== 0) return;
+  /* Both prefixes. The pane's messages start with `companion:` and the windows
+   * beside the page start with `windows:`; a guard that named only the first
+   * dropped every one of the second on the floor, silently, because a listener
+   * that returns nothing is how a message is declined. */
+  if (!msg || typeof msg.type !== 'string') return;
+  if (msg.type.indexOf('companion:') !== 0 && msg.type.indexOf('windows:') !== 0) return;
 
   /* Whether this site is already allowed. The pane asks before it loads, so it
    * can say what is wrong instead of showing a blank rectangle and guessing at
@@ -379,6 +489,103 @@ chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
    * The screen's measurements come from the page rather than from an API,
    * because reading them properly needs the `system.display` permission and
    * every page already knows how big its own screen is. */
+  /* Arrange everything that is meant to be beside the page, and the page with
+   * it. Driven from the popup, which knows the screen it is on and can ask the
+   * browser which window it belongs to. */
+  if (msg.type === 'windows:arrange') {
+    const area = msg.screen || {};
+    const urls = (msg.urls || []).filter(function (u) { return !!originOf(u); })
+                                 .slice(0, MAX_BESIDE);
+    if (!(area.width > 0) || !(area.height > 0)) { reply({ placed: 0 }); return true; }
+
+    const plan = layoutFor(area, Number(msg.split) || 62, urls.length);
+
+    chrome.windows.getCurrent(function (win) {
+      if (chrome.runtime.lastError || !win) { reply({ placed: 0 }); return; }
+
+      chrome.storage.local.get({ windows: {} }, function (stored) {
+        const w = stored.windows || {};
+        /* Remembered once, on the first arrangement, so that undoing it goes
+         * back to where the window actually was rather than to the last
+         * arrangement of it. */
+        const prior = w.priorWindow || { left: win.left, top: win.top,
+                                         width: win.width, height: win.height,
+                                         state: win.state };
+        chrome.storage.local.set({
+          windows: Object.assign({}, w, { priorWindow: prior })
+        }, function () {
+          /* Bounds are ignored while a window is maximised, so it comes out of
+           * that state first. Set together, the page stays full width with the
+           * companions sitting on top of it. */
+          chrome.windows.update(win.id, { state: 'normal' }, function () {
+            void chrome.runtime.lastError;
+            chrome.windows.update(win.id, plan.page, function () {
+              void chrome.runtime.lastError;
+              let left = urls.length, placed = 0;
+              if (!left) { reply({ placed: 0, page: plan.page }); return; }
+              urls.forEach(function (url, i) {
+                placeOne(url, plan.cells[i], function (id) {
+                  if (id) placed++;
+                  if (--left === 0) reply({ placed: placed, page: plan.page });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+    return true;
+  }
+
+  /* Close one, without disturbing the others. */
+  if (msg.type === 'windows:close') {
+    const id = besideWindows[msg.url];
+    if (!id) { reply({ closed: true }); return true; }
+    chrome.windows.remove(id, function () {
+      void chrome.runtime.lastError;
+      delete besideWindows[msg.url];
+      reply({ closed: true });
+    });
+    return true;
+  }
+
+  /* Give the page its screen back. */
+  if (msg.type === 'windows:restore') {
+    chrome.storage.local.get({ windows: {} }, function (stored) {
+      const w = stored.windows || {};
+      const prior = w.priorWindow;
+      const items = (w.items || []).map(function (it) {
+        return it ? Object.assign({}, it, { on: false }) : it;
+      });
+      const next = Object.assign({}, w, { items: items });
+      delete next.priorWindow;
+
+      Object.keys(besideWindows).forEach(function (url) {
+        chrome.windows.remove(besideWindows[url], function () { void chrome.runtime.lastError; });
+        delete besideWindows[url];
+      });
+
+      chrome.storage.local.set({ windows: next }, function () {
+        if (!prior || !(prior.width > 0)) { reply({ restored: false }); return; }
+        chrome.windows.getCurrent(function (win) {
+          if (chrome.runtime.lastError || !win) { reply({ restored: false }); return; }
+          chrome.windows.update(win.id, {
+            left: prior.left | 0, top: prior.top | 0,
+            width: prior.width, height: prior.height
+          }, function () {
+            void chrome.runtime.lastError;
+            if (prior.state === 'maximized') {
+              chrome.windows.update(win.id, { state: 'maximized' },
+                function () { void chrome.runtime.lastError; });
+            }
+            reply({ restored: true });
+          });
+        });
+      });
+    });
+    return true;
+  }
+
   if (msg.type === 'companion:dock') {
     const src = originOf(msg.url) ? msg.url : null;
     const area = msg.screen || {};

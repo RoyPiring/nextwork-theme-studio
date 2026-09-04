@@ -135,6 +135,7 @@
     renderDials();
     renderFocus();
     renderCompanion();
+    renderWindows();
   }
 
   /* A range input fires on every pixel of travel. Writing storage on each one
@@ -419,13 +420,126 @@
     }
   }
 
-  function toastNote(text) {
-    const note = $('companion-note');
+/* ---- beside the page ----
+   *
+   * Real windows, not a frame. The pane above puts a site inside the page,
+   * which only works for sites that publish something meant to be embedded.
+   * These are for everything else - the applications that refuse to be
+   * embedded at all, where the refusal is about being inside another page and
+   * a window of their own is not. */
+  function windowsState() {
+    return Object.assign({}, NWT.DEFAULT_SETTINGS.windows, settings.windows);
+  }
+
+  function saveWindows(patch) {
+    const next = Object.assign({}, windowsState(), patch);
+    save({ windows: next });
+    renderWindows();
+    return next;
+  }
+
+  /* The screen this popup is on, which is the screen the page is on. Read here
+   * rather than in the worker because reading it properly there needs a
+   * permission this extension does not want. availWidth and availLeft, so a
+   * taskbar counts as space taken rather than space to hide a window under. */
+  function screenArea() {
+    return { left: screen.availLeft | 0, top: screen.availTop | 0,
+             width: screen.availWidth, height: screen.availHeight };
+  }
+
+  function arrange(state) {
+    const w = state || windowsState();
+    if (!w.enabled) return;
+    const urls = (w.items || []).filter(it => it && it.on)
+      .map(it => NWT.companionSrc(it.url) || it.url).slice(0, 4);
+    chrome.runtime.sendMessage({
+      type: 'windows:arrange', screen: screenArea(), split: w.split, urls: urls
+    }, function () { void chrome.runtime.lastError; });
+  }
+
+  function renderWindows() {
+    const w = windowsState();
+    const items = Array.isArray(w.items) ? w.items : [];
+
+    $('windowsEnabled').checked = !!w.enabled;
+    $('windows-empty').style.display = items.length ? 'none' : '';
+    $('windows-split').value = String(w.split);
+    $('windows-split-out').textContent = w.split + '%';
+
+    const host = $('windows-list');
+    host.textContent = '';
+    items.forEach(function (item) {
+      const row = document.createElement('div');
+      row.className = 'row between beside-item';
+
+      const label = document.createElement('label');
+      label.className = 'check tiny grow';
+      label.title = item.url;
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = !!item.on;
+      /* Four is the ceiling: a quarter of a screen is usable, a sixth is not.
+       * The ones already on stay clickable so you can swap. */
+      const open = items.filter(it => it.on).length;
+      box.disabled = !item.on && open >= 4;
+      box.addEventListener('change', function () {
+        const next = items.map(function (it) {
+          return it.url === item.url ? Object.assign({}, it, { on: box.checked }) : it;
+        });
+        /* Turning one on implies wanting them arranged; nobody adds a window
+         * and then goes looking for a second switch. */
+        const state = saveWindows({ items: next, enabled: box.checked || w.enabled });
+        if (box.checked) arrange(state);
+        else chrome.runtime.sendMessage(
+          { type: 'windows:close', url: NWT.companionSrc(item.url) || item.url },
+          function () { void chrome.runtime.lastError; arrange(state); });
+      });
+      label.appendChild(box);
+      const name = document.createElement('span');
+      name.textContent = ' ' + item.label;
+      label.appendChild(name);
+      row.appendChild(label);
+
+      const drop = document.createElement('button');
+      drop.type = 'button';
+      drop.className = 'drop';
+      drop.title = 'Remove ' + item.label;
+      drop.setAttribute('aria-label', 'Remove ' + item.label);
+      drop.textContent = '×';
+      drop.addEventListener('click', function () {
+        saveWindows({ items: items.filter(it => it.url !== item.url) });
+        chrome.runtime.sendMessage(
+          { type: 'windows:close', url: NWT.companionSrc(item.url) || item.url },
+          function () { void chrome.runtime.lastError; });
+      });
+      row.appendChild(drop);
+      host.appendChild(row);
+    });
+  }
+
+  function addWindowLink() {
+    const field = $('windows-url');
+    const raw = field.value.trim();
+    if (!NWT.companionSrc(raw)) {
+      field.setAttribute('aria-invalid', 'true');
+      toastNote('That needs to be a full web address, starting with https.', 'windows-note');
+      return;
+    }
+    field.removeAttribute('aria-invalid');
+    const w = windowsState();
+    const items = (Array.isArray(w.items) ? w.items : [])
+      .filter(function (it) { return it.url !== raw; });
+    items.push({ label: labelFor(raw), url: raw, on: true });
+    field.value = '';
+    const state = saveWindows({ items: items, enabled: true });
+    arrange(state);
+  }
+
+  function toastNote(text, target) {
+    const note = $(target || 'companion-note');
+    const settled = note.textContent;
     note.textContent = text;
-    setTimeout(function () {
-      note.textContent = 'The pane floats on the project page. ' +
-                         'Drag its bar to move it, its corner to resize.';
-    }, 3200);
+    setTimeout(function () { note.textContent = settled; }, 3200);
   }
 
   /* ---- wiring ---- */
@@ -437,6 +551,27 @@
     });
     $('companion-add').addEventListener('click', addTile);
     $('companion-access-btn').addEventListener('click', toggleAccess);
+
+    $('windowsEnabled').addEventListener('change', function () {
+      const on = $('windowsEnabled').checked;
+      const state = saveWindows({ enabled: on });
+      if (on) arrange(state);
+      else chrome.runtime.sendMessage({ type: 'windows:restore' },
+        function () { void chrome.runtime.lastError; load(renderAll); });
+    });
+    $('windows-add').addEventListener('click', addWindowLink);
+    $('windows-url').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') addWindowLink();
+    });
+    /* Held back like the other sliders: a range fires on every pixel, and each
+     * write here would move every window on the screen. */
+    const writeSplit = NWT.debounce(function () {
+      arrange(saveWindows({ split: Number($('windows-split').value) }));
+    }, 200);
+    $('windows-split').addEventListener('input', function () {
+      $('windows-split-out').textContent = $('windows-split').value + '%';
+      writeSplit();
+    });
     $('companion-url').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') addTile();
     });

@@ -605,3 +605,151 @@ test('docking an address that is not https is refused', () => {
     { docked: false });
   assert.deepEqual(bg.windowsOpened(), []);
 });
+
+/* --------------------------------------------------- windows beside the page */
+/* A separate feature from the pane, because it answers a different question.
+ * The pane puts a site inside the page, which only works for sites that
+ * publish something meant to be embedded. These are ordinary browser windows
+ * arranged around the page, which is the only thing that works for an
+ * application that refuses to be embedded at all. */
+
+const AREA = { left: 0, top: 0, width: 1600, height: 900 };
+const YT = 'https://www.youtube.com/embed/x';
+
+test('one beside the page takes the whole right-hand column', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 62, urls: [DISCORD] });
+
+  const page = bg.hostWindow();
+  const side = bg.windowsOpened()[0];
+  assert.equal(page.left, 0);
+  assert.equal(page.width + side.width, AREA.width, 'they do not fill the screen');
+  assert.equal(side.left, page.width, 'they overlap or leave a stripe of desktop');
+  assert.equal(side.height, AREA.height);
+});
+
+test('two share that column one above the other', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 62, urls: [DISCORD, YT] });
+
+  const [a, b] = bg.windowsOpened();
+  assert.equal(a.width, b.width, 'they are different widths');
+  assert.equal(a.left, b.left, 'they are not in the same column');
+  assert.equal(a.top + a.height, b.top, 'they overlap or leave a gap');
+  assert.equal(a.height + b.height, AREA.height);
+});
+
+test('three or four go in a grid, since a sixth of a screen is not usable', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 62,
+            urls: [DISCORD, YT, 'https://a.example/', 'https://b.example/'] });
+
+  const w = bg.windowsOpened();
+  assert.equal(w.length, 4);
+  const lefts = new Set(w.map(x => x.left));
+  const tops = new Set(w.map(x => x.top));
+  assert.equal(lefts.size, 2, 'they are not in two columns');
+  assert.equal(tops.size, 2, 'they are not in two rows');
+});
+
+test('a fifth is refused rather than shrinking the rest', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 62,
+            urls: [DISCORD, YT, 'https://a.example/', 'https://b.example/',
+                   'https://c.example/'] });
+  assert.equal(bg.windowsOpened().length, 4);
+});
+
+test('rounding never leaves a stripe of desktop showing', () => {
+  /* Three windows over a column that does not divide by two, on a screen
+   * height that does not divide by two either. Each of the last in a row and
+   * column takes the remainder. */
+  const odd = { left: 0, top: 0, width: 1443, height: 907 };
+  const bg = loadBackground();
+  bg.send({ type: 'windows:arrange', screen: odd, split: 55,
+            urls: [DISCORD, YT, 'https://a.example/'] });
+
+  const page = bg.hostWindow();
+  const w = bg.windowsOpened();
+  const rightEdge = Math.max(...w.map(x => x.left + x.width));
+  const bottomEdge = Math.max(...w.map(x => x.top + x.height));
+  assert.equal(rightEdge, odd.width, 'a strip is left down the right');
+  assert.equal(bottomEdge, odd.height, 'a strip is left along the bottom');
+  assert.equal(page.width + w[0].width + w[1].width, odd.width);
+});
+
+test('the split is honoured, and floored at both ends', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 75, urls: [DISCORD] });
+  assert.equal(bg.hostWindow().width, Math.round(AREA.width * 0.75));
+
+  /* Asking for almost all of it still leaves the companion something. */
+  const bg2 = loadBackground();
+  bg2.send({ type: 'windows:arrange', screen: { left: 0, top: 0, width: 1000, height: 800 },
+             split: 95, urls: [DISCORD] });
+  assert.ok(bg2.windowsOpened()[0].width >= 300,
+    'the companion was squeezed to ' + bg2.windowsOpened()[0].width);
+});
+
+test('closing a window from its own corner turns it off in the popup', () => {
+  /* Otherwise the popup goes on claiming it is open, and the next arrangement
+   * quietly reopens something the person just closed. */
+  const bg = loadBackground({ settings: { windows: { items: [{ label: 'Discord', url: DISCORD, on: true }] } } });
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 62, urls: [DISCORD] });
+  assert.equal(bg.windowsOpened().length, 1);
+
+  bg.closeWindow(1);
+  assert.equal(bg.stored.windows.items[0].on, false,
+    'the popup still thinks it is open');
+});
+
+test('arranging again moves the windows rather than opening more', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 62, urls: [DISCORD] });
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 40, urls: [DISCORD] });
+  assert.equal(bg.windowsOpened().length, 1, 'it opened a second window');
+  assert.equal(bg.hostWindow().width, Math.round(AREA.width * 0.4));
+});
+
+test('the page window is remembered once, not re-remembered on every arrangement', () => {
+  /* Remembered again each time, undoing it would put the window back to the
+   * last arrangement rather than to where it actually was. */
+  const bg = loadBackground();
+  const before = bg.hostWindow();
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 62, urls: [DISCORD] });
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 40, urls: [DISCORD] });
+
+  assert.equal(bg.stored.windows.priorWindow.width, before.width);
+  assert.equal(bg.stored.windows.priorWindow.state, 'maximized');
+});
+
+test('putting it back closes the windows and restores the page', () => {
+  const bg = loadBackground({ settings: { windows: { items: [{ label: 'Discord', url: DISCORD, on: true }] } } });
+  const before = bg.hostWindow();
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 62, urls: [DISCORD] });
+
+  bg.send({ type: 'windows:restore' });
+  assert.equal(bg.hostWindow().width, before.width, 'the page was left at part width');
+  assert.equal(bg.hostWindow().state, 'maximized',
+    'a window that had been maximised came back small');
+  assert.equal(bg.stored.windows.items[0].on, false, 'the list still says it is open');
+  assert.equal(bg.stored.windows.priorWindow, undefined,
+    'it kept a position to return to that no longer means anything');
+});
+
+test('a screen it was told nothing about arranges nothing', () => {
+  const bg = loadBackground();
+  [undefined, {}, { width: 0, height: 0 }].forEach(function (screen) {
+    assert.deepEqual(bg.send({ type: 'windows:arrange', screen: screen, urls: [DISCORD] }),
+      { placed: 0 }, JSON.stringify(screen) + ' was accepted');
+  });
+  assert.deepEqual(bg.windowsOpened(), []);
+});
+
+test('an address that is not https is left out of the arrangement', () => {
+  const bg = loadBackground();
+  bg.send({ type: 'windows:arrange', screen: AREA, split: 62,
+            urls: ['javascript:alert(1)', 'http://a.example/', DISCORD] });
+  assert.equal(bg.windowsOpened().length, 1);
+  assert.equal(bg.windowsOpened()[0].url, DISCORD);
+});

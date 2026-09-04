@@ -107,20 +107,33 @@ voice channel works; screen share, modals, downloads, pointer lock. The one
 thing held back is the ability to replace the tab underneath — nothing in the
 pane can navigate the page you are working on.
 
-**Side by side, for anything the pane cannot hold.** Some sites refuse to be
-shown inside another page at all — Discord is the clearest example — and no
-setting on either side changes that. The ◧ button in the pane's bar answers it
-a different way: the page takes the left of your screen, the site takes the
-right, and both are real browser windows. A window is not an embedding, so a
-site that refuses to be framed signs in, joins a voice channel and behaves
-exactly as it does in a tab, because as far as it is concerned it is one.
+### Beside the page
 
-Press it again — or "Bring the page back to full width" on the pane — and your
-window goes back where it was, maximised if that is how you had it.
+A second, separate section, because there are two different problems here and
+one answer cannot serve both.
 
-The arrow ↗ beside it still opens a plain window wherever the browser puts it,
-without moving anything. Both reuse the window you already have rather than
-opening another.
+The pane above puts a site **inside** the page, in a frame. That works only for
+sites that publish something meant to be embedded — a video player, a document
+viewer. Most applications refuse to be embedded at all, and no permission
+changes that: the refusal is specifically about being inside another page.
+
+**Beside the page** uses real browser windows instead. A window is not an
+embedding, so a site that will not be framed — Discord, a mail client, anything
+you sign in to — opens, signs in, joins a voice channel and behaves exactly as
+it does in a tab, because as far as it is concerned it *is* one.
+
+Paste a link, and it becomes a row with its own switch. Turn it on and its
+window opens beside your work; turn it off and the window closes. Close a
+window from its own corner and the switch follows. Up to four at once: one or
+two share the right-hand column, three or four make a grid of quarters. A fifth
+is refused rather than shrinking the rest into slivers.
+
+**Page keeps** is how much of the screen your work holds — the rest is shared
+among whatever is open beside it. Turn **Arrange** off and your window goes
+back exactly where it was, maximised if that is how you had it.
+
+The rule of thumb: **a video goes in the pane, an application goes beside the
+page.**
 
 ---
 

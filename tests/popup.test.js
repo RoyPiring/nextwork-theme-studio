@@ -690,3 +690,115 @@ test('shift-clicking a marked link tries it in the pane again', () => {
   assert.equal(p.stored.companion.url, DISCORD);
   assert.ok(!p.stored.companion.tiles[0].windowed, 'the mark was not lifted');
 });
+
+/* ------------------------------------------------ windows beside the page */
+
+test('adding a link there opens it and turns the arrangement on', () => {
+  const p = openPopup({ enabled: true });
+  p.set('windows-url', DISCORD);
+  p.click(p.el('windows-add'));
+  p.flush();
+
+  const w = p.stored.windows;
+  assert.equal(w.enabled, true, 'it was saved but nothing was arranged');
+  assert.deepEqual(w.items, [{ label: 'Discord', url: DISCORD, on: true }]);
+  const asked = p.sent().filter(m => m.type === 'windows:arrange');
+  assert.equal(asked.length, 1);
+  assert.deepEqual(asked[0].urls, [DISCORD]);
+  assert.ok(asked[0].screen.width > 0,
+    'it asked for an arrangement without saying how big the screen is');
+});
+
+test('turning one off closes its window and rearranges the rest', () => {
+  const p = openPopup({
+    enabled: true,
+    windows: { enabled: true, split: 62, items: [
+      { label: 'Discord', url: DISCORD, on: true },
+      { label: 'YouTube', url: VIDEO, on: true }] }
+  });
+  const boxes = p.el('windows-list').querySelectorAll('input');
+  boxes[0].checked = false;
+  p.fireOn(boxes[0], 'change');
+  p.flush();
+
+  assert.equal(p.sent().filter(m => m.type === 'windows:close').length, 1,
+    'the window was left open');
+  assert.equal(p.stored.windows.items[0].on, false);
+  assert.equal(p.stored.windows.items[1].on, true, 'it closed the wrong one, or both');
+  /* The one still open is rearranged to take the space the other left. */
+  const last = p.sent().filter(m => m.type === 'windows:arrange').pop();
+  assert.deepEqual(last.urls, [VIDEO.replace('www.youtube.com/watch?v=', 'www.youtube.com/embed/')
+    .replace('&t=90', '')]);
+});
+
+test('a fifth cannot be turned on, because a sixth of a screen is not usable', () => {
+  const on = n => ({ label: 'S' + n, url: 'https://s' + n + '.example/', on: true });
+  const p = openPopup({
+    enabled: true,
+    windows: { enabled: true, split: 62, items: [
+      on(1), on(2), on(3), on(4),
+      { label: 'S5', url: 'https://s5.example/', on: false }] }
+  });
+  const boxes = p.el('windows-list').querySelectorAll('input');
+  assert.equal(boxes[4].disabled, true, 'a fifth could be turned on');
+  assert.equal(boxes[0].disabled, false, 'the ones already on cannot be swapped out');
+});
+
+test('turning the arrangement off puts the page back', () => {
+  const p = openPopup({
+    enabled: true,
+    windows: { enabled: true, split: 62,
+               items: [{ label: 'Discord', url: DISCORD, on: true }] }
+  });
+  p.set('windowsEnabled', false);
+  p.fire('windowsEnabled', 'change');
+  p.flush();
+
+  assert.equal(p.stored.windows.enabled, false);
+  assert.equal(p.sent().filter(m => m.type === 'windows:restore').length, 1,
+    'the page was left at part width');
+});
+
+test('the split writes once when it settles, not once per pixel', () => {
+  /* Each write moves every window on the screen. */
+  const p = openPopup({
+    enabled: true,
+    windows: { enabled: true, split: 62,
+               items: [{ label: 'Discord', url: DISCORD, on: true }] }
+  });
+  for (let v = 50; v <= 62; v++) {
+    p.set('windows-split', v);
+    p.fireOnly('windows-split', 'input');
+  }
+  assert.equal(p.sent().filter(m => m.type === 'windows:arrange').length, 0,
+    'it rearranged mid-drag');
+  p.flush();
+  assert.equal(p.sent().filter(m => m.type === 'windows:arrange').length, 1,
+    'a whole drag should settle into one arrangement');
+  assert.equal(p.stored.windows.split, 62);
+});
+
+test('the two sections keep their own lists', () => {
+  /* They answer different questions and a link belongs to one or the other.
+   * Sharing a list meant every site had to pretend to be the other kind. */
+  const p = openPopup({ enabled: true });
+  p.set('companion-url', VIDEO);
+  p.click(p.el('companion-add'));
+  p.set('windows-url', DISCORD);
+  p.click(p.el('windows-add'));
+  p.flush();
+
+  assert.deepEqual(p.stored.companion.tiles.map(t => t.url), [VIDEO]);
+  assert.deepEqual(p.stored.windows.items.map(i => i.url), [DISCORD]);
+});
+
+test('an address it cannot open is refused there too', () => {
+  const p = openPopup({ enabled: true });
+  p.set('windows-url', 'notes.txt');
+  p.fireOnly('windows-add', 'click');
+
+  assert.equal(p.el('windows-url').getAttribute('aria-invalid'), 'true');
+  assert.match(p.el('windows-note').textContent, /full web address/);
+  p.flush();
+  assert.equal(p.stored.windows, undefined, 'a bad address was saved anyway');
+});

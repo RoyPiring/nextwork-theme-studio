@@ -423,6 +423,30 @@
        * the pane holds one at a time and these are what to switch between. */
       tiles: []
     },
+    /* Beside the page, rather than inside it.
+     *
+     * A separate feature from the pane above, because the two answer different
+     * questions and the difference is not cosmetic. The pane puts a site in a
+     * frame on the page, which only works for sites that publish something
+     * meant to be embedded - a video player, a document. Most applications
+     * refuse to be embedded at all, and no permission changes that: the
+     * refusal is about being inside another page.
+     *
+     * These are real browser windows, arranged around the page rather than
+     * drawn on it. A window is not an embedding, so a site that will not be
+     * framed signs in and behaves exactly as it does in a tab. Discord belongs
+     * here; a YouTube video belongs in the pane. Keeping them as one feature
+     * meant every site had to pretend to be the other. */
+    windows: {
+      enabled: false,
+      /* Per cent of the screen the page keeps. The rest is shared out among
+       * whatever is open beside it. */
+      split: 62,
+      /* { label, url, on } - `on` is whether its window is open now. */
+      items: [],
+      /* Where the page's window was before it was first moved. */
+      priorWindow: null
+    },
     options: {
       dimImages: 0,          /* 0-40 % - knocks the glare off bright screenshots */
       softenShadows: true,   /* light-mode drop shadows look like smudges on dark */
