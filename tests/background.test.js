@@ -228,8 +228,8 @@ const DISCORD = 'https://discord.com/channels/1/2';
 test('nothing is allowed until it is asked for', () => {
   const bg = loadBackground();
   assert.deepEqual(bg.rules(), [], 'a rule existed before anyone granted anything');
-  assert.deepEqual(bg.send({ type: 'companion:allowed', url: DISCORD }), 
-                   { allowed: false, origin: 'https://discord.com' });
+  assert.deepEqual(bg.send({ type: 'companion:allowed', url: DISCORD }),
+                   { allowed: false, active: false, origin: 'https://discord.com' });
 });
 
 test('allowing a site installs one rule, and only for the pane', () => {
@@ -455,4 +455,35 @@ test('a window closed without us hearing is recovered from, not given up on', ()
   assert.deepEqual(bg.send({ type: 'companion:window', url: DISCORD }),
                    { opened: true, reused: false });
   assert.equal(bg.windowsOpened().length, 2, 'the click did nothing');
+});
+
+test('the rules are put back when the extension is reloaded', () => {
+  /* Dynamic rules outlive the worker, so building them once looked like
+   * enough. A rule that failed to install leaves nothing behind, and nothing
+   * was ever going to try again: onStartup fires when the browser starts, not
+   * when the extension is reloaded. So a site could be granted, the popup
+   * could say so, and no rule existed - which from the page looks exactly like
+   * the site refusing. */
+  const bg = loadBackground({ origins: ['https://discord.com/*'] });
+  bg.install();
+  bg.flush();
+  assert.equal(bg.rules().length, 1, 'reloading did not put the rule back');
+});
+
+test('a site that is granted with no rule behind it is reported, not hidden', () => {
+  /* Permission held and rule installed are two different things, and the gap
+   * between them is invisible from the page. */
+  const bg = loadBackground({ origins: ['https://discord.com/*'] });
+  bg.flush();
+  const ok = bg.send({ type: 'companion:allowed', url: DISCORD });
+  assert.deepEqual([ok.allowed, ok.active], [true, true],
+    'the worker did not install the rule for a site already granted');
+
+  /* The state the fault produced: the permission held, the rule gone. */
+  bg.chrome.declarativeNetRequest.updateDynamicRules(
+    { removeRuleIds: bg.rules().map(r => r.id), addRules: [] }, function () {});
+  const gap = bg.send({ type: 'companion:allowed', url: DISCORD });
+  assert.equal(gap.allowed, true);
+  assert.equal(gap.active, false,
+    'it reported a rule that does not exist, which is what made this invisible');
 });

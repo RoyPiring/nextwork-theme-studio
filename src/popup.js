@@ -321,9 +321,14 @@
       if (chrome.runtime.lastError) return;
       const allowed = !!(r && r.allowed);
       const host = (r && r.origin ? r.origin : src).replace(/^https:\/\//, '');
-      $('companion-access-note').textContent = allowed
-        ? host + ' is allowed to open in the pane.'
-        : host + ' refuses to be shown inside another page.';
+      /* Allowed but not active means the permission is held and no rule is
+       * carrying it - which looks exactly like being blocked, from the page. */
+      $('companion-access-note').textContent = !allowed
+        ? host + ' refuses to be shown inside another page.'
+        : r.active
+          ? host + ' is allowed to open in the pane.'
+          : host + ' is allowed, but the rule that carries it is missing. ' +
+            'Take it back and allow it again.';
       const btn = $('companion-access-btn');
       btn.textContent = allowed ? 'Take it back' : 'Allow ' + host;
       btn.title = allowed

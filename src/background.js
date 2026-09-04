@@ -235,6 +235,22 @@ if (chrome.permissions.onRemoved) {
   chrome.permissions.onRemoved.addListener(function () { syncRules(); });
 }
 chrome.runtime.onStartup.addListener(function () { syncRules(); });
+/* And on install, update and reload. This is the one that was missing, and it
+ * is why a site could be granted and still refuse to appear.
+ *
+ * Dynamic rules outlive the worker, so building them once looked like enough.
+ * It is not: a rule that failed to install - because the extension did not yet
+ * hold host access to both ends of the request, which is the fault this
+ * follows - leaves nothing behind, and nothing was ever going to try again.
+ * `onStartup` only fires when the browser starts, not when the extension is
+ * reloaded, so reloading it to pick up the fix did not help either. The
+ * permission was granted, the popup said so, and no rule existed.
+ *
+ * Run at the top level as well, so any wake of the worker puts them back. It
+ * reads what the browser reports and rewrites the same set, so doing it more
+ * often costs nothing and being wrong once stops being permanent. */
+chrome.runtime.onInstalled.addListener(function () { syncRules(); });
+syncRules();
 
 chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
   if (!msg || typeof msg.type !== 'string' || msg.type.indexOf('companion:') !== 0) return;
@@ -246,7 +262,19 @@ chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
     const origin = originOf(msg.url);
     if (!origin) { reply({ allowed: false }); return true; }
     chrome.permissions.contains({ origins: [pattern(origin)] }, function (has) {
-      reply({ allowed: !!has && !chrome.runtime.lastError, origin: origin });
+      const allowed = !!has && !chrome.runtime.lastError;
+      /* Permission granted and a rule installed are two different things, and
+       * the gap between them is invisible from the page: the site is allowed,
+       * the popup says so, and the frame is still refused because no rule is
+       * carrying the header removal. That gap was a real fault, and it is
+       * reported now rather than left to be guessed at. */
+      chrome.declarativeNetRequest.getDynamicRules(function (rules) {
+        const host = hostOf(pattern(origin));
+        const active = (rules || []).some(function (r) {
+          return r.condition && (r.condition.requestDomains || []).indexOf(host) !== -1;
+        });
+        reply({ allowed: allowed, active: active, origin: origin });
+      });
     });
     return true;
   }
