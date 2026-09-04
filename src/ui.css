@@ -247,3 +247,44 @@ input[type="checkbox"] { accent-color: var(--ui-accent); width: 15px; height: 15
 
 hr { border: none; border-top: 1px solid var(--ui-border); margin: 4px 0; }
 a { color: var(--ui-accent); }
+
+/* ---- the companion pane's controls ----
+ *
+ * The pane itself is drawn on the project page by the content script and
+ * themed there. These are only the controls that put something in it. */
+#companion-tiles { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
+/* The tile and its remove cross are two buttons side by side, sharing one
+ * outline, rather than one nested in the other: a button inside a button is
+ * invalid, and the browser gives the inner one no keyboard activation, so the
+ * cross could be reached with Tab but not pressed with Enter. */
+.tile { display: flex; align-items: stretch; min-width: 0; }
+#companion-tiles .tile-go {
+  flex: 1; min-width: 0; padding: 5px 4px 5px 8px;
+  border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Shown on hover or focus, so a row of tiles reads as places to go rather than
+ * as a row of delete buttons - but always reachable, and always visible once
+ * the keyboard is on it. */
+#companion-tiles .drop {
+  flex: none; width: 20px; padding: 0; font-size: 13px; line-height: 1;
+  color: var(--ui-text-muted); opacity: 0;
+  border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: 0;
+}
+.tile:hover .drop, .tile:focus-within .drop { opacity: 1; }
+#companion-tiles .drop:hover, #companion-tiles .drop:focus-visible {
+  opacity: 1; color: var(--ui-text);
+}
+
+
+input[type="url"] {
+  flex: 1; min-width: 0; padding: 6px 8px; font: inherit; font-size: 12px;
+  color: var(--ui-text); background: var(--ui-surface-alt);
+  border: 1px solid var(--ui-border); border-radius: 7px;
+}
+input[type="url"]:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 1px; }
+input[type="url"]::placeholder { color: var(--ui-text-muted); }
+input[type="url"][aria-invalid="true"] { border-color: #f0a77a; }
+
+/* A label that reads as one line beside a heading, rather than as a tile. */
+.switch-inline { display: flex; align-items: center; gap: 6px; cursor: pointer; }

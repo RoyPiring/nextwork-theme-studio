@@ -7,6 +7,33 @@ Versioning is [semver](https://semver.org/); the `version` field in
 1.3.0 is the first version published to a public repository. Entries below it
 were never released.
 
+## [Unreleased]
+
+### Added
+
+- A pane that floats over the project page, for something to keep beside your
+  work on a single screen. Paste a link in the popup, and it is saved as a
+  tile you can switch between. Drag the bar to move the pane, the corner to
+  resize it; both are remembered. The switch beside "Beside your work" turns
+  it off without losing the tiles.
+
+  A YouTube link works with nothing further asked: the address from the
+  browser's bar is loaded as the player, which is the part meant to appear
+  inside another page, and a timestamp on the link is kept.
+
+  Most other sites refuse to be framed, Discord among them. That is their own
+  setting and the pane does not fight it: it says so rather than showing an
+  empty rectangle, and the arrow in its bar opens the link in a window of its
+  own, which works for everything.
+
+- The focus timer can make a sound when the session reaches its length, and
+  the pill flashes red until you look at it. Both can be turned off, and the
+  flashing stops on its own for anyone who has asked their system for reduced
+  motion. The sound is generated on the spot rather than downloaded or
+  bundled.
+
+- Five- and ten-minute sessions, for the short ones that get you started.
+
 ## [2.10.0] - 2026-09-03
 
 ### Security

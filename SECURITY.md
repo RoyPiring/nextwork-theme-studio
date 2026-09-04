@@ -13,19 +13,42 @@ It restyles one site in your browser. That is the whole capability.
 
 | Property | Status | Enforced by |
 | --- | --- | --- |
-| Network requests | none | `tools/audit.js`, in CI |
+| Network requests | none from the extension's own code | `tools/audit.js`, in CI |
 | Remote code | none | no `eval`, no `new Function`, no remote scripts |
 | Permissions | `storage` | audit fails on anything else |
 | Host access | `https://nextwork.ai/*` and `https://*.nextwork.ai/*` | audit fails on any other match pattern |
 | Data leaving the device | none | `tools/audit.js`, in CI |
 
-`storage` holds your themes, and it is the only permission requested. The popup's
-reload button calls `chrome.tabs.reload()` with no arguments, which needs no
-permission at all. `activeTab` was requested for a while, never used, and has
-been removed.
+`storage` holds your themes, and it is the only permission requested. The
+popup's reload button calls `chrome.tabs.reload()` with no arguments, which
+needs no permission at all. `activeTab` was requested for a while, never used,
+and has been removed.
 
 Your themes are in `chrome.storage.local`, which does not sync. They stay on the
 machine you made them on.
+
+### The companion pane
+
+The one exception to "no network requests" is the pane, and it is yours to
+start: a link you paste into the popup is loaded in a frame on the page, so
+that site sees a request the same way it would if you opened it in a tab.
+Nothing about you or your themes is added to it. The pane is off until you turn
+it on, loads nothing until you give it an address, and accepts only `https`.
+The frame is sandboxed without `allow-top-navigation`, so a page inside it
+cannot replace the tab it sits in, and carries the referrer policy
+`strict-origin-when-cross-origin`.
+
+**What it cannot do.** Most sites refuse to be shown inside another page,
+using `X-Frame-Options` or a `frame-ancestors` policy. Those headers exist to
+stop a page you are signed in to being framed by someone else and clicked
+through invisibly, and this extension does not interfere with them: a site that
+refuses is reported as refusing, and offered in a window of its own instead.
+That path changes no headers and works everywhere.
+
+The single remote address written anywhere in the source is YouTube's player,
+used to turn a link to a video into the form that can be framed; the audit
+allows that one literal by name and rejects every other, in the markup as well
+as the code.
 
 ## Threat model
 

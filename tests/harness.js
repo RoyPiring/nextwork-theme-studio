@@ -205,6 +205,12 @@ class FakeElement {
   getBoundingClientRect() { return Object.assign({}, this._rect); }
   setPointerCapture() {}
   releasePointerCapture() {}
+  /* Recorded rather than ignored, so a test can tell whether the cursor was
+   * put on the control someone was sent here to use. */
+  focus() { if (this.ownerDocument) this.ownerDocument.activeElement = this; }
+  blur() { if (this.ownerDocument && this.ownerDocument.activeElement === this) {
+    this.ownerDocument.activeElement = null;
+  } }
   /* A script clicking an element itself, which is how the editor opens the
    * file chooser and how it starts a download. */
   click() {
@@ -317,6 +323,13 @@ class FakeDocument {
     return hits.map(function (h) { return h.el; });
   }
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
+  /* The document is where a browser reports a policy violation, which is the
+   * one signal that separates "this page will not hold a frame" from "this
+   * site will not be framed" - two failures that otherwise look the same. */
+  dispatchEvent(event) {
+    (this.listeners[event.type] || []).forEach(fn => fn.call(this, event));
+    return true;
+  }
 }
 
 /* Enough of an HTML parser for the extension's own two pages.
@@ -499,8 +512,32 @@ function loadContentScript(options) {
   const reads = [];
   const played = [];
 
+  /* Which sites the browser would say are allowed to be framed here, and every
+   * message the page sent. The pane asks before it loads anything, so a test
+   * that does not set this is testing a site nobody has granted - which is the
+   * common case and the right default. */
+  const allowedOrigins = (opts.allowed || []).slice();
+  const sent = [];
+
   const chrome = {
-    runtime: { lastError: null, id: 'test', onMessage: { addListener() {} } },
+    runtime: {
+      lastError: null, id: 'test', onMessage: { addListener() {} },
+      sendMessage(msg, cb) {
+        sent.push(msg);
+        if (!cb) return;
+        /* Delivered through the timer queue, because the real one is async and
+         * code that assumes otherwise passes here and fails in a browser. */
+        timers.push(function () {
+          if (msg && msg.type === 'companion:allowed') {
+            let origin = '';
+            try { origin = new URL(msg.url).origin; } catch (e) { origin = ''; }
+            cb({ allowed: !!origin && allowedOrigins.includes(origin), origin: origin });
+            return;
+          }
+          cb({});
+        });
+      }
+    },
     storage: {
       local: {
         get(_keys, cb) {
@@ -583,6 +620,10 @@ function loadContentScript(options) {
     document: doc,
     location: { pathname: opts.pathname || '/projects/abc' },
     chrome,
+    /* The address parser the browser has. Left out, new URL() threw, the
+     * caller caught it, and a missing feature read as a considered "no" -
+     * the popup quietly refused every link it was given. */
+    URL, URLSearchParams,
     CSSStyleSheet: FakeSheet,
     getComputedStyle(el) {
       return Object.assign(
@@ -636,6 +677,10 @@ function loadContentScript(options) {
     doc, chrome, window: win, sandbox, flush, stored, reads,
     /* Every sound the page tried to make. */
     played,
+    /* Every message it sent to the extension. */
+    sent,
+    /* Allow a site part-way through, the way granting permission does. */
+    allow(origin) { if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin); },
     /* Add a panel the rescue pass will consider. */
     addPanel(computed, rect) {
       const el = doc.createElement('div');
@@ -683,11 +728,61 @@ function loadBackground(options) {
   /* Set for the next read only, the way Chrome reports one. */
   let pendingError = opts.lastError || null;
 
+  /* What the browser has been granted, what rules are installed, and what
+   * windows were opened - the three things the companion pane's permission
+   * path touches. `grant` decides what the next request() is answered with,
+   * so a test can play the user saying no as easily as yes. */
+  const permissions = { origins: (opts.origins || []).slice() };
+  let dynamicRules = [];
+  const windows = [];
+  /* Which extension page was opened to raise the browser's prompt. Whether it
+   * is the popup or the options page depends on the browser, so what matters
+   * is that one of them was. */
+  const pagesOpened = [];
+  const messageListeners = [];
+  const permissionListeners = { added: [], removed: [] };
+  let grant = opts.grant !== false;
+
   const chrome = {
     runtime: {
       lastError: null,
       onInstalled: { addListener(fn) { installedListeners.push(fn); } },
-      onStartup: { addListener(fn) { startupListeners.push(fn); } }
+      onStartup: { addListener(fn) { startupListeners.push(fn); } },
+      onMessage: { addListener(fn) { messageListeners.push(fn); } },
+      openOptionsPage(cb) { pagesOpened.push('options'); if (cb) cb(); }
+    },
+    permissions: {
+      getAll(cb) { cb({ origins: permissions.origins.slice(), permissions: [] }); },
+      contains(req, cb) {
+        cb((req.origins || []).every(o => permissions.origins.includes(o)));
+      },
+      request(req, cb) {
+        if (grant) {
+          (req.origins || []).forEach(o => {
+            if (!permissions.origins.includes(o)) permissions.origins.push(o);
+          });
+        }
+        permissionListeners.added.forEach(fn => fn({ origins: req.origins || [] }));
+        cb(grant);
+      },
+      remove(req, cb) {
+        permissions.origins = permissions.origins.filter(o => !(req.origins || []).includes(o));
+        permissionListeners.removed.forEach(fn => fn({ origins: req.origins || [] }));
+        cb(true);
+      },
+      onAdded: { addListener(fn) { permissionListeners.added.push(fn); } },
+      onRemoved: { addListener(fn) { permissionListeners.removed.push(fn); } }
+    },
+    declarativeNetRequest: {
+      getDynamicRules(cb) { cb(dynamicRules.slice()); },
+      updateDynamicRules(o, cb) {
+        const drop = new Set(o.removeRuleIds || []);
+        dynamicRules = dynamicRules.filter(r => !drop.has(r.id)).concat(o.addRules || []);
+        if (cb) cb();
+      }
+    },
+    windows: {
+      create(o, cb) { windows.push(o); if (cb) cb({ id: windows.length }); }
     },
     commands: { onCommand: { addListener(fn) { commandListeners.push(fn); } } },
     action: {
@@ -736,8 +831,13 @@ function loadBackground(options) {
 
   const sandbox = {
     chrome,
+    /* The address parser the browser has. Without it every `new URL()` threw,
+     * the caller caught it, and refusing to parse anything read as a
+     * considered "no" - so the worker declined every site it was asked
+     * about, and the tests agreed with it. */
+    URL, URLSearchParams,
     Math, Date, JSON, Object, Array, String, Number, Boolean, RegExp, Error,
-    isFinite, parseInt, parseFloat, console
+    isFinite, parseInt, parseFloat, console, Set, Map
   };
   sandbox.globalThis = sandbox;
   sandbox.self = sandbox;
@@ -782,6 +882,21 @@ function loadBackground(options) {
     install() { installedListeners.forEach(fn => fn()); },
     startup() { startupListeners.forEach(fn => fn()); },
     command(name) { commandListeners.forEach(fn => fn(name)); },
+    /* Send a message the way a popup or content script would, and hand back
+     * whatever the worker replied with. */
+    send(msg) {
+      let answer;
+      messageListeners.forEach(fn => fn(msg, {}, function (r) { answer = r; }));
+      flush();
+      return answer;
+    },
+    /* What the browser would be enforcing right now. */
+    rules() { return dynamicRules.slice(); },
+    granted() { return permissions.origins.slice(); },
+    windowsOpened() { return windows.slice(); },
+    pagesOpened() { return pagesOpened.slice(); },
+    /* Play the user refusing the browser's prompt. */
+    refuseGrants() { grant = false; },
     /* Apply the new values before notifying, as Chrome does. Without this a
      * test has to seed storage with the value it is about to "change" to, and
      * then it is not testing a transition at all. */
@@ -811,6 +926,12 @@ function loadPage(options) {
   const doc = new FakeDocument();
   const stored = Object.assign({}, opts.settings || {});
   const changeListeners = [];
+  /* What the browser would say about framing each site, and every message the
+   * page sent asking. A test that sets neither is testing a site nobody has
+   * granted, which is the state everything starts in. */
+  const allowedOrigins = (opts.allowed || []).slice();
+  const sentMessages = [];
+  let grantsAllowed = opts.grant !== false;
   /* Scheduled callbacks, by the id handed back. Held in a map rather than a
    * list so cancelling one actually removes it: as a no-op, a callback that
    * had been cancelled still ran, and a debounce that clears its previous
@@ -830,7 +951,28 @@ function loadPage(options) {
       lastError: null,
       id: 'test',
       openOptionsPage() { opened.optionsPage++; },
-      onMessage: { addListener() {} }
+      onMessage: { addListener() {} },
+      /* The extension's own worker, answering the way it does for the
+       * companion pane. `allowed` says which sites the browser would report as
+       * already granted; `refuseGrants` plays someone dismissing the prompt. */
+      sendMessage(msg, cb) {
+        sentMessages.push(msg);
+        let origin = '';
+        try { origin = new URL(msg.url).origin; } catch (e) { origin = ''; }
+
+        if (msg.type === 'companion:allow' && origin && grantsAllowed) {
+          if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin);
+        }
+        if (msg.type === 'companion:forget' && origin) {
+          const at = allowedOrigins.indexOf(origin);
+          if (at >= 0) allowedOrigins.splice(at, 1);
+        }
+        if (!cb) return;
+        queue(function () {
+          if (msg.type === 'companion:window') { cb({ opened: true }); return; }
+          cb({ allowed: !!origin && allowedOrigins.includes(origin), origin: origin });
+        });
+      }
     },
     tabs: { reload() { opened.reloadedTabs++; } },
     storage: {
@@ -898,15 +1040,23 @@ function loadPage(options) {
     document: doc,
     location: { pathname: '/' + path.basename(opts.page) },
     chrome,
+    URLSearchParams,
     Blob: FakeBlob,
-    URL: {
+    /* The real parser, carrying the two statics the editor uses.
+     *
+     * In a browser createObjectURL lives on the URL constructor. Declared as
+     * an object of its own it replaced the constructor, so every new URL()
+     * threw - and the code that parses an address caught it and read as a
+     * considered "no". The popup refused every link it was given and looked
+     * like it had decided to. */
+    URL: Object.assign(class extends URL {}, {
       createObjectURL(blob) {
         blobSeq += 1;
         saved.push({ type: blob.type, text: (blob.parts || []).join('') });
         return 'blob:test/' + blobSeq;
       },
       revokeObjectURL() {}
-    },
+    }),
     /* Counted, so a test can tell "it did not delete" from "it never
      * asked". A version that prompts and then does nothing satisfies the
      * first and not the second. */
@@ -1035,6 +1185,12 @@ function loadPage(options) {
       return el;
     },
     click(el, extra) { return dispatch(el, 'click', extra); },
+    /* Every message the page sent the extension, and which sites the browser
+     * would now report as allowed. */
+    sent() { return sentMessages.slice(); },
+    granted() { return allowedOrigins.slice(); },
+    /* Play the user dismissing the browser's permission prompt. */
+    refuseGrants() { grantsAllowed = false; },
     /* Run every interval once, which is how the clock is advanced. */
     tick() {
       [...intervals.values()].forEach(t => t.fn());
