@@ -85,8 +85,13 @@ both can be turned off.
 a tile; the pane floats over the page with that link in it, and you drag its
 bar to move it and its corner to resize it. It stays where you put it.
 
-A tile is a switch: click it to open its pane, click it again to close. **Up to
-three can be open at once** — something you are watching and something you are
+The row starts with YouTube and Discord, since those are the two this was built
+for; remove either with one click and it is not offered again.
+
+A tile is a switch: click it to open its pane, click it again to close. Each
+pane has a fold control that collapses it to its bar — for getting something
+out of the way for a minute without closing it and setting it up again — and
+nothing loads behind a folded bar. **Up to three can be open at once** — something you are watching and something you are
 talking in — and each new one opens a little clear of the last so it does not
 land on top of it. Each keeps its own place and size, and the × on a pane
 closes that pane rather than the lot.
@@ -160,33 +165,7 @@ placeholder, and from the page that looks exactly like the site refusing. They
 generally offer an "allow on this site" button in the space where the frame
 should be.
 
-### Beside the page
 
-A second, separate section, because there are two different problems here and
-one answer cannot serve both.
-
-The pane above puts a site **inside** the page, in a frame. That works only for
-sites that publish something meant to be embedded — a video player, a document
-viewer. Most applications refuse to be embedded at all, and no permission
-changes that: the refusal is specifically about being inside another page.
-
-**Beside the page** uses real browser windows instead. A window is not an
-embedding, so a site that will not be framed — Discord, a mail client, anything
-you sign in to — opens, signs in, joins a voice channel and behaves exactly as
-it does in a tab, because as far as it is concerned it *is* one.
-
-Paste a link, and it becomes a row with its own switch. Turn it on and its
-window opens beside your work; turn it off and the window closes. Close a
-window from its own corner and the switch follows. Up to four at once: one or
-two share the right-hand column, three or four make a grid of quarters. A fifth
-is refused rather than shrinking the rest into slivers.
-
-**Page keeps** is how much of the screen your work holds — the rest is shared
-among whatever is open beside it. Turn **Arrange** off and your window goes
-back exactly where it was, maximised if that is how you had it.
-
-The rule of thumb: **a video goes in the pane, an application goes beside the
-page.**
 
 ---
 

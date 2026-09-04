@@ -497,15 +497,13 @@
     title.className = 'nwt-companion-title';
     bar.appendChild(title);
 
-    /* Side by side. Distinct from the arrow beside it: that one opens a
-     * window wherever the browser puts it, this one gives the page and the
-     * companion half the screen each and keeps them there. */
-    const dock = document.createElement('button');
-    dock.type = 'button';
-    dock.className = 'nwt-companion-dock';
-    dock.title = 'Put it beside the page, each with half the screen';
-    dock.textContent = '◧';
-    bar.appendChild(dock);
+    /* Fold it down to its bar and open it again. The same control the split's
+     * panels have, for the same reason: getting something out of the way for a
+     * minute should not mean closing it and setting it up again. */
+    const fold = document.createElement('button');
+    fold.type = 'button';
+    fold.className = 'nwt-companion-fold';
+    bar.appendChild(fold);
 
     const openOut = document.createElement('button');
     openOut.type = 'button';
@@ -717,6 +715,19 @@
   }
 
   function paintPane(el, companion, index) {
+    /* Folded: the bar and nothing else, and nothing loaded behind it - a video
+     * left running where it cannot be seen is a fan you cannot explain. */
+    el.setAttribute('data-collapsed', companion.collapsed ? '1' : '0');
+    el.querySelector('.nwt-companion-fold').textContent = companion.collapsed ? '▸' : '▾';
+    el.querySelector('.nwt-companion-fold').title =
+      companion.collapsed ? 'Open it again' : 'Fold it down to its bar';
+    if (companion.collapsed) {
+      const folded = el.querySelector('.nwt-companion-frame');
+      folded.removeAttribute('src');
+      el.setAttribute('data-state', 'folded');
+      delete paneShowing[index];
+      return;
+    }
     const src = NWT.companionSrc(companion.url);
     const frame = el.querySelector('.nwt-companion-frame');
     const refused = el.querySelector('.nwt-companion-said');
@@ -868,12 +879,26 @@
     el.style.bottom = 'auto';
   }
 
+  /* The list, or the single address that came before it - read the same way
+   * everywhere, so a setting written by an older version can be changed and
+   * not only looked at. Writing through a reading that ignored it produced an
+   * empty list and lost the pane. */
+  function paneList(companion) {
+    const listed = (Array.isArray(companion.panes) ? companion.panes : [])
+      .filter(function (x) { return x && typeof x.url === 'string'; });
+    if (listed.length) return listed;
+    return companion.url
+      ? [{ url: companion.url, x: companion.x, y: companion.y,
+           w: companion.w, h: companion.h }]
+      : [];
+  }
+
   /* Change one pane in the list, leaving the others where they are. */
   function savePane(index, patch) {
     chrome.storage.local.get({ companion: {} }, function (stored) {
       if (chrome.runtime.lastError) return;
       const c = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, stored.companion);
-      const panes = (Array.isArray(c.panes) ? c.panes : []).map(function (pane, i) {
+      const panes = paneList(c).map(function (pane, i) {
         return i === index ? Object.assign({}, pane, patch) : pane;
       });
       chrome.storage.local.set({ companion: Object.assign({}, c, { panes: panes }) });
@@ -885,8 +910,7 @@
     chrome.storage.local.get({ companion: {} }, function (stored) {
       if (chrome.runtime.lastError) return;
       const c = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, stored.companion);
-      const panes = (Array.isArray(c.panes) ? c.panes : [])
-        .filter(function (pane, i) { return i !== index; });
+      const panes = paneList(c).filter(function (pane, i) { return i !== index; });
       chrome.storage.local.set({
         companion: Object.assign({}, c, { panes: panes, enabled: panes.length > 0 })
       });
@@ -962,22 +986,9 @@
       });
     });
 
-    el.querySelector('.nwt-companion-dock').addEventListener('click', function (e) {
+    el.querySelector('.nwt-companion-fold').addEventListener('click', function (e) {
       e.stopPropagation();
-      chrome.storage.local.get({ companion: {} }, function (stored) {
-        const c = stored.companion || {};
-        const src = NWT.companionSrc(c.url);
-        if (!src) return;
-        /* The screen's own measurements. An extension can only read these
-         * through a permission this does not want, and the page has them
-         * already - availWidth and availLeft, so a taskbar or a dock is
-         * counted as taken rather than covered over. */
-        chrome.runtime.sendMessage({
-          type: 'companion:dock', url: src,
-          screen: { left: screen.availLeft | 0, top: screen.availTop | 0,
-                    width: screen.availWidth, height: screen.availHeight }
-        }, function () { void chrome.runtime.lastError; });
-      });
+      savePane(index, { collapsed: el.getAttribute('data-collapsed') !== '1' });
     });
 
     el.querySelector('.nwt-companion-out').addEventListener('click', function (e) {
@@ -1518,12 +1529,7 @@
      * from storage. A page open while an older version wrote there, or opened
      * before anything has run the migration, would otherwise show nothing at
      * all and look like the feature had been removed. */
-    const listed = (Array.isArray(companion.panes) ? companion.panes : [])
-      .filter(function (x) { return x && typeof x.url === 'string'; });
-    const panes = (listed.length ? listed : (companion.url
-      ? [{ url: companion.url, x: companion.x, y: companion.y,
-           w: companion.w, h: companion.h }]
-      : [])).slice(0, 3);
+    const panes = paneList(companion).slice(0, 3);
 
     /* Anywhere on the site, not only on a project page. The timer is tied to a
      * project because a session is about building one; something to keep in

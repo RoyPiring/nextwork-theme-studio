@@ -1285,64 +1285,6 @@ test('a frame removed before the check does not report anything', () => {
     'a pane the site had torn out was reported as refused');
 });
 
-test('the pane asks for side by side with the screen it can actually see', () => {
-  /* An extension can only read the screen through a permission this does not
-   * want. The page already knows, and availWidth counts a taskbar as taken
-   * rather than covered over. */
-  const page = withPane({ url: VIDEO });
-  page.flush();
-  pane(page).querySelector('.nwt-companion-dock').click();
-  page.flush();
-
-  const asked = page.sent.filter(m => m.type === 'companion:dock');
-  assert.equal(asked.length, 1, 'nothing was asked for');
-  assert.equal(asked[0].url, EMBED);
-  assert.ok(asked[0].screen.width > 0 && asked[0].screen.height > 0,
-    'it asked for a split without saying how big the screen is');
-});
-
-test('once side by side, the pane stands aside instead of holding an empty frame', () => {
-  const page = loadContentScript({
-    settings: { enabled: true, companion: { enabled: true, url: DISCORD, docked: true,
-      tiles: [{ label: 'Discord', url: DISCORD }] } },
-    allowed: ['https://discord.com']
-  });
-  page.flush();
-
-  assert.equal(pane(page).getAttribute('data-state'), 'docked');
-  assert.equal(frameOf(page).getAttribute('src'), null,
-    'it kept loading a frame for something that is in its own window');
-  assert.match(pane(page).querySelector('.nwt-companion-said').textContent,
-    /beside the page/);
-});
-
-test('the way back to full width is on the pane', () => {
-  const page = loadContentScript({
-    settings: { enabled: true, companion: { enabled: true, url: DISCORD, docked: true } },
-    allowed: ['https://discord.com']
-  });
-  page.flush();
-  pane(page).querySelector('.nwt-companion-undock').click();
-  page.flush();
-
-  assert.equal(page.sent.filter(m => m.type === 'companion:undock').length, 1,
-    'the way back did not lead anywhere');
-});
-
-/* ------------------------------------------------------------- the split */
-/* One tab, two boxes: the page narrowed to the left, something else in the
- * right, with a divider between them. */
-
-function splitOn(over) {
-  return loadContentScript({
-    settings: Object.assign({ enabled: true,
-      split: Object.assign({ enabled: true, url: VIDEO, width: 0.36 }, over) }, {}),
-    allowed: ['https://discord.com']
-  });
-}
-function splitPane(page) { return page.doc.getElementById('nwt-split'); }
-function splitFrame(page) { return splitPane(page).querySelector('.nwt-split-frame'); }
-
 test('a frame swapped out by something else is rebuilt, not read as ours', () => {
   /* A content blocker does not remove a third-party frame - it swaps in a
    * placeholder of its own. The panel stays, the right size, with an element
@@ -1660,4 +1602,39 @@ test('a pane that has been closed is taken off the page', () => {
 
   assert.equal(panesOf(page).length, 1, 'a closed pane was left on the page');
   assert.equal(panesOf(page)[0].querySelector('.nwt-companion-frame').getAttribute('src'), EMBED);
+});
+
+test('a pane can be folded to its bar and opened again', () => {
+  /* Getting something out of the way for a minute should not mean closing it
+   * and setting it up again. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.equal(frameOf(page).getAttribute('src'), EMBED);
+
+  pane(page).querySelector('.nwt-companion-fold').click();
+  page.flush();
+
+  assert.equal(page.stored.companion.panes[0].collapsed, true);
+  assert.equal(pane(page).getAttribute('data-collapsed'), '1');
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'it went on loading behind a closed bar');
+
+  pane(page).querySelector('.nwt-companion-fold').click();
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-collapsed'), '0');
+  assert.equal(frameOf(page).getAttribute('src'), EMBED, 'it did not come back');
+});
+
+test('folding one pane does not fold another', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, panes: [
+      { url: VIDEO }, { url: DISCORD }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  panesOf(page)[0].querySelector('.nwt-companion-fold').click();
+  page.flush();
+
+  assert.equal(page.stored.companion.panes[0].collapsed, true);
+  assert.ok(!page.stored.companion.panes[1].collapsed, 'it folded both');
 });

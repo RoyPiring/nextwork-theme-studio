@@ -305,6 +305,16 @@ check('no remote URLs in extension code', () => {
       if (/^\s*const YOUTUBE_PLAYER = /.test(line)) {
         stripped = stripped.replace(/https:\/\/www\.youtube\.com\/embed\//g, '');
       }
+      /* The two suggestions the pane starts with, on the same terms: named
+       * here one line at a time, nothing requested from either until someone
+       * clicks it, and a fourth is a change to this file rather than something
+       * that slips in beside these three. */
+      if (/^\s*const STARTER_YOUTUBE = /.test(line)) {
+        stripped = stripped.replace(/https:\/\/www\.youtube\.com/g, '');
+      }
+      if (/^\s*const STARTER_DISCORD = /.test(line)) {
+        stripped = stripped.replace(/https:\/\/discord\.com\/channels\/@me/g, '');
+      }
       if (/https?:\/\//.test(stripped)) offenders.push(rel(f) + ':' + (i + 1));
     });
   });

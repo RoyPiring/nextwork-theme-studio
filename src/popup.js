@@ -135,7 +135,6 @@
     renderDials();
     renderFocus();
     renderCompanion();
-    renderWindows();
     renderSplitPanel();
   }
 
@@ -260,7 +259,11 @@
 
   function renderCompanion() {
     const c = companionState();
-    const tiles = Array.isArray(c.tiles) ? c.tiles : [];
+    /* The starters stand in until something is saved, so the row is never an
+     * empty box you have to guess the purpose of. Adding or removing anything
+     * writes a real list, and they are not offered again. */
+    const saved = Array.isArray(c.tiles) ? c.tiles : [];
+    const tiles = saved.length || c.tilesTouched ? saved : (c.starters || []);
     const open = openPanes().map(function (x) { return x.url; });
 
     $('companionEnabled').checked = !!c.enabled;
@@ -331,6 +334,7 @@
         const panes = openPanes().filter(function (x) { return x.url !== tile.url; });
         saveCompanion({
           tiles: tiles.filter(function (t) { return t.url !== tile.url; }),
+          tilesTouched: true,
           panes: panes,
           enabled: panes.length > 0 && c.enabled
         });
@@ -351,14 +355,20 @@
    * window of its own. Both are offered; neither happens quietly. */
   function renderAccess(c) {
     const row = $('companion-access');
-    /* `pending` is set when the pane's own button sent you here, and names the
-     * site you were looking at. It wins over whatever the pane is pointed at
-     * now, because it is the question you actually asked. */
-    const src = NWT.companionSrc(c.pending || c.url);
+    /* `pending` is set when a pane's own button sent you here, and names the
+     * site you were looking at - it wins, because it is the question actually
+     * asked. Otherwise the first thing open that a browser would refuse, since
+     * that is the one with something to answer. */
+    const needs = (Array.isArray(c.panes) ? c.panes : [])
+      .concat(Array.isArray((settings.split || {}).panels) ? settings.split.panels : [])
+      .map(function (x) { return x && NWT.companionSrc(x.url); })
+      .filter(function (u) { return u && !NWT.framesFreely(u); })[0];
+    const src = NWT.companionSrc(c.pending) || needs || null;
 
     if (!src || NWT.framesFreely(src)) { row.style.display = 'none'; return; }
     row.style.display = '';
     row.setAttribute('data-asked', c.pending ? '1' : '0');
+    renderAllowed();
 
     chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
       if (chrome.runtime.lastError) return;
@@ -373,59 +383,81 @@
           : host + ' is allowed, but the rule that carries it is missing. ' +
             'Take it back and allow it again.';
       const btn = $('companion-access-btn');
-      btn.textContent = allowed ? 'Take it back' : 'Allow ' + host;
-      btn.title = allowed
-        ? 'Stop opening ' + host + ' in the pane, and remove its permission'
-        : 'Ask the browser for permission to open ' + host + ' in the pane';
+      btn.textContent = 'Allow ' + host;
+      btn.title = 'Ask the browser for permission to open ' + host + ' here';
+      btn.hidden = allowed;
       /* Put the cursor on the answer, so pressing Enter is enough for someone
        * who arrived here from the pane with one question. */
       if (c.pending && !allowed) btn.focus();
     });
   }
 
-  /* The prompt the browser shows has to follow a click, which is why this is
-   * wired to a button rather than done for you when a link is added. */
-  function toggleAccess() {
+  /* What the browser says is allowed, listed where the links are, so it can be
+   * seen and taken back without going looking for another page. */
+  function renderAllowed() {
+    chrome.permissions.getAll(function (granted) {
+      if (chrome.runtime.lastError) return;
+      const origins = ((granted && granted.origins) || [])
+        .filter(function (o) { return !/nextwork\.ai/.test(o); });
+      const host = $('allowed-list');
+      host.textContent = '';
+      origins.forEach(function (pattern) {
+        const row = document.createElement('div');
+        row.className = 'row between beside-item';
+        const name = document.createElement('span');
+        name.className = 'tiny grow';
+        name.textContent = pattern.replace(/^https:\/\//, '').replace(/\/\*$/, '');
+        row.appendChild(name);
+        const drop = document.createElement('button');
+        drop.type = 'button';
+        drop.className = 'ghost tiny';
+        drop.textContent = 'Take it back';
+        drop.addEventListener('click', function () {
+          chrome.permissions.remove({ origins: [pattern] }, function () {
+            void chrome.runtime.lastError;
+            saveCompanion({ grantedAt: Date.now() });
+            renderAllowed();
+          });
+        });
+        row.appendChild(drop);
+        host.appendChild(row);
+      });
+    });
+  }
+
+  /* One thing only: ask for a site. Taking one back is a control on its own
+   * row in the list above, so this button never means two opposite things
+   * depending on state you cannot see by looking at it.
+   *
+   * `permissions.request` has to follow a click inside an extension page. A
+   * popup is one - but some browsers close the popup to put the prompt on
+   * screen, and closing the page cancels the request that page made: nothing
+   * is granted and nothing reports a failure. So the site is written down
+   * first, asked for here where the controls are, and only if that comes back
+   * refused is the options page opened with it already filled in. Being sent
+   * somewhere else is the last resort, not the first thing that happens. */
+  function askAllow() {
     const c = companionState();
-    const asked = c.pending || c.url;
-    const src = NWT.companionSrc(asked);
+    const needs = (Array.isArray(c.panes) ? c.panes : [])
+      .concat(Array.isArray((settings.split || {}).panels) ? settings.split.panels : [])
+      .map(function (x) { return x && NWT.companionSrc(x.url); })
+      .filter(function (u) { return u && !NWT.framesFreely(u); })[0];
+    const src = NWT.companionSrc(c.pending) || needs || null;
     if (!src) return;
 
-    chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
-      if (chrome.runtime.lastError) return;
-      /* Granting is done on the options page, never from here.
-       *
-       * `permissions.request` has to come from an extension page in response
-       * to a click, and a popup is one - but the browser closes the popup to
-       * put its own prompt on screen, and closing the page cancels the request
-       * that page made. Nothing is granted and nothing reports a failure. Every
-       * click of this button did exactly that, for weeks, while the frame it
-       * was meant to unblock stayed empty. */
-      if (!(r && r.allowed)) {
-        saveCompanion({ pending: src });
-        chrome.runtime.openOptionsPage();
-        window.close();
+    const origin = src.replace(/^(https:\/\/[^/]+).*$/, '$1') + '/*';
+    saveCompanion({ pending: src });
+    chrome.permissions.request({ origins: [origin] }, function (given) {
+      if (given && !chrome.runtime.lastError) {
+        saveCompanion({ grantedAt: Date.now(), pending: '' });
+        renderAllowed();
         return;
       }
-      const next = 'companion:forget';
-      chrome.runtime.sendMessage({ type: next, url: src }, function (done) {
-        if (chrome.runtime.lastError) return;
-        const granted = next === 'companion:allow' && !!(done && done.allowed);
-        /* The pane caches what it was told, so it is told that this changed.
-         * Without it, allowing a site would leave an open page sitting on its
-         * refusal until something else happened to move. The question is
-         * cleared at the same time: it has now been answered either way.
-         *
-         * Being granted also puts the site in the pane, because arriving here
-         * from the pane's own button is not a request to change a setting - it
-         * is a request to see the thing. */
-        const patch = { grantedAt: Date.now(), pending: '' };
-        if (granted && c.pending) { patch.url = c.pending; patch.enabled = true; }
-        saveCompanion(patch);
-        if (next === 'companion:allow' && !granted) {
-          toastNote('The browser did not grant that. It can be opened in a window instead.');
-        }
-      });
+      /* Opened straight away rather than after a pause to read the note: the
+       * page that opens says the same thing, and a delay is one more moment
+       * where nothing appears to be happening. */
+      toastNote('The browser would not ask here. Opening the page where it can.');
+      chrome.runtime.openOptionsPage();
     });
   }
 
@@ -450,7 +482,7 @@
     tiles.push({ label: labelFor(raw), url: raw });
 
     field.value = '';
-    saveCompanion({ tiles: tiles, enabled: true });
+    saveCompanion({ tiles: tiles, tilesTouched: true, enabled: true });
     togglePane(raw);
   }
 
@@ -593,121 +625,6 @@
     });
   }
 
-/* ---- beside the page ----
-   *
-   * Real windows, not a frame. The pane above puts a site inside the page,
-   * which only works for sites that publish something meant to be embedded.
-   * These are for everything else - the applications that refuse to be
-   * embedded at all, where the refusal is about being inside another page and
-   * a window of their own is not. */
-  function windowsState() {
-    return Object.assign({}, NWT.DEFAULT_SETTINGS.windows, settings.windows);
-  }
-
-  function saveWindows(patch) {
-    const next = Object.assign({}, windowsState(), patch);
-    save({ windows: next });
-    renderWindows();
-    return next;
-  }
-
-  /* The screen this popup is on, which is the screen the page is on. Read here
-   * rather than in the worker because reading it properly there needs a
-   * permission this extension does not want. availWidth and availLeft, so a
-   * taskbar counts as space taken rather than space to hide a window under. */
-  function screenArea() {
-    return { left: screen.availLeft | 0, top: screen.availTop | 0,
-             width: screen.availWidth, height: screen.availHeight };
-  }
-
-  function arrange(state) {
-    const w = state || windowsState();
-    if (!w.enabled) return;
-    const urls = (w.items || []).filter(it => it && it.on)
-      .map(it => NWT.companionSrc(it.url) || it.url).slice(0, 4);
-    chrome.runtime.sendMessage({
-      type: 'windows:arrange', screen: screenArea(), split: w.split, urls: urls
-    }, function () { void chrome.runtime.lastError; });
-  }
-
-  function renderWindows() {
-    const w = windowsState();
-    const items = Array.isArray(w.items) ? w.items : [];
-
-    $('windowsEnabled').checked = !!w.enabled;
-    $('windows-empty').style.display = items.length ? 'none' : '';
-    $('windows-split').value = String(w.split);
-    $('windows-split-out').textContent = w.split + '%';
-
-    const host = $('windows-list');
-    host.textContent = '';
-    items.forEach(function (item) {
-      const row = document.createElement('div');
-      row.className = 'row between beside-item';
-
-      const label = document.createElement('label');
-      label.className = 'check tiny grow';
-      label.title = item.url;
-      const box = document.createElement('input');
-      box.type = 'checkbox';
-      box.checked = !!item.on;
-      /* Four is the ceiling: a quarter of a screen is usable, a sixth is not.
-       * The ones already on stay clickable so you can swap. */
-      const open = items.filter(it => it.on).length;
-      box.disabled = !item.on && open >= 4;
-      box.addEventListener('change', function () {
-        const next = items.map(function (it) {
-          return it.url === item.url ? Object.assign({}, it, { on: box.checked }) : it;
-        });
-        /* Turning one on implies wanting them arranged; nobody adds a window
-         * and then goes looking for a second switch. */
-        const state = saveWindows({ items: next, enabled: box.checked || w.enabled });
-        if (box.checked) arrange(state);
-        else chrome.runtime.sendMessage(
-          { type: 'windows:close', url: NWT.companionSrc(item.url) || item.url },
-          function () { void chrome.runtime.lastError; arrange(state); });
-      });
-      label.appendChild(box);
-      const name = document.createElement('span');
-      name.textContent = ' ' + item.label;
-      label.appendChild(name);
-      row.appendChild(label);
-
-      const drop = document.createElement('button');
-      drop.type = 'button';
-      drop.className = 'drop';
-      drop.title = 'Remove ' + item.label;
-      drop.setAttribute('aria-label', 'Remove ' + item.label);
-      drop.textContent = '×';
-      drop.addEventListener('click', function () {
-        saveWindows({ items: items.filter(it => it.url !== item.url) });
-        chrome.runtime.sendMessage(
-          { type: 'windows:close', url: NWT.companionSrc(item.url) || item.url },
-          function () { void chrome.runtime.lastError; });
-      });
-      row.appendChild(drop);
-      host.appendChild(row);
-    });
-  }
-
-  function addWindowLink() {
-    const field = $('windows-url');
-    const raw = field.value.trim();
-    if (!NWT.companionSrc(raw)) {
-      field.setAttribute('aria-invalid', 'true');
-      toastNote('That needs to be a full web address, starting with https.', 'windows-note');
-      return;
-    }
-    field.removeAttribute('aria-invalid');
-    const w = windowsState();
-    const items = (Array.isArray(w.items) ? w.items : [])
-      .filter(function (it) { return it.url !== raw; });
-    items.push({ label: labelFor(raw), url: raw, on: true });
-    field.value = '';
-    const state = saveWindows({ items: items, enabled: true });
-    arrange(state);
-  }
-
   function toastNote(text, target) {
     const note = $(target || 'companion-note');
     const settled = note.textContent;
@@ -723,15 +640,8 @@
       saveCompanion({ enabled: $('companionEnabled').checked });
     });
     $('companion-add').addEventListener('click', addTile);
-    $('companion-access-btn').addEventListener('click', toggleAccess);
+    $('companion-access-btn').addEventListener('click', askAllow);
 
-    $('windowsEnabled').addEventListener('change', function () {
-      const on = $('windowsEnabled').checked;
-      const state = saveWindows({ enabled: on });
-      if (on) arrange(state);
-      else chrome.runtime.sendMessage({ type: 'windows:restore' },
-        function () { void chrome.runtime.lastError; load(renderAll); });
-    });
     ['theme', 'focus', 'split'].forEach(function (name) {
       $('tab-' + name).addEventListener('click', function () { showTab(name); });
     });
@@ -757,19 +667,6 @@
       writeWidth();
     });
 
-    $('windows-add').addEventListener('click', addWindowLink);
-    $('windows-url').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') addWindowLink();
-    });
-    /* Held back like the other sliders: a range fires on every pixel, and each
-     * write here would move every window on the screen. */
-    const writeSplit = NWT.debounce(function () {
-      arrange(saveWindows({ split: Number($('windows-split').value) }));
-    }, 200);
-    $('windows-split').addEventListener('input', function () {
-      $('windows-split-out').textContent = $('windows-split').value + '%';
-      writeSplit();
-    });
     $('companion-url').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') addTile();
     });

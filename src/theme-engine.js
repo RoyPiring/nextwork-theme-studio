@@ -358,6 +358,18 @@
     'orange-dark': '#ff4405'
   };
 
+  /* The two suggestions the pane starts with, so its row is not an empty box
+   * you have to guess the purpose of. They are the two sites this was built
+   * for - something to watch and somewhere to talk - and each is removed with
+   * one click, after which they are not offered again.
+   *
+   * Nothing is requested from either until someone clicks one. They are text
+   * in a list, and the audit allows these two lines by name for that reason,
+   * the same way it allows the player below. A fourth remote address is a
+   * change to the audit that has to be argued for on its own. */
+  const STARTER_YOUTUBE = 'https://www.youtube.com';
+  const STARTER_DISCORD = 'https://discord.com/channels/@me';
+
   const DEFAULT_SETTINGS = {
     enabled: true,
     themeId: 'concrete',
@@ -406,12 +418,6 @@
       y: null,
       w: 380,              /* px, and resizable by dragging the corner */
       h: 260,
-      /* Side by side: the page on the left of the screen and the companion in
-       * its own window on the right, both real browser windows. Set here so
-       * the pane knows to stand aside, and so it survives a reload. */
-      docked: false,
-      /* Where the page's window was before it was moved, to put it back. */
-      priorWindow: null,
       /* Bumped when a site is allowed or taken back. An open page caches what
        * it was told about a site, and this is how it learns the answer moved. */
       grantedAt: 0,
@@ -426,6 +432,21 @@
        * `url` above is what a single pane used to be, and is folded in here on
        * first read so nothing written before this is lost. */
       panes: [],
+      /* Two to begin with, because an empty list is a feature you have to
+       * guess at. These are the two this was built for - something to watch
+       * and somewhere to talk - and both are removed with one click if they
+       * are not yours.
+       *
+       * Discord's own address rather than a particular server: it opens on
+       * whatever you were last in, which is the useful thing to land on. */
+      starters: [
+        { label: 'YouTube', url: STARTER_YOUTUBE },
+        { label: 'Discord', url: STARTER_DISCORD }
+      ],
+      /* Set the first time the list is added to or removed from, so the two
+       * above stop standing in for it. Without it, removing both starters
+       * would leave an empty list that the starters immediately refilled. */
+      tilesTouched: false,
       /* Saved places to put in it, as { label, url }. The list is the point:
        * the pane holds one at a time and these are what to switch between. */
       tiles: []
@@ -457,30 +478,6 @@
        * the list on first read. */
       url: ''
     },
-    /* Beside the page, rather than inside it.
-     *
-     * A separate feature from the pane above, because the two answer different
-     * questions and the difference is not cosmetic. The pane puts a site in a
-     * frame on the page, which only works for sites that publish something
-     * meant to be embedded - a video player, a document. Most applications
-     * refuse to be embedded at all, and no permission changes that: the
-     * refusal is about being inside another page.
-     *
-     * These are real browser windows, arranged around the page rather than
-     * drawn on it. A window is not an embedding, so a site that will not be
-     * framed signs in and behaves exactly as it does in a tab. Discord belongs
-     * here; a YouTube video belongs in the pane. Keeping them as one feature
-     * meant every site had to pretend to be the other. */
-    windows: {
-      enabled: false,
-      /* Per cent of the screen the page keeps. The rest is shared out among
-       * whatever is open beside it. */
-      split: 62,
-      /* { label, url, on } - `on` is whether its window is open now. */
-      items: [],
-      /* Where the page's window was before it was first moved. */
-      priorWindow: null
-    },
     options: {
       dimImages: 0,          /* 0-40 % - knocks the glare off bright screenshots */
       softenShadows: true,   /* light-mode drop shadows look like smudges on dark */
@@ -505,6 +502,7 @@
    * is the browser loading a page a person chose, the same as opening a tab.
    * The audit allows this one literal by name and nothing else. */
   const YOUTUBE_PLAYER = 'https://www.youtube.com/embed/';
+
 
 
   /* What to actually put in the companion pane for a given address.
@@ -1743,6 +1741,11 @@
     /* While dragging, no frame may swallow the pointer - a cross-origin frame
      * takes every move event over it and the divider stops halfway. */
 
+    /* Folded, it is its bar and nothing else. */
+    L.push('.nwt-companion[data-collapsed="1"] { height: auto !important; }');
+    L.push('.nwt-companion[data-collapsed="1"] .nwt-companion-body,' +
+           ' .nwt-companion[data-collapsed="1"] .nwt-companion-grip {' +
+           ' display: none; }');
     L.push('.nwt-companion .nwt-companion-grip { position: absolute; right: 0;' +
            ' bottom: 0; width: 22px; height: 22px; cursor: nwse-resize;' +
            ' background: linear-gradient(135deg, transparent 46%, ' +

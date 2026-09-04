@@ -402,12 +402,6 @@ test('the popup opens on the pane as it was left', () => {
   assert.equal(p.el('companion-empty').style.display, 'none');
 });
 
-test('with nothing saved it says so rather than showing an empty row', () => {
-  const p = openPopup({ enabled: true });
-  assert.equal(tiles(p).length, 0);
-  assert.notEqual(p.el('companion-empty').style.display, 'none');
-});
-
 test('the timer offers the short sessions as well as the long ones', () => {
   /* Five and ten minutes are the ones you reach for to start at all. */
   const p = openPopup({ enabled: true });
@@ -451,16 +445,6 @@ test('a site that will not be framed offers to be allowed', () => {
 test('a player is not offered, because it needs no permission', () => {
   const p = openPopup({ enabled: true, companion: { enabled: true, url: VIDEO } });
   assert.equal(p.el('companion-access').style.display, 'none');
-});
-
-test('taking a site back is the same control, the other way round', () => {
-  const p = openPopup({
-    enabled: true, companion: { enabled: true, url: DISCORD }
-  }, { allowed: ['https://discord.com'] });
-  assert.match(p.el('companion-access-note').textContent, /is allowed/);
-  p.click(p.el('companion-access-btn'));
-  p.flush();
-  assert.deepEqual(p.granted(), []);
 });
 
 test('arriving from the pane leads with the site the pane asked about', () => {
@@ -570,118 +554,6 @@ test('a link marked for a window opens one instead of filling the pane', () => {
     'it pointed the pane at a link known not to work in one');
 });
 
-test('adding a link there opens it and turns the arrangement on', () => {
-  const p = openPopup({ enabled: true });
-  p.set('windows-url', DISCORD);
-  p.click(p.el('windows-add'));
-  p.flush();
-
-  const w = p.stored.windows;
-  assert.equal(w.enabled, true, 'it was saved but nothing was arranged');
-  assert.deepEqual(w.items, [{ label: 'Discord', url: DISCORD, on: true }]);
-  const asked = p.sent().filter(m => m.type === 'windows:arrange');
-  assert.equal(asked.length, 1);
-  assert.deepEqual(asked[0].urls, [DISCORD]);
-  assert.ok(asked[0].screen.width > 0,
-    'it asked for an arrangement without saying how big the screen is');
-});
-
-test('turning one off closes its window and rearranges the rest', () => {
-  const p = openPopup({
-    enabled: true,
-    windows: { enabled: true, split: 62, items: [
-      { label: 'Discord', url: DISCORD, on: true },
-      { label: 'YouTube', url: VIDEO, on: true }] }
-  });
-  const boxes = p.el('windows-list').querySelectorAll('input');
-  boxes[0].checked = false;
-  p.fireOn(boxes[0], 'change');
-  p.flush();
-
-  assert.equal(p.sent().filter(m => m.type === 'windows:close').length, 1,
-    'the window was left open');
-  assert.equal(p.stored.windows.items[0].on, false);
-  assert.equal(p.stored.windows.items[1].on, true, 'it closed the wrong one, or both');
-  /* The one still open is rearranged to take the space the other left. */
-  const last = p.sent().filter(m => m.type === 'windows:arrange').pop();
-  assert.deepEqual(last.urls, [VIDEO.replace('www.youtube.com/watch?v=', 'www.youtube.com/embed/')
-    .replace('&t=90', '')]);
-});
-
-test('a fifth cannot be turned on, because a sixth of a screen is not usable', () => {
-  const on = n => ({ label: 'S' + n, url: 'https://s' + n + '.example/', on: true });
-  const p = openPopup({
-    enabled: true,
-    windows: { enabled: true, split: 62, items: [
-      on(1), on(2), on(3), on(4),
-      { label: 'S5', url: 'https://s5.example/', on: false }] }
-  });
-  const boxes = p.el('windows-list').querySelectorAll('input');
-  assert.equal(boxes[4].disabled, true, 'a fifth could be turned on');
-  assert.equal(boxes[0].disabled, false, 'the ones already on cannot be swapped out');
-});
-
-test('turning the arrangement off puts the page back', () => {
-  const p = openPopup({
-    enabled: true,
-    windows: { enabled: true, split: 62,
-               items: [{ label: 'Discord', url: DISCORD, on: true }] }
-  });
-  p.set('windowsEnabled', false);
-  p.fire('windowsEnabled', 'change');
-  p.flush();
-
-  assert.equal(p.stored.windows.enabled, false);
-  assert.equal(p.sent().filter(m => m.type === 'windows:restore').length, 1,
-    'the page was left at part width');
-});
-
-test('the split writes once when it settles, not once per pixel', () => {
-  /* Each write moves every window on the screen. */
-  const p = openPopup({
-    enabled: true,
-    windows: { enabled: true, split: 62,
-               items: [{ label: 'Discord', url: DISCORD, on: true }] }
-  });
-  for (let v = 50; v <= 62; v++) {
-    p.set('windows-split', v);
-    p.fireOnly('windows-split', 'input');
-  }
-  assert.equal(p.sent().filter(m => m.type === 'windows:arrange').length, 0,
-    'it rearranged mid-drag');
-  p.flush();
-  assert.equal(p.sent().filter(m => m.type === 'windows:arrange').length, 1,
-    'a whole drag should settle into one arrangement');
-  assert.equal(p.stored.windows.split, 62);
-});
-
-test('the two sections keep their own lists', () => {
-  /* They answer different questions and a link belongs to one or the other.
-   * Sharing a list meant every site had to pretend to be the other kind. */
-  const p = openPopup({ enabled: true });
-  p.set('companion-url', VIDEO);
-  p.click(p.el('companion-add'));
-  p.set('windows-url', DISCORD);
-  p.click(p.el('windows-add'));
-  p.flush();
-
-  assert.deepEqual(p.stored.companion.tiles.map(t => t.url), [VIDEO]);
-  assert.deepEqual(p.stored.windows.items.map(i => i.url), [DISCORD]);
-});
-
-test('an address it cannot open is refused there too', () => {
-  const p = openPopup({ enabled: true });
-  p.set('windows-url', 'notes.txt');
-  p.fireOnly('windows-add', 'click');
-
-  assert.equal(p.el('windows-url').getAttribute('aria-invalid'), 'true');
-  assert.match(p.el('windows-note').textContent, /full web address/);
-  p.flush();
-  assert.equal(p.stored.windows, undefined, 'a bad address was saved anyway');
-});
-
-/* ------------------------------------------------------------------- tabs */
-
 test('the popup opens on one tab and switches between three', () => {
   /* Three unrelated things share this popup, and in one column you scrolled
    * past two features to reach the third. */
@@ -706,7 +578,7 @@ test('every control still exists behind its tab', () => {
   ['enabled', 'sceneBackdrop', 'focusEnabled', 'themes', 'hue',
    'focus-toggle', 'focus-targets', 'focus-chime',
    'splitEnabled', 'split-url', 'split-width',
-   'companionEnabled', 'companion-tiles', 'windowsEnabled', 'windows-list']
+   'companionEnabled', 'companion-tiles']
     .forEach(function (id) { assert.ok(p.el(id), id + ' is missing'); });
 });
 
@@ -735,35 +607,6 @@ test('the width writes once when the drag settles, not once per pixel', () => {
 
   p.flush();
   assert.equal(p.stored.split.width, 0.45);
-});
-
-test('asking to allow a site sends you where the prompt survives', () => {
-  /* The popup cannot grant anything. `permissions.request` has to come from an
-   * extension page in response to a click, and a popup is one - but the browser
-   * closes the popup to put its prompt on screen, and closing the page cancels
-   * the request. Nothing is granted and nothing says so. */
-  const p = openPopup({ enabled: true, companion: { enabled: true, url: DISCORD } });
-  p.click(p.el('companion-access-btn'));
-  p.flush();
-
-  assert.equal(p.opened.optionsPage, 1, 'it tried to ask from the popup again');
-  assert.equal(p.stored.companion.pending, DISCORD,
-    'the site was not written down, so that page opens asking about nothing');
-  assert.deepEqual(p.sent().filter(m => m.type === 'companion:allow'), [],
-    'it still asked the worker to raise a prompt the popup cannot survive');
-});
-
-test('taking a site back is still done from here, since nothing is prompted', () => {
-  /* Only granting needs the prompt. Removing one does not, so it stays where
-   * you are already looking. */
-  const p = openPopup({
-    enabled: true, companion: { enabled: true, url: DISCORD }
-  }, { allowed: ['https://discord.com'] });
-  p.click(p.el('companion-access-btn'));
-  p.flush();
-
-  assert.deepEqual(p.granted(), []);
-  assert.equal(p.opened.optionsPage, 0, 'it opened a page for something it could do itself');
 });
 
 test('adding a panel turns the split on in one step', () => {
@@ -935,4 +778,69 @@ test('shift-clicking a marked link lifts the mark without opening a pane', () =>
   p.flush();
 
   assert.ok(!p.stored.companion.tiles[0].windowed, 'the mark was not lifted');
+});
+
+test('the row starts with the two it was built for, not empty', () => {
+  /* An empty box is a feature you have to guess at. Both are removed with one
+   * click, and once the list has been touched they are not offered again. */
+  const p = openPopup({ enabled: true });
+  const names = tiles(p).map(function (b) { return b.textContent; });
+  assert.deepEqual(names, ['YouTube', 'Discord']);
+});
+
+test('removing a suggestion is remembered, so it does not come back', () => {
+  const p = openPopup({ enabled: true });
+  p.click(drops(p)[0]);
+  p.flush();
+
+  assert.equal(p.stored.companion.tilesTouched, true,
+    'the list was left looking untouched, so the suggestions refill it');
+  const names = tiles(p).map(function (b) { return b.textContent; });
+  assert.deepEqual(names, ['Discord'], 'the suggestion came back');
+});
+
+test('what is allowed is listed in the panel, and can be taken back there', () => {
+  /* It used to be on the options page only, which is a different surface from
+   * the one holding the links it applies to. */
+  const p = openPopup({
+    enabled: true, companion: { enabled: true, panes: [{ url: DISCORD }] }
+  }, { allowed: ['https://discord.com'] });
+  p.flush();
+
+  const rows = p.el('allowed-list').querySelectorAll('button');
+  assert.equal(rows.length, 1, 'the allowed site was not listed in the panel');
+
+  p.click(rows[0]);
+  p.flush();
+  assert.deepEqual(p.granted(), [], 'it could not be taken back from here');
+});
+
+test('allowing a site is asked for here first', () => {
+  /* Being sent to another page is the last resort, not the first thing that
+   * happens - but the site is written down first, so that page has it if the
+   * browser will not ask here. */
+  const p = openPopup({
+    enabled: true, companion: { enabled: true, panes: [{ url: DISCORD }] }
+  });
+  p.click(p.el('companion-access-btn'));
+  p.flush();
+
+  assert.deepEqual(p.granted(), ['https://discord.com'], 'it did not ask here');
+  assert.equal(p.opened.optionsPage, 0, 'it sent you elsewhere anyway');
+  assert.equal(p.stored.companion.pending, '',
+    'the question was left standing after it was answered');
+});
+
+test('a browser that will not ask here opens the page where it can', () => {
+  const p = openPopup({
+    enabled: true, companion: { enabled: true, panes: [{ url: DISCORD }] }
+  });
+  p.refuseGrants();
+  p.click(p.el('companion-access-btn'));
+  p.flush();
+
+  assert.deepEqual(p.granted(), []);
+  assert.equal(p.opened.optionsPage, 1, 'it gave up rather than carrying on');
+  assert.equal(p.stored.companion.pending, DISCORD,
+    'that page opens asking about nothing');
 });
