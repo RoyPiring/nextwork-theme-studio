@@ -136,6 +136,7 @@
     renderFocus();
     renderCompanion();
     renderWindows();
+    renderSplitPanel();
   }
 
   /* A range input fires on every pixel of travel. Writing storage on each one
@@ -420,6 +421,58 @@
     }
   }
 
+/* ---- tabs ----
+   * Three things live in this popup and they are not related to each other:
+   * how the site looks, a timer, and what sits beside the page. In one column
+   * you scrolled past two features to reach the third.
+   *
+   * Which tab is showing is not a setting - it is where you were a moment ago
+   * - so it is kept beside the popup rather than written in with the themes. */
+  function showTab(name) {
+    ['theme', 'focus', 'split'].forEach(function (id) {
+      $('tab-' + id).setAttribute('aria-selected', String(id === name));
+      $('panel-' + id).hidden = id !== name;
+    });
+    try { localStorage.setItem('nwt-tab', name); } catch (e) { /* private mode */ }
+  }
+
+  /* ---- the split ---- */
+  function splitState() {
+    return Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
+  }
+
+  function saveSplit(patch) {
+    const next = Object.assign({}, splitState(), patch);
+    save({ split: next });
+    renderSplitPanel();
+    return next;
+  }
+
+  function renderSplitPanel() {
+    const sp = splitState();
+    $('splitEnabled').checked = !!sp.enabled;
+    /* Not while it is being typed into, or every keystroke is overwritten by
+     * whatever was last saved. */
+    if (document.activeElement !== $('split-url')) $('split-url').value = sp.url || '';
+    const pct = Math.round(Math.max(0.18, Math.min(0.72, Number(sp.width) || 0.36)) * 100);
+    $('split-width').value = String(pct);
+    $('split-width-out').textContent = pct + '%';
+  }
+
+  function setSplitLink() {
+    const field = $('split-url');
+    const raw = field.value.trim();
+    if (!NWT.companionSrc(raw)) {
+      field.setAttribute('aria-invalid', 'true');
+      toastNote('That needs to be a full web address, starting with https.', 'split-note');
+      return;
+    }
+    field.removeAttribute('aria-invalid');
+    /* Choosing something to show is the whole instruction; turning the split
+     * on afterwards would be a second step with no meaning of its own. */
+    saveSplit({ url: raw, enabled: true });
+  }
+
 /* ---- beside the page ----
    *
    * Real windows, not a frame. The pane above puts a site inside the page,
@@ -559,6 +612,31 @@
       else chrome.runtime.sendMessage({ type: 'windows:restore' },
         function () { void chrome.runtime.lastError; load(renderAll); });
     });
+    ['theme', 'focus', 'split'].forEach(function (name) {
+      $('tab-' + name).addEventListener('click', function () { showTab(name); });
+    });
+    let opening = 'theme';
+    try { opening = localStorage.getItem('nwt-tab') || 'theme'; } catch (e) { /* private mode */ }
+    showTab(['theme', 'focus', 'split'].indexOf(opening) === -1 ? 'theme' : opening);
+
+    $('splitEnabled').addEventListener('change', function () {
+      saveSplit({ enabled: $('splitEnabled').checked });
+    });
+    $('split-set').addEventListener('click', setSplitLink);
+    $('split-url').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') setSplitLink();
+    });
+    /* Held back like the other sliders: a range fires on every pixel, and each
+     * write reaches every open tab. The divider on the page itself is what
+     * this is for when you want to see it move. */
+    const writeWidth = NWT.debounce(function () {
+      saveSplit({ width: Number($('split-width').value) / 100 });
+    }, 160);
+    $('split-width').addEventListener('input', function () {
+      $('split-width-out').textContent = $('split-width').value + '%';
+      writeWidth();
+    });
+
     $('windows-add').addEventListener('click', addWindowLink);
     $('windows-url').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') addWindowLink();

@@ -1326,3 +1326,126 @@ test('the way back to full width is on the pane', () => {
   assert.equal(page.sent.filter(m => m.type === 'companion:undock').length, 1,
     'the way back did not lead anywhere');
 });
+
+/* ------------------------------------------------------------- the split */
+/* One tab, two boxes: the page narrowed to the left, something else in the
+ * right, with a divider between them. */
+
+function splitOn(over) {
+  return loadContentScript({
+    settings: Object.assign({ enabled: true,
+      split: Object.assign({ enabled: true, url: VIDEO, width: 0.36 }, over) }, {}),
+    allowed: ['https://discord.com']
+  });
+}
+function splitPane(page) { return page.doc.getElementById('nwt-split'); }
+function splitFrame(page) { return splitPane(page).querySelector('.nwt-split-frame'); }
+
+test('the split narrows the page and puts the link in the other half', () => {
+  const page = splitOn();
+  page.flush();
+
+  const html = page.doc.documentElement;
+  assert.ok(html.classList.contains('nwt-split-on'), 'the page did not make room');
+  assert.equal(html.style.getPropertyValue('--nwt-split-w'),
+    Math.round(page.window.innerWidth * 0.36) + 'px',
+    'the panel is not the share of the window it was told to be');
+  assert.equal(splitFrame(page).getAttribute('src'), EMBED);
+  assert.equal(splitPane(page).getAttribute('data-state'), 'ready');
+});
+
+test('turning the split off gives the page its width back', () => {
+  const page = splitOn();
+  page.flush();
+  assert.ok(page.doc.documentElement.classList.contains('nwt-split-on'));
+
+  page.chrome.storage.local.set({ split: { enabled: false, url: VIDEO } });
+  page.flush();
+
+  assert.equal(splitPane(page), null, 'the panel is still there');
+  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-on'),
+    'the page was left narrowed with nothing beside it');
+  assert.equal(page.doc.documentElement.style.getPropertyValue('--nwt-split-w'), '',
+    'the width it was narrowed by was left behind');
+});
+
+test('turning the theme off takes the split with it', () => {
+  const page = splitOn();
+  page.flush();
+  page.chrome.storage.local.set({ enabled: false });
+  page.flush();
+
+  assert.equal(splitPane(page), null);
+  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-on'),
+    'the page was left narrowed by an extension that is switched off');
+});
+
+test('a width dragged past either edge is brought back', () => {
+  /* This comes from storage, and a divider dragged off the edge leaves one
+   * half unusable with no way to get hold of it again. */
+  const wide = splitOn({ width: 5 });
+  wide.flush();
+  assert.equal(wide.doc.documentElement.style.getPropertyValue('--nwt-split-w'),
+    Math.round(wide.window.innerWidth * 0.72) + 'px', 'it was let past the wide edge');
+
+  const thin = splitOn({ width: 0.001 });
+  thin.flush();
+  assert.equal(thin.doc.documentElement.style.getPropertyValue('--nwt-split-w'),
+    Math.round(thin.window.innerWidth * 0.18) + 'px', 'it was let past the narrow edge');
+});
+
+test('closing the split from its own bar turns it off for good', () => {
+  const page = splitOn();
+  page.flush();
+  splitPane(page).querySelector('.nwt-split-hide').click();
+  page.flush();
+
+  assert.equal(page.stored.split.enabled, false,
+    'closing it did not turn it off, so it comes straight back');
+});
+
+test('a site that refuses to be framed says so in the split too', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, split: { enabled: true, url: DISCORD } }
+  });
+  page.flush();
+
+  assert.equal(splitPane(page).getAttribute('data-state'), 'blocked');
+  assert.equal(splitFrame(page).getAttribute('src'), null);
+  assert.match(splitPane(page).querySelector('.nwt-split-said').textContent,
+    /refuses to be shown inside another page/);
+});
+
+test('the split and the pane are separate, and can both be on', () => {
+  /* They answer different questions and one is not a replacement for the
+   * other: a video can sit in either, and which you want is a preference. */
+  const page = loadContentScript({
+    settings: { enabled: true,
+      split: { enabled: true, url: VIDEO },
+      companion: { enabled: true, url: VIDEO } }
+  });
+  page.flush();
+
+  assert.ok(splitPane(page), 'the split is missing');
+  assert.ok(page.doc.getElementById('nwt-companion'), 'the pane is missing');
+});
+
+test('a repaint does not reload the split, and a rebuilt one is not left empty', () => {
+  const page = splitOn();
+  page.flush();
+  const frame = splitFrame(page);
+  let sets = 0;
+  const real = frame.setAttribute.bind(frame);
+  frame.setAttribute = function (n, v) { if (n === 'src') sets++; return real(n, v); };
+  page.chrome.storage.local.set({ hue: 12 });
+  page.flush();
+  assert.equal(sets, 0, 'an unrelated change reloaded the panel');
+
+  /* And the case that made the pane sit blank for days: the site throws the
+   * panel away, and the guard has to notice the new frame is empty. */
+  splitPane(page).remove();
+  page.chrome.storage.local.set({ hue: 13 });
+  page.flush();
+  assert.equal(splitFrame(page).getAttribute('src'), EMBED,
+    'the rebuilt panel was left empty');
+});

@@ -168,6 +168,25 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   border-color: var(--ui-accent);
 }
 
+/* ---- tabs ----
+ * Three things live in this popup and they are not related: how the site
+ * looks, a timer, and what sits beside the page. Stacked in one column they
+ * made a page you had to scroll past two features to reach the third. */
+.tabs { display: flex; gap: 4px; margin-bottom: 12px;
+  background: var(--ui-surface); border: 1px solid var(--ui-border);
+  border-radius: 10px; padding: 3px; }
+.tabs button {
+  flex: 1; min-width: 0; padding: 6px 4px; font-size: 12px; font-weight: 600;
+  border: 0; background: transparent; color: var(--ui-text-muted);
+  border-radius: 7px;
+}
+.tabs button:hover { color: var(--ui-text); }
+.tabs button[aria-selected="true"] {
+  background: var(--ui-surface-alt); color: var(--ui-text);
+}
+.tab-panel { display: flex; flex-direction: column; gap: 12px; }
+.tab-panel[hidden] { display: none; }
+
 /* ---- theme cards ---- */
 .themes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .theme-head { margin-bottom: -2px; }

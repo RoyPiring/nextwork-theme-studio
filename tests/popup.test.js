@@ -802,3 +802,78 @@ test('an address it cannot open is refused there too', () => {
   p.flush();
   assert.equal(p.stored.windows, undefined, 'a bad address was saved anyway');
 });
+
+/* ------------------------------------------------------------------- tabs */
+
+test('the popup opens on one tab and switches between three', () => {
+  /* Three unrelated things share this popup, and in one column you scrolled
+   * past two features to reach the third. */
+  const p = openPopup({ enabled: true });
+  assert.equal(p.el('panel-theme').hidden, false);
+  assert.equal(p.el('panel-focus').hidden, true);
+  assert.equal(p.el('panel-split').hidden, true);
+  assert.equal(p.el('tab-theme').getAttribute('aria-selected'), 'true');
+
+  p.click(p.el('tab-split'));
+  assert.equal(p.el('panel-split').hidden, false);
+  assert.equal(p.el('panel-theme').hidden, true, 'two panels were showing at once');
+  assert.equal(p.el('tab-split').getAttribute('aria-selected'), 'true');
+  assert.equal(p.el('tab-theme').getAttribute('aria-selected'), 'false');
+});
+
+test('every control still exists behind its tab', () => {
+  /* Hiding a panel must not detach it: the script wires each control by id at
+   * load, and a control that moved into a hidden panel and lost its id would
+   * fail here rather than shipping as a switch that does nothing. */
+  const p = openPopup({ enabled: true });
+  ['enabled', 'sceneBackdrop', 'focusEnabled', 'themes', 'hue',
+   'focus-toggle', 'focus-targets', 'focus-chime',
+   'splitEnabled', 'split-url', 'split-width',
+   'companionEnabled', 'companion-tiles', 'windowsEnabled', 'windows-list']
+    .forEach(function (id) { assert.ok(p.el(id), id + ' is missing'); });
+});
+
+/* ------------------------------------------------------------- the split */
+
+test('choosing a link for the split turns it on in one step', () => {
+  const p = openPopup({ enabled: true });
+  p.set('split-url', VIDEO);
+  p.click(p.el('split-set'));
+  p.flush();
+
+  assert.equal(p.stored.split.url, VIDEO);
+  assert.equal(p.stored.split.enabled, true,
+    'it was saved but the page was never split');
+});
+
+test('an address the split cannot open is refused and nothing is saved', () => {
+  const p = openPopup({ enabled: true });
+  p.set('split-url', 'notes.txt');
+  p.fireOnly('split-set', 'click');
+
+  assert.equal(p.el('split-url').getAttribute('aria-invalid'), 'true');
+  assert.match(p.el('split-note').textContent, /full web address/);
+  p.flush();
+  assert.equal(p.stored.split, undefined, 'a bad address was saved anyway');
+});
+
+test('the width writes once when the drag settles, not once per pixel', () => {
+  const p = openPopup({ enabled: true, split: { enabled: true, url: VIDEO, width: 0.36 } });
+  for (let v = 30; v <= 45; v++) {
+    p.set('split-width', v);
+    p.fireOnly('split-width', 'input');
+  }
+  assert.equal(p.stored.split.width, 0.36, 'a write reached storage mid-drag');
+  assert.equal(p.el('split-width-out').textContent, '45%',
+    'the readout did not follow the drag');
+
+  p.flush();
+  assert.equal(p.stored.split.width, 0.45);
+});
+
+test('the split panel opens on what was saved', () => {
+  const p = openPopup({ enabled: true, split: { enabled: true, url: VIDEO, width: 0.5 } });
+  assert.equal(p.el('splitEnabled').checked, true);
+  assert.equal(p.el('split-url').value, VIDEO);
+  assert.equal(p.el('split-width-out').textContent, '50%');
+});

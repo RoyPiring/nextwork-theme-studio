@@ -1023,6 +1023,241 @@
     grip.addEventListener('pointercancel', stop);
   }
 
+  /* ---- the split ---------------------------------------------------------
+   * One tab, two boxes: the page narrowed to the left, something else in the
+   * right, with a divider you drag. Not a panel floating over the work, and
+   * not a second window to manage - the page gives up part of its width and
+   * carries on working at the width it has.
+   *
+   * The right-hand box is still a frame, so a site that refuses to be embedded
+   * is refused here too. That is the same boundary the pane runs into, and it
+   * is reported the same way rather than left as an empty strip.
+   * --------------------------------------------------------------------- */
+  const SPLIT_ID = 'nwt-split';
+  let splitShowing = '';
+  let splitWatch = null;
+
+  function splitEl() {
+    let el = document.getElementById(SPLIT_ID);
+    if (el) return el;
+
+    el = document.createElement('div');
+    el.id = SPLIT_ID;
+
+    const grip = document.createElement('div');
+    grip.className = 'nwt-split-grip';
+    grip.title = 'Drag to change how the page is divided';
+    el.appendChild(grip);
+
+    const bar = document.createElement('div');
+    bar.className = 'nwt-split-bar';
+    const title = document.createElement('span');
+    title.className = 'nwt-split-title';
+    bar.appendChild(title);
+
+    const out = document.createElement('button');
+    out.type = 'button';
+    out.className = 'nwt-split-out';
+    out.title = 'Open in a window of its own';
+    out.textContent = '↗';
+    bar.appendChild(out);
+
+    const hide = document.createElement('button');
+    hide.type = 'button';
+    hide.className = 'nwt-split-hide';
+    hide.title = 'Give the page its full width back';
+    hide.textContent = '×';
+    bar.appendChild(hide);
+    el.appendChild(bar);
+
+    const body = document.createElement('div');
+    body.className = 'nwt-split-body';
+    const frame = document.createElement('iframe');
+    frame.className = 'nwt-split-frame';
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms ' +
+      'allow-popups allow-popups-to-escape-sandbox allow-presentation ' +
+      'allow-modals allow-downloads allow-pointer-lock allow-orientation-lock ' +
+      'allow-storage-access-by-user-activation');
+    frame.setAttribute('allow',
+      'autoplay; microphone; camera; display-capture; speaker-selection; ' +
+      'picture-in-picture; encrypted-media; fullscreen');
+    frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+    body.appendChild(frame);
+
+    const said = document.createElement('p');
+    said.className = 'nwt-split-said';
+    body.appendChild(said);
+    el.appendChild(body);
+
+    (document.body || document.documentElement).appendChild(el);
+    return el;
+  }
+
+  function removeSplit() {
+    if (splitWatch) { clearTimeout(splitWatch); splitWatch = null; }
+    const el = document.getElementById(SPLIT_ID);
+    if (el) el.remove();
+    document.documentElement.classList.remove('nwt-split-on');
+    document.documentElement.style.removeProperty('--nwt-split-w');
+    splitShowing = '';
+  }
+
+  /* Clamped rather than trusted: this comes from storage, and a divider
+   * dragged off either edge leaves one half unusable with no way back. */
+  function splitWidth(split) {
+    const f = Number(split.width);
+    const frac = isFinite(f) ? Math.max(0.18, Math.min(0.72, f)) : 0.36;
+    return Math.round(window.innerWidth * frac);
+  }
+
+  function renderSplit(settings) {
+    const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
+    if (!settings.enabled || !split.enabled || !TOP_FRAME) { removeSplit(); return; }
+
+    const el = splitEl();
+    document.documentElement.style.setProperty('--nwt-split-w', splitWidth(split) + 'px');
+    document.documentElement.classList.add('nwt-split-on');
+
+    const frame = el.querySelector('.nwt-split-frame');
+    const said = el.querySelector('.nwt-split-said');
+    const src = NWT.companionSrc(split.url);
+    el.querySelector('.nwt-split-title').textContent = splitLabel(split, src);
+    wireSplit(el);
+
+    if (!src) {
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'empty');
+      said.textContent = split.url
+        ? 'That is not an address this can open. It has to start with https.'
+        : 'Nothing chosen yet. Pick a link in the extension popup.';
+      splitShowing = '';
+      return;
+    }
+
+    /* Asked of the frame rather than of a variable beside it: the site rebuilds
+     * its body as it navigates, taking this with it, and a fresh element has no
+     * src however sure a variable is that it is already showing one. */
+    if (frame.getAttribute('src') === src) { splitShowing = src; return; }
+    splitShowing = src;
+    el.setAttribute('data-state', 'loading');
+    said.textContent = 'Loading…';
+
+    if (NWT.framesFreely(src)) {
+      frame.setAttribute('src', src);
+      el.setAttribute('data-state', 'ready');
+      watchSplitRefusal(el, frame, src);
+      return;
+    }
+    askAllowed(src, function (answer) {
+      if (splitShowing !== src) return;
+      if (answer.allowed && !answer.active) {
+        frame.removeAttribute('src');
+        el.setAttribute('data-state', 'blocked');
+        said.textContent =
+          'This site is allowed, but the rule that lets it through is not ' +
+          'installed, so the browser is still refusing it. Turn the extension ' +
+          'off and on again, or take the site back and allow it once more.';
+        return;
+      }
+      if (answer.allowed) {
+        frame.setAttribute('src', src);
+        el.setAttribute('data-state', 'ready');
+        watchSplitRefusal(el, frame, src);
+        return;
+      }
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'blocked');
+      said.textContent =
+        'This site refuses to be shown inside another page. Allow it in the ' +
+        'extension popup, or use the arrow above to open it in a window.';
+    });
+  }
+
+  /* The same measurement the pane uses: a browser refuses a frame by giving it
+   * no room, so a strip that stays empty says why instead of just sitting
+   * there. */
+  function watchSplitRefusal(el, frame, src) {
+    if (splitWatch) clearTimeout(splitWatch);
+    splitWatch = setTimeout(function () {
+      if (splitShowing !== src || !frame.isConnected) return;
+      const box = frame.getBoundingClientRect();
+      if (box.width > 0 && box.height > 0) return;
+      el.setAttribute('data-state', 'blocked');
+      el.querySelector('.nwt-split-said').textContent =
+        'The browser refused this frame, which it does by giving it no room ' +
+        'at all. The arrow above opens it in a window instead, which always ' +
+        'works.';
+    }, 2500);
+  }
+
+  function splitLabel(split, src) {
+    try {
+      return new URL(src || split.url).hostname.replace(/^www\./, '');
+    } catch (e) {
+      return 'Split';
+    }
+  }
+
+  function saveSplit(patch) {
+    chrome.storage.local.get({ split: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      chrome.storage.local.set({
+        split: Object.assign({}, NWT.DEFAULT_SETTINGS.split, stored.split, patch)
+      });
+    });
+  }
+
+  function wireSplit(el) {
+    if (el.dataset.wired === '1') return;
+    el.dataset.wired = '1';
+
+    el.querySelector('.nwt-split-hide').addEventListener('click', function () {
+      saveSplit({ enabled: false });
+    });
+    el.querySelector('.nwt-split-out').addEventListener('click', function () {
+      chrome.storage.local.get({ split: {} }, function (stored) {
+        const src = NWT.companionSrc((stored.split || {}).url);
+        if (!src) return;
+        chrome.runtime.sendMessage({ type: 'companion:window', url: src },
+          function () { void chrome.runtime.lastError; });
+      });
+    });
+
+    /* Dragging the divider. The width is written once the drag settles, for
+     * the same reason the dials are: every write reaches every open tab. */
+    const grip = el.querySelector('.nwt-split-grip');
+    let dragging = false;
+    const settle = NWT.debounce(function () {
+      const px = parseFloat(document.documentElement.style.getPropertyValue('--nwt-split-w'));
+      if (px > 0) saveSplit({ width: px / window.innerWidth });
+    }, 160);
+
+    grip.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      el.setAttribute('data-drag', '1');
+      try { grip.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+      if (e.preventDefault) e.preventDefault();
+    });
+    grip.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      /* Measured from the right edge of the window, so the divider lands under
+       * the pointer rather than drifting away from it. */
+      const px = Math.max(160, Math.min(window.innerWidth - 240,
+                                        window.innerWidth - e.clientX));
+      document.documentElement.style.setProperty('--nwt-split-w', Math.round(px) + 'px');
+      settle();
+    });
+    const stop = function (e) {
+      if (!dragging) return;
+      dragging = false;
+      el.removeAttribute('data-drag');
+      try { grip.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      settle.flush();
+    };
+    grip.addEventListener('pointerup', stop);
+    grip.addEventListener('pointercancel', stop);
+  }
+
   let paneGrantSeen = 0;
   /* The last settings the pane was drawn from, so it can be drawn again
    * without waiting for something else to change. */
@@ -1575,6 +1810,7 @@
       remove();
       removeHud();
       removePane();
+      removeSplit();
       unrescue();                   /* inline styles outlive the stylesheet */
       groundPalette = null;
       shadowSheetFor('');           /* neutralise the adopted copies in place */
@@ -1588,6 +1824,7 @@
     writeCache(true, s.themeId);
     renderHud(s);
     renderPane(s);
+    renderSplit(s);
 
     const theme = NWT.getTheme(s);
     /* One palette, one scheduler, one undo, whichever pass is wanted.

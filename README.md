@@ -107,6 +107,21 @@ voice channel works; screen share, modals, downloads, pointer lock. The one
 thing held back is the ability to replace the tab underneath — nothing in the
 pane can navigate the page you are working on.
 
+### Split the page
+
+The tab divided in two: your work narrowed to the left, something else in the
+right, with a divider you drag. Not a panel floating over the page and not a
+second window to manage — the page gives up part of its width and carries on
+working at the width it has, reflowing its own layout to fit.
+
+Paste a link in the **Split** tab and press Show. Drag the divider on the page
+itself, or use **Panel width** in the popup. The × on its bar gives the page
+its full width back.
+
+The right-hand half is a frame, so the same rule applies as to the pane: a
+video or a document works, an application that refuses to be embedded does not.
+When one is refused it says so rather than sitting there empty.
+
 ### Beside the page
 
 A second, separate section, because there are two different problems here and

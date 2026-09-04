@@ -423,6 +423,23 @@
        * the pane holds one at a time and these are what to switch between. */
       tiles: []
     },
+    /* The page narrowed to one side, and something else in the other - one
+     * tab, split down the middle, with a divider you can drag.
+     *
+     * This is the arrangement people mean by "split screen": not a panel
+     * floating on top of the work, and not a second window to manage, but the
+     * page giving up part of its width so something can sit beside it and stay
+     * there while you scroll and navigate.
+     *
+     * The page is narrowed rather than scaled, so its own layout reflows to
+     * the width it has been given and stays readable. */
+    split: {
+      enabled: false,
+      url: '',
+      /* How much of the window the panel takes, as a fraction, so it holds
+       * its proportion when the window is resized. */
+      width: 0.36
+    },
     /* Beside the page, rather than inside it.
      *
      * A separate feature from the pane above, because the two answer different
@@ -1572,6 +1589,56 @@
     /* Big enough to find and dark enough to see. At 16px with a half-strength
      * wash it was neither, and the first thing anyone asked was where the
      * corner to drag was. */
+    /* ---- the split ----------------------------------------------------
+     * One tab, two boxes. The page gives up part of its width and something
+     * else sits in the rest of it, staying there while you scroll and
+     * navigate. The page is narrowed rather than scaled, so its own layout
+     * reflows to the width it has and stays readable at that size. */
+    L.push('html.nwt-split-on { width: calc(100% - var(--nwt-split-w, 36%))' +
+           ' !important; overflow-x: hidden !important; }');
+    /* Fixed to the window rather than to the narrowed page, so it keeps the
+     * right-hand strip whatever the page does with its own layout. */
+    L.push('#nwt-split { position: fixed; top: 0; right: 0; height: 100vh;' +
+           ' width: var(--nwt-split-w, 36%); z-index: 2147483645;' +
+           ' display: flex; flex-direction: column; box-sizing: border-box;' +
+           ' border-left: 1px solid ' + p.panelEdge + ';' +
+           ' background: ' + p.surface + '; color: var(--nwt-text);' +
+           ' font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }');
+    L.push('#nwt-split .nwt-split-bar { display: flex; align-items: center;' +
+           ' gap: 6px; padding: 6px 8px; flex: none; cursor: default;' +
+           ' border-bottom: 1px solid ' + p.panelEdge + ';' +
+           ' background: ' + p.surfaceAlt + '; }');
+    L.push('#nwt-split .nwt-split-title { flex: 1; min-width: 0; font-size: 12px;' +
+           ' font-weight: 600; overflow: hidden; text-overflow: ellipsis;' +
+           ' white-space: nowrap; color: var(--nwt-text); }');
+    L.push('#nwt-split .nwt-split-bar button { flex: none; width: 24px;' +
+           ' height: 24px; padding: 0; font: inherit; font-size: 13px;' +
+           ' cursor: pointer; border-radius: 6px; border: 0;' +
+           ' background: transparent; color: var(--nwt-text-dim); }');
+    L.push('#nwt-split .nwt-split-bar button:hover { background: ' +
+           rgba(p.textMuted, 0.18) + '; color: var(--nwt-text); }');
+    L.push('#nwt-split .nwt-split-body { position: relative; flex: 1;' +
+           ' min-height: 0; }');
+    L.push('#nwt-split .nwt-split-frame { width: 100%; height: 100%; border: 0;' +
+           ' display: block; background: ' + p.canvas + '; }');
+    L.push('#nwt-split .nwt-split-said { position: absolute; inset: 0; margin: 0;' +
+           ' display: flex; flex-direction: column; align-items: center;' +
+           ' justify-content: center; gap: 12px; padding: 20px;' +
+           ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
+           ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
+    L.push('#nwt-split[data-state="ready"] .nwt-split-said { display: none; }');
+    L.push('#nwt-split[data-state="blocked"] .nwt-split-said { color: ' +
+           p.status.warning[400] + '; }');
+    /* The divider. Wider than it looks, because a 1px target is a target you
+     * miss; the line is drawn by the border beside it. */
+    L.push('#nwt-split .nwt-split-grip { position: absolute; left: -4px; top: 0;' +
+           ' bottom: 0; width: 9px; cursor: col-resize; z-index: 1; }');
+    L.push('#nwt-split .nwt-split-grip:hover, #nwt-split[data-drag="1"]' +
+           ' .nwt-split-grip { background: ' + rgba(p.accent, 0.5) + '; }');
+    /* While dragging, the frame must not swallow the pointer - a cross-origin
+     * frame takes every move event over it and the divider stops halfway. */
+    L.push('#nwt-split[data-drag="1"] .nwt-split-frame { pointer-events: none; }');
+
     L.push('#nwt-companion .nwt-companion-grip { position: absolute; right: 0;' +
            ' bottom: 0; width: 22px; height: 22px; cursor: nwse-resize;' +
            ' background: linear-gradient(135deg, transparent 46%, ' +
