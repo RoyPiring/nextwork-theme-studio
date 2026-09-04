@@ -534,6 +534,30 @@
    * permission from anybody, because the site already said yes by having it.
    * Kept to what the extension itself produces rather than a list of hosts to
    * keep up to date: anything else has to be asked for. */
+  /* Whether this address is a doorway rather than a destination.
+   *
+   * A YouTube link with a video in it becomes the player and plays. YouTube
+   * itself is a front page: it cannot be embedded, and embedding it would show
+   * you a wall of recommendations rather than the thing you meant. So the
+   * panel asks which video instead of loading something and failing.
+   *
+   * Discord is deliberately not in this list. There the address is the point -
+   * you are signed in and it opens where you left off - and asking for a
+   * different link would be asking a question with no answer. */
+  function needsLink(raw) {
+    let url;
+    try { url = new URL(String(raw == null ? '' : raw).trim()); } catch (e) { return false; }
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.replace(/^www\./, '');
+    const isYouTube = host === 'youtube.com' || host === 'm.youtube.com' ||
+                      host === 'youtu.be';
+    if (!isYouTube) return false;
+    /* A watch page, a short or a youtu.be link all name a video, and
+     * companionSrc turns each into the player. Anything else on the site is
+     * the doorway. */
+    return !/\/embed\//.test(url.pathname) && !companionSrc(raw).includes('/embed/');
+  }
+
   function framesFreely(src) {
     return typeof src === 'string' && src.indexOf(YOUTUBE_PLAYER) === 0;
   }
@@ -1595,6 +1619,29 @@
 
     /* The message sits over the frame rather than replacing it, so a frame
      * that arrives late simply covers it. */
+    /* The address bar inside a panel, for a doorway address. */
+    L.push('.nwt-companion .nwt-companion-ask-link,' +
+           ' #nwt-split .nwt-panel-ask-link { position: absolute; inset: 0;' +
+           ' display: flex; flex-direction: column; align-items: center;' +
+           ' justify-content: center; gap: 10px; padding: 20px; margin: 0;' +
+           ' background: ' + p.canvas + '; }');
+    L.push('.nwt-companion .nwt-companion-ask-input,' +
+           ' #nwt-split .nwt-panel-ask-input { width: 100%; max-width: 320px;' +
+           ' padding: 8px 10px; font: inherit; font-size: 12.5px;' +
+           ' border-radius: 8px; border: 1px solid ' + p.panelEdge + ';' +
+           ' background: ' + p.surfaceAlt + '; color: ' + p.textPrimary + '; }');
+    L.push('.nwt-companion .nwt-companion-ask-input[aria-invalid="true"],' +
+           ' #nwt-split .nwt-panel-ask-input[aria-invalid="true"] {' +
+           ' border-color: ' + p.status.error[400] + '; }');
+    L.push('.nwt-companion .nwt-companion-ask-link button,' +
+           ' #nwt-split .nwt-panel-ask-link button { padding: 7px 16px;' +
+           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.16) + '; color: ' + p.textPrimary + '; }');
+    L.push('.nwt-companion:not([data-state="ask"]) .nwt-companion-ask-link,' +
+           ' #nwt-split .nwt-panel:not([data-state="ask"]) .nwt-panel-ask-link {' +
+           ' display: none; }');
+
     L.push('.nwt-companion .nwt-companion-refused { position: absolute; inset: 0;' +
            ' display: flex; flex-direction: column; align-items: center;' +
            ' justify-content: center; gap: 12px; padding: 18px; margin: 0;' +
@@ -1964,6 +2011,7 @@
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
     focusElapsed, focusRemaining, formatDuration, companionSrc, framesFreely,
+    needsLink,
     panelShares,
     cssReachesOut, withoutCssEscapes,
     toneOf,

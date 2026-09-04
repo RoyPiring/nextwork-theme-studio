@@ -1638,3 +1638,62 @@ test('folding one pane does not fold another', () => {
   assert.equal(page.stored.companion.panes[0].collapsed, true);
   assert.ok(!page.stored.companion.panes[1].collapsed, 'it folded both');
 });
+
+test('a pane pointed at YouTube itself asks which video, in the pane', () => {
+  /* Loading the front page would fail, and reporting that as a refusal would
+   * be reporting the wrong thing. The panel asks instead. */
+  const page = withPane({ url: 'https://www.youtube.com' });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'ask');
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'it loaded a front page that cannot be embedded');
+  assert.ok(pane(page).querySelector('.nwt-companion-ask-input'),
+    'there is nowhere to say which video');
+});
+
+test('pasting a video into the pane plays it there', () => {
+  const page = withPane({ url: 'https://www.youtube.com' });
+  page.flush();
+  const form = pane(page).querySelector('.nwt-companion-ask-link');
+  pane(page).querySelector('.nwt-companion-ask-input').value = VIDEO;
+  form.dispatchEvent(Object.assign({ type: 'submit' },
+    { preventDefault() {}, stopPropagation() {} }));
+  page.flush();
+
+  assert.equal(page.stored.companion.panes[0].url, VIDEO);
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+  assert.equal(frameOf(page).getAttribute('src'), EMBED);
+});
+
+test('a doorway pasted into the doorway is refused rather than looping', () => {
+  const page = withPane({ url: 'https://www.youtube.com' });
+  page.flush();
+  const field = pane(page).querySelector('.nwt-companion-ask-input');
+  field.value = 'https://www.youtube.com';
+  pane(page).querySelector('.nwt-companion-ask-link').dispatchEvent(
+    Object.assign({ type: 'submit' }, { preventDefault() {}, stopPropagation() {} }));
+  page.flush();
+
+  assert.equal(field.getAttribute('aria-invalid'), 'true');
+  assert.equal(pane(page).getAttribute('data-state'), 'ask', 'it accepted the same doorway');
+});
+
+test('a split panel pointed at YouTube itself asks in the panel', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, split: { enabled: true,
+      panels: [{ url: 'https://www.youtube.com' }] } }
+  });
+  page.flush();
+  const node = page.doc.getElementById('nwt-split').querySelector('.nwt-panel');
+
+  assert.equal(node.getAttribute('data-state'), 'ask');
+  node.querySelector('.nwt-panel-ask-input').value = VIDEO;
+  node.querySelector('.nwt-panel-ask-link').dispatchEvent(
+    Object.assign({ type: 'submit' }, { preventDefault() {}, stopPropagation() {} }));
+  page.flush();
+
+  assert.equal(page.stored.split.panels[0].url, VIDEO);
+  assert.equal(page.doc.getElementById('nwt-split')
+    .querySelector('.nwt-panel-frame').getAttribute('src'), EMBED);
+});

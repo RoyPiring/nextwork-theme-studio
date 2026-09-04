@@ -559,6 +559,22 @@
     frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
     body.appendChild(frame);
 
+    /* Where you say which video. A doorway address - YouTube itself rather
+     * than a video on it - has nothing worth loading, so the panel asks
+     * instead of showing a wall of recommendations or an empty box. */
+    const linkForm = document.createElement('form');
+    linkForm.className = 'nwt-companion-ask-link';
+    const linkInput = document.createElement('input');
+    linkInput.type = 'url';
+    linkInput.className = 'nwt-companion-ask-input';
+    linkInput.placeholder = 'Paste a video link';
+    linkForm.appendChild(linkInput);
+    const linkGo = document.createElement('button');
+    linkGo.type = 'submit';
+    linkGo.textContent = 'Play';
+    linkForm.appendChild(linkGo);
+    body.appendChild(linkForm);
+
     /* Shown when nothing arrives, with the way forward in it rather than a
      * sentence pointing at a button somewhere else. */
     const refused = document.createElement('div');
@@ -725,6 +741,16 @@
       const folded = el.querySelector('.nwt-companion-frame');
       folded.removeAttribute('src');
       el.setAttribute('data-state', 'folded');
+      delete paneShowing[index];
+      return;
+    }
+
+    /* A doorway rather than a destination: ask which video, here, rather than
+     * loading a front page that cannot be embedded and calling that a
+     * refusal. */
+    if (NWT.needsLink(companion.url)) {
+      el.querySelector('.nwt-companion-frame').removeAttribute('src');
+      el.setAttribute('data-state', 'ask');
       delete paneShowing[index];
       return;
     }
@@ -986,6 +1012,22 @@
       });
     });
 
+    /* Submitting sets this pane's address, so the panel you are looking at
+     * becomes the thing you asked for. */
+    el.querySelector('.nwt-companion-ask-link').addEventListener('submit', function (e) {
+      if (e.preventDefault) e.preventDefault();
+      e.stopPropagation();
+      const field = el.querySelector('.nwt-companion-ask-input');
+      const raw = (field.value || '').trim();
+      if (!NWT.companionSrc(raw) || NWT.needsLink(raw)) {
+        field.setAttribute('aria-invalid', 'true');
+        return;
+      }
+      field.removeAttribute('aria-invalid');
+      field.value = '';
+      savePane(index, { url: raw });
+    });
+
     el.querySelector('.nwt-companion-fold').addEventListener('click', function (e) {
       e.stopPropagation();
       savePane(index, { collapsed: el.getAttribute('data-collapsed') !== '1' });
@@ -1170,6 +1212,19 @@
       'picture-in-picture; encrypted-media; fullscreen');
     frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
     body.appendChild(frame);
+    const ask = document.createElement('form');
+    ask.className = 'nwt-panel-ask-link';
+    const askInput = document.createElement('input');
+    askInput.type = 'url';
+    askInput.className = 'nwt-panel-ask-input';
+    askInput.placeholder = 'Paste a video link';
+    ask.appendChild(askInput);
+    const askGo = document.createElement('button');
+    askGo.type = 'submit';
+    askGo.textContent = 'Play';
+    ask.appendChild(askGo);
+    body.appendChild(ask);
+
     const said = document.createElement('p');
     said.className = 'nwt-panel-said';
     body.appendChild(said);
@@ -1271,6 +1326,13 @@
     /* Nothing is loaded into a panel that is folded away: it is not on screen,
      * and a video in it would go on playing behind a closed bar. */
     if (panel.collapsed) { frame.removeAttribute('src'); node.setAttribute('data-state', 'folded'); return; }
+
+    /* A doorway rather than a destination. */
+    if (NWT.needsLink(panel.url)) {
+      frame.removeAttribute('src');
+      node.setAttribute('data-state', 'ask');
+      return;
+    }
 
     /* Asked of the frame rather than a variable beside it: the site rebuilds
      * its body as it navigates, and a fresh element has no src however sure a
@@ -1383,6 +1445,20 @@
   }
 
   function wirePanel(node, index) {
+    node.querySelector('.nwt-panel-ask-link').addEventListener('submit', function (e) {
+      if (e.preventDefault) e.preventDefault();
+      e.stopPropagation();
+      const field = node.querySelector('.nwt-panel-ask-input');
+      const raw = (field.value || '').trim();
+      if (!NWT.companionSrc(raw) || NWT.needsLink(raw)) {
+        field.setAttribute('aria-invalid', 'true');
+        return;
+      }
+      field.removeAttribute('aria-invalid');
+      field.value = '';
+      savePanel(index, { url: raw });
+    });
+
     node.querySelector('.nwt-panel-hide').addEventListener('click', function (e) {
       e.stopPropagation();
       dropPanel(index);

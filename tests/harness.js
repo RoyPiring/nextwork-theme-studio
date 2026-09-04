@@ -236,6 +236,20 @@ class FakeElement {
   blur() { if (this.ownerDocument && this.ownerDocument.activeElement === this) {
     this.ownerDocument.activeElement = null;
   } }
+  /* Any event on this element, travelling up through its parents the way a
+   * click does. Only `click` had a way in, so a form that answers `submit`
+   * could be built and wired and never exercised. */
+  dispatchEvent(event) {
+    let stopped = false;
+    const e = Object.assign({ target: this, preventDefault() {},
+                              stopPropagation() { stopped = true; } }, event);
+    let node = this;
+    while (node && !stopped) {
+      (node.listeners[e.type] || []).forEach(fn => fn.call(node, e));
+      node = node.parentElement;
+    }
+    return true;
+  }
   /* A script clicking an element itself, which is how the editor opens the
    * file chooser and how it starts a download. */
   click() {

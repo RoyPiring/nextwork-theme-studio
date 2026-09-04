@@ -136,6 +136,7 @@
     renderFocus();
     renderCompanion();
     renderSplitPanel();
+    renderSplitAccess();
   }
 
   /* A range input fires on every pixel of travel. Writing storage on each one
@@ -368,7 +369,7 @@
     if (!src || NWT.framesFreely(src)) { row.style.display = 'none'; return; }
     row.style.display = '';
     row.setAttribute('data-asked', c.pending ? '1' : '0');
-    renderAllowed();
+    renderAllowed('allowed-list');
 
     chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
       if (chrome.runtime.lastError) return;
@@ -392,14 +393,16 @@
     });
   }
 
-  /* What the browser says is allowed, listed where the links are, so it can be
-   * seen and taken back without going looking for another page. */
-  function renderAllowed() {
+  /* What the browser says is allowed, listed in the section whose links it
+   * applies to. Both sections have their own copy for that reason: one control
+   * outside them both meant looking at a list of panels and finding the thing
+   * that governs them somewhere else. */
+  function renderAllowed(listId) {
     chrome.permissions.getAll(function (granted) {
       if (chrome.runtime.lastError) return;
       const origins = ((granted && granted.origins) || [])
         .filter(function (o) { return !/nextwork\.ai/.test(o); });
-      const host = $('allowed-list');
+      const host = $(listId);
       host.textContent = '';
       origins.forEach(function (pattern) {
         const row = document.createElement('div');
@@ -416,7 +419,7 @@
           chrome.permissions.remove({ origins: [pattern] }, function () {
             void chrome.runtime.lastError;
             saveCompanion({ grantedAt: Date.now() });
-            renderAllowed();
+            renderAllowed(listId);
           });
         });
         row.appendChild(drop);
@@ -450,7 +453,7 @@
     chrome.permissions.request({ origins: [origin] }, function (given) {
       if (given && !chrome.runtime.lastError) {
         saveCompanion({ grantedAt: Date.now(), pending: '' });
-        renderAllowed();
+        renderAllowed('allowed-list');
         return;
       }
       /* Opened straight away rather than after a pause to read the note: the
@@ -599,6 +602,50 @@
     });
   }
 
+  /* The same block, for the split's own list. */
+  function renderSplitAccess() {
+    const row = $('split-access');
+    const panels = splitPanels()
+      .map(function (x) { return x && NWT.companionSrc(x.url); })
+      .filter(function (u) { return u && !NWT.framesFreely(u); });
+    const src = panels[0];
+    if (!src) { row.style.display = 'none'; return; }
+    row.style.display = '';
+
+    chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
+      if (chrome.runtime.lastError) return;
+      const allowed = !!(r && r.allowed);
+      const host = (r && r.origin ? r.origin : src).replace(/^https:\/\//, '');
+      $('split-access-note').textContent = !allowed
+        ? host + ' refuses to be shown inside another page.'
+        : r.active
+          ? host + ' is allowed to open in a panel.'
+          : host + ' is allowed, but the rule that carries it is missing. ' +
+            'Take it back and allow it again.';
+      const btn = $('split-access-btn');
+      btn.textContent = 'Allow ' + host;
+      btn.title = 'Ask the browser for permission to open ' + host + ' here';
+      btn.hidden = allowed;
+      renderAllowed('split-allowed-list');
+    });
+  }
+
+  function askAllowFor(src) {
+    if (!src) return;
+    const origin = src.replace(/^(https:\/\/[^/]+).*$/, '$1') + '/*';
+    saveCompanion({ pending: src });
+    chrome.permissions.request({ origins: [origin] }, function (given) {
+      if (given && !chrome.runtime.lastError) {
+        saveCompanion({ grantedAt: Date.now(), pending: '' });
+        renderAllowed('allowed-list');
+        renderAllowed('split-allowed-list');
+        return;
+      }
+      toastNote('The browser would not ask here. Opening the page where it can.');
+      chrome.runtime.openOptionsPage();
+    });
+  }
+
   function setSplitLink() {
     const field = $('split-url');
     const raw = field.value.trim();
@@ -653,6 +700,12 @@
       saveSplit({ enabled: $('splitEnabled').checked });
     });
     $('split-set').addEventListener('click', setSplitLink);
+    $('split-access-btn').addEventListener('click', function () {
+      const panels = splitPanels()
+        .map(function (x) { return x && NWT.companionSrc(x.url); })
+        .filter(function (u) { return u && !NWT.framesFreely(u); });
+      askAllowFor(panels[0]);
+    });
     $('split-url').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') setSplitLink();
     });

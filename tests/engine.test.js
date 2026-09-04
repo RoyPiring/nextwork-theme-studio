@@ -673,3 +673,24 @@ test('the shares always add up to the whole column', () => {
 test('a column of nothing but folded panels asks for no space', () => {
   assert.deepEqual(NWT.panelShares([{ collapsed: true }, { collapsed: true }]), [0, 0]);
 });
+
+test('a doorway address is told apart from something to watch', () => {
+  /* A YouTube link with a video becomes the player. YouTube itself is a front
+   * page: it cannot be embedded, and embedding it would show a wall of
+   * recommendations rather than the thing you meant. */
+  ['https://www.youtube.com', 'https://www.youtube.com/', 'https://m.youtube.com/feed/subscriptions'
+  ].forEach(u => assert.equal(NWT.needsLink(u), true, u));
+
+  ['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'https://youtu.be/dQw4w9WgXcQ',
+   'https://www.youtube.com/shorts/dQw4w9WgXcQ', 'https://www.youtube.com/embed/x'
+  ].forEach(u => assert.equal(NWT.needsLink(u), false, u));
+});
+
+test('nothing else is treated as a doorway', () => {
+  /* Discord is deliberately not in this list: there the address is the point,
+   * it opens where you left off, and asking for a different link would be a
+   * question with no answer. */
+  ['https://discord.com/channels/@me', 'https://discord.com/channels/1/2',
+   'https://example.com/', 'http://www.youtube.com', 'not a url', ''
+  ].forEach(u => assert.equal(NWT.needsLink(u), false, JSON.stringify(u)));
+});

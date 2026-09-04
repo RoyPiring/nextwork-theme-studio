@@ -128,9 +128,9 @@
   <div class="tab-panel" id="panel-split" hidden>
   <section class="stack dimmable" id="split-panel">
     <div class="row between">
-      <span class="section-title">Split the page</span>
+      <span class="section-title">Panels in the page</span>
       <label class="switch-item" title="Divide this tab between the page and something else">
-        <span class="switch-label">Split</span>
+        <span class="switch-label">Panels</span>
         <span class="switch"><input type="checkbox" id="splitEnabled"><span></span></span>
       </label>
     </div>
@@ -151,13 +151,19 @@
         </div>
         <input type="range" id="split-width" min="18" max="72" step="1">
       </div>
+      <div class="stack access" id="split-access">
+        <span class="tiny muted" id="split-access-note"></span>
+        <div class="stack" id="split-allowed-list"></div>
+        <button class="ghost tiny" id="split-access-btn">Allow it here</button>
+      </div>
+
       <p class="tiny muted" id="split-note">A video or a document sits here. An application you sign in to &mdash; Discord, mail &mdash; cannot be put inside a page by anyone; the panel offers to open it beside the page instead, where it runs in full.</p>
     </div>
   </section>
 
   <section class="stack dimmable" id="companion-panel">
     <div class="row between">
-      <span class="section-title">Beside your work</span>
+      <span class="section-title">Floating panes</span>
       <label class="switch-item" title="Show the pane on the page">
         <span class="switch-label">Show</span>
         <span class="switch"><input type="checkbox" id="companionEnabled"><span></span></span>

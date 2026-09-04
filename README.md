@@ -88,6 +88,14 @@ bar to move it and its corner to resize it. It stays where you put it.
 The row starts with YouTube and Discord, since those are the two this was built
 for; remove either with one click and it is not offered again.
 
+**YouTube and Discord work differently, and the panel follows that.** A Discord
+link is the thing itself — you are signed in and it opens where you left off.
+YouTube's front page is a doorway: it cannot be embedded, and embedding it
+would show a wall of recommendations rather than what you meant. So a panel
+pointed at YouTube asks *which video*, in the panel, with a box to paste a link
+into. Paste one and it plays there. Your sign-in comes with it, so Premium and
+your history work as they do in a tab.
+
 A tile is a switch: click it to open its pane, click it again to close. Each
 pane has a fold control that collapses it to its bar — for getting something
 out of the way for a minute without closing it and setting it up again — and
