@@ -88,9 +88,10 @@ The pane will not point at nextwork.ai itself. A same-origin frame is not
 restrained by its sandbox, so the missing `allow-top-navigation` would stop
 meaning anything — and it is the page you are already looking at.
 
-If you would rather not do any of this, the arrow on the pane opens the site in
-a window of its own instead. That path needs no permission, changes no headers,
-and works for every site.
+If you would rather not do any of this, do not allow the site. Nothing is
+asked for until you press the button that asks for it, the pane says plainly
+when a site has refused, and a permission already granted can be taken back
+from the same list that shows it.
 
 **When a site is refused, the pane says so.** A browser that refuses a frame
 gives it no layout box at all — it collapses to nothing, while a frame that

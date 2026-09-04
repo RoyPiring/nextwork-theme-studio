@@ -11,36 +11,59 @@ were never released.
 
 ### Added
 
-- A pane that floats over the project page, for something to keep beside your
-  work on a single screen. Paste a link in the popup, and it is saved as a
-  tile you can switch between. Drag the bar to move the pane, the corner to
-  resize it; both are remembered. The switch beside "Beside your work" turns
-  it off without losing the tiles.
+- **Panes that float over the project page**, for keeping something in view on
+  a single screen. Paste a link under Panels > Floating and press Add; the
+  pane opens with that link in it. Drag its bar to move it, its corner to
+  resize it; both are remembered. Up to three can be open at once, each
+  landing clear of the last, and each has a Fold control that collapses it to
+  its bar without closing it.
 
-  A YouTube link works with nothing further asked: the address from the
+- **A column of panels that shares the tab with the page.** The page narrows
+  and reflows rather than being covered, with a divider you drag. One panel
+  fills the column; a second and third stack, sharing it by proportion, and a
+  folded panel gives its share back to the rest. The column can instead lie
+  along the top of the window, with the panels side by side and the page
+  pushed down below them.
+
+- **A dock on the page** carrying one control: Hide. It stops everything the
+  extension has put on the page from being drawn, and Open brings it all back
+  exactly as it was. Nothing is closed, so a video keeps playing and a call
+  stays connected while you look at what is underneath. Drag it anywhere;
+  double-click its handle to send it back to the top.
+
+- **A YouTube link works with nothing further asked.** The address from the
   browser's bar is loaded as the player, which is the part meant to appear
-  inside another page, and a timestamp on the link is kept.
+  inside another page, and a timestamp on the link is kept. YouTube's own
+  front page cannot be embedded and would not be worth embedding, so a panel
+  pointed at it asks which video instead.
 
-  Most other sites refuse to be framed. For those the pane offers two ways on.
-  **Allow this site** asks your browser for permission to set that refusal
-  aside — only inside this pane, only for the site you named, and revocable
-  from the browser's own settings. The arrow in the pane's bar opens the site
-  in a window of its own instead, which needs no permission and works
-  everywhere. Neither happens quietly, and `SECURITY.md` sets out exactly what
-  the first one changes.
+- **Allowing a site to be shown inside the page.** Most sites refuse to be
+  framed. Both halves of the Panels tab list what you have allowed, with a way
+  to take each one back, and offer to ask the browser when something open
+  needs it. The permission is confined to the site you named and to frames the
+  project page opened, and your browser can revoke it at any time.
 
   This is why the extension now asks for `declarativeNetRequest`. It cannot
   read a request or a response; it only carries rules, and every rule this
   installs is confined to a sub-frame that nextwork.ai opened. Host access at
   install is still nextwork.ai and nothing else.
 
-- The focus timer can make a sound when the session reaches its length, and
-  the pill flashes red until you look at it. Both can be turned off, and the
-  flashing stops on its own for anyone who has asked their system for reduced
-  motion. The sound is generated on the spot rather than downloaded or
-  bundled.
+- **An alarm at the end of a focus session.** A struck bell rather than a
+  beep: three partials at the ratios a tubular bell has, rung six times over
+  about fourteen seconds, opening quietly and getting firmer. Any press
+  anywhere on the page stops it, and so does anything that ends the overrun.
+  The pill flashes red alongside it, and the flashing stops on its own for
+  anyone who has asked their system for reduced motion. The sound is generated
+  on the spot rather than downloaded or bundled, and a Try it button in the
+  popup plays it without waiting out a session.
 
-- Five- and ten-minute sessions, for the short ones that get you started.
+- **Session lengths of 15 and 30 minutes and an hour, or any length you like**,
+  and a choice between counting down and counting up said in those words.
+
+### Changed
+
+- The popup is three tabs - Theme, Focus, Panels - and the Panels tab is two
+  halves, In the page and Floating, each built from the same named groups.
 
 ## [2.10.0] - 2026-09-03
 
