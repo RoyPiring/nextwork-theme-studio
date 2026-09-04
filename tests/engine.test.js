@@ -733,3 +733,36 @@ test('the dock stays on top of what it opens', () => {
   assert.ok(dock > zOf(/\.nwt-companion \{[^}]*z-index:\s*(\d+)/), 'a pane covers the dock');
   assert.ok(dock > zOf(/#nwt-split \{[^}]*z-index:\s*(\d+)/), 'the column covers the dock');
 });
+
+/* --------------------------------------------------- the end of a session */
+
+test('the alarm is long enough to walk back to', () => {
+  /* Two sine tones over half a second is a notification: away from the screen
+   * when it lands - which is what a focus timer is for - and you never know
+   * it happened. */
+  assert.ok(NWT.alarmSeconds() >= 10,
+    'the alarm is ' + NWT.alarmSeconds().toFixed(1) + 's, which is a beep');
+});
+
+test('it rings more than once, and gets firmer as it goes', () => {
+  const plan = NWT.alarmPlan();
+  const levels = [...new Set(plan.map(n => n.level))];
+  assert.ok(levels.length > 1, 'every ring is the same volume');
+  assert.ok(levels[0] < levels[levels.length - 1],
+    'it opens at full volume, which is startling rather than telling');
+  /* Rings, not one long run of notes: there are gaps between them. */
+  const gaps = plan.slice(1).map((n, i) => n.at - plan[i].at);
+  assert.ok(Math.max(...gaps) > Math.min(...gaps) * 4,
+    'the notes run together rather than ringing in groups');
+});
+
+test('every note is struck, not sounded', () => {
+  /* A bell has partials that are not whole multiples of its fundamental, and
+   * that is what stops it reading as electronic. One note per strike is a
+   * beep however long you leave it. */
+  const plan = NWT.alarmPlan();
+  assert.ok(plan.length >= 12, 'only ' + plan.length + ' notes in the whole alarm');
+  assert.ok(plan.every(n => n.life > 1),
+    'the notes are cut off rather than left to die away');
+  assert.ok([...new Set(plan.map(n => n.hz))].length > 1, 'it is one note over and over');
+});

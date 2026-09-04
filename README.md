@@ -81,9 +81,14 @@ once you had pressed it. Counting down offers 15 minutes, 30, an hour, or
 **Custom** for any length you like; the length you were on is kept while you
 count up, so switching back finds the session you had. A pill appears in the
 corner while you work. It only shows on project pages, keeps
-running across tabs, and counts past zero so you can see when you go over. When
-the session reaches its length it can chime and flash red until you look at it;
-both can be turned off.
+running across tabs, and counts past zero so you can see when you go over.
+
+When the session reaches its length the pill flashes red and an alarm rings: a
+struck bell, six times over about fourteen seconds, getting a little firmer as
+it goes. It is long enough that you can be away from the desk and still hear
+it, and **any press anywhere on the page stops it** — the pill included. Press
+**Try it** beside *Sound when time is up* to hear it now; both the sound and
+the flashing can be turned off.
 
 **Beside your work.** For one screen. Paste a link under **Panels → Floating**
 and press Add; a pane opens on the page with that link in it, and you drag its

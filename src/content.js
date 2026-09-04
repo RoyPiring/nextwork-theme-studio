@@ -223,6 +223,7 @@
   }
 
   function removeHud() {
+    stopRing();
     if (hudTimer) { clearInterval(hudTimer); hudTimer = null; }
     const el = document.getElementById(HUD_ID);
     if (el) el.remove();
@@ -257,6 +258,13 @@
       !focus.running ? 'paused' : (over ? 'over' : 'focus');
     el.setAttribute('data-state',
       !focus.running ? 'paused' : (over ? 'over' : 'running'));
+    /* Reset, paused, or a new length: whatever ends the overrun ends the
+     * ringing with it, so a bell cannot outlive the session it is about. */
+    if (!over) stopRing();
+    /* The one place that says whether it is ringing, so there is one thing to
+     * get right and one thing to check. */
+    if (ringing) el.setAttribute('data-ringing', '1');
+    else el.removeAttribute('data-ringing');
 
     /* A flag, not a session id.
      *
@@ -297,72 +305,46 @@
     });
   }
 
-  /* A short two-note chime, built rather than fetched.
-   *
-   * The extension never loads anything, and that is not a rule to work around
-   * for a sound: an audio file would be a request, or a payload to carry.
-   * Two oscillators cost nothing and are quieter to ship.
-   *
-   * Everything here is wrapped: audio is not worth a broken timer. A page
-   * with no audio, a browser that refuses one before it has been clicked, a
-   * device with nothing to play through - each ends with the sound missing,
-   * which is what the flashing pill is also there for. */
+  /* Ringing now, and the way to stop it. The sound itself is built in the
+   * engine, where it can be read and checked without a speaker. */
+  let ringing = null;
+
+  function stopRing() {
+    if (!ringing) return;
+    const silence = ringing;
+    ringing = null;
+    try { document.removeEventListener('pointerdown', stopRing, true); }
+    catch (e) { /* never was one */ }
+    silence();
+    const el = document.getElementById(HUD_ID);
+    if (el) el.removeAttribute('data-ringing');
+  }
+
   /* Answers whether anything was actually heard, which is not the same as
-   * whether this ran without throwing.
-   *
-   * A browser will not let a page make a sound until someone has interacted
-   * with it. That refusal is not an error: `new AudioContext()` succeeds and
-   * hands back a *suspended* context, every call on it works, and nothing
-   * comes out. Treated as success, the session was marked as announced and
-   * would never be announced again - so a timer that ran over on a tab you
-   * had opened and not yet clicked was silent for good, rather than silent
-   * until you touched the page. */
+   * whether this ran without throwing: a browser that has not been interacted
+   * with yet hands back a context that runs silently rather than failing, so
+   * marking the session announced on that would announce it to nobody and
+   * never announce it again. */
   function chime() {
-    try {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return false;
-      const ctx = new Ctx();
+    stopRing();
+    const silence = NWT.playAlarm(window);
+    if (!silence) return false;
+    ringing = silence;
 
-      if (ctx.state === 'suspended') {
-        /* Worth asking. It is granted only if the page has been interacted
-         * with, in which case a context usually starts running anyway. */
-        try { ctx.resume(); } catch (e) { /* nothing else to try */ }
-      }
-      if (ctx.state !== 'running') {
-        try { ctx.close(); } catch (e) { /* already gone */ }
-        return false;
-      }
-
-      const play = (hz, at, seconds) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = hz;
-        /* Eased in and out. A square-edged tone clicks at both ends, which
-         * reads as a fault rather than a chime. */
-        gain.gain.setValueAtTime(0, ctx.currentTime + at);
-        gain.gain.linearRampToValueAtTime(0.14, ctx.currentTime + at + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + seconds);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(ctx.currentTime + at);
-        osc.stop(ctx.currentTime + at + seconds + 0.02);
-      };
-
-      /* A fifth apart, the second a little softer: two notes read as a signal
-       * where one reads as a notification from something else. */
-      play(880, 0, 0.28);
-      play(1320, 0.16, 0.34);
-
-      /* Closed once it has finished, so a long session does not leave a
-       * context open for every chime it played. */
-      setTimeout(function () {
-        try { ctx.close(); } catch (e) { /* already closed */ }
-      }, 1200);
-      return true;
-    } catch (e) {
-      /* No sound. The pill is still flashing. */
-      return false;
-    }
+    /* Any press anywhere, and in the capture phase.
+     *
+     * "Click it to stop it" has to mean the pill, and the pill is a drag
+     * handle - a press on it is taken for a drag and no click is ever raised.
+     * Listening for the press instead, before anything can capture it, means
+     * the pill silences it, and so does touching anything else on the page:
+     * an alarm you have to hunt for the off switch of is worse than one that
+     * stops a moment early. */
+    document.addEventListener('pointerdown', stopRing, true);
+    /* Saying so on the pill is the paint's job, and the paint this was called
+     * from runs again as soon as anything is written down - which the line
+     * below this is about to do. Setting it here as well was a second owner
+     * for one attribute and nothing ever noticed if it went. */
+    return true;
   }
 
   /* ---- dragging --------------------------------------------------------
@@ -1653,7 +1635,11 @@
     el.style.setProperty('--nwt-hud-scale', String(hudScale(focus)));
     if (focus.locked) el.setAttribute('data-locked', '1');
     else el.removeAttribute('data-locked');
-    el.title = focus.locked ? 'Focus timer (locked)' : 'Drag to move; double-click to reset';
+    /* What it is doing right now outranks what it is for: a bell going off
+     * should say how to stop it, not how to move it. */
+    el.title = ringing
+      ? 'Time is up. Click anywhere to stop the alarm.'
+      : (focus.locked ? 'Focus timer (locked)' : 'Drag to move; double-click to reset');
     makeDraggable(el);
     placeHud(el, focus);
     if (hudTimer) clearInterval(hudTimer);

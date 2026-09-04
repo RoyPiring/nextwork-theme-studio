@@ -475,6 +475,19 @@ test('a custom length of nothing is refused', () => {
   assert.equal(p.el('focus-custom-min').getAttribute('aria-invalid'), 'true');
 });
 
+test('the alarm can be heard without waiting out a session', () => {
+  /* Hearing it is the only way to know whether it is the right sound. */
+  const p = openPopup({ enabled: true });
+  p.click(p.el('focus-chime-try'));
+  assert.equal(p.audible.length, 1, 'nothing played');
+  assert.ok(p.audible[0].notes.length > 0, 'it played silence');
+  assert.equal(p.el('focus-chime-try').textContent, 'Stop',
+    'there is no way to stop fourteen seconds of bell');
+
+  p.click(p.el('focus-chime-try'));
+  assert.equal(p.el('focus-chime-try').textContent, 'Try it');
+});
+
 test('the sound can be turned off on its own', () => {
   const p = openPopup({ enabled: true });
   assert.equal(p.el('focus-chime').checked, true, 'it should start on');
