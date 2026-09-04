@@ -374,7 +374,10 @@
       running: false,
       startedAt: 0,        /* epoch ms of the current run */
       accumulatedMs: 0,    /* time banked from previous runs */
-      targetMin: 25,       /* 0 counts up; anything else counts down */
+      targetMin: 25,
+      /* A session that ends silently has not really ended: the whole point
+       * is to look away from the screen, which is where the timer is. */
+      chime: true,       /* 0 counts up; anything else counts down */
       /* Where the pill was last dropped, as a fraction of the viewport, so it
        * lands in the same relative place on a different window size. null
        * means "wherever the stylesheet puts it". */
@@ -1300,8 +1303,30 @@
            ' border-radius: 999px; } }');
     L.push('#nwt-focus[data-state="running"] { border-color: ' + rgba(p.accent, 0.55) + '; }');
     L.push('#nwt-focus[data-state="running"] .nwt-focus-time { color: var(--nwt-accent); }');
-    L.push('#nwt-focus[data-state="over"] { border-color: ' + p.status.warning[400] + '; }');
-    L.push('#nwt-focus[data-state="over"] .nwt-focus-time { color: ' + p.status.warning[400] + '; }');
+    /* Over the session length, the pill flashes rather than just changing
+     * colour. The point of a session length is to be noticed from across the
+     * room, and a quiet recolour on a small pill in the corner is not.
+     *
+     * The border and the text carry it, not the fill: a flashing block behind
+     * the numbers makes them unreadable at exactly the moment they matter. */
+    L.push('@keyframes nwt-focus-over {' +
+           ' 0%, 100% { border-color: ' + p.status.error[400] + ';' +
+           ' box-shadow: 0 0 0 0 ' + rgba(p.status.error[400], 0.5) + '; }' +
+           ' 50% { border-color: ' + p.status.error[300] + ';' +
+           ' box-shadow: 0 0 0 6px ' + rgba(p.status.error[400], 0) + '; } }');
+    L.push('#nwt-focus[data-state="over"] { border-color: ' + p.status.error[400] + ';' +
+           ' animation: nwt-focus-over 1.1s ease-in-out infinite; }');
+    /* The clock itself is body-weight text, so it is held to the body floor
+     * rather than taken on trust. The palette's error tone lands at 4.49:1 on
+     * one theme's pill - close enough to look fine and still under the line -
+     * so it is lifted to the ratio instead of assumed to clear it. */
+    L.push('#nwt-focus[data-state="over"] .nwt-focus-time { color: ' +
+           /* Just above the floor rather than exactly on it: landing on 4.5
+            * leaves the result a hair under once it is rounded to a colour. */
+           toneOf(p.status.error[400], p.surface, 4.6) + '; }');
+    /* Still red, still obviously over, just not moving. */
+    L.push('@media (prefers-reduced-motion: reduce) {' +
+           ' #nwt-focus[data-state="over"] { animation: none; } }');
     L.push('#nwt-focus[data-state="paused"] { opacity: .72; }');
 
     /* Root surface last, so nothing above accidentally wins it. */

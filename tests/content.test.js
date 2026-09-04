@@ -548,3 +548,245 @@ test('the timer is drawn at the size that was asked for, within reason', () => {
   assert.strictEqual(at(0), '1', 'zero would make it invisible');
   assert.strictEqual(at('nonsense'), '1', 'so would a value that is not a number');
 });
+
+/* ------------------------------------------------------------ the session */
+
+function running(overrides) {
+  return Object.assign({
+    enabled: true, running: true, locked: false,
+    startedAt: Date.now(), accumulatedMs: 0, targetMin: 25, chime: true
+  }, overrides || {});
+}
+
+test('a session that runs over flashes and says so', () => {
+  /* The point of a session length is to be noticed from across the room. */
+  const page = loadContentScript({
+    settings: { focus: running({ accumulatedMs: 26 * 60000 }) }
+  });
+  page.flush();
+
+  const hud = page.doc.getElementById('nwt-focus');
+  assert.ok(hud, 'the timer is not on the page');
+  assert.equal(hud.getAttribute('data-state'), 'over');
+  assert.match(hud.textContent, /over/);
+});
+
+test('the sound plays once when the session runs over, not every second', () => {
+  /* paintHud runs every second. A chime on each one would be unusable. */
+  const page = loadContentScript({
+    settings: { focus: running({ accumulatedMs: 26 * 60000 }) }
+  });
+  page.flush();
+  assert.equal(page.played.length, 1, 'it did not chime when the session ran over');
+
+  /* Several more paints of the same session.
+   *
+   * Driven by writing the session back unchanged, which is what a storage
+   * change does. Calling flush alone repaints nothing - the clock runs on an
+   * interval the harness does not fire - so a loop over it would have proved
+   * only that nothing happened. */
+  const session = page.stored.focus;
+  for (let i = 0; i < 5; i++) {
+    page.chrome.storage.local.set({ focus: session });
+    page.flush();
+  }
+  assert.equal(page.played.length, 1,
+    'it chimed ' + page.played.length + ' times for one session');
+
+  /* Two notes, and the context closed rather than left open. */
+  assert.equal(page.played[0].notes.length, 2);
+  assert.ok(page.played[0].notes.every(n => n.frequency.value > 0));
+});
+
+test('a session still inside its length makes no sound', () => {
+  const page = loadContentScript({
+    settings: { focus: running({ accumulatedMs: 60000 }) }
+  });
+  page.flush();
+
+  assert.equal(page.doc.getElementById('nwt-focus').getAttribute('data-state'), 'running');
+  assert.deepEqual(page.played, [], 'it chimed before the session was over');
+});
+
+test('turning the sound off leaves the flashing', () => {
+  /* The two are separate on purpose: someone in a quiet room still wants to
+   * know the session ended. */
+  const page = loadContentScript({
+    settings: { focus: running({ accumulatedMs: 26 * 60000, chime: false }) }
+  });
+  page.flush();
+
+  assert.equal(page.doc.getElementById('nwt-focus').getAttribute('data-state'), 'over');
+  assert.deepEqual(page.played, [], 'it chimed with the sound turned off');
+});
+
+test('one session is announced once, however many tabs are open', () => {
+  /* Every project page runs its own copy of this script and they all cross the
+   * end of the session in the same second. With the marker held only in the
+   * page, three open tabs chimed three times, over the top of each other. */
+  const focus = { enabled: true, running: true, startedAt: Date.now() - 26 * 60000,
+                  accumulatedMs: 0, targetMin: 25, chime: true };
+
+  const first = loadContentScript({ settings: { enabled: true, focus: focus } });
+  first.flush();
+  assert.equal(first.played.length, 1, 'the first tab did not chime');
+  assert.ok(first.stored.focus.chimedFor,
+    'nothing was written down, so every other tab will chime too');
+
+  /* A second tab opening onto the same session, seeing what the first wrote. */
+  const second = loadContentScript({
+    settings: { enabled: true, focus: Object.assign({}, focus, { chimedFor: 1 }) }
+  });
+  second.flush();
+  assert.deepEqual(second.played, [],
+    'a second tab chimed for a session that had already been announced');
+});
+
+/* Pause and resume exactly as the popup writes them, rather than by hand.
+ *
+ * This is the whole point of these two: the previous version of this test
+ * invented a resumed state that kept the original `startedAt`, which the real
+ * controls cannot produce - the clock has to move `startedAt` forward to keep
+ * adding up. So the test passed and the second chime it was written to catch
+ * went on happening. */
+function pause(focus) {
+  const elapsed = focus.accumulatedMs + (Date.now() - focus.startedAt);
+  return Object.assign({}, focus, { running: false, startedAt: 0, accumulatedMs: elapsed });
+}
+function resume(focus) {
+  return Object.assign({}, focus, { running: true, startedAt: Date.now() });
+}
+
+test('pausing after the session ran over does not announce it a second time', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, focus: { enabled: true, running: true,
+      startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
+      chime: true } }
+  });
+  page.flush();
+  assert.equal(page.played.length, 1, 'precondition: the session was announced once');
+
+  const paused = pause(page.stored.focus);
+  page.chrome.storage.local.set({ focus: paused });
+  page.flush();
+  page.chrome.storage.local.set({ focus: resume(paused) });
+  page.flush();
+
+  assert.equal(page.played.length, 1,
+    'it announced the same session ' + page.played.length + ' times');
+});
+
+test('a session that is reset and run again is announced again', () => {
+  /* The marker must not make every session after the first one silent. Reset
+   * is one of the two things that clears it - the popup does that - so this
+   * follows the same path a person would. */
+  const page = loadContentScript({
+    settings: { enabled: true, focus: { enabled: true, running: true,
+      startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
+      chime: true } }
+  });
+  page.flush();
+  assert.equal(page.played.length, 1);
+
+  /* Reset, as the popup writes it, then a fresh session that also runs over. */
+  page.chrome.storage.local.set({ focus: Object.assign({}, page.stored.focus,
+    { running: false, startedAt: 0, accumulatedMs: 0, chimedFor: 0 }) });
+  page.flush();
+  page.chrome.storage.local.set({ focus: Object.assign({}, page.stored.focus,
+    { running: true, startedAt: Date.now() - 26 * 60000 }) });
+  page.flush();
+
+  assert.equal(page.played.length, 2, 'the next session was never announced');
+});
+
+test('choosing a different length makes an end that has not been reached yet', () => {
+  /* The other thing that clears the marker. Going from 25 to 45 after running
+   * over 25 is a new end, and passing it should be announced. */
+  const page = loadContentScript({
+    settings: { enabled: true, focus: { enabled: true, running: true,
+      startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
+      chime: true } }
+  });
+  page.flush();
+  assert.equal(page.played.length, 1);
+
+  /* 5 minutes, as the popup writes it, and 26 minutes is past that too. */
+  page.chrome.storage.local.set({ focus: Object.assign({}, page.stored.focus,
+    { targetMin: 5, chimedFor: 0 }) });
+  page.flush();
+  assert.equal(page.played.length, 2, 'passing the new end was never announced');
+});
+
+test('a chime the browser refuses is not counted as announced', () => {
+  /* A page nobody has interacted with is not allowed to make a sound, and the
+   * browser says so by returning a context that runs silently rather than by
+   * failing. Counted as played, the session was marked announced, and stayed
+   * silent for good instead of being announced once the page was touched. */
+  const over = { enabled: true, running: true, startedAt: Date.now() - 26 * 60000,
+                 accumulatedMs: 0, targetMin: 25, chime: true };
+  const page = loadContentScript({
+    settings: { enabled: true, focus: over }, silenced: true
+  });
+  page.flush();
+
+  assert.equal(page.played.length, 1, 'it did not even try');
+  assert.ok(page.played[0].resumed > 0, 'it did not ask to be allowed');
+  assert.deepEqual(page.played[0].notes, [], 'it played into a context nobody can hear');
+  assert.ok(!page.stored.focus.chimedFor,
+    'a session nobody heard was marked as announced, so it never will be');
+  assert.ok(page.played[0].closed, 'the silent context was left open');
+});
+
+test('once the page can make a sound, the same session is still announced', () => {
+  /* The other half: refusing to mark it is only right if it is retried. */
+  const over = { enabled: true, running: true, startedAt: Date.now() - 26 * 60000,
+                 accumulatedMs: 0, targetMin: 25, chime: true };
+  const page = loadContentScript({ settings: { enabled: true, focus: over } });
+  page.flush();
+
+  assert.equal(page.played[0].notes.length, 2, 'nothing was played');
+  assert.ok(page.stored.focus.chimedFor, 'a chime that was heard was not recorded');
+});
+
+test('the audio context is closed rather than left open', () => {
+  /* One is created per chime. A long day of sessions leaving them all open is
+   * how a page runs out of them. The comment claimed this and nothing checked
+   * it - the close runs on a timer the tests were not firing. */
+  const page = loadContentScript({
+    settings: { enabled: true, focus: { enabled: true, running: true,
+      startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
+      chime: true } }
+  });
+  page.flush();
+  assert.equal(page.played.length, 1);
+  assert.ok(page.played[0].closed, 'the context was left open after the chime');
+});
+
+test('the in-flight guard does not clear itself before the write lands', () => {
+  /* Between playing and the marker reaching storage, storage still says the
+   * session has not been announced. The guard reset at the top of the paint
+   * read that as "nothing has chimed", cleared the local flag, and the next
+   * paint a second later played again. */
+  const page = loadContentScript({
+    settings: { enabled: true, focus: { enabled: true, running: true,
+      startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
+      chime: true } }
+  });
+  /* Hold the write: the read it depends on is delivered, the set is not. */
+  const real = page.chrome.storage.local.set;
+  let held = [];
+  page.chrome.storage.local.set = function (patch, cb) { held.push([patch, cb]); };
+
+  page.flush();
+  assert.equal(page.played.length, 1, 'it did not chime once');
+
+  /* More paints while the marker is still in flight. */
+  page.chrome.storage.local.set = real;
+  page.chrome.storage.local.set({ hue: 5 });
+  page.flush();
+  page.chrome.storage.local.set({ hue: 6 });
+  page.flush();
+
+  assert.equal(page.played.length, 1,
+    'it chimed ' + page.played.length + ' times while the marker was in flight');
+});

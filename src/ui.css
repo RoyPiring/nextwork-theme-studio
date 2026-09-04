@@ -156,8 +156,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   text-align: center; padding: 2px 0 0; color: var(--ui-text);
 }
 .focus[data-state="running"] .focus-clock { color: var(--ui-accent); }
-.focus[data-state="over"] .focus-clock { color: #f0a77a; }
-.chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.focus[data-state="over"] .focus-clock { color: var(--ui-over, #f0a77a); }
+.chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+  gap: 4px; }
 .chips button {
   padding: 5px 0; font-size: 11px; border-radius: 7px; min-width: 0;
   background: transparent; color: var(--ui-text-dim);

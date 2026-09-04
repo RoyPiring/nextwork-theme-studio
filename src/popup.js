@@ -55,6 +55,10 @@
     r.setProperty('--ui-text-muted', p.textMuted);
     r.setProperty('--ui-accent', p.accent);
     r.setProperty('--ui-accent-text', p.accentText);
+    /* The same colour the pill on the page turns when a session runs over.
+     * It was a fixed value here and a palette colour there, so one state had
+     * two colours depending on where you were looking at it. */
+    r.setProperty('--ui-over', p.status.error[400]);
   }
 
   function allThemes() {
@@ -195,6 +199,7 @@
     $('focus-toggle').textContent = f.running ? 'Pause' : (NWT.focusElapsed(f) ? 'Resume' : 'Start');
     $('focusEnabled').checked = !!f.enabled;
     $('focus-locked').checked = !!f.locked;
+    $('focus-chime').checked = !!f.chime;
     $('focus-size').value = String(Math.round((f.hudScale || 1) * 100));
     $('focus-size-out').textContent = $('focus-size').value + '%';
 
@@ -249,18 +254,37 @@
       renderAll();
     });
 
+    $('focus-chime').addEventListener('change', function () {
+      saveFocus({ chime: $('focus-chime').checked });
+    });
+
     $('focus-locked').addEventListener('change', function () {
       saveFocus({ locked: $('focus-locked').checked });
     });
 
     $('focus-reset').addEventListener('click', function () {
-      saveFocus({ running: false, startedAt: 0, accumulatedMs: 0 });
+      /* `chimedFor` says this session has already been announced. Reset is one
+       * of the two things that begins a new one, so it is cleared here. It is
+       * deliberately not cleared by pause and resume: the clock has to move
+       * `startedAt` forward to keep adding up, which made a resumed session
+       * indistinguishable from a fresh one, and rang for the same end twice. */
+      saveFocus({ running: false, startedAt: 0, accumulatedMs: 0, chimedFor: 0 });
     });
 
     $('focus-targets').addEventListener('click', function (e) {
       const btn = e.target.closest('button[data-min]');
       if (!btn) return;
-      saveFocus({ targetMin: Number(btn.dataset.min) });
+      /* The other thing that begins a new session: a different length is a
+       * different end to reach, and it has not been announced yet.
+       *
+       * Only when it actually differs. Clicking the length that is already
+       * chosen changes nothing about the session, and clearing the marker
+       * there re-announced an end that had already been announced - the same
+       * fault the resume path was fixed for, through another door. */
+      const chosen = Number(btn.dataset.min);
+      const patch = { targetMin: chosen };
+      if (chosen !== focusState().targetMin) patch.chimedFor = 0;
+      saveFocus(patch);
     });
 
     $('sceneBackdrop').addEventListener('change', function () {

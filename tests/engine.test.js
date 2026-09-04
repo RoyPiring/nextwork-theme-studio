@@ -512,3 +512,17 @@ test('an ordinary theme keeps its own colours, not the default ones', () => {
     assert.equal(p.canvas, NWT.PRESETS[id].colors.canvas, id + ' lost its canvas');
   });
 });
+
+test('the over-state colour is readable on the pill in every theme', () => {
+  /* The pill turns this colour when a session runs over, and it carries the
+   * clock - body-weight text, so it is held to the same floor as body text.
+   * The colour changed from warning to error and nothing checked the new one. */
+  for (const id of THEMES) {
+    const p = NWT.buildPalette(NWT.getTheme(settings(), id));
+    const css = NWT.buildCSS(settings({ themeId: id }));
+    const rule = css.match(/#nwt-focus\[data-state="over"\] \.nwt-focus-time \{ color: (#[0-9a-f]{6})/i);
+    assert.ok(rule, id + ': the over-state clock has no colour of its own');
+    const r = C(rule[1], p.surface);
+    assert.ok(r >= 4.5, id + ': over-state clock is ' + r.toFixed(2) + ':1 on the pill');
+  }
+});
