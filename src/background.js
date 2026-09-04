@@ -95,16 +95,29 @@ chrome.storage.onChanged.addListener(function (changes, area) {
  *     prompt asks, naming the site. The extension ships with no host access
  *     beyond nextwork.ai and cannot grant itself any.
  *   - The rule carries `initiatorDomains`, so it applies only to a frame that
- *     nextwork.ai opened, which is only ever this pane. The same site framed
- *     by anything else on the web keeps every header it sent.
+ *     a nextwork.ai page opened. The same site framed by anything else on the
+ *     web keeps every header it sent.
  *   - It applies to sub-frames only. A page you navigate to normally is
  *     untouched.
  *   - Taking it back is one control in the popup, and it takes the rule too.
  *
+ * Two limits worth being exact about, because the looser version of each
+ * reads better and is not true:
+ *
+ *   - `initiatorDomains` cannot say "a frame this extension made". It says
+ *     "a frame a nextwork.ai document opened", and this pane is not the only
+ *     thing that could be. If nextwork.ai were ever made to frame an allowed
+ *     site itself, that frame would get the stripped headers too.
+ *   - Granting a site is a host permission, and a host permission is broader
+ *     than the rules built from it: it would also allow this extension to
+ *     fetch that site with your cookies attached. It does not - the audit
+ *     rejects every network call in `src/`, and CI runs it - but the grant
+ *     itself is wider than its use, and you are consenting to the grant.
+ *
  * `content-security-policy` is dropped whole rather than edited, because a
  * rule can remove or replace a header, not reach inside one and take out a
- * single directive. Inside a frame that only this pane can open, that is the
- * price, and it is written here so it is not a surprise.
+ * single directive. That is a wider cut than `frame-ancestors` alone, and it
+ * is written here so it is not a surprise.
  * ------------------------------------------------------------------------- */
 
 const FRAME_HEADERS = [
@@ -113,12 +126,27 @@ const FRAME_HEADERS = [
   { header: 'content-security-policy-report-only', operation: 'remove' }
 ];
 
-/* Rule ids must be numbers and must be stable, so one site always maps to one
- * id and granting twice replaces the rule rather than stacking another. */
-function ruleId(host) {
-  let h = 0;
-  for (let i = 0; i < host.length; i++) h = (h * 31 + host.charCodeAt(i)) % 900000;
-  return h + 1000;
+/* A concrete host and nothing else.
+ *
+ * `optional_host_permissions` is declared as a wildcard over https sites, so
+ * what comes back from the browser is whatever was granted - and a browser
+ * offers ways to
+ * grant access to every site at once. That arrives here as `*`, and a rule
+ * built around it would strip framing headers from the entire web. Anything
+ * that is not a plain hostname is dropped rather than interpreted.
+ *
+ * The nextwork.ai test is an exact match on the host, not a search for the
+ * text: as a substring it also skipped nextwork.ai.example, which is a
+ * different site belonging to somebody else. */
+function hostOf(patternText) {
+  const m = /^https:\/\/([^/*]+)\/\*$/.exec(patternText);
+  if (!m) return null;
+  const host = m[1];
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(host)) {
+    return null;
+  }
+  if (host === 'nextwork.ai' || /\.nextwork\.ai$/.test(host)) return null;
+  return host;
 }
 
 function originOf(url) {
@@ -138,19 +166,27 @@ function pattern(origin) { return origin + '/*'; }
  * would be a header quietly missing from a site nobody had allowed. */
 function syncRules(done) {
   chrome.permissions.getAll(function (granted) {
-    const origins = ((granted && granted.origins) || [])
-      .filter(p => /^https:\/\//.test(p) && !/nextwork\.ai/.test(p));
+    const hosts = ((granted && granted.origins) || [])
+      .map(hostOf).filter(Boolean).sort();
 
     chrome.declarativeNetRequest.getDynamicRules(function (existing) {
-      const wanted = origins.map(function (p) {
-        const host = p.replace(/^https:\/\//, '').replace(/\/\*$/, '').replace(/^\*\./, '');
+      /* Numbered by position rather than by a hash of the name. Two hosts
+       * whose hashes landed on the same number produced two rules with one id,
+       * which the browser rejects as a batch - so a single unlucky pair of
+       * sites would have silently uninstalled every rule, including the ones
+       * that were working, with nothing anywhere to say so. The whole set is
+       * rebuilt on every change, so a position is all an id has to be. */
+      const wanted = hosts.map(function (host, i) {
         return {
-          id: ruleId(host),
+          id: 1000 + i,
           priority: 1,
           action: { type: 'modifyHeaders', responseHeaders: FRAME_HEADERS },
           condition: {
             requestDomains: [host],
-            /* Only a frame this pane opened. */
+            /* Frames opened by a nextwork.ai page. That is narrower than the
+             * whole web and wider than this pane alone - there is no condition
+             * for "a frame this extension created" - so it is written down as
+             * what it is rather than as what would be nicer. */
             initiatorDomains: ['nextwork.ai'],
             resourceTypes: ['sub_frame']
           }
@@ -159,7 +195,7 @@ function syncRules(done) {
       chrome.declarativeNetRequest.updateDynamicRules({
         removeRuleIds: (existing || []).map(r => r.id),
         addRules: wanted
-      }, function () { if (done) done(origins); });
+      }, function () { if (done) done(hosts); });
     });
   });
 }

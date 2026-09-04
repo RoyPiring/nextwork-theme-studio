@@ -55,14 +55,36 @@ these rather than trusting a reviewer to notice:
 | | |
 | --- | --- |
 | When | Only after you name a site and the browser's own prompt is accepted |
-| Where | Only in a sub-frame that a nextwork.ai page opened — which is only ever this pane. The same site framed anywhere else on the web keeps every header it sent |
+| Where | Only in a sub-frame opened by a nextwork.ai page. The same site framed anywhere else on the web keeps every header it sent |
 | What | Only `x-frame-options` and the two `content-security-policy` headers, and only removed, never added or replaced. Request headers are never touched |
 | Undo | One control in the popup, or the browser's own permission settings. The rules are rebuilt from what the browser reports as granted, so revoking there takes the rule with it |
+
+Three things about that table are narrower than they may sound, and each is
+worth saying plainly rather than leaving to be discovered:
+
+- **"A frame a nextwork.ai page opened" is not the same as "this pane."** The
+  rule API has no condition for *a frame this extension created*. In practice
+  the pane is the only thing framing these sites — but if nextwork.ai itself
+  were ever made to frame an allowed site, that frame would get the stripped
+  headers too.
+- **A rule covers the host you named and hosts under it.** Granting
+  `example.com` also matches `cdn.example.com`. The permission you granted is
+  the narrower of the two and the browser enforces it, but the rule as written
+  is the wider one.
+- **A host permission is broader than the rules built from it.** Allowing a
+  site means the extension *could* fetch that site with your cookies attached.
+  It does not — the audit rejects every network call in `src/` and CI runs it
+  on every change — but you are consenting to the permission, not to our
+  restraint, and those are different things.
 
 `content-security-policy` is removed whole rather than edited, because the API
 can remove or replace a header, not reach inside one and drop a single
 directive. That is a wider cut than `frame-ancestors` alone and is the honest
 cost of the feature.
+
+The pane will not point at nextwork.ai itself. A same-origin frame is not
+restrained by its sandbox, so the missing `allow-top-navigation` would stop
+meaning anything — and it is the page you are already looking at.
 
 If you would rather not do any of this, the arrow on the pane opens the site in
 a window of its own instead. That path needs no permission, changes no headers,

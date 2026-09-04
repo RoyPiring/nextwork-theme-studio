@@ -405,7 +405,7 @@ test('removing a tile is a control of its own, not a second click target', () =>
     'the pane was left pointed at a tile that no longer exists');
 });
 
-test('the cross can be reached and pressed with a keyboard', () => {
+test('the cross is a button in its own right, not a span inside another', () => {
   /* It was a span with role="button" nested inside the tile's button. Nesting
    * one button in another is invalid, and a span gets no activation of its
    * own - so Tab reached the cross and Enter fired the tile behind it,
@@ -414,11 +414,15 @@ test('the cross can be reached and pressed with a keyboard', () => {
     enabled: true,
     companion: { enabled: true, url: VIDEO, tiles: [{ label: 'YouTube', url: VIDEO }] }
   });
+  /* What a keyboard can do with it follows from what it is, and that is what
+   * this checks - the browser supplies Enter and Space activation for a real
+   * button and nothing at all for a span, and neither is something the harness
+   * can meaningfully stand in for. */
   const drop = drops(p)[0];
   assert.equal(drop.tagName.toLowerCase(), 'button',
     'the cross is not a button, so a keyboard cannot press it');
   assert.equal(drop.parentElement.tagName.toLowerCase(), 'span',
-    'the cross is nested inside another button');
+    'the cross is nested inside another button, which no keyboard can reach past');
   assert.ok(drop.getAttribute('aria-label'), 'the cross says nothing to a screen reader');
 });
 
@@ -595,4 +599,45 @@ test('a link is named for the site, not for whatever is in front of the dot', ()
     p.flush();
     assert.equal(p.stored.companion.tiles[0].label, pair[1], pair[0]);
   });
+});
+
+test('reset lets the next session be announced', () => {
+  /* The chime marker says "this session has already been announced". Nothing
+   * in the timer's own state separates a resumed session from a new one - the
+   * clock has to move startedAt forward either way - so reset is what has to
+   * clear it. Left set, the first session would chime and every one after it
+   * would be silent. */
+  const p = openPopup({
+    focus: { running: true, startedAt: Date.now() - 26 * 60000,
+             accumulatedMs: 0, targetMin: 25, chime: true, chimedFor: 1 }
+  });
+  p.fire('focus-reset', 'click');
+  assert.ok(!p.stored.focus.chimedFor,
+    'reset left the session marked as already announced, so the next one is silent');
+});
+
+test('choosing a different length lets the new end be announced', () => {
+  /* The other thing that begins a session: 45 minutes is an end that has not
+   * been reached yet, whatever happened with the last one. */
+  const p = openPopup({
+    focus: { running: true, startedAt: Date.now() - 26 * 60000,
+             accumulatedMs: 0, targetMin: 25, chime: true, chimedFor: 1 }
+  });
+  p.click(p.el('focus-targets').querySelectorAll('button[data-min]')[4]);
+  assert.equal(p.stored.focus.targetMin, 45);
+  assert.ok(!p.stored.focus.chimedFor,
+    'the new end was already marked as announced');
+});
+
+test('pausing and resuming does not clear the marker', () => {
+  /* If it did, the fix would be undone: a session that had run over, paused
+   * and started again would look new and chime for the same end twice. */
+  const p = openPopup({
+    focus: { running: true, startedAt: Date.now() - 26 * 60000,
+             accumulatedMs: 0, targetMin: 25, chime: true, chimedFor: 1 }
+  });
+  p.fire('focus-toggle', 'click');
+  assert.ok(p.stored.focus.chimedFor, 'pausing cleared it');
+  p.fire('focus-toggle', 'click');
+  assert.ok(p.stored.focus.chimedFor, 'resuming cleared it');
 });

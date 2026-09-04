@@ -846,57 +846,95 @@ test('one session is announced once, however many tabs are open', () => {
   /* Every project page runs its own copy of this script and they all cross the
    * end of the session in the same second. With the marker held only in the
    * page, three open tabs chimed three times, over the top of each other. */
-  const session = Date.now() - 26 * 60000;
-  const focus = { enabled: true, running: true, startedAt: session,
+  const focus = { enabled: true, running: true, startedAt: Date.now() - 26 * 60000,
                   accumulatedMs: 0, targetMin: 25, chime: true };
 
   const first = loadContentScript({ settings: { enabled: true, focus: focus } });
   first.flush();
   assert.equal(first.played.length, 1, 'the first tab did not chime');
-  assert.equal(first.stored.focus.chimedFor, session,
+  assert.ok(first.stored.focus.chimedFor,
     'nothing was written down, so every other tab will chime too');
 
   /* A second tab opening onto the same session, seeing what the first wrote. */
   const second = loadContentScript({
-    settings: { enabled: true, focus: Object.assign({}, focus, { chimedFor: session }) }
+    settings: { enabled: true, focus: Object.assign({}, focus, { chimedFor: 1 }) }
   });
   second.flush();
   assert.deepEqual(second.played, [],
     'a second tab chimed for a session that had already been announced');
 });
 
+/* Pause and resume exactly as the popup writes them, rather than by hand.
+ *
+ * This is the whole point of these two: the previous version of this test
+ * invented a resumed state that kept the original `startedAt`, which the real
+ * controls cannot produce - the clock has to move `startedAt` forward to keep
+ * adding up. So the test passed and the second chime it was written to catch
+ * went on happening. */
+function pause(focus) {
+  const elapsed = focus.accumulatedMs + (Date.now() - focus.startedAt);
+  return Object.assign({}, focus, { running: false, startedAt: 0, accumulatedMs: elapsed });
+}
+function resume(focus) {
+  return Object.assign({}, focus, { running: true, startedAt: Date.now() });
+}
+
 test('pausing after the session ran over does not announce it a second time', () => {
-  /* The marker used to be cleared whenever the timer stopped being over, so
-   * pausing and starting again rang for the same end a second time. */
-  const session = Date.now() - 26 * 60000;
   const page = loadContentScript({
     settings: { enabled: true, focus: { enabled: true, running: true,
-      startedAt: session, accumulatedMs: 0, targetMin: 25, chime: true } }
+      startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
+      chime: true } }
   });
   page.flush();
-  assert.equal(page.played.length, 1);
+  assert.equal(page.played.length, 1, 'precondition: the session was announced once');
 
-  /* Paused - no longer over - and then started again on the same session. */
-  page.chrome.storage.local.set({ focus: { enabled: true, running: false,
-    startedAt: session, accumulatedMs: 26 * 60000, targetMin: 25, chime: true,
-    chimedFor: session } });
+  const paused = pause(page.stored.focus);
+  page.chrome.storage.local.set({ focus: paused });
   page.flush();
-  page.chrome.storage.local.set({ focus: { enabled: true, running: true,
-    startedAt: session, accumulatedMs: 26 * 60000, targetMin: 25, chime: true,
-    chimedFor: session } });
+  page.chrome.storage.local.set({ focus: resume(paused) });
   page.flush();
 
   assert.equal(page.played.length, 1,
     'it announced the same session ' + page.played.length + ' times');
 });
 
-test('a new session is announced again', () => {
-  /* The marker must not make the next session silent. */
+test('a session that is reset and run again is announced again', () => {
+  /* The marker must not make every session after the first one silent. Reset
+   * is one of the two things that clears it - the popup does that - so this
+   * follows the same path a person would. */
   const page = loadContentScript({
     settings: { enabled: true, focus: { enabled: true, running: true,
       startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
-      chime: true, chimedFor: 111 } }
+      chime: true } }
   });
   page.flush();
-  assert.equal(page.played.length, 1, 'a fresh session was treated as already announced');
+  assert.equal(page.played.length, 1);
+
+  /* Reset, as the popup writes it, then a fresh session that also runs over. */
+  page.chrome.storage.local.set({ focus: Object.assign({}, page.stored.focus,
+    { running: false, startedAt: 0, accumulatedMs: 0, chimedFor: 0 }) });
+  page.flush();
+  page.chrome.storage.local.set({ focus: Object.assign({}, page.stored.focus,
+    { running: true, startedAt: Date.now() - 26 * 60000 }) });
+  page.flush();
+
+  assert.equal(page.played.length, 2, 'the next session was never announced');
+});
+
+test('choosing a different length makes an end that has not been reached yet', () => {
+  /* The other thing that clears the marker. Going from 25 to 45 after running
+   * over 25 is a new end, and passing it should be announced. */
+  const page = loadContentScript({
+    settings: { enabled: true, focus: { enabled: true, running: true,
+      startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
+      chime: true } }
+  });
+  page.flush();
+  assert.equal(page.played.length, 1);
+
+  /* 5 minutes, as the popup writes it, and 26 minutes is past that too. */
+  page.chrome.storage.local.set({ focus: Object.assign({}, page.stored.focus,
+    { targetMin: 5, chimedFor: 0 }) });
+  page.flush();
+  assert.equal(page.played.length, 2, 'passing the new end was never announced');
 });

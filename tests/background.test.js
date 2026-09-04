@@ -243,7 +243,7 @@ test('allowing a site installs one rule, and only for the pane', () => {
   const rules = bg.rules();
   assert.equal(rules.length, 1);
   assert.deepEqual(rules[0].condition.initiatorDomains, ['nextwork.ai'],
-    'the rule applies to frames opened by anything, not just the pane');
+    'the rule applies to that site framed by anything, anywhere on the web');
   assert.deepEqual(rules[0].condition.resourceTypes, ['sub_frame'],
     'the rule applies to whole pages, not just frames');
   assert.deepEqual(rules[0].condition.requestDomains, ['discord.com']);
@@ -361,4 +361,52 @@ test('a message that is not the pane is left alone', () => {
   const bg = loadBackground();
   assert.equal(bg.send({ type: 'something:else' }), undefined);
   assert.equal(bg.send({}), undefined);
+});
+
+test('two allowed sites get two rules, with ids that cannot collide', () => {
+  /* The id used to be a hash of the host folded into 900,000 buckets. Two
+   * hosts landing on the same number produced two rules with one id, which the
+   * browser rejects as a batch - so an unlucky pair of sites would have
+   * uninstalled every rule, including the ones that were working, silently. */
+  const bg = loadBackground({
+    origins: ['https://discord.com/*', 'https://notion.so/*', 'https://figma.com/*']
+  });
+  bg.startup();
+
+  const rules = bg.rules();
+  assert.equal(rules.length, 3);
+  assert.equal(new Set(rules.map(r => r.id)).size, 3, 'two rules share an id');
+  assert.deepEqual(rules.map(r => r.condition.requestDomains[0]).sort(),
+                   ['discord.com', 'figma.com', 'notion.so']);
+});
+
+test('an all-sites grant is dropped rather than turned into a rule for the web', () => {
+  /* The manifest asks for optional access to https sites, and a browser has
+   * its own ways to grant all of them at once. That comes back as a wildcard,
+   * and a rule built around one would strip framing headers everywhere. */
+  const bg = loadBackground({
+    origins: ['https://*/*', 'https://*.discord.com/*', '<all_urls>',
+              'http://discord.com/*', 'https://discord.com/*',
+              /* Not wildcards, but not hostnames either. The outer shape check
+               * lets these through, so something has to look at the host. */
+              'https://not a host/*', 'https://-lead.example/*',
+              'https://trail-.example/*', 'https://no-dot/*',
+              'https://under_score.example/*', 'https:///*']
+  });
+  bg.startup();
+
+  assert.deepEqual(bg.rules().map(r => r.condition.requestDomains[0]), ['discord.com'],
+    'something other than a plain https host was made into a rule');
+});
+
+test('a site that merely contains nextwork.ai in its name is not mistaken for it', () => {
+  /* The exclusion was a substring test, so it also skipped a different site
+   * that happened to have the name inside it - which belongs to somebody
+   * else and would silently never be allowed. */
+  const bg = loadBackground({
+    origins: ['https://nextwork.ai.example/*', 'https://app.nextwork.ai/*']
+  });
+  bg.startup();
+  assert.deepEqual(bg.rules().map(r => r.condition.requestDomains[0]),
+                   ['nextwork.ai.example']);
 });

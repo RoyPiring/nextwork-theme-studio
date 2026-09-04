@@ -240,7 +240,7 @@
    * still in flight. Two tabs can still both reach the crossing inside that
    * window and both play; the cost of losing that race is one duplicated
    * chime, which is worth less than the machinery to close it. */
-  let chimedFor = null;
+  let chimed = false;
 
   function paintHud(focus) {
     const el = hudEl();
@@ -254,26 +254,29 @@
     el.setAttribute('data-state',
       !focus.running ? 'paused' : (over ? 'over' : 'running'));
 
-    /* Once per session, and only on the crossing. The session is identified by
-     * when it started, so a reset or a new session chimes again while a paint
-     * every second does not.
+    /* A flag, not a session id.
      *
-     * The marker is not cleared when the session stops being over. It used to
-     * be, which meant pausing a session that had already run over and starting
-     * it again chimed a second time for the same session - the same end, the
-     * same moment, announced twice. */
-    const session = focus.startedAt || 0;
-    if (!over || !focus.chime) return;
-    if (chimedFor === session || focus.chimedFor === session) return;
+     * It used to compare against `startedAt`, on the reasoning that a new
+     * session has a new start time. It does - but so does a resumed one:
+     * pausing banks the elapsed time and starting again sets `startedAt` to
+     * now, because that is how the clock adds up. So a session that had
+     * already run over, paused and restarted, looked like a session that had
+     * never been announced, and rang a second time for the same end.
+     *
+     * Nothing in the timer's own state distinguishes those two, so the flag is
+     * cleared by whatever begins a new session - reset, or a change of length -
+     * and by nothing else. */
+    if (!focus.chimedFor) chimed = false;
+    if (!over || !focus.chime || chimed || focus.chimedFor) return;
 
-    chimedFor = session;
+    chimed = true;
     /* Written before playing, so the other open tabs see it as early as they
      * can rather than after the sound has finished. */
     chrome.storage.local.get({ focus: {} }, function (stored) {
       if (chrome.runtime.lastError) return;
       const f = stored.focus || {};
-      if (f.chimedFor === session) return;
-      chrome.storage.local.set({ focus: Object.assign({}, f, { chimedFor: session }) });
+      if (f.chimedFor) return;
+      chrome.storage.local.set({ focus: Object.assign({}, f, { chimedFor: 1 }) });
     });
     chime();
   }

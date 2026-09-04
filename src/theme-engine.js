@@ -491,6 +491,17 @@
     }
     if (url.protocol !== 'https:') return null;
 
+    /* Not the site the pane is sitting on.
+     *
+     * The frame is sandboxed with `allow-same-origin`, which a cross-origin
+     * page needs to reach its own cookies and stay signed in. Pointed back at
+     * nextwork.ai it means something else entirely: the framed document then
+     * shares an origin with its parent, and a sandbox does not restrain a
+     * document of the same origin - so the missing `allow-top-navigation`
+     * would restrain nothing, and the page in the pane could replace the tab.
+     * There is also nothing to want here: it is the page you are already on. */
+    if (/^(.*\.)?nextwork\.ai$/i.test(url.hostname)) return null;
+
     const host = url.hostname.replace(/^www\./, '');
     const video =
       (host === 'youtube.com' || host === 'm.youtube.com') && url.pathname === '/watch'

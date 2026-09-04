@@ -584,3 +584,17 @@ test('a player is known to need no permission; anything else is not', () => {
     assert.equal(NWT.framesFreely(other), false, JSON.stringify(other));
   });
 });
+
+test('the pane will not point back at the site it sits on', () => {
+  /* The frame is sandboxed with allow-same-origin, which a cross-origin page
+   * needs to stay signed in. Pointed at nextwork.ai it means the opposite: the
+   * framed page then shares an origin with its parent, a sandbox does not
+   * restrain a same-origin document, and the missing allow-top-navigation
+   * stops restraining anything. */
+  ['https://nextwork.ai/projects/1', 'https://www.nextwork.ai/',
+   'https://app.nextwork.ai/x'].forEach(url => {
+    assert.equal(NWT.companionSrc(url), null, url + ' was accepted');
+  });
+  /* A different site that merely ends in something similar is not the same. */
+  assert.ok(NWT.companionSrc('https://nextwork.ai.example/x'));
+});
