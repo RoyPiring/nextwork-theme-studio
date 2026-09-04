@@ -567,6 +567,121 @@
     return !/\/embed\//.test(url.pathname) && !companionSrc(raw).includes('/embed/');
   }
 
+  /* ---- the end of a session ---------------------------------------------
+   *
+   * A bell rather than a beep, and a ring rather than a note.
+   *
+   * The old chime was two sine tones over about half a second. A sine is the
+   * one waveform with nothing in it but its own frequency, which is why it
+   * reads as electronic - nothing that is struck sounds like that. And half a
+   * second is a notification: if you are away from the screen when it lands,
+   * which is what a focus timer is for, you never know it happened.
+   *
+   * So each note is struck rather than sounded: three partials at the ratios
+   * a tubular bell actually has, a near-instant attack and a long decay. And
+   * it rings six times, getting a little louder each time, over fourteen
+   * seconds - long enough to walk back to.
+   *
+   * The plan is worked out here, apart from anything that makes a sound, so
+   * that what it will do can be read and checked without a speaker. */
+  const ALARM_PARTIALS = [[1, 1], [2.76, 0.3], [5.4, 0.12]];
+  const ALARM_NOTES = [880, 1108.73, 1318.51];   /* A5, C#6, E6 */
+  const ALARM_RINGS = 6;
+  const ALARM_GAP = 2.4;    /* one ring to the next */
+  const ALARM_STEP = 0.2;   /* one note to the next, inside a ring */
+  const ALARM_LIFE = 1.7;   /* how long a struck note takes to die away */
+
+  function alarmPlan() {
+    const out = [];
+    for (let ring = 0; ring < ALARM_RINGS; ring++) {
+      /* Quiet to begin with and firmer as it goes on. An alarm that opens at
+       * full volume is startling, and being startled is not being told. */
+      const level = Math.min(1, 0.5 + ring * 0.12);
+      ALARM_NOTES.forEach(function (hz, i) {
+        out.push({ at: ring * ALARM_GAP + i * ALARM_STEP, hz: hz,
+                   life: ALARM_LIFE, level: level });
+      });
+    }
+    return out;
+  }
+
+  function alarmSeconds() {
+    const plan = alarmPlan();
+    return plan[plan.length - 1].at + ALARM_LIFE;
+  }
+
+  /* Plays it, and hands back the way to stop it - or null if nothing can be
+   * heard, which is not the same as nothing having gone wrong.
+   *
+   * A browser will not let a page make a sound until someone has interacted
+   * with it, and it refuses by handing back a *suspended* context rather than
+   * by failing: every call on it works and nothing comes out. A caller that
+   * only guards against an exception believes it played something. */
+  function playAlarm(win) {
+    try {
+      const w = win || (typeof window === 'undefined' ? null : window);
+      if (!w) return null;
+      const Ctx = w.AudioContext || w.webkitAudioContext;
+      if (!Ctx) return null;
+      const ctx = new Ctx();
+
+      if (ctx.state === 'suspended') {
+        try { ctx.resume(); } catch (e) { /* nothing else to try */ }
+      }
+      if (ctx.state !== 'running') {
+        try { ctx.close(); } catch (e) { /* already gone */ }
+        return null;
+      }
+
+      /* One handle on the whole thing, so silencing it is one ramp rather
+       * than chasing fifty-four oscillators. */
+      const master = ctx.createGain();
+      master.gain.value = 0.2;
+      master.connect(ctx.destination);
+
+      const t0 = ctx.currentTime + 0.05;
+      alarmPlan().forEach(function (note) {
+        ALARM_PARTIALS.forEach(function (partial) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = note.hz * partial[0];
+          const at = t0 + note.at;
+          /* Struck: up in eight milliseconds, then decaying for as long as it
+           * takes. A slow attack is a swell, and a swell is not a bell. */
+          gain.gain.setValueAtTime(0.0001, at);
+          gain.gain.exponentialRampToValueAtTime(note.level * partial[1], at + 0.008);
+          gain.gain.exponentialRampToValueAtTime(0.0001, at + note.life);
+          osc.connect(gain).connect(master);
+          osc.start(at);
+          osc.stop(at + note.life + 0.05);
+        });
+      });
+
+      let done = false;
+      const stop = function () {
+        if (done) return;
+        done = true;
+        try {
+          master.gain.cancelScheduledValues(ctx.currentTime);
+          master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+          /* Faded rather than cut. Stopping a ringing bell dead is a click. */
+          master.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.09);
+        } catch (e) { /* nothing to fade */ }
+        setTimeout(function () {
+          try { ctx.close(); } catch (e) { /* already closed */ }
+        }, 220);
+      };
+      /* Closed when it has finished on its own, so a long day does not leave
+       * a context open for every session that ended. */
+      setTimeout(stop, Math.round(alarmSeconds() * 1000) + 400);
+      return stop;
+    } catch (e) {
+      /* No sound. The pill is still flashing. */
+      return null;
+    }
+  }
+
   function framesFreely(src) {
     return typeof src === 'string' && src.indexOf(YOUTUBE_PLAYER) === 0;
   }
@@ -1866,6 +1981,17 @@
     L.push('#nwt-split[data-peek="1"] { transform: translateX(100%);' +
            ' pointer-events: none; }');
 
+    /* Ringing: the pill breathes rather than sitting still, so a timer that
+     * has gone off is visible from across the room and obviously the thing
+     * making the noise. */
+    L.push('@keyframes nwt-ring { 0%, 100% { transform: scale(1); }' +
+           ' 50% { transform: scale(1.06); } }');
+    L.push('#nwt-focus[data-ringing="1"] { cursor: pointer;' +
+           ' animation: nwt-ring 1.2s ease-in-out infinite;' +
+           ' box-shadow: 0 0 0 3px ' + rgba(p.status.error[400], 0.35) + '; }');
+    L.push('@media (prefers-reduced-motion: reduce) {' +
+           ' #nwt-focus[data-ringing="1"] { animation: none; } }');
+
     /* Folded, it is its bar and nothing else. */
     L.push('.nwt-companion[data-collapsed="1"] { height: auto !important; }');
     L.push('.nwt-companion[data-collapsed="1"] .nwt-companion-body,' +
@@ -2089,6 +2215,7 @@
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
     focusElapsed, focusRemaining, formatDuration, companionSrc, framesFreely,
+    alarmPlan, alarmSeconds, playAlarm,
     needsLink,
     panelShares,
     cssReachesOut, withoutCssEscapes,

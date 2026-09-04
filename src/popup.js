@@ -194,6 +194,8 @@
   /* Whether the custom box is open because it was asked for, rather than
    * because the length in force happens not to be one of the three. */
   let customOpen = false;
+  /* Playing now, if the alarm is being previewed from here. */
+  let chimePreview = null;
 
   /* A different length is a different end to reach, and it has not been
    * announced yet - but only when it actually differs. Setting the length
@@ -828,6 +830,20 @@
     $('random-theme').addEventListener('click', function () {
       save({ themeId: randomThemeId() });
       renderAll();
+    });
+
+    /* Hearing it is the only way to know whether it is the right sound, and
+     * waiting out a session to find out is not a way to find out. */
+    $('focus-chime-try').addEventListener('click', function () {
+      const btn = $('focus-chime-try');
+      if (chimePreview) {
+        chimePreview();
+        chimePreview = null;
+        btn.textContent = 'Try it';
+        return;
+      }
+      chimePreview = NWT.playAlarm(window);
+      btn.textContent = chimePreview ? 'Stop' : 'Try it';
     });
 
     $('focus-chime').addEventListener('change', function () {

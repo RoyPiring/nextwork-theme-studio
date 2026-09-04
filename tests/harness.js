@@ -611,6 +611,7 @@ function loadContentScript(options) {
         this.currentTime = 0;
         this.destination = { name: 'destination' };
         this.notes = [];
+        this.gains = [];
         this.closed = false;
         /* A browser refuses to make a sound on a page nobody has interacted
          * with yet, and it refuses by handing back a context in this state
@@ -633,13 +634,19 @@ function loadContentScript(options) {
         });
       }
       createGain() {
-        return {
+        /* `value` is real and `cancelScheduledValues` exists, because
+         * silencing a ringing alarm is done by taking hold of one gain and
+         * ramping it down - and a stub that cannot be read or cancelled would
+         * let that be written wrong and still pass. */
+        const node = {
           gain: {
-            setValueAtTime() {}, linearRampToValueAtTime() {},
-            exponentialRampToValueAtTime() {}
+            value: 0, cancelScheduledValues() {}, setValueAtTime() {},
+            linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}
           },
           connect(next) { return next; }
         };
+        this.gains.push(node);
+        return node;
       }
       close() { this.closed = true; }
     },
@@ -1181,9 +1188,41 @@ function loadPage(options) {
     text() { return Promise.resolve(this.parts.join('')); }
   }
 
+
+  /* Every alarm the popup played, so a preview button can be checked. */
+  const audible = [];
+
   const win = {
     innerWidth: 420,
     innerHeight: 600,
+    /* The popup can play the end-of-session alarm on its own, so someone can
+     * hear what it sounds like without waiting out a session. */
+    AudioContext: class {
+      constructor() {
+        this.currentTime = 0;
+        this.destination = { name: 'destination' };
+        this.notes = [];
+        this.closed = false;
+        this.state = opts.silenced ? 'suspended' : 'running';
+        audible.push(this);
+      }
+      resume() { return Promise.resolve(); }
+      createOscillator() {
+        const note = { type: '', frequency: { value: 0 } };
+        this.notes.push(note);
+        return Object.assign(note, {
+          connect(next) { return next; }, start() {}, stop() {}
+        });
+      }
+      createGain() {
+        return {
+          gain: { value: 0, cancelScheduledValues() {}, setValueAtTime() {},
+                  linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} },
+          connect(next) { return next; }
+        };
+      }
+      close() { this.closed = true; }
+    },
     close() { opened.closed++; },
     addEventListener() {},
     removeEventListener() {},
@@ -1299,6 +1338,8 @@ function loadPage(options) {
 
   return {
     doc, chrome, window: win, sandbox, stored, reads, flush, opened, intervals,
+    /* Every alarm this popup played. */
+    audible,
     /* What an export handed to the browser to save. */
     saved,
     /* Every question the page put to the person using it. */

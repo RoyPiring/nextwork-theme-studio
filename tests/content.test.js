@@ -593,8 +593,10 @@ test('the sound plays once when the session runs over, not every second', () => 
   assert.equal(page.played.length, 1,
     'it chimed ' + page.played.length + ' times for one session');
 
-  /* Two notes, and the context closed rather than left open. */
-  assert.equal(page.played[0].notes.length, 2);
+  /* A bell struck several times, not two beeps: every note carries three
+   * partials, and there are six rings of three notes. */
+  const plan = page.sandbox.NWT.alarmPlan();
+  assert.equal(page.played[0].notes.length, plan.length * 3);
   assert.ok(page.played[0].notes.every(n => n.frequency.value > 0));
 });
 
@@ -744,8 +746,46 @@ test('once the page can make a sound, the same session is still announced', () =
   const page = loadContentScript({ settings: { enabled: true, focus: over } });
   page.flush();
 
-  assert.equal(page.played[0].notes.length, 2, 'nothing was played');
+  assert.ok(page.played[0].notes.length > 0, 'nothing was played');
   assert.ok(page.stored.focus.chimedFor, 'a chime that was heard was not recorded');
+});
+
+test('a press anywhere stops the alarm', () => {
+  /* "Click it to stop it" has to mean the pill, and the pill is a drag
+   * handle - a press on it is taken for a drag and no click is ever raised.
+   * So the press itself is listened for, before anything can capture it,
+   * which also means touching anything else on the page silences it. */
+  const over = { enabled: true, running: true, startedAt: Date.now() - 26 * 60000,
+                 accumulatedMs: 0, targetMin: 25, chime: true };
+  const page = loadContentScript({ settings: { enabled: true, focus: over } });
+  page.flush();
+
+  const pill = page.doc.getElementById('nwt-focus');
+  assert.equal(pill.getAttribute('data-ringing'), '1', 'nothing says it is ringing');
+  assert.match(pill.title, /stop the alarm/i);
+
+  page.doc.dispatchEvent({ type: 'pointerdown' });
+  page.flush();
+
+  assert.equal(pill.getAttribute('data-ringing'), null, 'it is still ringing');
+  assert.ok(page.played[0].closed, 'the alarm was silenced but its context left open');
+});
+
+test('a session that stops running over stops ringing', () => {
+  /* Reset, paused, or a new length: whatever ends the overrun ends the bell
+   * with it, so it cannot outlive the session it is about. */
+  const over = { enabled: true, running: true, startedAt: Date.now() - 26 * 60000,
+                 accumulatedMs: 0, targetMin: 25, chime: true };
+  const page = loadContentScript({ settings: { enabled: true, focus: over } });
+  page.flush();
+  assert.equal(page.doc.getElementById('nwt-focus').getAttribute('data-ringing'), '1');
+
+  page.chrome.storage.local.set({ focus: Object.assign({}, over, {
+    running: false, startedAt: 0, accumulatedMs: 0, chimedFor: 0 }) });
+  page.flush();
+
+  assert.equal(page.doc.getElementById('nwt-focus').getAttribute('data-ringing'), null,
+    'the alarm outlived the session');
 });
 
 test('the audio context is closed rather than left open', () => {

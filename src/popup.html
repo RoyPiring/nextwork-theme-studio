@@ -127,7 +127,10 @@
         <input type="range" id="focus-size" min="80" max="220" step="10">
       </div>
       <label class="check tiny"><input type="checkbox" id="focus-locked"> Lock in place</label>
-      <label class="check tiny" title="A short chime when the session reaches its length. The pill turns red either way."><input type="checkbox" id="focus-chime"> Sound when time is up</label>
+      <div class="row between">
+        <label class="check tiny" title="An alarm when the session reaches its length. The pill turns red either way."><input type="checkbox" id="focus-chime"> Sound when time is up</label>
+        <button class="ghost tiny" id="focus-chime-try" title="Hear it now, without waiting out a session">Try it</button>
+      </div>
       <p class="tiny muted" id="focus-note">Shows while you are building a project. Drag to move, double-click to reset.</p>
     </div>
   </section>
