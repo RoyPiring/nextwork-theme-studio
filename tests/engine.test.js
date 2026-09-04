@@ -554,3 +554,33 @@ test('a video id that is not one is not turned into a player', () => {
   assert.ok(!String(NWT.companionSrc(odd)).includes('/embed/'),
     'a bad id was built into a player address');
 });
+
+test('a timestamp is kept in every form the share button writes', () => {
+  /* Reading it as a plain number gave NaN for all but the first, and the
+   * start time was then silently dropped - on exactly the links people copy,
+   * since the share button writes seconds with a suffix. */
+  const base = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=';
+  const player = 'https://www.youtube.com/embed/dQw4w9WgXcQ?start=';
+  assert.equal(NWT.companionSrc(base + '90'), player + '90');
+  assert.equal(NWT.companionSrc(base + '90s'), player + '90');
+  assert.equal(NWT.companionSrc(base + '1m30s'), player + '90');
+  assert.equal(NWT.companionSrc(base + '1h2m3s'), player + '3723');
+  assert.equal(NWT.companionSrc(base + '2m'), player + '120');
+});
+
+test('a timestamp that is not one is dropped rather than passed on', () => {
+  const base = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=';
+  ['', 'soon', '-30', '1x2', '9e9'].forEach(bad => {
+    assert.equal(NWT.companionSrc(base + bad),
+      'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      JSON.stringify(bad) + ' was carried into the player address');
+  });
+});
+
+test('a player is known to need no permission; anything else is not', () => {
+  assert.equal(NWT.framesFreely('https://www.youtube.com/embed/x'), true);
+  ['https://www.youtube.com/watch?v=x', 'https://discord.com/channels/1/2',
+   'https://evil.example/embed/', '', null].forEach(other => {
+    assert.equal(NWT.framesFreely(other), false, JSON.stringify(other));
+  });
+});

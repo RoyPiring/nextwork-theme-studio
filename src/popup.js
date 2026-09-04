@@ -230,40 +230,114 @@
     const host = $('companion-tiles');
     host.textContent = '';
     tiles.forEach(function (tile) {
+      /* Two real buttons side by side rather than one inside the other. A
+       * button nested in a button is invalid, and the browser gives the inner
+       * one no keyboard activation of its own - so reaching the × with Tab and
+       * pressing Enter used to fire the outer button and switch to the tile
+       * instead of removing it. */
+      const group = document.createElement('span');
+      group.className = 'tile';
+
       const btn = document.createElement('button');
       btn.type = 'button';
+      btn.className = 'tile-go';
       btn.title = tile.url;
       /* Which one is in the pane now, said the same way the session lengths
        * say which is chosen. */
       btn.setAttribute('aria-pressed', String(tile.url === c.url));
-
-      const name = document.createElement('span');
-      name.textContent = tile.label;
-      btn.appendChild(name);
-
-      /* Its own control rather than a second click target on the tile: a row
-       * of things you go to should not remove one when you miss. */
-      const drop = document.createElement('span');
-      drop.className = 'drop';
-      drop.setAttribute('role', 'button');
-      drop.setAttribute('tabindex', '0');
-      drop.title = 'Remove ' + tile.label;
-      drop.textContent = '×';
-      btn.appendChild(drop);
-
-      btn.addEventListener('click', function (e) {
-        if (e.target === drop) {
-          saveCompanion({
-            tiles: tiles.filter(function (t) { return t.url !== tile.url; }),
-            url: c.url === tile.url ? '' : c.url
-          });
-          return;
-        }
-        /* Choosing one shows the pane: picking something to watch and then
-         * having to turn the pane on as well is a step with no meaning. */
+      btn.textContent = tile.label;
+      /* Choosing one shows the pane: picking something to watch and then
+       * having to turn the pane on as well is a step with no meaning. */
+      btn.addEventListener('click', function () {
         saveCompanion({ url: tile.url, enabled: true });
       });
-      host.appendChild(btn);
+
+      /* Its own control rather than a second click target on the tile: a row
+       * of things you go to should not lose one when you miss. */
+      const drop = document.createElement('button');
+      drop.type = 'button';
+      drop.className = 'drop';
+      drop.title = 'Remove ' + tile.label;
+      drop.setAttribute('aria-label', 'Remove ' + tile.label);
+      drop.textContent = '×';
+      drop.addEventListener('click', function () {
+        saveCompanion({
+          tiles: tiles.filter(function (t) { return t.url !== tile.url; }),
+          url: c.url === tile.url ? '' : c.url
+        });
+      });
+
+      group.appendChild(btn);
+      group.appendChild(drop);
+      host.appendChild(group);
+    });
+
+    renderAccess(c);
+  }
+
+  /* Whether the site in the pane has been allowed to be shown inside a page,
+   * and the control that asks for it. Most sites refuse to be framed, and the
+   * refusal is theirs - so the only honest options are to ask the browser for
+   * permission to set that aside for this one frame, or to open the site in a
+   * window of its own. Both are offered; neither happens quietly. */
+  function renderAccess(c) {
+    const row = $('companion-access');
+    /* `pending` is set when the pane's own button sent you here, and names the
+     * site you were looking at. It wins over whatever the pane is pointed at
+     * now, because it is the question you actually asked. */
+    const src = NWT.companionSrc(c.pending || c.url);
+
+    if (!src || NWT.framesFreely(src)) { row.style.display = 'none'; return; }
+    row.style.display = '';
+    row.setAttribute('data-asked', c.pending ? '1' : '0');
+
+    chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
+      if (chrome.runtime.lastError) return;
+      const allowed = !!(r && r.allowed);
+      const host = (r && r.origin ? r.origin : src).replace(/^https:\/\//, '');
+      $('companion-access-note').textContent = allowed
+        ? host + ' is allowed to open in the pane.'
+        : host + ' refuses to be shown inside another page.';
+      const btn = $('companion-access-btn');
+      btn.textContent = allowed ? 'Take it back' : 'Allow ' + host;
+      btn.title = allowed
+        ? 'Stop opening ' + host + ' in the pane, and remove its permission'
+        : 'Ask the browser for permission to open ' + host + ' in the pane';
+      /* Put the cursor on the answer, so pressing Enter is enough for someone
+       * who arrived here from the pane with one question. */
+      if (c.pending && !allowed) btn.focus();
+    });
+  }
+
+  /* The prompt the browser shows has to follow a click, which is why this is
+   * wired to a button rather than done for you when a link is added. */
+  function toggleAccess() {
+    const c = companionState();
+    const asked = c.pending || c.url;
+    const src = NWT.companionSrc(asked);
+    if (!src) return;
+
+    chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
+      if (chrome.runtime.lastError) return;
+      const next = (r && r.allowed) ? 'companion:forget' : 'companion:allow';
+      chrome.runtime.sendMessage({ type: next, url: src }, function (done) {
+        if (chrome.runtime.lastError) return;
+        const granted = next === 'companion:allow' && !!(done && done.allowed);
+        /* The pane caches what it was told, so it is told that this changed.
+         * Without it, allowing a site would leave an open page sitting on its
+         * refusal until something else happened to move. The question is
+         * cleared at the same time: it has now been answered either way.
+         *
+         * Being granted also puts the site in the pane, because arriving here
+         * from the pane's own button is not a request to change a setting - it
+         * is a request to see the thing. */
+        const patch = { grantedAt: Date.now(), pending: '' };
+        if (granted && c.pending) { patch.url = c.pending; patch.enabled = true; }
+        saveCompanion(patch);
+        if (next === 'companion:allow' && !granted) {
+          toastNote('The browser did not grant that. It can be opened in a window instead.');
+        }
+      });
     });
   }
 
@@ -296,8 +370,19 @@
   function labelFor(raw) {
     try {
       const host = new URL(raw).hostname.replace(/^www\./, '');
-      if (host === 'youtu.be' || host.endsWith('youtube.com')) return 'YouTube';
-      return host.split('.')[0];
+      if (host === 'youtu.be' || /(^|\.)youtube\.com$/.test(host)) return 'YouTube';
+
+      /* The name, not the first thing before a dot. Taking the first label
+       * turned app.slack.com into "app" and mail.google.com into "mail",
+       * which names the subdomain rather than the site. The part before the
+       * public suffix is the one people recognise; two-part suffixes like
+       * .co.uk are the reason that is not simply the second-to-last. */
+      const parts = host.split('.');
+      const twoPart = /^(co|com|org|net|gov|ac|edu)$/;
+      const i = parts.length > 2 && twoPart.test(parts[parts.length - 2])
+        ? parts.length - 3 : parts.length - 2;
+      const name = parts[Math.max(0, i)] || host;
+      return name.charAt(0).toUpperCase() + name.slice(1);
     } catch (e) {
       return 'Link';
     }
@@ -320,6 +405,7 @@
       saveCompanion({ enabled: $('companionEnabled').checked });
     });
     $('companion-add').addEventListener('click', addTile);
+    $('companion-access-btn').addEventListener('click', toggleAccess);
     $('companion-url').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') addTile();
     });

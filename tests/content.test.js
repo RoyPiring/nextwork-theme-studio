@@ -679,26 +679,78 @@ test('the name on the bar is the one that was saved with the tile', () => {
   assert.equal(pane(page).querySelector('.nwt-companion-title').textContent, 'Lecture');
 });
 
-test('a site that refuses to be framed says so, and offers the way out', () => {
-  /* No error event exists for this - the browser blocks the frame and the
-   * load event simply never comes - so the only signal is that nothing
-   * arrived. Someone staring at an empty rectangle needs to be told why. */
-  const page = withPane({ url: 'https://discord.com/channels/1/2' });
+const DISCORD = 'https://discord.com/channels/1/2';
+
+test('a site nobody has allowed is not loaded, and says why', () => {
+  /* Waiting to see whether the frame loads cannot work: a browser that refuses
+   * one navigates it to an error page and fires `load` on it just the same, so
+   * there is no failure to catch and nothing to time out on. What is knowable
+   * in advance is whether this site has been allowed, so that is what is
+   * asked - and someone looking at the pane is told which it is. */
+  const page = withPane({ url: DISCORD });
   page.flush();
 
-  assert.equal(pane(page).getAttribute('data-state'), 'refused');
-  const said = pane(page).querySelector('.nwt-companion-refused').textContent;
-  assert.match(said, /will not open inside another page/);
+  assert.equal(pane(page).getAttribute('data-state'), 'blocked');
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'a site that was refused was loaded anyway');
+  assert.match(pane(page).querySelector('.nwt-companion-refused').textContent,
+    /refuses to be shown inside another page/);
   assert.notEqual(pane(page).querySelector('.nwt-companion-out').style.display, 'none',
     'the button that opens it in a window was hidden');
 });
 
-test('a frame that does arrive is not called refused', () => {
+test('a site that has been allowed is loaded', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: DISCORD } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+  assert.equal(frameOf(page).getAttribute('src'), DISCORD);
+});
+
+test('allowing a site while the page is open loads it without a reload', () => {
+  /* The answer is cached, so being granted permission has to be able to reach
+   * a page that has already been told no. Without this, allowing a site left
+   * the pane sitting on its refusal until something else changed. */
+  const page = withPane({ url: DISCORD });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'blocked');
+
+  page.allow('https://discord.com');
+  page.chrome.storage.local.set({
+    companion: { enabled: true, url: DISCORD, grantedAt: 1234 }
+  });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+  assert.equal(frameOf(page).getAttribute('src'), DISCORD);
+});
+
+test('a player needs no permission, because the site published it to be framed', () => {
   const page = withPane({ url: VIDEO });
   page.flush();
-  frameOf(page).onload();
-  page.flush();
   assert.equal(pane(page).getAttribute('data-state'), 'ready');
+  assert.equal(frameOf(page).getAttribute('src'), EMBED);
+  assert.deepEqual(page.sent.filter(m => m.type === 'companion:allowed'), [],
+    'it asked permission for a site that had already said yes');
+});
+
+test('the arrow asks the extension for a window rather than opening one here', () => {
+  /* A window the browser makes holds anything at all, including every site
+   * that refuses to be framed whatever its headers say. `window.open` from
+   * the page is subject to the page's own policy on what it may open. */
+  const page = withPane({ url: DISCORD, w: 500, h: 400 });
+  page.flush();
+  pane(page).querySelector('.nwt-companion-out').click();
+  page.flush();
+
+  const asked = page.sent.filter(m => m.type === 'companion:window');
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0].url, DISCORD);
+  assert.deepEqual([asked[0].w, asked[0].h], [500, 400],
+    'the window did not arrive the shape the pane was left');
 });
 
 test('an address it cannot open leaves the frame empty rather than loading it', () => {
@@ -724,7 +776,6 @@ test('a repaint does not reload a video that is already playing', () => {
   const page = withPane({ url: VIDEO });
   page.flush();
   const frame = frameOf(page);
-  frame.onload();
   let sets = 0;
   const real = frame.setAttribute.bind(frame);
   frame.setAttribute = function (n, v) { if (n === 'src') sets++; return real(n, v); };
@@ -739,8 +790,13 @@ test('a repaint does not reload a video that is already playing', () => {
 });
 
 test('switching to another link does load the new one', () => {
-  const page = withPane({ url: VIDEO });
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: VIDEO } },
+    allowed: ['https://example.com']
+  });
   page.flush();
+  assert.equal(frameOf(page).getAttribute('src'), EMBED);
+
   page.chrome.storage.local.set({
     companion: { enabled: true, url: 'https://example.com/notes' }
   });
@@ -749,12 +805,29 @@ test('switching to another link does load the new one', () => {
 });
 
 test('the frame is not allowed to navigate the tab it sits in', () => {
-  /* Without sandbox restrictions a page in here could replace the tab. */
+  /* This used to read the `allow` attribute, which is a permissions policy and
+   * has nothing to say about navigation - so it asserted the absence of a word
+   * that could never have appeared there, and would have gone on passing if
+   * the frame had been given free rein. `sandbox` is the attribute that
+   * governs this, and a frame with no sandbox at all has no restriction. */
   const page = withPane({ url: VIDEO });
   page.flush();
-  const allow = frameOf(page).getAttribute('allow') || '';
-  assert.ok(!/top-navigation/.test(allow), 'the frame was allowed to navigate the tab');
+  const sandbox = frameOf(page).getAttribute('sandbox');
+
+  assert.ok(sandbox, 'the frame has no sandbox, so nothing restricts it');
+  assert.ok(!/allow-top-navigation/.test(sandbox),
+    'a page in the pane can replace the tab underneath it');
+  assert.ok(/allow-scripts/.test(sandbox), 'nothing would run, so nothing would load');
   assert.equal(frameOf(page).getAttribute('referrerpolicy'), 'strict-origin-when-cross-origin');
+});
+
+test('the frame is not handed the clipboard', () => {
+  /* It was granted clipboard-write, unconditionally, to whatever address
+   * happened to be pasted in. Nothing in a pane beside your work needs it. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.ok(!/clipboard/.test(frameOf(page).getAttribute('allow') || ''),
+    'the frame was given the clipboard');
 });
 
 test('hiding the pane from its own corner turns it off for good', () => {
@@ -767,4 +840,63 @@ test('hiding the pane from its own corner turns it off for good', () => {
   assert.equal(page.stored.companion.enabled, false,
     'closing the pane did not turn it off in storage');
   assert.equal(pane(page), null, 'the pane is still on the page');
+});
+
+test('one session is announced once, however many tabs are open', () => {
+  /* Every project page runs its own copy of this script and they all cross the
+   * end of the session in the same second. With the marker held only in the
+   * page, three open tabs chimed three times, over the top of each other. */
+  const session = Date.now() - 26 * 60000;
+  const focus = { enabled: true, running: true, startedAt: session,
+                  accumulatedMs: 0, targetMin: 25, chime: true };
+
+  const first = loadContentScript({ settings: { enabled: true, focus: focus } });
+  first.flush();
+  assert.equal(first.played.length, 1, 'the first tab did not chime');
+  assert.equal(first.stored.focus.chimedFor, session,
+    'nothing was written down, so every other tab will chime too');
+
+  /* A second tab opening onto the same session, seeing what the first wrote. */
+  const second = loadContentScript({
+    settings: { enabled: true, focus: Object.assign({}, focus, { chimedFor: session }) }
+  });
+  second.flush();
+  assert.deepEqual(second.played, [],
+    'a second tab chimed for a session that had already been announced');
+});
+
+test('pausing after the session ran over does not announce it a second time', () => {
+  /* The marker used to be cleared whenever the timer stopped being over, so
+   * pausing and starting again rang for the same end a second time. */
+  const session = Date.now() - 26 * 60000;
+  const page = loadContentScript({
+    settings: { enabled: true, focus: { enabled: true, running: true,
+      startedAt: session, accumulatedMs: 0, targetMin: 25, chime: true } }
+  });
+  page.flush();
+  assert.equal(page.played.length, 1);
+
+  /* Paused - no longer over - and then started again on the same session. */
+  page.chrome.storage.local.set({ focus: { enabled: true, running: false,
+    startedAt: session, accumulatedMs: 26 * 60000, targetMin: 25, chime: true,
+    chimedFor: session } });
+  page.flush();
+  page.chrome.storage.local.set({ focus: { enabled: true, running: true,
+    startedAt: session, accumulatedMs: 26 * 60000, targetMin: 25, chime: true,
+    chimedFor: session } });
+  page.flush();
+
+  assert.equal(page.played.length, 1,
+    'it announced the same session ' + page.played.length + ' times');
+});
+
+test('a new session is announced again', () => {
+  /* The marker must not make the next session silent. */
+  const page = loadContentScript({
+    settings: { enabled: true, focus: { enabled: true, running: true,
+      startedAt: Date.now() - 26 * 60000, accumulatedMs: 0, targetMin: 25,
+      chime: true, chimedFor: 111 } }
+  });
+  page.flush();
+  assert.equal(page.played.length, 1, 'a fresh session was treated as already announced');
 });

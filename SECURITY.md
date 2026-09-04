@@ -15,28 +15,63 @@ It restyles one site in your browser. That is the whole capability.
 | --- | --- | --- |
 | Network requests | none from the extension's own code | `tools/audit.js`, in CI |
 | Remote code | none | no `eval`, no `new Function`, no remote scripts |
-| Permissions | `storage` | audit fails on anything else |
+| Permissions | `storage`, `declarativeNetRequest` | audit fails on anything else |
 | Host access | `https://nextwork.ai/*` and `https://*.nextwork.ai/*` | audit fails on any other match pattern |
 | Data leaving the device | none | `tools/audit.js`, in CI |
 
-`storage` holds your themes, and it is the only permission requested. The popup's
-reload button calls `chrome.tabs.reload()` with no arguments, which needs no
-permission at all. `activeTab` was requested for a while, never used, and has
-been removed.
+`storage` holds your themes. `declarativeNetRequest` is the companion pane's,
+and is explained below. The popup's reload button calls `chrome.tabs.reload()`
+with no arguments, which needs no permission at all. `activeTab` was requested
+for a while, never used, and has been removed.
+
+Host access at install is still nextwork.ai and nothing else. Any other site
+is optional, granted one at a time by you, through the browser's own prompt,
+and revocable from the browser's settings without going near the extension.
 
 Your themes are in `chrome.storage.local`, which does not sync. They stay on the
 machine you made them on.
 
+### The companion pane
+
 The one exception to "no network requests" is the pane, and it is yours to
-start: a link you paste into the popup is loaded in a frame on the project
-page, so that site sees a request the same way it would if you opened it in a
-tab. Nothing about you or your themes is added to it. The pane is off until you
-turn it on, loads nothing until you give it an address, and accepts only
-`https`. The frame is given the referrer policy `strict-origin-when-cross-origin`
-and no permission to navigate the tab it sits in. The single remote address
-written anywhere in the source is YouTube's player, used to turn a link to a
-video into the form that can be framed; the audit allows that one literal by
-name and rejects every other.
+start: a link you paste into the popup is loaded in a frame on the page, so
+that site sees a request the same way it would if you opened it in a tab.
+Nothing about you or your themes is added to it. The pane is off until you turn
+it on, loads nothing until you give it an address, and accepts only `https`.
+The frame is sandboxed without `allow-top-navigation`, so a page inside it
+cannot replace the tab it sits in, and carries the referrer policy
+`strict-origin-when-cross-origin`.
+
+**The part that deserves your attention.** Most sites refuse to be shown inside
+another page, using `X-Frame-Options` or a `frame-ancestors` policy. Those
+headers exist to stop a page you are signed in to being framed by someone else
+and clicked through invisibly. For the pane to hold such a site, the extension
+has to remove them, and that is a real reduction in the protection that site
+asked for.
+
+So it is scoped as tightly as the API allows, and the audit checks each of
+these rather than trusting a reviewer to notice:
+
+| | |
+| --- | --- |
+| When | Only after you name a site and the browser's own prompt is accepted |
+| Where | Only in a sub-frame that a nextwork.ai page opened — which is only ever this pane. The same site framed anywhere else on the web keeps every header it sent |
+| What | Only `x-frame-options` and the two `content-security-policy` headers, and only removed, never added or replaced. Request headers are never touched |
+| Undo | One control in the popup, or the browser's own permission settings. The rules are rebuilt from what the browser reports as granted, so revoking there takes the rule with it |
+
+`content-security-policy` is removed whole rather than edited, because the API
+can remove or replace a header, not reach inside one and drop a single
+directive. That is a wider cut than `frame-ancestors` alone and is the honest
+cost of the feature.
+
+If you would rather not do any of this, the arrow on the pane opens the site in
+a window of its own instead. That path needs no permission, changes no headers,
+and works for every site.
+
+The single remote address written anywhere in the source is YouTube's player,
+used to turn a link to a video into the form that can be framed; the audit
+allows that one literal by name and rejects every other, in the markup as well
+as the code.
 
 ## Threat model
 

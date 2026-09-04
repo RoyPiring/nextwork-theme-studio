@@ -82,12 +82,20 @@ the session reaches its length it can chime and flash red until you look at it;
 both can be turned off.
 
 **Beside your work.** For one screen. Paste a link in the popup and it becomes
-a tile; the pane floats over the project page with that link in it, and you
-drag its bar to move it and its corner to resize it. A YouTube link works -
-paste the address from the browser's bar and it plays. Most other sites,
-Discord among them, refuse to appear inside another page; that is their setting
-and no extension can override it, so the pane offers to open them in a small
-window of their own instead.
+a tile; the pane floats over the page with that link in it, and you drag its
+bar to move it and its corner to resize it. It stays where you put it.
+
+A YouTube link works straight away — paste the address from your browser's bar
+and it plays. Most other sites, Discord among them, refuse to be shown inside
+another page. The pane says so and offers you two ways on: **allow this site**,
+which asks your browser for permission to set that refusal aside for this one
+frame, or the arrow in its bar, which opens the site in a small window of its
+own and needs no permission at all.
+
+Allowing a site is worth understanding before you do it, and
+[SECURITY.md](SECURITY.md) explains what it changes and how far it reaches.
+The short version: it applies only inside this pane, only to the site you
+named, and the browser can take it back at any time.
 
 ---
 

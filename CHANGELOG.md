@@ -17,11 +17,22 @@ were never released.
   resize it; both are remembered. The switch beside "Beside your work" turns
   it off without losing the tiles.
 
-  A YouTube link works: the address from the browser's bar is loaded as the
-  player, which is the part that can appear inside another page, and a
-  timestamp on the link is kept. Most other sites refuse to be framed at all -
-  that is their own setting and nothing an extension can change - so the pane
-  says so and offers to open them in a small window instead.
+  A YouTube link works with nothing further asked: the address from the
+  browser's bar is loaded as the player, which is the part meant to appear
+  inside another page, and a timestamp on the link is kept.
+
+  Most other sites refuse to be framed. For those the pane offers two ways on.
+  **Allow this site** asks your browser for permission to set that refusal
+  aside — only inside this pane, only for the site you named, and revocable
+  from the browser's own settings. The arrow in the pane's bar opens the site
+  in a window of its own instead, which needs no permission and works
+  everywhere. Neither happens quietly, and `SECURITY.md` sets out exactly what
+  the first one changes.
+
+  This is why the extension now asks for `declarativeNetRequest`. It cannot
+  read a request or a response; it only carries rules, and every rule this
+  installs is confined to a sub-frame that nextwork.ai opened. Host access at
+  install is still nextwork.ai and nothing else.
 
 - The focus timer can make a sound when the session reaches its length, and
   the pill flashes red until you look at it. Both can be turned off, and the

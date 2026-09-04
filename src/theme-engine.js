@@ -406,6 +406,13 @@
       y: null,
       w: 380,              /* px, and resizable by dragging the corner */
       h: 260,
+      /* Bumped when a site is allowed or taken back. An open page caches what
+       * it was told about a site, and this is how it learns the answer moved. */
+      grantedAt: 0,
+      /* A site the pane sent you here to answer for. The prompt can only be
+       * raised from an extension page, so the pane writes down what it wanted
+       * and the popup leads with it. */
+      pending: '',
       /* Saved places to put in it, as { label, url }. The list is the point:
        * the pane holds one at a time and these are what to switch between. */
       tiles: []
@@ -448,6 +455,26 @@
    * given. javascript: and data: are refused because they would run in the
    * page rather than in a frame of their own.
    */
+  /* A start time as the share button writes it: `90`, `90s`, `1m30s`, `1h2m3s`.
+   * Reading it as a plain number gets NaN for every form but the first, which
+   * silently dropped the timestamp on exactly the links people actually copy. */
+  function seconds(text) {
+    if (!text) return 0;
+    const plain = /^\d+$/.test(text) ? Number(text) : null;
+    if (plain !== null) return plain;
+    const parts = String(text).match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
+    if (!parts || !parts.slice(1).some(Boolean)) return 0;
+    return Number(parts[1] || 0) * 3600 + Number(parts[2] || 0) * 60 + Number(parts[3] || 0);
+  }
+
+  /* Sites that publish an address meant to be embedded. Framing one needs no
+   * permission from anybody, because the site already said yes by having it.
+   * Kept to what the extension itself produces rather than a list of hosts to
+   * keep up to date: anything else has to be asked for. */
+  function framesFreely(src) {
+    return typeof src === 'string' && src.indexOf(YOUTUBE_PLAYER) === 0;
+  }
+
   function companionSrc(raw) {
     const text = String(raw == null ? '' : raw).trim();
     if (!text) return null;
@@ -474,8 +501,8 @@
           : null;
 
     if (video && /^[\w-]{6,20}$/.test(video)) {
-      const at = Number(url.searchParams.get('t') || 0);
-      return YOUTUBE_PLAYER + video + (at > 0 ? '?start=' + Math.floor(at) : '');
+      const at = seconds(url.searchParams.get('t'));
+      return YOUTUBE_PLAYER + video + (at > 0 ? '?start=' + at : '');
     }
     /* Already a player address, or something else entirely: as given. */
     return url.href;
@@ -1443,18 +1470,38 @@
     /* The message sits over the frame rather than replacing it, so a frame
      * that arrives late simply covers it. */
     L.push('#nwt-companion .nwt-companion-refused { position: absolute; inset: 0;' +
-           ' display: grid; place-items: center; padding: 18px; margin: 0;' +
+           ' display: flex; flex-direction: column; align-items: center;' +
+           ' justify-content: center; gap: 12px; padding: 18px; margin: 0;' +
            ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
            ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
+    L.push('#nwt-companion .nwt-companion-said { margin: 0; }');
+    /* Offered here rather than described here. Being told to go and find a
+     * button on another surface is not an answer to "how do I allow this". */
+    L.push('#nwt-companion .nwt-companion-ask { flex: none; padding: 7px 14px;' +
+           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
+    L.push('#nwt-companion .nwt-companion-ask:hover { background: ' +
+           rgba(p.accent, 0.26) + '; }');
+    /* Only the blocked state has anything to ask for. */
+    L.push('#nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
+           ' display: none; }');
     L.push('#nwt-companion[data-state="ready"] .nwt-companion-refused {' +
            ' display: none; }');
-    L.push('#nwt-companion[data-state="refused"] .nwt-companion-refused {' +
+    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused {' +
            ' color: ' + p.status.warning[400] + '; }');
 
+    /* Big enough to find and dark enough to see. At 16px with a half-strength
+     * wash it was neither, and the first thing anyone asked was where the
+     * corner to drag was. */
     L.push('#nwt-companion .nwt-companion-grip { position: absolute; right: 0;' +
-           ' bottom: 0; width: 16px; height: 16px; cursor: nwse-resize;' +
-           ' background: linear-gradient(135deg, transparent 50%, ' +
-           rgba(p.textMuted, 0.5) + ' 50%); }');
+           ' bottom: 0; width: 22px; height: 22px; cursor: nwse-resize;' +
+           ' background: linear-gradient(135deg, transparent 46%, ' +
+           rgba(p.textMuted, 0.9) + ' 46%, ' + rgba(p.textMuted, 0.9) + ' 58%,' +
+           ' transparent 58%, transparent 68%, ' + rgba(p.textMuted, 0.9) + ' 68%,' +
+           ' ' + rgba(p.textMuted, 0.9) + ' 80%, transparent 80%); }');
+    L.push('#nwt-companion .nwt-companion-grip:hover { background-color: ' +
+           rgba(p.textMuted, 0.18) + '; }');
 
     /* Root surface last, so nothing above accidentally wins it. */
     /* scopeCSS turns this into `html body`. Meaningless inside a shadow root. */
@@ -1664,7 +1711,7 @@
   root.NWT = {
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
-    focusElapsed, focusRemaining, formatDuration, companionSrc,
+    focusElapsed, focusRemaining, formatDuration, companionSrc, framesFreely,
     cssReachesOut, withoutCssEscapes,
     toneOf,
     debounce,

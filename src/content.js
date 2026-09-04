@@ -230,10 +230,16 @@
 
   /* The chime is played once, when the session first goes past its length.
    *
-   * Held here rather than in storage: it marks a moment in this page's life,
-   * not a setting. Writing it would also put a change event on every other
-   * open tab, each of which would then chime for a session it is not
-   * showing. */
+   * "Once" has to mean once across every open project page, not once per page.
+   * Each tab runs its own copy of this script and they all cross the end of
+   * the session in the same second, so a marker held only in the page meant
+   * three open tabs chimed three times, over the top of each other.
+   *
+   * So the marker goes in storage, where every tab can see it, and the local
+   * copy below only stops this tab from playing twice while that write is
+   * still in flight. Two tabs can still both reach the crossing inside that
+   * window and both play; the cost of losing that race is one duplicated
+   * chime, which is worth less than the machinery to close it. */
   let chimedFor = null;
 
   function paintHud(focus) {
@@ -248,18 +254,28 @@
     el.setAttribute('data-state',
       !focus.running ? 'paused' : (over ? 'over' : 'running'));
 
-    /* Once per session, and only on the crossing. The session is identified
-     * by when it started, so a reset or a new session chimes again while a
-     * paint every second does not. */
+    /* Once per session, and only on the crossing. The session is identified by
+     * when it started, so a reset or a new session chimes again while a paint
+     * every second does not.
+     *
+     * The marker is not cleared when the session stops being over. It used to
+     * be, which meant pausing a session that had already run over and starting
+     * it again chimed a second time for the same session - the same end, the
+     * same moment, announced twice. */
     const session = focus.startedAt || 0;
-    if (!over || !focus.chime) {
-      if (!over) chimedFor = null;
-      return;
-    }
-    if (chimedFor !== session) {
-      chimedFor = session;
-      chime();
-    }
+    if (!over || !focus.chime) return;
+    if (chimedFor === session || focus.chimedFor === session) return;
+
+    chimedFor = session;
+    /* Written before playing, so the other open tabs see it as early as they
+     * can rather than after the sound has finished. */
+    chrome.storage.local.get({ focus: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const f = stored.focus || {};
+      if (f.chimedFor === session) return;
+      chrome.storage.local.set({ focus: Object.assign({}, f, { chimedFor: session }) });
+    });
+    chime();
   }
 
   /* A short two-note chime, built rather than fetched.
@@ -450,15 +466,35 @@
 
     const frame = document.createElement('iframe');
     frame.className = 'nwt-companion-frame';
-    /* Enough for a player to run and nothing more: no top-level navigation,
-     * so a page in here cannot take over the tab. */
-    frame.setAttribute('allow', 'autoplay; picture-in-picture; clipboard-write; encrypted-media');
+    /* `allow` is a permissions policy - what the page in here may use. It says
+     * nothing about navigation. `sandbox` is what governs that, and leaving
+     * `allow-top-navigation` out of the list is what stops a page in the pane
+     * from replacing the tab underneath it.
+     *
+     * `allow-same-origin` is not a hole here: it lets the framed page keep its
+     * own origin, which is what it needs to reach its own cookies and stay
+     * signed in. Without it a site would be given an opaque origin and would
+     * simply fail to load, which is not a security win, only a broken pane. */
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms ' +
+      'allow-popups allow-popups-to-escape-sandbox allow-presentation ' +
+      'allow-storage-access-by-user-activation');
+    frame.setAttribute('allow', 'autoplay; picture-in-picture; encrypted-media; fullscreen');
     frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
     body.appendChild(frame);
 
-    /* Shown when nothing arrives. */
+    /* Shown when nothing arrives, with the way forward in it rather than a
+     * sentence pointing at a button somewhere else. */
     const refused = document.createElement('div');
     refused.className = 'nwt-companion-refused';
+    const said = document.createElement('p');
+    said.className = 'nwt-companion-said';
+    refused.appendChild(said);
+
+    const ask = document.createElement('button');
+    ask.type = 'button';
+    ask.className = 'nwt-companion-ask';
+    ask.textContent = 'Allow this site here';
+    refused.appendChild(ask);
     body.appendChild(refused);
 
     /* Corner to resize from. */
@@ -474,25 +510,50 @@
   }
 
   function removePane() {
-    if (paneWatch) { clearTimeout(paneWatch); paneWatch = null; }
     const el = document.getElementById(PANE_ID);
     if (el) el.remove();
+    /* Cleared with the element. Leaving it set meant that switching the theme
+     * off and on again rebuilt an empty pane: the address had not changed, so
+     * the guard below decided there was nothing to load into a frame that had
+     * just been created blank. */
+    paneShowing = '';
   }
 
-  /* A frame that is refused fires no error anyone can read: the browser
-   * blocks it and the load event never comes. There is no event to wait for,
-   * so this waits a few seconds instead and says what it can. */
-  let paneWatch = null;
   let paneShowing = '';
+
+  /* Whether a site is allowed to be framed here, as the browser sees it.
+   * Cached per address so a repaint - which happens on every storage write -
+   * is not a message round trip. */
+  const paneAllowed = Object.create(null);
+
+  /* Waiting to see whether a frame loads does not work: a browser that refuses
+   * one navigates it to an error document and fires `load` on it just the
+   * same, so there is nothing to time out on and nothing to catch. What can be
+   * known ahead of time is whether this site has been allowed, so that is what
+   * is asked, and the answer is what the pane reports. */
+  function askAllowed(url, then) {
+    if (url in paneAllowed) { then(paneAllowed[url]); return; }
+    try {
+      chrome.runtime.sendMessage({ type: 'companion:allowed', url: url }, function (r) {
+        if (chrome.runtime.lastError) { then(false); return; }
+        paneAllowed[url] = !!(r && r.allowed);
+        then(paneAllowed[url]);
+      });
+    } catch (e) {
+      then(false);
+    }
+  }
 
   function paintPane(companion) {
     const el = paneEl();
     const src = NWT.companionSrc(companion.url);
     const frame = el.querySelector('.nwt-companion-frame');
-    const refused = el.querySelector('.nwt-companion-refused');
-    const title = el.querySelector('.nwt-companion-title');
+    const refused = el.querySelector('.nwt-companion-said');
 
-    title.textContent = label(companion);
+    el.querySelector('.nwt-companion-title').textContent = label(companion);
+    /* Always offered. A window of its own holds anything, and it is the answer
+     * whenever the frame is not - so it should not be something that appears
+     * only once the pane has already failed. */
     el.querySelector('.nwt-companion-out').style.display = src ? '' : 'none';
 
     if (!src) {
@@ -506,28 +567,34 @@
     }
 
     /* Only reloaded when it actually changes: setting src again restarts a
-     * video that is already playing. */
-    if (paneShowing !== src) {
-      paneShowing = src;
-      el.setAttribute('data-state', 'loading');
-      refused.textContent = 'Loading…';
-      frame.setAttribute('src', src);
+     * video that is already playing, and a repaint happens on every write. */
+    if (paneShowing === src) return;
+    paneShowing = src;
+    el.setAttribute('data-state', 'loading');
+    refused.textContent = 'Loading…';
 
-      if (paneWatch) clearTimeout(paneWatch);
-      let arrived = false;
-      frame.onload = function () {
-        arrived = true;
-        el.setAttribute('data-state', 'ready');
-      };
-      paneWatch = setTimeout(function () {
-        if (arrived) return;
-        el.setAttribute('data-state', 'refused');
-        refused.textContent =
-          'This site will not open inside another page. That is its own ' +
-          'setting, not something the extension can change. Open it in a ' +
-          'window instead with the arrow above.';
-      }, 4000);
+    /* Sites that publish a player mean it to be framed, so they need no
+     * permission and are not worth asking about. */
+    if (NWT.framesFreely(src)) {
+      frame.setAttribute('src', src);
+      el.setAttribute('data-state', 'ready');
+      return;
     }
+
+    askAllowed(src, function (allowed) {
+      /* Another address arrived while the answer was on its way. */
+      if (paneShowing !== src) return;
+      if (allowed) {
+        frame.setAttribute('src', src);
+        el.setAttribute('data-state', 'ready');
+        return;
+      }
+      frame.removeAttribute('src');
+      el.setAttribute('data-state', 'blocked');
+      refused.textContent =
+        'This site refuses to be shown inside another page. Your browser can ' +
+        'allow it here, or the arrow above opens it in a window of its own.';
+    });
   }
 
   function label(companion) {
@@ -579,14 +646,37 @@
       saveCompanion({ enabled: false });
     });
 
-    el.querySelector('.nwt-companion-out').addEventListener('click', function (e) {
+    /* The browser will only put its permission prompt in front of someone who
+     * clicked inside an extension page, and this is a content script - so this
+     * cannot raise the prompt itself. It hands the site to the extension,
+     * which opens the page that can, with this site already named on it. The
+     * alternative was a sentence telling you to go and find a button
+     * elsewhere, which is how it read the first time and is not an answer. */
+    el.querySelector('.nwt-companion-ask').addEventListener('click', function (e) {
       e.stopPropagation();
       chrome.storage.local.get({ companion: {} }, function (stored) {
         const src = NWT.companionSrc((stored.companion || {}).url);
         if (!src) return;
-        /* A window of its own, for everything that will not be framed. */
-        window.open(src, 'nwt-companion',
-                    'popup=yes,width=460,height=320,noopener,noreferrer');
+        chrome.runtime.sendMessage({ type: 'companion:ask', url: src },
+          function () { void chrome.runtime.lastError; });
+      });
+    });
+
+    el.querySelector('.nwt-companion-out').addEventListener('click', function (e) {
+      e.stopPropagation();
+      chrome.storage.local.get({ companion: {} }, function (stored) {
+        const c = stored.companion || {};
+        const src = NWT.companionSrc(c.url);
+        if (!src) return;
+        /* Opened by the extension rather than by `window.open` here. A window
+         * the browser makes for us is a real one - it holds anything at all,
+         * including every site that refuses to be framed under any headers,
+         * and it is not subject to this page's own policy on what it may
+         * open. The size is the pane's, so it arrives the shape you left it. */
+        chrome.runtime.sendMessage({
+          type: 'companion:window', url: src,
+          w: Number(c.w) || 380, h: Number(c.h) || 260
+        }, function () { void chrome.runtime.lastError; });
       });
     });
 
@@ -668,12 +758,29 @@
     grip.addEventListener('pointercancel', stop);
   }
 
+  let paneGrantSeen = 0;
+
   function renderPane(settings) {
     const companion = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
-    if (!settings.enabled || !companion.enabled || !onProjectPage()) {
+    /* Anywhere on the site, not only on a project page. The timer is tied to a
+     * project because a session is about building one; something to keep in
+     * view while you work is not - you want it on the lesson you are reading
+     * and the dashboard you came from, and having it vanish when you navigate
+     * looks like the extension breaking rather than a rule being applied.
+     * The top frame only, so it is not drawn once per embedded frame. */
+    if (!settings.enabled || !companion.enabled || !TOP_FRAME) {
       removePane();
-      paneShowing = '';
       return;
+    }
+    /* A site was allowed, or taken back, since the last paint. The cached
+     * answers are stale and the frame has to be given another go - without
+     * this, granting permission would leave the pane sitting on its refusal
+     * until something else happened to change the address. */
+    const granted = Number(companion.grantedAt) || 0;
+    if (granted !== paneGrantSeen) {
+      paneGrantSeen = granted;
+      Object.keys(paneAllowed).forEach(function (k) { delete paneAllowed[k]; });
+      paneShowing = '';
     }
     const el = paneEl();
     paintPane(companion);
