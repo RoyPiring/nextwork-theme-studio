@@ -543,6 +543,13 @@
     const pct = Math.round(Math.max(0.18, Math.min(0.72, Number(sp.width) || 0.36)) * 100);
     $('split-width').value = String(pct);
     $('split-width-out').textContent = pct + '%';
+    /* Which edge it is on now, said the same way the session lengths say
+     * which one is chosen - two buttons with neither of them marked is a pair
+     * of things to press rather than a setting you can read. */
+    const side = sp.side === 'top' ? 'top' : 'right';
+    [...$('split-side').querySelectorAll('button')].forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-side') === side));
+    });
     /* Three is the ceiling: a third of a column is a usable panel and a
      * quarter is a letterbox. */
     $('split-set').disabled = panels.length >= 3;

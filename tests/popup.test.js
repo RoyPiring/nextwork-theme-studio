@@ -764,6 +764,18 @@ test('the two things beside the page are two tabs, not one column', () => {
   assert.equal(p.el('sub-float').getAttribute('aria-selected'), 'true');
 });
 
+test('the edge it is on now is the one marked', () => {
+  /* Two buttons with neither marked is a pair of things to press rather than
+   * a setting you can read. */
+  const p = openPopup({
+    enabled: true, split: { enabled: true, side: 'top', panels: [{ url: VIDEO }] }
+  });
+  const chosen = [...p.el('split-side').querySelectorAll('button')]
+    .filter(function (b) { return b.getAttribute('aria-pressed') === 'true'; })
+    .map(function (b) { return b.getAttribute('data-side'); });
+  assert.deepEqual(chosen, ['top']);
+});
+
 test('which edge the band sits on is two buttons', () => {
   const p = openPopup({
     enabled: true, split: { enabled: true, panels: [{ url: VIDEO }] }
