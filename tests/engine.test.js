@@ -619,3 +619,57 @@ test('a Discord channel link is kept as it was given', () => {
   assert.equal(NWT.companionSrc(channel), channel);
 });
 
+
+test('an upgrade keeps whatever was on screen', () => {
+  /* Both the pane and the split were a single address before they were lists.
+   * Dropping the old field on upgrade would empty the screen and read as the
+   * feature having been removed. */
+  const before = {
+    schema: NWT.SCHEMA,
+    split: { enabled: true, url: 'https://a.example/', width: 0.4 },
+    companion: { enabled: true, url: 'https://b.example/', x: 0.1, y: 0.2, w: 400, h: 300 }
+  };
+  const after = NWT.migrate(JSON.parse(JSON.stringify(before)));
+
+  assert.deepEqual(after.split.panels, [{ url: 'https://a.example/', size: 1, collapsed: false }]);
+  assert.equal(after.split.url, '', 'the old field was left to be read twice');
+  assert.equal(after.companion.panes.length, 1);
+  assert.deepEqual(
+    { url: after.companion.panes[0].url, w: after.companion.panes[0].w },
+    { url: 'https://b.example/', w: 400 },
+    'the pane came back without the size it had');
+});
+
+test('a list that already exists is not overwritten by the old field', () => {
+  const s = NWT.migrate({
+    schema: NWT.SCHEMA,
+    split: { url: 'https://old.example/', panels: [{ url: 'https://new.example/' }] },
+    companion: { url: 'https://old.example/', panes: [{ url: 'https://new.example/' }] }
+  });
+  assert.equal(s.split.panels.length, 1);
+  assert.equal(s.split.panels[0].url, 'https://new.example/');
+  assert.equal(s.companion.panes[0].url, 'https://new.example/');
+});
+
+test('shares that claim more than the column are scaled back, not honoured', () => {
+  /* These come from storage and from dragging, and two panels that each think
+   * they own most of the column would push the third out of it entirely. */
+  const shares = NWT.panelShares([{ size: 0.9 }, { size: 0.9 }]);
+  assert.deepEqual(shares, [0.5, 0.5]);
+  const sum = shares.reduce((a, b) => a + b, 0);
+  assert.ok(Math.abs(sum - 1) < 1e-9, 'the shares add up to ' + sum);
+});
+
+test('the shares always add up to the whole column', () => {
+  [[{}], [{}, {}], [{}, {}, {}], [{ size: 0.5 }, {}], [{ size: 0.2 }, { size: 0.3 }, {}],
+   [{ collapsed: true }, {}, {}], [{ size: 2 }, {}]
+  ].forEach(function (panels) {
+    const sum = NWT.panelShares(panels).reduce((a, b) => a + b, 0);
+    assert.ok(Math.abs(sum - 1) < 1e-9,
+      JSON.stringify(panels) + ' shares add up to ' + sum);
+  });
+});
+
+test('a column of nothing but folded panels asks for no space', () => {
+  assert.deepEqual(NWT.panelShares([{ collapsed: true }, { collapsed: true }]), [0, 0]);
+});

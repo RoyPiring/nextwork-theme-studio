@@ -324,21 +324,6 @@ const VIDEO = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 function tiles(p) { return p.el('companion-tiles').querySelectorAll('.tile-go'); }
 function drops(p) { return p.el('companion-tiles').querySelectorAll('.drop'); }
 
-test('adding a link saves it and shows the pane in one step', () => {
-  /* Adding something to watch and then having to turn the pane on as well is
-   * a second step with no meaning behind it. */
-  const p = openPopup({ enabled: true });
-  p.set('companion-url', VIDEO);
-  p.click(p.el('companion-add'));
-  p.flush();
-
-  const c = p.stored.companion;
-  assert.equal(c.enabled, true, 'the pane was left switched off');
-  assert.equal(c.url, VIDEO);
-  assert.deepEqual(c.tiles, [{ label: 'YouTube', url: VIDEO }]);
-  assert.equal(p.el('companion-url').value, '', 'the field kept the link it just saved');
-});
-
 test('the saved link is the one that was typed, not the player address', () => {
   /* The tile is what a person recognises and what they would send to someone
    * else; turning it into a player address is the pane's job, at the point it
@@ -371,38 +356,6 @@ test('adding the same link twice leaves one tile', () => {
     p.flush();
   });
   assert.equal(p.stored.companion.tiles.length, 1);
-});
-
-test('choosing a tile switches the pane to it and marks it as chosen', () => {
-  const p = openPopup({
-    enabled: true,
-    companion: { enabled: true, url: VIDEO, tiles: [
-      { label: 'YouTube', url: VIDEO }, { label: 'docs', url: 'https://docs.example/a' }
-    ] }
-  });
-  const row = tiles(p);
-  assert.equal(row.length, 2);
-  assert.equal(row[0].getAttribute('aria-pressed'), 'true');
-  assert.equal(row[1].getAttribute('aria-pressed'), 'false');
-
-  p.click(row[1]);
-  p.flush();
-  assert.equal(p.stored.companion.url, 'https://docs.example/a');
-  assert.equal(tiles(p)[1].getAttribute('aria-pressed'), 'true');
-});
-
-test('removing a tile is a control of its own, not a second click target', () => {
-  /* A row of places you go to should not drop one because you missed. */
-  const p = openPopup({
-    enabled: true,
-    companion: { enabled: true, url: VIDEO, tiles: [{ label: 'YouTube', url: VIDEO }] }
-  });
-  p.click(drops(p)[0]);
-  p.flush();
-
-  assert.deepEqual(p.stored.companion.tiles, []);
-  assert.equal(p.stored.companion.url, '',
-    'the pane was left pointed at a tile that no longer exists');
 });
 
 test('the cross is a button in its own right, not a span inside another', () => {
@@ -617,22 +570,6 @@ test('a link marked for a window opens one instead of filling the pane', () => {
     'it pointed the pane at a link known not to work in one');
 });
 
-test('shift-clicking a marked link tries it in the pane again', () => {
-  /* For one marked by mistake, or a site that has since changed. */
-  const p = openPopup({
-    enabled: true,
-    companion: { enabled: true, url: VIDEO,
-                 tiles: [{ label: 'Discord', url: DISCORD, windowed: true }] }
-  });
-  p.click(tiles(p)[0], { shiftKey: true });
-  p.flush();
-
-  assert.equal(p.stored.companion.url, DISCORD);
-  assert.ok(!p.stored.companion.tiles[0].windowed, 'the mark was not lifted');
-});
-
-/* ------------------------------------------------ windows beside the page */
-
 test('adding a link there opens it and turns the arrangement on', () => {
   const p = openPopup({ enabled: true });
   p.set('windows-url', DISCORD);
@@ -775,17 +712,6 @@ test('every control still exists behind its tab', () => {
 
 /* ------------------------------------------------------------- the split */
 
-test('choosing a link for the split turns it on in one step', () => {
-  const p = openPopup({ enabled: true });
-  p.set('split-url', VIDEO);
-  p.click(p.el('split-set'));
-  p.flush();
-
-  assert.equal(p.stored.split.url, VIDEO);
-  assert.equal(p.stored.split.enabled, true,
-    'it was saved but the page was never split');
-});
-
 test('an address the split cannot open is refused and nothing is saved', () => {
   const p = openPopup({ enabled: true });
   p.set('split-url', 'notes.txt');
@@ -809,13 +735,6 @@ test('the width writes once when the drag settles, not once per pixel', () => {
 
   p.flush();
   assert.equal(p.stored.split.width, 0.45);
-});
-
-test('the split panel opens on what was saved', () => {
-  const p = openPopup({ enabled: true, split: { enabled: true, url: VIDEO, width: 0.5 } });
-  assert.equal(p.el('splitEnabled').checked, true);
-  assert.equal(p.el('split-url').value, VIDEO);
-  assert.equal(p.el('split-width-out').textContent, '50%');
 });
 
 test('asking to allow a site sends you where the prompt survives', () => {
@@ -845,4 +764,175 @@ test('taking a site back is still done from here, since nothing is prompted', ()
 
   assert.deepEqual(p.granted(), []);
   assert.equal(p.opened.optionsPage, 0, 'it opened a page for something it could do itself');
+});
+
+test('adding a panel turns the split on in one step', () => {
+  const p = openPopup({ enabled: true });
+  p.set('split-url', VIDEO);
+  p.click(p.el('split-set'));
+  p.flush();
+
+  assert.equal(p.stored.split.enabled, true, 'it was saved but the page was never split');
+  assert.deepEqual(p.stored.split.panels, [{ url: VIDEO, collapsed: false }]);
+  assert.equal(p.el('split-url').value, '', 'the field kept the link it just added');
+});
+
+test('a second and third panel stack, and a fourth is refused', () => {
+  /* Three is the ceiling: a third of a column is a usable panel and a quarter
+   * is a letterbox. */
+  const p = openPopup({ enabled: true });
+  [VIDEO, DISCORD, 'https://a.example/'].forEach(function (url) {
+    p.set('split-url', url);
+    p.click(p.el('split-set'));
+    p.flush();
+  });
+  assert.equal(p.stored.split.panels.length, 3);
+  assert.equal(p.el('split-set').disabled, true, 'a fourth could be added');
+});
+
+test('adding a panel forgets the sizes, so the column shares out evenly again', () => {
+  /* The old shares belonged to a column with one fewer panel in it. */
+  const p = openPopup({
+    enabled: true,
+    split: { enabled: true, width: 0.36,
+             panels: [{ url: VIDEO, size: 0.8 }, { url: DISCORD, size: 0.2 }] }
+  });
+  p.set('split-url', 'https://a.example/');
+  p.click(p.el('split-set'));
+  p.flush();
+
+  assert.equal(p.stored.split.panels.length, 3);
+  p.stored.split.panels.forEach(function (panel) {
+    assert.equal(panel.size, undefined, 'a stale share survived');
+  });
+});
+
+test('the panels are listed, and each can be folded or removed', () => {
+  const p = openPopup({
+    enabled: true,
+    split: { enabled: true, panels: [{ url: VIDEO }, { url: DISCORD }] }
+  });
+  const rows = p.el('split-panels').querySelectorAll('.beside-item');
+  assert.equal(rows.length, 2, 'the panels were not listed');
+
+  p.click(rows[0].querySelectorAll('button')[0]);      /* Fold */
+  p.flush();
+  assert.equal(p.stored.split.panels[0].collapsed, true);
+  assert.equal(p.stored.split.panels[1].collapsed, undefined, 'it folded both');
+
+  p.click(p.el('split-panels').querySelectorAll('.drop')[1]);
+  p.flush();
+  assert.equal(p.stored.split.panels.length, 1);
+  assert.equal(p.stored.split.panels[0].url, VIDEO, 'it removed the wrong one');
+});
+
+test('removing the last panel closes the split', () => {
+  const p = openPopup({
+    enabled: true, split: { enabled: true, panels: [{ url: VIDEO }] }
+  });
+  p.click(p.el('split-panels').querySelectorAll('.drop')[0]);
+  p.flush();
+  assert.deepEqual(p.stored.split.panels, []);
+  assert.equal(p.stored.split.enabled, false, 'an empty column was left open');
+});
+
+test('the split panel opens on what was saved', () => {
+  const p = openPopup({
+    enabled: true,
+    split: { enabled: true, width: 0.5, panels: [{ url: VIDEO }] }
+  });
+  assert.equal(p.el('splitEnabled').checked, true);
+  assert.equal(p.el('split-width-out').textContent, '50%');
+  assert.equal(p.el('split-empty').style.display, 'none');
+  assert.equal(p.el('split-panels').querySelectorAll('.beside-item').length, 1);
+});
+
+test('adding a link saves it and opens its pane in one step', () => {
+  const p = openPopup({ enabled: true });
+  p.set('companion-url', VIDEO);
+  p.click(p.el('companion-add'));
+  p.flush();
+
+  const c = p.stored.companion;
+  assert.equal(c.enabled, true, 'the pane was left switched off');
+  assert.deepEqual(c.tiles, [{ label: 'YouTube', url: VIDEO }]);
+  assert.equal(c.panes.length, 1, 'nothing was opened');
+  assert.equal(c.panes[0].url, VIDEO);
+});
+
+test('a tile is a switch: clicking it opens a pane, clicking again closes it', () => {
+  /* A row of buttons that only ever add is a row you cannot undo from. */
+  const p = openPopup({
+    enabled: true,
+    companion: { enabled: true, tiles: [{ label: 'YouTube', url: VIDEO }] }
+  });
+  const tile = tiles(p)[0];
+  assert.equal(tile.getAttribute('aria-pressed'), 'false');
+
+  p.click(tile);
+  p.flush();
+  assert.equal(p.stored.companion.panes.length, 1);
+  assert.equal(tiles(p)[0].getAttribute('aria-pressed'), 'true');
+
+  p.click(tiles(p)[0]);
+  p.flush();
+  assert.deepEqual(p.stored.companion.panes, []);
+  assert.equal(p.stored.companion.enabled, false, 'the last pane closed and it stayed on');
+});
+
+test('two panes can be open at once, and a fourth is refused', () => {
+  /* One thing you are watching and one you are talking in is the whole point
+   * of a list. Three is where the page has more extension on it than page. */
+  const p = openPopup({
+    enabled: true,
+    companion: { enabled: true, tiles: [
+      { label: 'A', url: 'https://a.example/' }, { label: 'B', url: 'https://b.example/' },
+      { label: 'C', url: 'https://c.example/' }, { label: 'D', url: 'https://d.example/' }] }
+  });
+  tiles(p).forEach(function (t, i) { if (i < 4) { p.click(tiles(p)[i]); p.flush(); } });
+
+  assert.equal(p.stored.companion.panes.length, 3, 'it opened a fourth');
+  assert.deepEqual(p.stored.companion.panes.map(x => x.url),
+    ['https://a.example/', 'https://b.example/', 'https://c.example/']);
+});
+
+test('each new pane opens a little clear of the last', () => {
+  /* A second landing exactly on the first reads as nothing having happened. */
+  const p = openPopup({
+    enabled: true,
+    companion: { enabled: true, tiles: [
+      { label: 'A', url: 'https://a.example/' }, { label: 'B', url: 'https://b.example/' }] }
+  });
+  p.click(tiles(p)[0]); p.flush();
+  p.click(tiles(p)[1]); p.flush();
+
+  const panes = p.stored.companion.panes;
+  assert.equal(panes.length, 2);
+  assert.notEqual(panes[0].offset, panes[1].offset, 'the second landed on the first');
+});
+
+test('removing a tile closes its pane as well', () => {
+  const p = openPopup({
+    enabled: true,
+    companion: { enabled: true, tiles: [{ label: 'YouTube', url: VIDEO }],
+                 panes: [{ url: VIDEO, w: 380, h: 260 }] }
+  });
+  p.click(drops(p)[0]);
+  p.flush();
+
+  assert.deepEqual(p.stored.companion.tiles, []);
+  assert.deepEqual(p.stored.companion.panes, [],
+    'the tile went but its pane was left on the page with no way to close it');
+});
+
+test('shift-clicking a marked link lifts the mark without opening a pane', () => {
+  const p = openPopup({
+    enabled: true,
+    companion: { enabled: true,
+                 tiles: [{ label: 'Discord', url: DISCORD, windowed: true }] }
+  });
+  p.click(tiles(p)[0], { shiftKey: true });
+  p.flush();
+
+  assert.ok(!p.stored.companion.tiles[0].windowed, 'the mark was not lifted');
 });

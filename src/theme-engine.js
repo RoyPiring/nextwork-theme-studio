@@ -419,6 +419,13 @@
        * raised from an extension page, so the pane writes down what it wanted
        * and the popup leads with it. */
       pending: '',
+      /* Every floating pane that is open, each with its own place and size:
+       * { url, x, y, w, h }. One is the common case; a second for something
+       * else you want in view at the same time is the reason this is a list.
+       *
+       * `url` above is what a single pane used to be, and is folded in here on
+       * first read so nothing written before this is lost. */
+      panes: [],
       /* Saved places to put in it, as { label, url }. The list is the point:
        * the pane holds one at a time and these are what to switch between. */
       tiles: []
@@ -435,10 +442,20 @@
      * the width it has been given and stays readable. */
     split: {
       enabled: false,
-      url: '',
-      /* How much of the window the panel takes, as a fraction, so it holds
-       * its proportion when the window is resized. */
-      width: 0.36
+      /* How much of the window the whole column takes, as a fraction, so it
+       * holds its proportion when the window is resized. */
+      width: 0.36,
+      /* One or more, stacked down the column: { url, size, collapsed }.
+       *
+       * `size` is that panel's share of the column, as a fraction of the
+       * whole, so the shares always add up to one and a panel keeps its
+       * proportion whatever the window does. `collapsed` leaves the panel in
+       * the stack as a bar you can open again, rather than removing it and
+       * losing where it was. */
+      panels: [],
+      /* Carried for anything written before panels existed, and folded into
+       * the list on first read. */
+      url: ''
     },
     /* Beside the page, rather than inside it.
      *
@@ -521,6 +538,34 @@
    * keep up to date: anything else has to be asked for. */
   function framesFreely(src) {
     return typeof src === 'string' && src.indexOf(YOUTUBE_PLAYER) === 0;
+  }
+
+  /* The shares of the column, in order, adding to one.
+   *
+   * A panel with no size of its own takes an equal part of whatever is left,
+   * so adding one never has to rewrite the others. A collapsed panel is not in
+   * the sharing at all - it is a bar, and its height is fixed - so the rest of
+   * the column grows to fill what it gave up rather than leaving a gap.
+   *
+   * Returned as fractions rather than pixels because the column is resized by
+   * dragging its edge, and a proportion survives that where a pixel does not. */
+  function panelShares(panels) {
+    const list = (panels || []).filter(Boolean);
+    const open = list.filter(function (p) { return !p.collapsed; });
+    if (!open.length) return list.map(function () { return 0; });
+
+    const known = open.filter(function (p) { return Number(p.size) > 0; });
+    const claimed = known.reduce(function (t, p) { return t + Number(p.size); }, 0);
+    /* Anything already claiming more than the whole column is scaled back
+     * rather than allowed to push the others to nothing. */
+    const scale = claimed > 1 ? 1 / claimed : 1;
+    const spare = Math.max(0, 1 - claimed * scale);
+    const each = open.length > known.length ? spare / (open.length - known.length) : 0;
+
+    return list.map(function (p) {
+      if (p.collapsed) return 0;
+      return Number(p.size) > 0 ? Number(p.size) * scale : each;
+    });
   }
 
   function companionSrc(raw) {
@@ -632,6 +677,23 @@
       s.tuningOverrides = {};
       s.schema = SCHEMA;
       s.migrated = true;        /* caller has to persist, or this repeats */
+    }
+
+    /* Both of these were a single address before they were a list. Folding the
+     * old field in rather than dropping it means an upgrade keeps whatever was
+     * on screen, instead of quietly emptying it and looking like a fault. */
+    const split = s.split;
+    if (split && split.url && !(split.panels || []).length) {
+      split.panels = [{ url: split.url, size: 1, collapsed: false }];
+      split.url = '';
+    }
+    const companion = s.companion;
+    if (companion && companion.url && !(companion.panes || []).length) {
+      companion.panes = [{
+        url: companion.url,
+        x: companion.x, y: companion.y,
+        w: companion.w, h: companion.h
+      }];
     }
     return s;
   }
@@ -1499,93 +1561,93 @@
      * by and a corner to size from. The frame in the middle belongs to
      * whatever is inside it, which is why neither of those is the whole
      * surface. */
-    L.push('#nwt-companion { position: fixed; right: 24px; bottom: 24px;' +
+    L.push('.nwt-companion { position: fixed; right: 24px; bottom: 24px;' +
            ' z-index: 2147483646; display: flex; flex-direction: column;' +
            ' overflow: hidden; border-radius: 12px;' +
            ' border: 1px solid ' + p.panelEdge + ';' +
            ' background: ' + p.surface + '; color: var(--nwt-text);' +
            ' box-shadow: 0 10px 34px ' + rgba('#000000', light ? 0.16 : 0.44) + ';' +
            ' font-family: inherit; }');
-    L.push('#nwt-companion[data-dragging="1"] { opacity: .92; }');
+    L.push('.nwt-companion[data-dragging="1"] { opacity: .92; }');
 
-    L.push('#nwt-companion .nwt-companion-bar { display: flex; align-items: center;' +
+    L.push('.nwt-companion .nwt-companion-bar { display: flex; align-items: center;' +
            ' gap: 8px; padding: 6px 8px 6px 12px; cursor: grab;' +
            ' background: ' + p.surfaceAlt + ';' +
            ' border-bottom: 1px solid ' + p.panelEdge + '; flex: none;' +
            ' user-select: none; }');
-    L.push('#nwt-companion[data-dragging="1"] .nwt-companion-bar { cursor: grabbing; }');
-    L.push('#nwt-companion .nwt-companion-title { flex: 1; min-width: 0;' +
+    L.push('.nwt-companion[data-dragging="1"] .nwt-companion-bar { cursor: grabbing; }');
+    L.push('.nwt-companion .nwt-companion-title { flex: 1; min-width: 0;' +
            ' overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' +
            ' font-size: 12px; color: var(--nwt-text-dim); }');
 
     /* Both buttons are the same size whatever glyph is in them, so the bar
      * does not shift as the title changes. */
-    L.push('#nwt-companion .nwt-companion-bar button { flex: none; width: 22px;' +
+    L.push('.nwt-companion .nwt-companion-bar button { flex: none; width: 22px;' +
            ' height: 22px; display: grid; place-items: center; padding: 0;' +
            ' border: 0; border-radius: 6px; background: transparent; cursor: pointer;' +
            ' font: inherit; font-size: 13px; line-height: 1;' +
            ' color: var(--nwt-text-dim); }');
-    L.push('#nwt-companion .nwt-companion-bar button:hover {' +
+    L.push('.nwt-companion .nwt-companion-bar button:hover {' +
            ' background: ' + rgba(p.accent, 0.16) + '; color: var(--nwt-text); }');
 
-    L.push('#nwt-companion .nwt-companion-body { position: relative; flex: 1;' +
+    L.push('.nwt-companion .nwt-companion-body { position: relative; flex: 1;' +
            ' min-height: 0; background: ' + p.canvas + '; }');
-    L.push('#nwt-companion .nwt-companion-frame { width: 100%; height: 100%;' +
+    L.push('.nwt-companion .nwt-companion-frame { width: 100%; height: 100%;' +
            ' border: 0; display: block; }');
 
     /* The message sits over the frame rather than replacing it, so a frame
      * that arrives late simply covers it. */
-    L.push('#nwt-companion .nwt-companion-refused { position: absolute; inset: 0;' +
+    L.push('.nwt-companion .nwt-companion-refused { position: absolute; inset: 0;' +
            ' display: flex; flex-direction: column; align-items: center;' +
            ' justify-content: center; gap: 12px; padding: 18px; margin: 0;' +
            ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
            ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
-    L.push('#nwt-companion .nwt-companion-said { margin: 0; }');
+    L.push('.nwt-companion .nwt-companion-said { margin: 0; }');
     /* Offered here rather than described here. Being told to go and find a
      * button on another surface is not an answer to "how do I allow this". */
-    L.push('#nwt-companion .nwt-companion-ask { flex: none; padding: 7px 14px;' +
+    L.push('.nwt-companion .nwt-companion-ask { flex: none; padding: 7px 14px;' +
            ' font: inherit; font-size: 12.5px; cursor: pointer;' +
            ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
            ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
-    L.push('#nwt-companion .nwt-companion-ask:hover { background: ' +
+    L.push('.nwt-companion .nwt-companion-ask:hover { background: ' +
            rgba(p.accent, 0.26) + '; }');
     /* Each of these belongs to one state and nothing else. */
-    L.push('#nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
+    L.push('.nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
            ' display: none; }');
-    L.push('#nwt-companion .nwt-companion-here { flex: none; padding: 7px 14px;' +
+    L.push('.nwt-companion .nwt-companion-here { flex: none; padding: 7px 14px;' +
            ' font: inherit; font-size: 12.5px; cursor: pointer;' +
            ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
            ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
-    L.push('#nwt-companion .nwt-companion-here:hover { background: ' +
+    L.push('.nwt-companion .nwt-companion-here:hover { background: ' +
            rgba(p.accent, 0.26) + '; }');
-    L.push('#nwt-companion:not([data-state="windowed"]) .nwt-companion-here {' +
+    L.push('.nwt-companion:not([data-state="windowed"]) .nwt-companion-here {' +
            ' display: none; }');
     /* The way back out of side-by-side, offered only while it is on. */
-    L.push('#nwt-companion .nwt-companion-undock { flex: none; padding: 7px 14px;' +
+    L.push('.nwt-companion .nwt-companion-undock { flex: none; padding: 7px 14px;' +
            ' font: inherit; font-size: 12.5px; cursor: pointer;' +
            ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
            ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
-    L.push('#nwt-companion .nwt-companion-undock:hover { background: ' +
+    L.push('.nwt-companion .nwt-companion-undock:hover { background: ' +
            rgba(p.accent, 0.26) + '; }');
-    L.push('#nwt-companion:not([data-state="docked"]) .nwt-companion-undock {' +
+    L.push('.nwt-companion:not([data-state="docked"]) .nwt-companion-undock {' +
            ' display: none; }');
-    L.push('#nwt-companion[data-state="docked"] .nwt-companion-refused {' +
+    L.push('.nwt-companion[data-state="docked"] .nwt-companion-refused {' +
            ' color: var(--nwt-text); }');
     /* Shown over a frame that loaded, since that is the only case where a
      * blank rectangle has nothing else on it. Faint until you go near it. */
-    L.push('#nwt-companion .nwt-companion-hint { position: absolute; left: 50%;' +
+    L.push('.nwt-companion .nwt-companion-hint { position: absolute; left: 50%;' +
            ' bottom: 10px; transform: translateX(-50%); z-index: 2;' +
            ' padding: 5px 11px; font: inherit; font-size: 11.5px;' +
            ' cursor: pointer; white-space: nowrap; border-radius: 999px;' +
            ' border: 1px solid ' + p.panelEdge + '; opacity: .55;' +
            ' background: ' + p.surface + '; color: ' + p.textSecondary + '; }');
-    L.push('#nwt-companion .nwt-companion-hint:hover { opacity: 1; }');
-    L.push('#nwt-companion:not([data-state="ready"]) .nwt-companion-hint {' +
+    L.push('.nwt-companion .nwt-companion-hint:hover { opacity: 1; }');
+    L.push('.nwt-companion:not([data-state="ready"]) .nwt-companion-hint {' +
            ' display: none; }');
-    L.push('#nwt-companion[data-state="ready"] .nwt-companion-refused {' +
+    L.push('.nwt-companion[data-state="ready"] .nwt-companion-refused {' +
            ' display: none; }');
-    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused,' +
-           ' #nwt-companion[data-state="page-blocked"] .nwt-companion-refused {' +
+    L.push('.nwt-companion[data-state="blocked"] .nwt-companion-refused,' +
+           ' .nwt-companion[data-state="page-blocked"] .nwt-companion-refused {' +
            ' color: ' + p.status.warning[400] + '; }');
 
     /* Big enough to find and dark enough to see. At 16px with a half-strength
@@ -1606,60 +1668,88 @@
            ' border-left: 1px solid ' + p.panelEdge + ';' +
            ' background: ' + p.surface + '; color: var(--nwt-text);' +
            ' font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }');
-    L.push('#nwt-split .nwt-split-bar { display: flex; align-items: center;' +
+
+    /* ---- one panel or several -------------------------------------------
+     * The column is a stack. Each panel carries its own share as a flex
+     * basis, so one panel fills the column and three divide it, without the
+     * markup or the rules knowing which case they are in.
+     *
+     * A collapsed panel keeps its bar and gives up the rest, so the stack
+     * never has a gap in it and you can always get the panel back. */
+    L.push('#nwt-split .nwt-panel { display: flex; flex-direction: column;' +
+           ' min-height: 0; position: relative; overflow: hidden;' +
+           ' flex: 0 0 var(--nwt-panel-share, 100%); }');
+    L.push('#nwt-split .nwt-panel[data-collapsed="1"] { flex: 0 0 auto; }');
+    L.push('#nwt-split .nwt-panel + .nwt-panel { border-top: 1px solid ' +
+           p.panelEdge + '; }');
+    /* The handle between two panels. Nine pixels of target, with the line
+     * drawn by the border above it, because a one pixel target is missed. */
+    L.push('#nwt-split .nwt-panel-grip { position: absolute; left: 0; right: 0;' +
+           ' top: -5px; height: 9px; cursor: row-resize; z-index: 2; }');
+    L.push('#nwt-split .nwt-panel:first-child .nwt-panel-grip { display: none; }');
+    L.push('#nwt-split .nwt-panel-grip:hover,' +
+           ' #nwt-split[data-drag="row"] .nwt-panel-grip {' +
+           ' background: ' + rgba(p.accent, 0.5) + '; }');
+    L.push('#nwt-split .nwt-panel-bar { display: flex; align-items: center;' +
            ' gap: 6px; padding: 6px 8px; flex: none; cursor: default;' +
            ' border-bottom: 1px solid ' + p.panelEdge + ';' +
            ' background: ' + p.surfaceAlt + '; }');
-    L.push('#nwt-split .nwt-split-title { flex: 1; min-width: 0; font-size: 12px;' +
+    L.push('#nwt-split .nwt-panel-title { flex: 1; min-width: 0; font-size: 12px;' +
            ' font-weight: 600; overflow: hidden; text-overflow: ellipsis;' +
            ' white-space: nowrap; color: var(--nwt-text); }');
-    L.push('#nwt-split .nwt-split-bar button { flex: none; width: 24px;' +
+    L.push('#nwt-split .nwt-panel-bar button { flex: none; width: 24px;' +
            ' height: 24px; padding: 0; font: inherit; font-size: 13px;' +
            ' cursor: pointer; border-radius: 6px; border: 0;' +
            ' background: transparent; color: var(--nwt-text-dim); }');
-    L.push('#nwt-split .nwt-split-bar button:hover { background: ' +
+    L.push('#nwt-split .nwt-panel-bar button:hover { background: ' +
            rgba(p.textMuted, 0.18) + '; color: var(--nwt-text); }');
-    L.push('#nwt-split .nwt-split-body { position: relative; flex: 1;' +
+    L.push('#nwt-split .nwt-panel-body { position: relative; flex: 1;' +
            ' min-height: 0; }');
-    L.push('#nwt-split .nwt-split-frame { width: 100%; height: 100%; border: 0;' +
+    L.push('#nwt-split .nwt-panel-frame { width: 100%; height: 100%; border: 0;' +
            ' display: block; background: ' + p.canvas + '; }');
-    L.push('#nwt-split .nwt-split-said { position: absolute; inset: 0; margin: 0;' +
+    L.push('#nwt-split .nwt-panel-said { position: absolute; inset: 0; margin: 0;' +
            ' display: flex; flex-direction: column; align-items: center;' +
            ' justify-content: center; gap: 12px; padding: 20px;' +
            ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
            ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
-    L.push('#nwt-split[data-state="ready"] .nwt-split-said { display: none; }');
-    L.push('#nwt-split[data-state="blocked"] .nwt-split-said { color: ' +
+    L.push('#nwt-split .nwt-panel[data-state="ready"] .nwt-panel-said { display: none; }');
+    L.push('#nwt-split .nwt-panel[data-state="blocked"] .nwt-panel-said { color: ' +
            p.status.warning[400] + '; }');
-    L.push('#nwt-split .nwt-split-instead { position: absolute; left: 50%;' +
+    L.push('#nwt-split .nwt-panel-instead { position: absolute; left: 50%;' +
            ' bottom: 22%; transform: translateX(-50%); z-index: 2;' +
            ' padding: 8px 14px; font: inherit; font-size: 12.5px;' +
            ' cursor: pointer; border-radius: 8px;' +
            ' border: 1px solid ' + p.accent + ';' +
            ' background: ' + rgba(p.accent, 0.16) + '; color: ' + p.textPrimary + '; }');
-    L.push('#nwt-split .nwt-split-instead:hover { background: ' +
+    L.push('#nwt-split .nwt-panel-instead:hover { background: ' +
            rgba(p.accent, 0.3) + '; }');
     /* Only where the site publishes something else worth trying. */
-    L.push('#nwt-split:not([data-state="blocked"]) .nwt-split-instead,' +
-           ' #nwt-split:not([data-instead="1"]) .nwt-split-instead {' +
+    L.push('#nwt-split .nwt-panel:not([data-state="blocked"]) .nwt-panel-instead,' +
+           ' #nwt-split .nwt-panel:not([data-instead="1"]) .nwt-panel-instead {' +
            ' display: none; }');
+    /* A collapsed panel is its bar and nothing else. */
+    L.push('#nwt-split .nwt-panel[data-collapsed="1"] .nwt-panel-body {' +
+           ' display: none; }');
+    L.push('#nwt-split .nwt-panel-bar { cursor: default; }');
+    L.push('#nwt-split[data-drag="col"] .nwt-panel-frame,' +
+           ' #nwt-split[data-drag="row"] .nwt-panel-frame {' +
+           ' pointer-events: none; }');
     /* The divider. Wider than it looks, because a 1px target is a target you
      * miss; the line is drawn by the border beside it. */
     L.push('#nwt-split .nwt-split-grip { position: absolute; left: -4px; top: 0;' +
            ' bottom: 0; width: 9px; cursor: col-resize; z-index: 1; }');
-    L.push('#nwt-split .nwt-split-grip:hover, #nwt-split[data-drag="1"]' +
+    L.push('#nwt-split .nwt-split-grip:hover, #nwt-split[data-drag="col"]' +
            ' .nwt-split-grip { background: ' + rgba(p.accent, 0.5) + '; }');
-    /* While dragging, the frame must not swallow the pointer - a cross-origin
-     * frame takes every move event over it and the divider stops halfway. */
-    L.push('#nwt-split[data-drag="1"] .nwt-split-frame { pointer-events: none; }');
+    /* While dragging, no frame may swallow the pointer - a cross-origin frame
+     * takes every move event over it and the divider stops halfway. */
 
-    L.push('#nwt-companion .nwt-companion-grip { position: absolute; right: 0;' +
+    L.push('.nwt-companion .nwt-companion-grip { position: absolute; right: 0;' +
            ' bottom: 0; width: 22px; height: 22px; cursor: nwse-resize;' +
            ' background: linear-gradient(135deg, transparent 46%, ' +
            rgba(p.textMuted, 0.9) + ' 46%, ' + rgba(p.textMuted, 0.9) + ' 58%,' +
            ' transparent 58%, transparent 68%, ' + rgba(p.textMuted, 0.9) + ' 68%,' +
            ' ' + rgba(p.textMuted, 0.9) + ' 80%, transparent 80%); }');
-    L.push('#nwt-companion .nwt-companion-grip:hover { background-color: ' +
+    L.push('.nwt-companion .nwt-companion-grip:hover { background-color: ' +
            rgba(p.textMuted, 0.18) + '; }');
 
     /* Root surface last, so nothing above accidentally wins it. */
@@ -1871,6 +1961,7 @@
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
     focusElapsed, focusRemaining, formatDuration, companionSrc, framesFreely,
+    panelShares,
     cssReachesOut, withoutCssEscapes,
     toneOf,
     debounce,

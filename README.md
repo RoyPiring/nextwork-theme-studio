@@ -85,6 +85,12 @@ both can be turned off.
 a tile; the pane floats over the page with that link in it, and you drag its
 bar to move it and its corner to resize it. It stays where you put it.
 
+A tile is a switch: click it to open its pane, click it again to close. **Up to
+three can be open at once** — something you are watching and something you are
+talking in — and each new one opens a little clear of the last so it does not
+land on top of it. Each keeps its own place and size, and the × on a pane
+closes that pane rather than the lot.
+
 A YouTube link works straight away — paste the address from your browser's bar
 and it plays. Most other sites, Discord among them, refuse to be shown inside
 another page. The pane says so and offers you two ways on: **allow this site**,
@@ -114,9 +120,20 @@ right, with a divider you drag. Not a panel floating over the page and not a
 second window to manage — the page gives up part of its width and carries on
 working at the width it has, reflowing its own layout to fit.
 
-Paste a link in the **Split** tab and press Show. Drag the divider on the page
-itself, or use **Panel width** in the popup. The × on its bar gives the page
-its full width back.
+Paste a link in the **Split** tab and press Add. One panel fills the column;
+add a second or a third and they stack, with a handle between them you can
+drag. Each has a **Fold** control that collapses it to its bar, keeping its
+place in the stack so you can open it again — and an × that closes it. Closing
+the last one gives the page its full width back.
+
+Drag the column's own edge on the page to change how much of the window it
+takes, or use **Panel width** in the popup. Three panels is the ceiling: a
+third of a column is usable and a quarter is a letterbox.
+
+**Sizing.** A panel with no size of its own takes an equal share of whatever is
+left, so adding one never rewrites the others. A folded panel gives its share
+back to the rest rather than leaving a gap. Everything is stored as a
+proportion, so the arrangement survives resizing the window.
 
 **A link is loaded as you gave it.** The one translation is YouTube: a watch
 address becomes the player, because the player is the same video and the watch

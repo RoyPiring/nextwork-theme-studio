@@ -226,9 +226,42 @@
     renderCompanion();
   }
 
+  /* Which floating panes are open. Two is the point of a list - one thing you
+   * are watching and one you are talking in - and three is where a page has
+   * more of the extension on it than of itself. */
+  const MAX_PANES = 3;
+
+  function openPanes() {
+    const c = companionState();
+    return (Array.isArray(c.panes) ? c.panes : [])
+      .filter(function (x) { return x && typeof x.url === 'string'; });
+  }
+
+  function togglePane(url) {
+    const panes = openPanes();
+    const already = panes.some(function (x) { return x.url === url; });
+    if (already) {
+      const rest = panes.filter(function (x) { return x.url !== url; });
+      saveCompanion({ panes: rest, enabled: rest.length > 0 });
+      return;
+    }
+    if (panes.length >= MAX_PANES) {
+      toastNote('Three panes is as many as a page can hold and stay usable.');
+      return;
+    }
+    /* Each one opens a little below and right of the last, so a second does
+     * not land exactly on the first and look like nothing happened. */
+    const step = panes.length * 0.04;
+    saveCompanion({
+      enabled: true,
+      panes: panes.concat([{ url: url, x: null, y: null, w: 380, h: 260, offset: step }])
+    });
+  }
+
   function renderCompanion() {
     const c = companionState();
     const tiles = Array.isArray(c.tiles) ? c.tiles : [];
+    const open = openPanes().map(function (x) { return x.url; });
 
     $('companionEnabled').checked = !!c.enabled;
     $('companion-empty').style.display = tiles.length ? 'none' : '';
@@ -250,7 +283,7 @@
       btn.title = tile.url;
       /* Which one is in the pane now, said the same way the session lengths
        * say which is chosen. */
-      btn.setAttribute('aria-pressed', String(tile.url === c.url));
+      btn.setAttribute('aria-pressed', String(open.indexOf(tile.url) !== -1));
       btn.textContent = tile.label;
       if (tile.windowed) {
         btn.classList.add('windowed');
@@ -260,6 +293,10 @@
       }
       /* Choosing one shows the pane: picking something to watch and then
        * having to turn the pane on as well is a step with no meaning.
+       *
+       * A tile already on screen is taken off it, so the same click both opens
+       * and closes and the row reads as a set of switches rather than a set of
+       * buttons that only ever add.
        *
        * Unless it is one of the marked ones - a site that will not run inside
        * another page - in which case choosing it means opening its window,
@@ -273,11 +310,13 @@
           }, function () { void chrome.runtime.lastError; });
           return;
         }
-        const next = tiles.map(function (t) {
-          return t.url === tile.url ? Object.assign({}, t, { windowed: false }) : t;
-        });
-        saveCompanion({ url: tile.url, enabled: true,
-                        tiles: e.shiftKey ? next : tiles });
+        if (e.shiftKey) {
+          saveCompanion({ tiles: tiles.map(function (t) {
+            return t.url === tile.url ? Object.assign({}, t, { windowed: false }) : t;
+          }) });
+          return;
+        }
+        togglePane(tile.url);
       });
 
       /* Its own control rather than a second click target on the tile: a row
@@ -289,9 +328,11 @@
       drop.setAttribute('aria-label', 'Remove ' + tile.label);
       drop.textContent = '×';
       drop.addEventListener('click', function () {
+        const panes = openPanes().filter(function (x) { return x.url !== tile.url; });
         saveCompanion({
           tiles: tiles.filter(function (t) { return t.url !== tile.url; }),
-          url: c.url === tile.url ? '' : c.url
+          panes: panes,
+          enabled: panes.length > 0 && c.enabled
         });
       });
 
@@ -409,7 +450,8 @@
     tiles.push({ label: labelFor(raw), url: raw });
 
     field.value = '';
-    saveCompanion({ tiles: tiles, url: raw, enabled: true });
+    saveCompanion({ tiles: tiles, enabled: true });
+    togglePane(raw);
   }
 
   /* A short name from the address, since typing one for every link is a
@@ -462,15 +504,67 @@
     return next;
   }
 
+  function splitPanels() {
+    const sp = splitState();
+    return (Array.isArray(sp.panels) ? sp.panels : [])
+      .filter(function (x) { return x && typeof x.url === 'string'; });
+  }
+
   function renderSplitPanel() {
     const sp = splitState();
+    const panels = splitPanels();
+
     $('splitEnabled').checked = !!sp.enabled;
-    /* Not while it is being typed into, or every keystroke is overwritten by
-     * whatever was last saved. */
-    if (document.activeElement !== $('split-url')) $('split-url').value = sp.url || '';
+    $('split-empty').style.display = panels.length ? 'none' : '';
     const pct = Math.round(Math.max(0.18, Math.min(0.72, Number(sp.width) || 0.36)) * 100);
     $('split-width').value = String(pct);
     $('split-width-out').textContent = pct + '%';
+    /* Three is the ceiling: a third of a column is a usable panel and a
+     * quarter is a letterbox. */
+    $('split-set').disabled = panels.length >= 3;
+
+    const host = $('split-panels');
+    host.textContent = '';
+    panels.forEach(function (panel, i) {
+      const row = document.createElement('div');
+      row.className = 'row between beside-item';
+
+      const name = document.createElement('span');
+      name.className = 'grow';
+      name.title = panel.url;
+      name.textContent = labelFor(panel.url) + (panel.collapsed ? ' · folded' : '');
+      row.appendChild(name);
+
+      const fold = document.createElement('button');
+      fold.type = 'button';
+      fold.className = 'tiny ghost';
+      fold.textContent = panel.collapsed ? 'Open' : 'Fold';
+      fold.title = panel.collapsed
+        ? 'Show this panel again'
+        : 'Fold it down to its bar, keeping its place in the column';
+      fold.addEventListener('click', function () {
+        saveSplit({ panels: panels.map(function (q, k) {
+          return k === i ? Object.assign({}, q, { collapsed: !q.collapsed }) : q;
+        }) });
+      });
+      row.appendChild(fold);
+
+      const drop = document.createElement('button');
+      drop.type = 'button';
+      drop.className = 'drop';
+      drop.title = 'Remove this panel';
+      drop.setAttribute('aria-label', 'Remove ' + labelFor(panel.url));
+      drop.textContent = '\u00d7';
+      drop.addEventListener('click', function () {
+        /* The sizes belonged to a column with one more panel in it, so they go
+         * with it and the rest share the space out evenly again. */
+        const rest = panels.filter(function (q, k) { return k !== i; })
+          .map(function (q) { const r = Object.assign({}, q); delete r.size; return r; });
+        saveSplit({ panels: rest, enabled: rest.length > 0 && sp.enabled });
+      });
+      row.appendChild(drop);
+      host.appendChild(row);
+    });
   }
 
   function setSplitLink() {
@@ -481,10 +575,22 @@
       toastNote('That needs to be a full web address, starting with https.', 'split-note');
       return;
     }
+    const panels = splitPanels();
+    if (panels.length >= 3) {
+      toastNote('Three panels is the most a column can hold and stay usable.', 'split-note');
+      return;
+    }
     field.removeAttribute('aria-invalid');
-    /* Choosing something to show is the whole instruction; turning the split
-     * on afterwards would be a second step with no meaning of its own. */
-    saveSplit({ url: raw, enabled: true });
+    field.value = '';
+    /* Adding one is the whole instruction; turning the split on afterwards
+     * would be a second step with no meaning of its own. The sizes are dropped
+     * so the column shares itself out evenly with the new one included. */
+    saveSplit({
+      enabled: true,
+      panels: panels.map(function (q) {
+        const r = Object.assign({}, q); delete r.size; return r;
+      }).concat([{ url: raw, collapsed: false }])
+    });
   }
 
 /* ---- beside the page ----

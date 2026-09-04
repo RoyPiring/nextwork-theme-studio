@@ -886,11 +886,13 @@ test('an address it cannot open leaves the frame empty rather than loading it', 
   assert.equal(pane(page).querySelector('.nwt-companion-out').style.display, 'none');
 });
 
-test('nothing chosen yet reads as an invitation, not as an error', () => {
+test('a pane with nothing in it is not drawn at all', () => {
+  /* An empty list means no panes. An empty rectangle floating over the page
+   * inviting you to go and use the popup is furniture, not an invitation -
+   * the popup is where links are added, and it says so there. */
   const page = withPane({ url: '' });
   page.flush();
-  assert.match(pane(page).querySelector('.nwt-companion-refused').textContent,
-    /Nothing chosen yet/);
+  assert.equal(pane(page), null);
 });
 
 test('a repaint does not reload a video that is already playing', () => {
@@ -1341,155 +1343,6 @@ function splitOn(over) {
 function splitPane(page) { return page.doc.getElementById('nwt-split'); }
 function splitFrame(page) { return splitPane(page).querySelector('.nwt-split-frame'); }
 
-test('the split narrows the page and puts the link in the other half', () => {
-  const page = splitOn();
-  page.flush();
-
-  const html = page.doc.documentElement;
-  assert.ok(html.classList.contains('nwt-split-on'), 'the page did not make room');
-  assert.equal(html.style.getPropertyValue('--nwt-split-w'),
-    Math.round(page.window.innerWidth * 0.36) + 'px',
-    'the panel is not the share of the window it was told to be');
-  assert.equal(splitFrame(page).getAttribute('src'), EMBED);
-  assert.equal(splitPane(page).getAttribute('data-state'), 'ready');
-});
-
-test('turning the split off gives the page its width back', () => {
-  const page = splitOn();
-  page.flush();
-  assert.ok(page.doc.documentElement.classList.contains('nwt-split-on'));
-
-  page.chrome.storage.local.set({ split: { enabled: false, url: VIDEO } });
-  page.flush();
-
-  assert.equal(splitPane(page), null, 'the panel is still there');
-  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-on'),
-    'the page was left narrowed with nothing beside it');
-  assert.equal(page.doc.documentElement.style.getPropertyValue('--nwt-split-w'), '',
-    'the width it was narrowed by was left behind');
-});
-
-test('turning the theme off takes the split with it', () => {
-  const page = splitOn();
-  page.flush();
-  page.chrome.storage.local.set({ enabled: false });
-  page.flush();
-
-  assert.equal(splitPane(page), null);
-  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-on'),
-    'the page was left narrowed by an extension that is switched off');
-});
-
-test('a width dragged past either edge is brought back', () => {
-  /* This comes from storage, and a divider dragged off the edge leaves one
-   * half unusable with no way to get hold of it again. */
-  const wide = splitOn({ width: 5 });
-  wide.flush();
-  assert.equal(wide.doc.documentElement.style.getPropertyValue('--nwt-split-w'),
-    Math.round(wide.window.innerWidth * 0.72) + 'px', 'it was let past the wide edge');
-
-  const thin = splitOn({ width: 0.001 });
-  thin.flush();
-  assert.equal(thin.doc.documentElement.style.getPropertyValue('--nwt-split-w'),
-    Math.round(thin.window.innerWidth * 0.18) + 'px', 'it was let past the narrow edge');
-});
-
-test('closing the split from its own bar turns it off for good', () => {
-  const page = splitOn();
-  page.flush();
-  splitPane(page).querySelector('.nwt-split-hide').click();
-  page.flush();
-
-  assert.equal(page.stored.split.enabled, false,
-    'closing it did not turn it off, so it comes straight back');
-});
-
-test('a site that refuses to be framed says so in the split too', () => {
-  const page = loadContentScript({
-    settings: { enabled: true, split: { enabled: true, url: DISCORD } }
-  });
-  page.flush();
-
-  assert.equal(splitPane(page).getAttribute('data-state'), 'blocked');
-  assert.equal(splitFrame(page).getAttribute('src'), null);
-  assert.match(splitPane(page).querySelector('.nwt-split-said').textContent,
-    /refuses to be shown inside another page/);
-});
-
-test('the split and the pane are separate, and can both be on', () => {
-  /* They answer different questions and one is not a replacement for the
-   * other: a video can sit in either, and which you want is a preference. */
-  const page = loadContentScript({
-    settings: { enabled: true,
-      split: { enabled: true, url: VIDEO },
-      companion: { enabled: true, url: VIDEO } }
-  });
-  page.flush();
-
-  assert.ok(splitPane(page), 'the split is missing');
-  assert.ok(page.doc.getElementById('nwt-companion'), 'the pane is missing');
-});
-
-test('a repaint does not reload the split, and a rebuilt one is not left empty', () => {
-  const page = splitOn();
-  page.flush();
-  const frame = splitFrame(page);
-  let sets = 0;
-  const real = frame.setAttribute.bind(frame);
-  frame.setAttribute = function (n, v) { if (n === 'src') sets++; return real(n, v); };
-  page.chrome.storage.local.set({ hue: 12 });
-  page.flush();
-  assert.equal(sets, 0, 'an unrelated change reloaded the panel');
-
-  /* And the case that made the pane sit blank for days: the site throws the
-   * panel away, and the guard has to notice the new frame is empty. */
-  splitPane(page).remove();
-  page.chrome.storage.local.set({ hue: 13 });
-  page.flush();
-  assert.equal(splitFrame(page).getAttribute('src'), EMBED,
-    'the rebuilt panel was left empty');
-});
-
-
-test('a refused site offers to go beside the page, where it runs in full', () => {
-  /* A frame cannot hold an application that refuses to be embedded, and no
-   * permission changes that. A window of its own is not inside another page,
-   * so everything works there - signed in, messages, and a voice channel you
-   * can actually hear, which no embeddable view offers at all. */
-  const page = loadContentScript({
-    settings: { enabled: true,
-      split: { enabled: true, url: 'https://discord.com/channels/1432837534118838355/99' } }
-  });
-  page.flush();
-  const el = page.doc.getElementById('nwt-split');
-
-  assert.equal(el.getAttribute('data-state'), 'blocked');
-  assert.equal(el.getAttribute('data-instead'), '1', 'no way forward was offered');
-  assert.match(el.querySelector('.nwt-split-instead').textContent, /beside the page/);
-
-  el.querySelector('.nwt-split-instead').click();
-  page.flush();
-
-  const asked = page.sent.filter(m => m.type === 'companion:dock');
-  assert.equal(asked.length, 1, 'the button did not lead anywhere');
-  assert.equal(asked[0].url, 'https://discord.com/channels/1432837534118838355/99',
-    'it sent something other than the link that was refused');
-  assert.ok(asked[0].screen.width > 0,
-    'it asked for a split without saying how big the screen is');
-  assert.equal(page.stored.split.enabled, false,
-    'the panel was left holding a frame for something now beside the page');
-});
-
-test('a panel with no usable address offers nothing', () => {
-  const page = loadContentScript({
-    settings: { enabled: true, split: { enabled: true, url: 'not a url' } }
-  });
-  page.flush();
-  const el = page.doc.getElementById('nwt-split');
-  assert.equal(el.getAttribute('data-state'), 'empty');
-  assert.notEqual(el.getAttribute('data-instead'), '1');
-});
-
 test('a frame swapped out by something else is rebuilt, not read as ours', () => {
   /* A content blocker does not remove a third-party frame - it swaps in a
    * placeholder of its own. The panel stays, the right size, with an element
@@ -1515,19 +1368,296 @@ test('a frame swapped out by something else is rebuilt, not read as ours', () =>
     'it was rebuilt but never given the address again');
 });
 
-test('the split rebuilds its panel when its frame is taken', () => {
+
+/* --------------------------------------------------- the split, in panels */
+
+function withSplit(panels, over) {
+  return loadContentScript({
+    settings: Object.assign({ enabled: true,
+      split: Object.assign({ enabled: true, width: 0.36, panels: panels }, over || {}) }, {}),
+    allowed: ['https://discord.com']
+  });
+}
+function column(page) { return page.doc.getElementById('nwt-split'); }
+function panelsOf(page) {
+  const el = column(page);
+  return el ? el.querySelectorAll('.nwt-panel') : [];
+}
+function share(node) { return node.style.getPropertyValue('--nwt-panel-share'); }
+
+test('one panel fills the column', () => {
+  /* The common case has to feel like the common case: no furniture suggesting
+   * there ought to be more than one. */
+  const page = withSplit([{ url: VIDEO }]);
+  page.flush();
+
+  assert.ok(page.doc.documentElement.classList.contains('nwt-split-on'),
+    'the page did not make room');
+  assert.equal(panelsOf(page).length, 1);
+  assert.equal(share(panelsOf(page)[0]), '100.000%');
+  assert.equal(panelsOf(page)[0].querySelector('.nwt-panel-frame').getAttribute('src'), EMBED);
+});
+
+test('three panels divide the column evenly when none has been dragged', () => {
+  const page = withSplit([{ url: VIDEO }, { url: DISCORD }, { url: 'https://example.com/' }]);
+  page.flush();
+
+  const nodes = panelsOf(page);
+  assert.equal(nodes.length, 3);
+  nodes.forEach(function (n) { assert.equal(share(n), '33.333%'); });
+});
+
+test('a panel that has been sized keeps it, and the rest share what is left', () => {
+  const page = withSplit([{ url: VIDEO, size: 0.5 }, { url: DISCORD }, { url: 'https://example.com/' }]);
+  page.flush();
+
+  const nodes = panelsOf(page);
+  assert.equal(share(nodes[0]), '50.000%');
+  assert.equal(share(nodes[1]), '25.000%');
+  assert.equal(share(nodes[2]), '25.000%');
+});
+
+test('a folded panel gives its share back and loads nothing', () => {
+  /* It stays in the stack as a bar you can open again, so the column has no
+   * gap in it - and nothing is loaded behind a closed bar, or a video would
+   * go on playing where you cannot see it. */
+  const page = withSplit([{ url: VIDEO, collapsed: true }, { url: DISCORD }]);
+  page.flush();
+
+  const nodes = panelsOf(page);
+  assert.equal(nodes.length, 2, 'the folded panel was removed rather than folded');
+  assert.equal(nodes[0].getAttribute('data-collapsed'), '1');
+  assert.equal(share(nodes[0]), '0.000%');
+  assert.equal(share(nodes[1]), '100.000%', 'the space it gave up was left empty');
+  assert.equal(nodes[0].querySelector('.nwt-panel-frame').getAttribute('src'), null,
+    'a folded panel went on loading behind its bar');
+});
+
+test('folding and unfolding is one control on the panel', () => {
+  const page = withSplit([{ url: VIDEO }, { url: DISCORD }]);
+  page.flush();
+  panelsOf(page)[0].querySelector('.nwt-panel-fold').click();
+  page.flush();
+
+  assert.equal(page.stored.split.panels[0].collapsed, true);
+  assert.equal(page.stored.split.panels[1].collapsed, undefined,
+    'folding one panel folded another');
+});
+
+test('closing a panel leaves the others, and the last one closes the split', () => {
+  const page = withSplit([{ url: VIDEO, size: 0.7 }, { url: DISCORD, size: 0.3 }]);
+  page.flush();
+  panelsOf(page)[0].querySelector('.nwt-panel-hide').click();
+  page.flush();
+
+  assert.equal(page.stored.split.panels.length, 1);
+  assert.equal(page.stored.split.panels[0].url, DISCORD);
+  assert.equal(page.stored.split.panels[0].size, undefined,
+    'it kept a share of a column that had one more panel in it');
+  assert.equal(page.stored.split.enabled, true);
+
+  panelsOf(page)[0].querySelector('.nwt-panel-hide').click();
+  page.flush();
+  assert.equal(page.stored.split.enabled, false,
+    'the column stayed open with nothing in it');
+});
+
+test('the page gets its width back when the split is turned off', () => {
+  const page = withSplit([{ url: VIDEO }]);
+  page.flush();
+  page.chrome.storage.local.set({ split: { enabled: false, panels: [{ url: VIDEO }] } });
+  page.flush();
+
+  assert.equal(column(page), null);
+  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-on'),
+    'the page was left narrowed with nothing beside it');
+  assert.equal(page.doc.documentElement.style.getPropertyValue('--nwt-split-w'), '');
+});
+
+test('turning the theme off takes the split with it', () => {
+  const page = withSplit([{ url: VIDEO }]);
+  page.flush();
+  page.chrome.storage.local.set({ enabled: false });
+  page.flush();
+
+  assert.equal(column(page), null);
+  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-on'));
+});
+
+test('a column width dragged past either edge is brought back', () => {
+  const wide = withSplit([{ url: VIDEO }], { width: 5 });
+  wide.flush();
+  assert.equal(wide.doc.documentElement.style.getPropertyValue('--nwt-split-w'),
+    Math.round(wide.window.innerWidth * 0.72) + 'px');
+
+  const thin = withSplit([{ url: VIDEO }], { width: 0.001 });
+  thin.flush();
+  assert.equal(thin.doc.documentElement.style.getPropertyValue('--nwt-split-w'),
+    Math.round(thin.window.innerWidth * 0.18) + 'px');
+});
+
+test('a refused panel offers to go beside the page, and closes when taken', () => {
   const page = loadContentScript({
-    settings: { enabled: true, split: { enabled: true, url: VIDEO } }
+    settings: { enabled: true, split: { enabled: true,
+      panels: [{ url: 'https://discord.com/channels/1432837534118838355/99' }] } }
   });
   page.flush();
-  const el = page.doc.getElementById('nwt-split');
-  assert.equal(el.querySelector('.nwt-split-frame').getAttribute('src'), EMBED);
+  const node = panelsOf(page)[0];
 
-  el.querySelector('.nwt-split-frame').remove();
-  page.chrome.storage.local.set({ hue: 22 });
+  assert.equal(node.getAttribute('data-state'), 'blocked');
+  assert.equal(node.getAttribute('data-instead'), '1', 'no way forward was offered');
+
+  node.querySelector('.nwt-panel-instead').click();
   page.flush();
 
-  const rebuilt = page.doc.getElementById('nwt-split');
-  assert.ok(rebuilt.querySelector('.nwt-split-frame'), 'the panel was left without a frame');
-  assert.equal(rebuilt.querySelector('.nwt-split-frame').getAttribute('src'), EMBED);
+  const asked = page.sent.filter(m => m.type === 'companion:dock');
+  assert.equal(asked.length, 1, 'the button did not lead anywhere');
+  assert.ok(asked[0].screen.width > 0, 'it asked without saying how big the screen is');
+  assert.equal(page.stored.split.panels.length, 0,
+    'the panel stayed, holding a frame for something now beside the page');
+});
+
+test('a panel whose frame something else swapped out is rebuilt', () => {
+  const page = withSplit([{ url: VIDEO }]);
+  page.flush();
+  assert.equal(panelsOf(page)[0].querySelector('.nwt-panel-frame').getAttribute('src'), EMBED);
+
+  panelsOf(page)[0].querySelector('.nwt-panel-frame').remove();
+  page.chrome.storage.local.set({ hue: 31 });
+  page.flush();
+
+  const frame = panelsOf(page)[0].querySelector('.nwt-panel-frame');
+  assert.ok(frame, 'the panel was left without a frame');
+  assert.equal(frame.getAttribute('src'), EMBED, 'it was rebuilt but never given the address');
+});
+
+test('page churn does not reload a panel that is already right', () => {
+  const page = withSplit([{ url: VIDEO }]);
+  page.flush();
+  const frame = panelsOf(page)[0].querySelector('.nwt-panel-frame');
+  let sets = 0;
+  const real = frame.setAttribute.bind(frame);
+  frame.setAttribute = function (n, v) { if (n === 'src') sets++; return real(n, v); };
+
+  for (let i = 0; i < 4; i++) { page.chrome.storage.local.set({ hue: 40 + i }); page.flush(); }
+  assert.equal(sets, 0, 'the panel was reloaded ' + sets + ' times by unrelated changes');
+});
+
+test('the split and the floating pane are separate and can both be on', () => {
+  const page = loadContentScript({
+    settings: { enabled: true,
+      split: { enabled: true, panels: [{ url: VIDEO }] },
+      companion: { enabled: true, url: VIDEO } }
+  });
+  page.flush();
+  assert.ok(column(page), 'the split is missing');
+  assert.ok(page.doc.getElementById('nwt-companion'), 'the pane is missing');
+});
+
+test('a split with no panels is not drawn at all', () => {
+  /* Rather than an empty column taking a third of the window. */
+  const page = withSplit([]);
+  page.flush();
+  assert.equal(column(page), null);
+  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-on'));
+});
+
+/* ------------------------------------------------- more than one pane */
+
+function panesOf(page) { return page.doc.querySelectorAll('.nwt-companion'); }
+
+test('two panes are drawn, each with its own address', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, panes: [
+      { url: VIDEO }, { url: DISCORD }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+
+  const els = panesOf(page);
+  assert.equal(els.length, 2);
+  assert.equal(els[0].querySelector('.nwt-companion-frame').getAttribute('src'), EMBED);
+  assert.equal(els[1].querySelector('.nwt-companion-frame').getAttribute('src'), DISCORD);
+});
+
+test('a second pane does not land exactly on the first', () => {
+  /* Two panes in the same place read as one pane and a click that did
+   * nothing. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, panes: [
+      { url: VIDEO }, { url: DISCORD }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  const els = panesOf(page);
+  assert.notEqual(els[0].style.right, els[1].style.right,
+    'they were stacked in the same corner');
+});
+
+test('closing one pane leaves the other, and the last one turns the feature off', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, panes: [
+      { url: VIDEO }, { url: DISCORD }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  panesOf(page)[0].querySelector('.nwt-companion-hide').click();
+  page.flush();
+
+  assert.equal(page.stored.companion.panes.length, 1);
+  assert.equal(page.stored.companion.panes[0].url, DISCORD, 'it closed the wrong one');
+  assert.equal(page.stored.companion.enabled, true);
+
+  panesOf(page)[0].querySelector('.nwt-companion-hide').click();
+  page.flush();
+  assert.equal(page.stored.companion.enabled, false,
+    'the last pane closed and the feature stayed on with nothing to show');
+});
+
+test('settings written before panes existed still show something', () => {
+  /* The list came after a single address. A page open while an older version
+   * wrote there would otherwise show nothing and look like the feature had
+   * been taken away. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, url: VIDEO } }
+  });
+  page.flush();
+  assert.equal(panesOf(page).length, 1);
+  assert.equal(panesOf(page)[0].querySelector('.nwt-companion-frame').getAttribute('src'), EMBED);
+});
+
+test('each pane knows which one it is, so a move writes to its own entry', () => {
+  /* Dragging and resizing both write through that index. Without it every
+   * pane would write to the same place and moving one would move them all. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, panes: [
+      { url: VIDEO }, { url: DISCORD }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  const els = panesOf(page);
+  assert.deepEqual([els[0].getAttribute('data-index'), els[1].getAttribute('data-index')],
+    ['0', '1']);
+  assert.notEqual(els[0].id, els[1].id, 'two panes shared one id');
+});
+
+test('a pane that has been closed is taken off the page', () => {
+  /* The list is the truth. A pane left behind after its entry went would sit
+   * there with no way to close it, since its corner writes to an entry that
+   * no longer exists. */
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { enabled: true, panes: [
+      { url: VIDEO }, { url: DISCORD }] } },
+    allowed: ['https://discord.com']
+  });
+  page.flush();
+  assert.equal(panesOf(page).length, 2);
+
+  page.chrome.storage.local.set({
+    companion: { enabled: true, panes: [{ url: VIDEO }] }
+  });
+  page.flush();
+
+  assert.equal(panesOf(page).length, 1, 'a closed pane was left on the page');
+  assert.equal(panesOf(page)[0].querySelector('.nwt-companion-frame').getAttribute('src'), EMBED);
 });

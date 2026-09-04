@@ -472,15 +472,21 @@
    */
   const PANE_ID = 'nwt-companion';
 
-  function paneEl() {
-    let el = document.getElementById(PANE_ID);
+  /* The first keeps the plain id, so anything that looked it up still finds
+   * the one that is there when there is only one. */
+  function paneId(index) { return index ? PANE_ID + '-' + index : PANE_ID; }
+
+  function paneEl(index) {
+    let el = document.getElementById(paneId(index));
     /* The same check the split makes, for the same reason: a content blocker
      * replaces the frame rather than removing the pane around it. */
     if (el && !el.querySelector('.nwt-companion-frame')) { el.remove(); el = null; }
     if (el) return el;
 
     el = document.createElement('div');
-    el.id = PANE_ID;
+    el.id = paneId(index);
+    el.className = 'nwt-companion';
+    el.setAttribute('data-index', String(index));
 
     /* The bar is the handle. Dragging from anywhere else would fight with
      * whatever is inside the frame. */
@@ -608,16 +614,20 @@
   }
 
   function removePane() {
+    [...document.querySelectorAll('.nwt-companion')].forEach(function (n) { n.remove(); });
     const el = document.getElementById(PANE_ID);
     if (el) el.remove();
-    /* Cleared with the element. Leaving it set meant that switching the theme
+    /* Cleared with the elements. Leaving it set meant that switching the theme
      * off and on again rebuilt an empty pane: the address had not changed, so
      * the guard below decided there was nothing to load into a frame that had
      * just been created blank. */
-    paneShowing = '';
+    paneShowing = {};
   }
 
-  let paneShowing = '';
+  /* What each pane is showing, by its place in the list. One string served
+   * when there was one pane; with several, a second pane would have told the
+   * first that its address had changed. */
+  let paneShowing = {};
 
   /* A frame can also be stopped by the page it is drawn on, rather than by the
    * site it points at: nextwork.ai sends its own content security policy, and
@@ -630,8 +640,16 @@
    * beside it is the wrong trade. So this reports it and offers the window. */
   document.addEventListener('securitypolicyviolation', function (e) {
     if (!/frame-src|child-src|default-src/.test(e.violatedDirective || '')) return;
-    if (!paneShowing || String(e.blockedURI || '').indexOf(paneShowing.slice(0, 40)) !== 0) return;
-    const el = document.getElementById(PANE_ID);
+    /* Which pane it was. The report names the address that was blocked, and
+     * each pane knows what it asked for - so the one that asked is the one
+     * that is told, rather than all of them or the first. */
+    const blocked = String(e.blockedURI || '');
+    const hit = Object.keys(paneShowing).filter(function (i) {
+      const src = paneShowing[i];
+      return src && blocked.indexOf(src.slice(0, 40)) === 0;
+    })[0];
+    if (hit === undefined) return;
+    const el = document.getElementById(paneId(Number(hit)));
     if (!el) return;
     el.setAttribute('data-state', 'page-blocked');
     el.querySelector('.nwt-companion-said').textContent =
@@ -680,10 +698,10 @@
    * rule that failed to install, a site that changed its mind - ends in the
    * same place and is reported the same way, instead of as a black rectangle
    * that has to be guessed at. */
-  function watchForRefusal(el, frame, src) {
+  function watchForRefusal(el, frame, src, index) {
     if (paneRefusalWatch) clearTimeout(paneRefusalWatch);
     paneRefusalWatch = setTimeout(function () {
-      if (paneShowing !== src) return;
+      if (paneShowing[index] !== src) return;
       if (!frame.isConnected) return;
       const box = frame.getBoundingClientRect();
       if (box.width > 0 && box.height > 0) return;
@@ -698,8 +716,7 @@
     }, 2500);
   }
 
-  function paintPane(companion) {
-    const el = paneEl();
+  function paintPane(el, companion, index) {
     const src = NWT.companionSrc(companion.url);
     const frame = el.querySelector('.nwt-companion-frame');
     const refused = el.querySelector('.nwt-companion-said');
@@ -719,7 +736,7 @@
         label(companion) + ' is beside the page, in a window of its own. ' +
         'That is the one place a site which refuses to be embedded still ' +
         'works properly.';
-      paneShowing = '';
+      delete paneShowing[index];
       return;
     }
 
@@ -732,7 +749,7 @@
       refused.textContent =
         label(companion) + ' is set to open in a window of its own. The arrow ' +
         'above opens it; the button below tries it here instead.';
-      paneShowing = '';
+      delete paneShowing[index];
       return;
     }
 
@@ -742,7 +759,7 @@
       refused.textContent = companion.url
         ? 'That is not an address this can open. It has to start with https.'
         : 'Nothing chosen yet. Add a link in the extension popup.';
-      paneShowing = '';
+      delete paneShowing[index];
       return;
     }
 
@@ -762,8 +779,8 @@
      * framed looks like, so it was read as one for days.
      *
      * The frame's own src cannot lie about it: a new element has none. */
-    if (frame.getAttribute('src') === src) { paneShowing = src; return; }
-    paneShowing = src;
+    if (frame.getAttribute('src') === src) { paneShowing[index] = src; return; }
+    paneShowing[index] = src;
     el.setAttribute('data-state', 'loading');
     refused.textContent = 'Loading…';
 
@@ -772,13 +789,13 @@
     if (NWT.framesFreely(src)) {
       frame.setAttribute('src', src);
       el.setAttribute('data-state', 'ready');
-      watchForRefusal(el, frame, src);
+      watchForRefusal(el, frame, src, index);
       return;
     }
 
     askAllowed(src, function (answer) {
       /* Another address arrived while the answer was on its way. */
-      if (paneShowing !== src) return;
+      if (paneShowing[index] !== src) return;
 
       /* Granted and carried are two different facts, and only one of them was
        * ever reported. A site could be allowed, say so, and still be refused,
@@ -798,7 +815,7 @@
       if (answer.allowed) {
         frame.setAttribute('src', src);
         el.setAttribute('data-state', 'ready');
-        watchForRefusal(el, frame, src);
+        watchForRefusal(el, frame, src, index);
         return;
       }
       frame.removeAttribute('src');
@@ -828,7 +845,7 @@
     }
   }
 
-  function placePane(el, companion) {
+  function placePane(el, companion, index) {
     const w = Math.max(240, Math.min(window.innerWidth - 16, Number(companion.w) || 380));
     const h = Math.max(160, Math.min(window.innerHeight - 16, Number(companion.h) || 260));
     el.style.width = w + 'px';
@@ -836,6 +853,11 @@
 
     if (companion.x == null || companion.y == null) {
       el.style.left = el.style.top = '';
+      /* Stepped down and left of the one before it, so a second pane does not
+       * land exactly on the first and look as though nothing happened. */
+      const step = Math.round((Number(companion.offset) || index * 0.04) * 240);
+      el.style.right = (24 + step) + 'px';
+      el.style.bottom = (24 + step) + 'px';
       return;
     }
     const maxX = Math.max(0, window.innerWidth - w - 8);
@@ -844,6 +866,31 @@
     el.style.top = Math.min(maxY, Math.max(8, companion.y * window.innerHeight)) + 'px';
     el.style.right = 'auto';
     el.style.bottom = 'auto';
+  }
+
+  /* Change one pane in the list, leaving the others where they are. */
+  function savePane(index, patch) {
+    chrome.storage.local.get({ companion: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const c = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, stored.companion);
+      const panes = (Array.isArray(c.panes) ? c.panes : []).map(function (pane, i) {
+        return i === index ? Object.assign({}, pane, patch) : pane;
+      });
+      chrome.storage.local.set({ companion: Object.assign({}, c, { panes: panes }) });
+    });
+  }
+
+  /* Close one, and the pane feature with the last of them. */
+  function closePane(index) {
+    chrome.storage.local.get({ companion: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const c = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, stored.companion);
+      const panes = (Array.isArray(c.panes) ? c.panes : [])
+        .filter(function (pane, i) { return i !== index; });
+      chrome.storage.local.set({
+        companion: Object.assign({}, c, { panes: panes, enabled: panes.length > 0 })
+      });
+    });
   }
 
   function saveCompanion(patch) {
@@ -857,13 +904,16 @@
     });
   }
 
-  function wirePane(el) {
+  function wirePane(el, index) {
     if (el.dataset.wired === '1') return;
     el.dataset.wired = '1';
 
+    /* Closes this pane, not the feature. With one open the two are the same
+     * thing; with two, turning both off because you closed one is not what
+     * the corner of a window means anywhere else. */
     el.querySelector('.nwt-companion-hide').addEventListener('click', function (e) {
       e.stopPropagation();
-      saveCompanion({ enabled: false });
+      closePane(index);
     });
 
     /* The browser will only put its permission prompt in front of someone who
@@ -948,12 +998,14 @@
       });
     });
 
+    /* Its own place and its own size, so moving one pane does not move the
+     * others with it. */
     dragBy(el, el.querySelector('.nwt-companion-bar'), function (r) {
-      saveCompanion({ x: r.left / window.innerWidth, y: r.top / window.innerHeight });
+      savePane(index, { x: r.left / window.innerWidth, y: r.top / window.innerHeight });
     });
 
     resizeBy(el, el.querySelector('.nwt-companion-grip'), function (w, h) {
-      saveCompanion({ w: w, h: h });
+      savePane(index, { w: w, h: h });
     });
   }
 
@@ -1027,35 +1079,21 @@
   }
 
   /* ---- the split ---------------------------------------------------------
-   * One tab, two boxes: the page narrowed to the left, something else in the
-   * right, with a divider you drag. Not a panel floating over the work, and
-   * not a second window to manage - the page gives up part of its width and
-   * carries on working at the width it has.
+   * One tab, two boxes: the page narrowed to the left, and a column on the
+   * right holding one panel or several, stacked, each with its own address.
    *
-   * The right-hand box is still a frame, so a site that refuses to be embedded
-   * is refused here too. That is the same boundary the pane runs into, and it
-   * is reported the same way rather than left as an empty strip.
+   * One is the common case and has to feel like one - a single panel fills the
+   * column with no furniture suggesting there should be more. Two or three
+   * divide it, with a handle between them and a bar you can collapse a panel
+   * into rather than closing it and losing where it was.
    * --------------------------------------------------------------------- */
   const SPLIT_ID = 'nwt-split';
-  let splitShowing = '';
+  const MAX_PANELS = 3;
   let splitWatch = null;
 
   function splitEl() {
     let el = document.getElementById(SPLIT_ID);
-    /* Ours, and still whole.
-     *
-     * A content blocker does not remove a third-party frame, it swaps in a
-     * placeholder of its own - so the panel is still there, still the right
-     * size, and the element inside it is no longer the one this built. Every
-     * later paint then reads a frame that is not ours: no src to compare
-     * against, nothing to measure, and a panel that reports itself ready while
-     * showing somebody else's notice.
-     *
-     * Cheaper to rebuild than to reason about. If the frame is missing, the
-     * panel is not the one we made. */
-    if (el && !el.querySelector('.nwt-split-frame')) { el.remove(); el = null; }
     if (el) return el;
-
     el = document.createElement('div');
     el.id = SPLIT_ID;
 
@@ -1064,31 +1102,54 @@
     grip.title = 'Drag to change how the page is divided';
     el.appendChild(grip);
 
-    const bar = document.createElement('div');
-    bar.className = 'nwt-split-bar';
-    const title = document.createElement('span');
-    title.className = 'nwt-split-title';
-    bar.appendChild(title);
+    (document.body || document.documentElement).appendChild(el);
+    return el;
+  }
 
+  /* One panel of the stack, built once and then only updated. */
+  function panelEl(host, index) {
+    let el = host.querySelector('.nwt-panel[data-index="' + index + '"]');
+    /* A content blocker replaces the frame rather than removing the panel, so
+     * a panel without its own frame is not one this built. */
+    if (el && !el.querySelector('.nwt-panel-frame')) { el.remove(); el = null; }
+    if (el) return el;
+
+    el = document.createElement('div');
+    el.className = 'nwt-panel';
+    el.setAttribute('data-index', String(index));
+
+    const grip = document.createElement('div');
+    grip.className = 'nwt-panel-grip';
+    grip.title = 'Drag to share the column differently';
+    el.appendChild(grip);
+
+    const bar = document.createElement('div');
+    bar.className = 'nwt-panel-bar';
+    const fold = document.createElement('button');
+    fold.type = 'button';
+    fold.className = 'nwt-panel-fold';
+    bar.appendChild(fold);
+    const title = document.createElement('span');
+    title.className = 'nwt-panel-title';
+    bar.appendChild(title);
     const out = document.createElement('button');
     out.type = 'button';
-    out.className = 'nwt-split-out';
+    out.className = 'nwt-panel-out';
     out.title = 'Open in a window of its own';
     out.textContent = '↗';
     bar.appendChild(out);
-
     const hide = document.createElement('button');
     hide.type = 'button';
-    hide.className = 'nwt-split-hide';
-    hide.title = 'Give the page its full width back';
+    hide.className = 'nwt-panel-hide';
+    hide.title = 'Close this panel';
     hide.textContent = '×';
     bar.appendChild(hide);
     el.appendChild(bar);
 
     const body = document.createElement('div');
-    body.className = 'nwt-split-body';
+    body.className = 'nwt-panel-body';
     const frame = document.createElement('iframe');
-    frame.className = 'nwt-split-frame';
+    frame.className = 'nwt-panel-frame';
     frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms ' +
       'allow-popups allow-popups-to-escape-sandbox allow-presentation ' +
       'allow-modals allow-downloads allow-pointer-lock allow-orientation-lock ' +
@@ -1098,20 +1159,17 @@
       'picture-in-picture; encrypted-media; fullscreen');
     frame.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
     body.appendChild(frame);
-
     const said = document.createElement('p');
-    said.className = 'nwt-split-said';
+    said.className = 'nwt-panel-said';
     body.appendChild(said);
-
-    /* Offered only where there is something to offer: a different view of the
-     * same site, published by that site to be embedded. */
     const instead = document.createElement('button');
     instead.type = 'button';
-    instead.className = 'nwt-split-instead';
+    instead.className = 'nwt-panel-instead';
     body.appendChild(instead);
     el.appendChild(body);
 
-    (document.body || document.documentElement).appendChild(el);
+    host.appendChild(el);
+    wirePanel(el, index);
     return el;
   }
 
@@ -1121,7 +1179,6 @@
     if (el) el.remove();
     document.documentElement.classList.remove('nwt-split-on');
     document.documentElement.style.removeProperty('--nwt-split-w');
-    splitShowing = '';
   }
 
   /* Clamped rather than trusted: this comes from storage, and a divider
@@ -1132,13 +1189,18 @@
     return Math.round(window.innerWidth * frac);
   }
 
+  function splitPanels(split) {
+    return (Array.isArray(split.panels) ? split.panels : [])
+      .filter(function (x) { return x && typeof x.url === 'string'; })
+      .slice(0, MAX_PANELS);
+  }
+
   /* The rule report, mirrored onto the page as an attribute.
    *
-   * Nothing reads this but a person looking for why a frame is empty. It is
-   * here because every other way of finding out needs the browser's own
-   * extension pages, and the failure it describes - a rule that was never
-   * installed - is indistinguishable on the page from a site that will not be
-   * framed. One attribute turns a week of guessing into a glance. */
+   * Nothing reads this but a person looking for why a frame is empty. Every
+   * other way of finding out needs the browser's own extension pages, and the
+   * failure it describes - a rule that was never installed - is
+   * indistinguishable on the page from a site that will not be framed. */
   function reportRules(settings) {
     const r = settings.ruleReport;
     if (!TOP_FRAME || !document.documentElement) return;
@@ -1152,115 +1214,125 @@
 
   function renderSplit(settings) {
     const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
-    if (!settings.enabled || !split.enabled || !TOP_FRAME) { removeSplit(); return; }
+    const panels = splitPanels(split);
+    if (!settings.enabled || !split.enabled || !TOP_FRAME || !panels.length) {
+      removeSplit();
+      return;
+    }
 
     const el = splitEl();
     document.documentElement.style.setProperty('--nwt-split-w', splitWidth(split) + 'px');
     document.documentElement.classList.add('nwt-split-on');
-
-    const frame = el.querySelector('.nwt-split-frame');
-    const said = el.querySelector('.nwt-split-said');
-    const src = NWT.companionSrc(split.url);
-    el.querySelector('.nwt-split-title').textContent = splitLabel(split, src);
     wireSplit(el);
+
+    /* Any panel beyond the list has been closed, so its element goes with it. */
+    [...el.querySelectorAll('.nwt-panel')].forEach(function (node) {
+      if (Number(node.getAttribute('data-index')) >= panels.length) node.remove();
+    });
+
+    const shares = NWT.panelShares(panels);
+    panels.forEach(function (panel, i) {
+      const node = panelEl(el, i);
+      node.style.setProperty('--nwt-panel-share', (shares[i] * 100).toFixed(3) + '%');
+      node.setAttribute('data-collapsed', panel.collapsed ? '1' : '0');
+      node.setAttribute('data-url', panel.url || '');
+      node.querySelector('.nwt-panel-fold').textContent = panel.collapsed ? '▸' : '▾';
+      node.querySelector('.nwt-panel-fold').title =
+        panel.collapsed ? 'Open this panel' : 'Fold it down to its bar';
+      paintPanel(node, panel, i);
+    });
+  }
+
+  function paintPanel(node, panel, index) {
+    const frame = node.querySelector('.nwt-panel-frame');
+    const said = node.querySelector('.nwt-panel-said');
+    const src = NWT.companionSrc(panel.url);
+    node.querySelector('.nwt-panel-title').textContent = panelLabel(panel, src);
 
     if (!src) {
       frame.removeAttribute('src');
-      el.setAttribute('data-state', 'empty');
-      said.textContent = split.url
+      node.setAttribute('data-state', 'empty');
+      said.textContent = panel.url
         ? 'That is not an address this can open. It has to start with https.'
         : 'Nothing chosen yet. Pick a link in the extension popup.';
-      splitShowing = '';
       return;
     }
+    /* Nothing is loaded into a panel that is folded away: it is not on screen,
+     * and a video in it would go on playing behind a closed bar. */
+    if (panel.collapsed) { frame.removeAttribute('src'); node.setAttribute('data-state', 'folded'); return; }
 
-    /* Asked of the frame rather than of a variable beside it: the site rebuilds
-     * its body as it navigates, taking this with it, and a fresh element has no
-     * src however sure a variable is that it is already showing one. */
-    if (frame.getAttribute('src') === src) { splitShowing = src; return; }
-    splitShowing = src;
-    el.setAttribute('data-state', 'loading');
+    /* Asked of the frame rather than a variable beside it: the site rebuilds
+     * its body as it navigates, and a fresh element has no src however sure a
+     * variable is that it is already showing one. */
+    if (frame.getAttribute('src') === src) return;
+    node.setAttribute('data-state', 'loading');
     said.textContent = 'Loading…';
 
     if (NWT.framesFreely(src)) {
       frame.setAttribute('src', src);
-      el.setAttribute('data-state', 'ready');
-      watchSplitRefusal(el, frame, src);
+      node.setAttribute('data-state', 'ready');
+      watchPanelRefusal(node, frame, src);
       return;
     }
     askAllowed(src, function (answer) {
-      if (splitShowing !== src) return;
+      if (!frame.isConnected) return;
       if (answer.allowed && !answer.active) {
         frame.removeAttribute('src');
-        el.setAttribute('data-state', 'blocked');
+        node.setAttribute('data-state', 'blocked');
         said.textContent =
           'This site is allowed, but the rule that lets it through is not ' +
           'installed, so the browser is still refusing it. Turn the extension ' +
           'off and on again, or take the site back and allow it once more.';
+        offerInstead(node);
         return;
       }
       if (answer.allowed) {
         frame.setAttribute('src', src);
-        el.setAttribute('data-state', 'ready');
-        watchSplitRefusal(el, frame, src);
+        node.setAttribute('data-state', 'ready');
+        watchPanelRefusal(node, frame, src);
         return;
       }
       frame.removeAttribute('src');
-      el.setAttribute('data-state', 'blocked');
+      node.setAttribute('data-state', 'blocked');
       said.textContent =
         'This site refuses to be shown inside another page. Allow it in the ' +
-        'extension popup, or use the arrow above to open it in a window.';
-      offerInstead(el);
+        'extension popup, or open it beside the page instead.';
+      offerInstead(node);
     });
   }
 
-  /* The same measurement the pane uses: a browser refuses a frame by giving it
-   * no room, so a strip that stays empty says why instead of just sitting
-   * there. */
-  function watchSplitRefusal(el, frame, src) {
-    if (splitWatch) clearTimeout(splitWatch);
-    splitWatch = setTimeout(function () {
-      if (splitShowing !== src || !frame.isConnected) return;
+  /* A browser refuses a frame by giving it no room, so a panel that stays
+   * empty says why rather than sitting there. */
+  function watchPanelRefusal(node, frame, src) {
+    setTimeout(function () {
+      if (!frame.isConnected || frame.getAttribute('src') !== src) return;
       const box = frame.getBoundingClientRect();
       if (box.width > 0 && box.height > 0) return;
-      el.setAttribute('data-state', 'blocked');
-      el.querySelector('.nwt-split-said').textContent =
+      node.setAttribute('data-state', 'blocked');
+      node.querySelector('.nwt-panel-said').textContent =
         'The browser refused this frame, which it does by giving it no room ' +
-        'at all. The arrow above opens it in a window instead, which always ' +
-        'works.';
+        'at all. Opening it beside the page works instead.';
+      offerInstead(node);
     }, 2500);
   }
 
-  /* The way out that actually gives you the whole site.
-   *
-   * A frame cannot hold an application that refuses to be embedded, and no
-   * permission changes that - the refusal is about being inside another page.
-   * A window of its own is not inside another page, so everything works there:
-   * signed in, messages, and a voice channel you can hear, none of which any
-   * embeddable view offers.
-   *
-   * So the refusal offers to put it beside the page instead: this window takes
-   * the left of the screen, that site takes the right, and both are real
-   * browser windows. It is one button rather than a paragraph explaining why
-   * the panel is empty. */
-  function offerInstead(el) {
-    /* Only reached from the refusal, which is only reached once the address
-     * has been read and accepted - so there is always something to open. An
-     * address that cannot be parsed stops earlier, at the empty state, and
-     * never gets this far. */
-    const button = el.querySelector('.nwt-split-instead');
-    el.setAttribute('data-instead', '1');
+  /* A frame cannot hold an application that refuses to be embedded, and no
+   * permission changes that. A window of its own is not inside another page,
+   * so everything works there - signed in, and a voice channel you can hear. */
+  function offerInstead(node) {
+    const button = node.querySelector('.nwt-panel-instead');
+    node.setAttribute('data-instead', '1');
     button.textContent = 'Open it beside the page';
     button.title = 'This window keeps the left of the screen and the site ' +
                    'takes the right, both as real browser windows - where it ' +
                    'runs in full, voice channels included.';
   }
 
-  function splitLabel(split, src) {
+  function panelLabel(panel, src) {
     try {
-      return new URL(src || split.url).hostname.replace(/^www\./, '');
+      return new URL(src || panel.url).hostname.replace(/^www\./, '');
     } catch (e) {
-      return 'Split';
+      return 'Panel';
     }
   }
 
@@ -1273,47 +1345,131 @@
     });
   }
 
+  /* Change one panel in the list, leaving the others exactly as they were. */
+  function savePanel(index, patch) {
+    chrome.storage.local.get({ split: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, stored.split);
+      const panels = splitPanels(split).map(function (p, i) {
+        return i === index ? Object.assign({}, p, patch) : p;
+      });
+      chrome.storage.local.set({ split: Object.assign({}, split, { panels: panels }) });
+    });
+  }
+
+  function dropPanel(index) {
+    chrome.storage.local.get({ split: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, stored.split);
+      const panels = splitPanels(split).filter(function (p, i) { return i !== index; })
+        /* The sizes belonged to a column with one more panel in it, so they are
+         * dropped and shared out evenly again rather than leaving a gap. */
+        .map(function (p) { const q = Object.assign({}, p); delete q.size; return q; });
+      chrome.storage.local.set({
+        split: Object.assign({}, split, { panels: panels, enabled: panels.length > 0 })
+      });
+    });
+  }
+
+  function wirePanel(node, index) {
+    node.querySelector('.nwt-panel-hide').addEventListener('click', function (e) {
+      e.stopPropagation();
+      dropPanel(index);
+    });
+    node.querySelector('.nwt-panel-fold').addEventListener('click', function (e) {
+      e.stopPropagation();
+      savePanel(index, { collapsed: node.getAttribute('data-collapsed') !== '1' });
+    });
+    node.querySelector('.nwt-panel-out').addEventListener('click', function (e) {
+      e.stopPropagation();
+      const src = NWT.companionSrc(currentPanelUrl(node));
+      if (!src) return;
+      chrome.runtime.sendMessage({ type: 'companion:window', url: src },
+        function () { void chrome.runtime.lastError; });
+    });
+    node.querySelector('.nwt-panel-instead').addEventListener('click', function (e) {
+      e.stopPropagation();
+      const src = NWT.companionSrc(currentPanelUrl(node));
+      if (!src) return;
+      chrome.runtime.sendMessage({
+        type: 'companion:dock', url: src,
+        screen: { left: screen.availLeft | 0, top: screen.availTop | 0,
+                  width: screen.availWidth, height: screen.availHeight }
+      }, function () { void chrome.runtime.lastError; });
+      dropPanel(index);
+    });
+
+    /* Sharing the column between this panel and the one above it. */
+    dragRows(node, index);
+  }
+
+  /* Read from the element rather than closed over, so a panel that is
+   * re-rendered with a different address still acts on the current one. */
+  function currentPanelUrl(node) {
+    return node.getAttribute('data-url') || '';
+  }
+
+  function dragRows(node, index) {
+    const grip = node.querySelector('.nwt-panel-grip');
+    if (index === 0) return;              /* nothing above the first */
+    let dragging = false;
+    const host = node.parentElement;
+
+    const settle = NWT.debounce(function () {
+      const nodes = [...host.querySelectorAll('.nwt-panel')];
+      const total = host.getBoundingClientRect().height || 1;
+      chrome.storage.local.get({ split: {} }, function (stored) {
+        if (chrome.runtime.lastError) return;
+        const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, stored.split);
+        const panels = splitPanels(split).map(function (p, i) {
+          if (p.collapsed || !nodes[i]) return p;
+          return Object.assign({}, p, {
+            size: nodes[i].getBoundingClientRect().height / total
+          });
+        });
+        chrome.storage.local.set({ split: Object.assign({}, split, { panels: panels }) });
+      });
+    }, 160);
+
+    grip.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      host.setAttribute('data-drag', 'row');
+      try { grip.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+      if (e.preventDefault) e.preventDefault();
+    });
+    grip.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      const above = node.previousElementSibling;
+      if (!above || !above.classList.contains('nwt-panel')) return;
+      const total = host.getBoundingClientRect().height || 1;
+      const top = above.getBoundingClientRect().top;
+      /* Both sides keep a usable minimum, or a panel can be dragged away to
+       * nothing with no edge left to take hold of. */
+      const min = 64;
+      const pair = above.getBoundingClientRect().height + node.getBoundingClientRect().height;
+      const wanted = Math.max(min, Math.min(pair - min, e.clientY - top));
+      above.style.setProperty('--nwt-panel-share', (wanted / total * 100).toFixed(3) + '%');
+      node.style.setProperty('--nwt-panel-share', ((pair - wanted) / total * 100).toFixed(3) + '%');
+      settle();
+    });
+    const stop = function (e) {
+      if (!dragging) return;
+      dragging = false;
+      host.removeAttribute('data-drag');
+      try { grip.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      settle.flush();
+    };
+    grip.addEventListener('pointerup', stop);
+    grip.addEventListener('pointercancel', stop);
+  }
+
   function wireSplit(el) {
     if (el.dataset.wired === '1') return;
     el.dataset.wired = '1';
 
-    el.querySelector('.nwt-split-hide').addEventListener('click', function () {
-      saveSplit({ enabled: false });
-    });
-
-    /* Wired once, and reads the link at the moment it is pressed. Set as an
-     * onclick property inside the paint it was reassigned on every repaint,
-     * which is a listener that only works if the paint happened to run last. */
-    el.querySelector('.nwt-split-instead').addEventListener('click', function (e) {
-      e.stopPropagation();
-      chrome.storage.local.get({ split: {} }, function (stored) {
-        if (chrome.runtime.lastError) return;
-        const src = NWT.companionSrc((stored.split || {}).url);
-        if (!src) return;
-        /* The screen's own measurements, from the page: reading them in the
-         * worker needs a permission this does not want, and every page knows
-         * how big its own screen is. availWidth and availLeft, so a taskbar
-         * counts as taken rather than as somewhere to hide a window. */
-        chrome.runtime.sendMessage({
-          type: 'companion:dock', url: src,
-          screen: { left: screen.availLeft | 0, top: screen.availTop | 0,
-                    width: screen.availWidth, height: screen.availHeight }
-        }, function () { void chrome.runtime.lastError; });
-        /* The panel has nothing left to hold once it is beside the page. */
-        saveSplit({ enabled: false });
-      });
-    });
-    el.querySelector('.nwt-split-out').addEventListener('click', function () {
-      chrome.storage.local.get({ split: {} }, function (stored) {
-        const src = NWT.companionSrc((stored.split || {}).url);
-        if (!src) return;
-        chrome.runtime.sendMessage({ type: 'companion:window', url: src },
-          function () { void chrome.runtime.lastError; });
-      });
-    });
-
-    /* Dragging the divider. The width is written once the drag settles, for
-     * the same reason the dials are: every write reaches every open tab. */
+    /* Dragging the column's own edge. The width is written once the drag
+     * settles, for the same reason the dials are: every write reaches every
+     * open tab. */
     const grip = el.querySelector('.nwt-split-grip');
     let dragging = false;
     const settle = NWT.debounce(function () {
@@ -1323,7 +1479,7 @@
 
     grip.addEventListener('pointerdown', function (e) {
       dragging = true;
-      el.setAttribute('data-drag', '1');
+      el.setAttribute('data-drag', 'col');
       try { grip.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
       if (e.preventDefault) e.preventDefault();
     });
@@ -1355,30 +1511,52 @@
   function renderPane(settings) {
     paneSettings = settings;
     const companion = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
+    /* The list, or the single address that came before it.
+     *
+     * `migrate` folds the old field into the list, but it runs where settings
+     * are written - the popup and the worker - and this reads them straight
+     * from storage. A page open while an older version wrote there, or opened
+     * before anything has run the migration, would otherwise show nothing at
+     * all and look like the feature had been removed. */
+    const listed = (Array.isArray(companion.panes) ? companion.panes : [])
+      .filter(function (x) { return x && typeof x.url === 'string'; });
+    const panes = (listed.length ? listed : (companion.url
+      ? [{ url: companion.url, x: companion.x, y: companion.y,
+           w: companion.w, h: companion.h }]
+      : [])).slice(0, 3);
+
     /* Anywhere on the site, not only on a project page. The timer is tied to a
      * project because a session is about building one; something to keep in
-     * view while you work is not - you want it on the lesson you are reading
-     * and the dashboard you came from, and having it vanish when you navigate
-     * looks like the extension breaking rather than a rule being applied.
-     * The top frame only, so it is not drawn once per embedded frame. */
-    if (!settings.enabled || !companion.enabled || !TOP_FRAME) {
+     * view while you work is not. The top frame only, so it is not drawn once
+     * per embedded frame. */
+    if (!settings.enabled || !companion.enabled || !TOP_FRAME || !panes.length) {
       removePane();
       return;
     }
-    /* A site was allowed, or taken back, since the last paint. The cached
-     * answers are stale and the frame has to be given another go - without
-     * this, granting permission would leave the pane sitting on its refusal
-     * until something else happened to change the address. */
+
+    /* A site was allowed, or taken back, since the last paint, so the cached
+     * answers are stale and the frames are given another go. */
     const granted = Number(companion.grantedAt) || 0;
     if (granted !== paneGrantSeen) {
       paneGrantSeen = granted;
       Object.keys(paneAllowed).forEach(function (k) { delete paneAllowed[k]; });
-      paneShowing = '';
+      paneShowing = {};
     }
-    const el = paneEl();
-    paintPane(companion);
-    wirePane(el);
-    placePane(el, companion);
+
+    /* Any pane past the end of the list has been closed. */
+    [...document.querySelectorAll('.nwt-companion')].forEach(function (node) {
+      if (Number(node.getAttribute('data-index')) >= panes.length) node.remove();
+    });
+
+    panes.forEach(function (pane, i) {
+      const el = paneEl(i);
+      /* Each pane carries the shared settings plus its own place and size, so
+       * everything below can go on treating one pane at a time. */
+      const one = Object.assign({}, companion, pane);
+      paintPane(el, one, i);
+      wirePane(el, i);
+      placePane(el, one, i);
+    });
   }
 
   function renderHud(settings) {

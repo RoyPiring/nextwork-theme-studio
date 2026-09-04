@@ -136,10 +136,14 @@
     </div>
 
     <div class="card stack">
-      <p class="tiny muted" id="split-lead">The page moves over and shares the tab. Drag the divider on the page to change how it is divided.</p>
+      <p class="tiny muted" id="split-lead">The page moves over and shares the tab. One panel fills the column; add a second or third and they stack, with a handle between them. Drag the column&rsquo;s edge on the page to change how much it takes.</p>
+
+      <div class="stack" id="split-panels"></div>
+      <p class="tiny muted" id="split-empty">No panels yet. Paste a link below.</p>
+
       <div class="row">
         <input type="url" id="split-url" placeholder="Paste a link" aria-label="Address to show beside the page">
-        <button id="split-set" title="Show this beside the page">Show</button>
+        <button id="split-set" title="Add a panel for this">Add</button>
       </div>
       <div class="field">
         <div class="row between">
