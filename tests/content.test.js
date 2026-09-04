@@ -1489,3 +1489,45 @@ test('a panel with no usable address offers nothing', () => {
   assert.equal(el.getAttribute('data-state'), 'empty');
   assert.notEqual(el.getAttribute('data-instead'), '1');
 });
+
+test('a frame swapped out by something else is rebuilt, not read as ours', () => {
+  /* A content blocker does not remove a third-party frame - it swaps in a
+   * placeholder of its own. The panel stays, the right size, with an element
+   * inside it that this did not build. Every later paint then reads a frame
+   * that is not ours: no src to compare, nothing to measure, and a panel
+   * reporting itself ready while showing somebody else's notice. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.equal(frameOf(page).getAttribute('src'), EMBED, 'precondition');
+
+  /* Something else replaces the frame with one of its own. */
+  const ours = frameOf(page);
+  const theirs = page.doc.createElement('iframe');
+  ours.parentNode.appendChild(theirs);
+  ours.remove();
+  assert.equal(pane(page).querySelector('.nwt-companion-frame'), null);
+
+  page.chrome.storage.local.set({ hue: 21 });
+  page.flush();
+
+  assert.ok(frameOf(page), 'the pane was left holding a frame it did not build');
+  assert.equal(frameOf(page).getAttribute('src'), EMBED,
+    'it was rebuilt but never given the address again');
+});
+
+test('the split rebuilds its panel when its frame is taken', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, split: { enabled: true, url: VIDEO } }
+  });
+  page.flush();
+  const el = page.doc.getElementById('nwt-split');
+  assert.equal(el.querySelector('.nwt-split-frame').getAttribute('src'), EMBED);
+
+  el.querySelector('.nwt-split-frame').remove();
+  page.chrome.storage.local.set({ hue: 22 });
+  page.flush();
+
+  const rebuilt = page.doc.getElementById('nwt-split');
+  assert.ok(rebuilt.querySelector('.nwt-split-frame'), 'the panel was left without a frame');
+  assert.equal(rebuilt.querySelector('.nwt-split-frame').getAttribute('src'), EMBED);
+});

@@ -474,6 +474,9 @@
 
   function paneEl() {
     let el = document.getElementById(PANE_ID);
+    /* The same check the split makes, for the same reason: a content blocker
+     * replaces the frame rather than removing the pane around it. */
+    if (el && !el.querySelector('.nwt-companion-frame')) { el.remove(); el = null; }
     if (el) return el;
 
     el = document.createElement('div');
@@ -1039,6 +1042,18 @@
 
   function splitEl() {
     let el = document.getElementById(SPLIT_ID);
+    /* Ours, and still whole.
+     *
+     * A content blocker does not remove a third-party frame, it swaps in a
+     * placeholder of its own - so the panel is still there, still the right
+     * size, and the element inside it is no longer the one this built. Every
+     * later paint then reads a frame that is not ours: no src to compare
+     * against, nothing to measure, and a panel that reports itself ready while
+     * showing somebody else's notice.
+     *
+     * Cheaper to rebuild than to reason about. If the frame is missing, the
+     * panel is not the one we made. */
+    if (el && !el.querySelector('.nwt-split-frame')) { el.remove(); el = null; }
     if (el) return el;
 
     el = document.createElement('div');
