@@ -135,8 +135,8 @@
     renderDials();
     renderFocus();
     renderCompanion();
-    renderWindows();
     renderSplitPanel();
+    renderSplitAccess();
   }
 
   /* A range input fires on every pixel of travel. Writing storage on each one
@@ -188,6 +188,23 @@
   }
 
   let focusTick = null;
+  /* The three offered outright. Anything else is a custom length, which is
+   * how the box below knows whether to show itself. */
+  const PRESET_MINUTES = [15, 30, 60];
+  /* Whether the custom box is open because it was asked for, rather than
+   * because the length in force happens not to be one of the three. */
+  let customOpen = false;
+
+  /* A different length is a different end to reach, and it has not been
+   * announced yet - but only when it actually differs. Setting the length
+   * already in force changes nothing about the session, and clearing the
+   * marker there re-announced an end that had already been announced. */
+  function setLength(minutes) {
+    const f = focusState();
+    const patch = { targetMin: minutes, downMin: minutes };
+    if (minutes !== f.targetMin) patch.chimedFor = 0;
+    saveFocus(patch);
+  }
 
   function renderFocus() {
     const f = focusState();
@@ -206,9 +223,31 @@
     $('focus-size').value = String(Math.round((f.hudScale || 1) * 100));
     $('focus-size-out').textContent = $('focus-size').value + '%';
 
-    [...$('focus-targets').querySelectorAll('button')].forEach(function (b) {
-      b.setAttribute('aria-pressed', String(Number(b.dataset.min) === f.targetMin));
+    /* Which way it runs, said in words. "Open" meant counting up, which is
+     * only obvious once you have pressed it and watched the clock go the
+     * wrong way. */
+    [...$('focus-way').querySelectorAll('button')].forEach(function (b) {
+      b.setAttribute('aria-pressed', String((b.dataset.way === 'up') === !counting));
     });
+    $('focus-targets').hidden = !counting;
+
+    /* Four lengths rather than six and a spare: three that cover almost every
+     * session, and one that admits the rest exists. */
+    const preset = PRESET_MINUTES.indexOf(f.targetMin) !== -1;
+    [...$('focus-targets').querySelectorAll('button')].forEach(function (b) {
+      const m = Number(b.dataset.min);
+      b.setAttribute('aria-pressed',
+        String(m < 0 ? (counting && !preset) : m === f.targetMin));
+    });
+
+    /* The box stays open while it is being typed in, and otherwise appears
+     * only when the length in force is not one of the three. */
+    const showCustom = counting && (customOpen || !preset);
+    $('focus-custom-row').hidden = !showCustom;
+    if (!customOpen) {
+      $('focus-custom-min').value =
+        String(counting && f.targetMin ? f.targetMin : (f.downMin || 25));
+    }
 
     if (focusTick) { clearInterval(focusTick); focusTick = null; }
     if (f.running) focusTick = setInterval(renderFocus, 1000);
@@ -226,78 +265,101 @@
     renderCompanion();
   }
 
+  /* Which floating panes are open. Two is the point of a list - one thing you
+   * are watching and one you are talking in - and three is where a page has
+   * more of the extension on it than of itself. */
+  const MAX_PANES = 3;
+  /* How far each new pane lands from the one before it, as a fraction of the
+   * step the page turns it into. A tenth of that step was about ten pixels,
+   * which is close enough to landing on top of it that the second pane read
+   * as nothing having happened - which is the thing the stagger exists to
+   * prevent. This is a window cascade: enough to see the one underneath. */
+  const CASCADE = 0.12;
+
+  function openPanes() {
+    const c = companionState();
+    return (Array.isArray(c.panes) ? c.panes : [])
+      .filter(function (x) { return x && typeof x.url === 'string'; });
+  }
+
+  function togglePane(url) {
+    const panes = openPanes();
+    const already = panes.some(function (x) { return x.url === url; });
+    if (already) {
+      const rest = panes.filter(function (x) { return x.url !== url; });
+      saveCompanion({ panes: rest, url: '', enabled: rest.length > 0 });
+      return;
+    }
+    if (panes.length >= MAX_PANES) {
+      toastNote('Three panes is as many as a page can hold and stay usable.');
+      return;
+    }
+    /* Each one opens a little below and right of the last, so a second does
+     * not land exactly on the first and look like nothing happened. */
+    saveCompanion({
+      enabled: true,
+      panes: panes.concat([{ url: url, x: null, y: null, w: 380, h: 260,
+                             offset: panes.length * CASCADE }])
+    });
+  }
+
+  /* What is open, listed the way the panels beside the page are listed.
+   *
+   * There were two lists here once: a row of places you had saved and,
+   * behind it, the panes those opened. Two lists for one feature, and the
+   * only way to reach the second was to press something in the first. This
+   * is the one that matters - what is on the page now - and adding a link
+   * opens it rather than filing it away for later. */
   function renderCompanion() {
     const c = companionState();
-    const tiles = Array.isArray(c.tiles) ? c.tiles : [];
+    const panes = openPanes();
 
     $('companionEnabled').checked = !!c.enabled;
-    $('companion-empty').style.display = tiles.length ? 'none' : '';
+    $('companion-empty').style.display = panes.length ? 'none' : '';
+    /* Three is the ceiling: past that a page has more of the extension on it
+     * than of itself. */
+    $('companion-add').disabled = panes.length >= MAX_PANES;
 
-    const host = $('companion-tiles');
+    const host = $('companion-panes');
     host.textContent = '';
-    tiles.forEach(function (tile) {
-      /* Two real buttons side by side rather than one inside the other. A
-       * button nested in a button is invalid, and the browser gives the inner
-       * one no keyboard activation of its own - so reaching the × with Tab and
-       * pressing Enter used to fire the outer button and switch to the tile
-       * instead of removing it. */
-      const group = document.createElement('span');
-      group.className = 'tile';
+    panes.forEach(function (pane, i) {
+      const row = document.createElement('div');
+      row.className = 'row between beside-item';
 
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'tile-go';
-      btn.title = tile.url;
-      /* Which one is in the pane now, said the same way the session lengths
-       * say which is chosen. */
-      btn.setAttribute('aria-pressed', String(tile.url === c.url));
-      btn.textContent = tile.label;
-      if (tile.windowed) {
-        btn.classList.add('windowed');
-        btn.title = tile.url +
-                    ' - opens in a window of its own.' +
-                    ' Shift-click to try it in the pane again.';
-      }
-      /* Choosing one shows the pane: picking something to watch and then
-       * having to turn the pane on as well is a step with no meaning.
-       *
-       * Unless it is one of the marked ones - a site that will not run inside
-       * another page - in which case choosing it means opening its window,
-       * because that is where it works. Shift undoes the mark, for a site
-       * that was marked by mistake or has since changed. */
-      btn.addEventListener('click', function (e) {
-        if (tile.windowed && !e.shiftKey) {
-          chrome.runtime.sendMessage({
-            type: 'companion:window', url: NWT.companionSrc(tile.url) || tile.url,
-            w: c.w, h: c.h
-          }, function () { void chrome.runtime.lastError; });
-          return;
-        }
-        const next = tiles.map(function (t) {
-          return t.url === tile.url ? Object.assign({}, t, { windowed: false }) : t;
-        });
-        saveCompanion({ url: tile.url, enabled: true,
-                        tiles: e.shiftKey ? next : tiles });
+      const name = document.createElement('span');
+      name.className = 'grow';
+      name.title = pane.url;
+      name.textContent = labelFor(pane.url) + (pane.collapsed ? ' \u00b7 folded' : '');
+      row.appendChild(name);
+
+      const fold = document.createElement('button');
+      fold.type = 'button';
+      fold.className = 'tiny ghost';
+      fold.textContent = pane.collapsed ? 'Open' : 'Fold';
+      fold.title = pane.collapsed
+        ? 'Show this pane again'
+        : 'Fold it down to its bar, keeping its place on the page';
+      fold.addEventListener('click', function () {
+        saveCompanion({ panes: panes.map(function (q, k) {
+          return k === i ? Object.assign({}, q, { collapsed: !q.collapsed }) : q;
+        }) });
       });
+      row.appendChild(fold);
 
-      /* Its own control rather than a second click target on the tile: a row
-       * of things you go to should not lose one when you miss. */
       const drop = document.createElement('button');
       drop.type = 'button';
       drop.className = 'drop';
-      drop.title = 'Remove ' + tile.label;
-      drop.setAttribute('aria-label', 'Remove ' + tile.label);
-      drop.textContent = '×';
+      drop.title = 'Close this pane';
+      drop.setAttribute('aria-label', 'Close ' + labelFor(pane.url));
+      drop.textContent = '\u00d7';
       drop.addEventListener('click', function () {
-        saveCompanion({
-          tiles: tiles.filter(function (t) { return t.url !== tile.url; }),
-          url: c.url === tile.url ? '' : c.url
-        });
+        const rest = panes.filter(function (q, k) { return k !== i; });
+        /* The address that came before the list goes with it, or reading it
+         * back would put the pane straight up again. */
+        saveCompanion({ panes: rest, url: '', enabled: rest.length > 0 && c.enabled });
       });
-
-      group.appendChild(btn);
-      group.appendChild(drop);
-      host.appendChild(group);
+      row.appendChild(drop);
+      host.appendChild(row);
     });
 
     renderAccess(c);
@@ -310,14 +372,27 @@
    * window of its own. Both are offered; neither happens quietly. */
   function renderAccess(c) {
     const row = $('companion-access');
-    /* `pending` is set when the pane's own button sent you here, and names the
-     * site you were looking at. It wins over whatever the pane is pointed at
-     * now, because it is the question you actually asked. */
-    const src = NWT.companionSrc(c.pending || c.url);
+    /* `pending` is set when a pane's own button sent you here, and names the
+     * site you were looking at - it wins, because it is the question actually
+     * asked. Otherwise the first thing open that a browser would refuse, since
+     * that is the one with something to answer. */
+    const needs = (Array.isArray(c.panes) ? c.panes : [])
+      .concat(Array.isArray((settings.split || {}).panels) ? settings.split.panels : [])
+      .map(function (x) { return x && NWT.companionSrc(x.url); })
+      .filter(function (u) { return u && !NWT.framesFreely(u); })[0];
+    const src = NWT.companionSrc(c.pending) || needs || null;
 
-    if (!src || NWT.framesFreely(src)) { row.style.display = 'none'; return; }
-    row.style.display = '';
     row.setAttribute('data-asked', c.pending ? '1' : '0');
+    /* Nothing open is asking, which is not the same as nothing to show: what
+     * has already been allowed is listed either way, and taking one back is
+     * something you do long after the pane that needed it was closed. The
+     * note waits for the list, because what it says depends on how long it
+     * turned out to be. */
+    const resting = !src || NWT.framesFreely(src);
+    renderAllowed('allowed-list', function (count) {
+      if (resting) restAccess('companion', count);
+    });
+    if (resting) return;
 
     chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
       if (chrome.runtime.lastError) return;
@@ -332,68 +407,105 @@
           : host + ' is allowed, but the rule that carries it is missing. ' +
             'Take it back and allow it again.';
       const btn = $('companion-access-btn');
-      btn.textContent = allowed ? 'Take it back' : 'Allow ' + host;
-      btn.title = allowed
-        ? 'Stop opening ' + host + ' in the pane, and remove its permission'
-        : 'Ask the browser for permission to open ' + host + ' in the pane';
+      btn.textContent = 'Allow ' + host;
+      btn.title = 'Ask the browser for permission to open ' + host + ' here';
+      btn.hidden = allowed;
       /* Put the cursor on the answer, so pressing Enter is enough for someone
        * who arrived here from the pane with one question. */
       if (c.pending && !allowed) btn.focus();
     });
   }
 
-  /* The prompt the browser shows has to follow a click, which is why this is
-   * wired to a button rather than done for you when a link is added. */
-  function toggleAccess() {
-    const c = companionState();
-    const asked = c.pending || c.url;
-    const src = NWT.companionSrc(asked);
-    if (!src) return;
+  /* Said when nothing open is waiting on a permission. The list above is
+   * still the answer to "what have I allowed?", so the group stays and only
+   * the button - which would have nothing to ask for - goes. */
+  function restAccess(which, count) {
+    $(which + '-access-btn').hidden = true;
+    $(which + '-access-note').textContent = count
+      ? 'These can open inside the page.'
+      : 'Nothing allowed yet. Add a link that refuses to be framed and the ' +
+        'button to ask for it appears here.';
+  }
 
-    chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
+  /* What the browser says is allowed, listed in the section whose links it
+   * applies to. Both sections have their own copy for that reason: one control
+   * outside them both meant looking at a list of panels and finding the thing
+   * that governs them somewhere else. */
+  function renderAllowed(listId, after) {
+    chrome.permissions.getAll(function (granted) {
       if (chrome.runtime.lastError) return;
-      /* Granting is done on the options page, never from here.
-       *
-       * `permissions.request` has to come from an extension page in response
-       * to a click, and a popup is one - but the browser closes the popup to
-       * put its own prompt on screen, and closing the page cancels the request
-       * that page made. Nothing is granted and nothing reports a failure. Every
-       * click of this button did exactly that, for weeks, while the frame it
-       * was meant to unblock stayed empty. */
-      if (!(r && r.allowed)) {
-        saveCompanion({ pending: src });
-        chrome.runtime.openOptionsPage();
-        window.close();
-        return;
-      }
-      const next = 'companion:forget';
-      chrome.runtime.sendMessage({ type: next, url: src }, function (done) {
-        if (chrome.runtime.lastError) return;
-        const granted = next === 'companion:allow' && !!(done && done.allowed);
-        /* The pane caches what it was told, so it is told that this changed.
-         * Without it, allowing a site would leave an open page sitting on its
-         * refusal until something else happened to move. The question is
-         * cleared at the same time: it has now been answered either way.
-         *
-         * Being granted also puts the site in the pane, because arriving here
-         * from the pane's own button is not a request to change a setting - it
-         * is a request to see the thing. */
-        const patch = { grantedAt: Date.now(), pending: '' };
-        if (granted && c.pending) { patch.url = c.pending; patch.enabled = true; }
-        saveCompanion(patch);
-        if (next === 'companion:allow' && !granted) {
-          toastNote('The browser did not grant that. It can be opened in a window instead.');
-        }
+      const origins = ((granted && granted.origins) || [])
+        .filter(function (o) { return !/nextwork\.ai/.test(o); });
+      const host = $(listId);
+      host.textContent = '';
+      origins.forEach(function (pattern) {
+        const row = document.createElement('div');
+        row.className = 'row between beside-item';
+        const name = document.createElement('span');
+        name.className = 'tiny grow';
+        name.textContent = pattern.replace(/^https:\/\//, '').replace(/\/\*$/, '');
+        row.appendChild(name);
+        const drop = document.createElement('button');
+        drop.type = 'button';
+        drop.className = 'ghost tiny';
+        drop.textContent = 'Take it back';
+        drop.addEventListener('click', function () {
+          chrome.permissions.remove({ origins: [pattern] }, function () {
+            void chrome.runtime.lastError;
+            saveCompanion({ grantedAt: Date.now() });
+            renderAllowed(listId);
+          });
+        });
+        row.appendChild(drop);
+        host.appendChild(row);
       });
+      if (after) after(origins.length);
     });
   }
 
-  function addTile() {
+  /* One thing only: ask for a site. Taking one back is a control on its own
+   * row in the list above, so this button never means two opposite things
+   * depending on state you cannot see by looking at it.
+   *
+   * `permissions.request` has to follow a click inside an extension page. A
+   * popup is one - but some browsers close the popup to put the prompt on
+   * screen, and closing the page cancels the request that page made: nothing
+   * is granted and nothing reports a failure. So the site is written down
+   * first, asked for here where the controls are, and only if that comes back
+   * refused is the options page opened with it already filled in. Being sent
+   * somewhere else is the last resort, not the first thing that happens. */
+  function askAllow() {
+    const c = companionState();
+    const needs = (Array.isArray(c.panes) ? c.panes : [])
+      .concat(Array.isArray((settings.split || {}).panels) ? settings.split.panels : [])
+      .map(function (x) { return x && NWT.companionSrc(x.url); })
+      .filter(function (u) { return u && !NWT.framesFreely(u); })[0];
+    const src = NWT.companionSrc(c.pending) || needs || null;
+    if (!src) return;
+
+    const origin = src.replace(/^(https:\/\/[^/]+).*$/, '$1') + '/*';
+    saveCompanion({ pending: src });
+    chrome.permissions.request({ origins: [origin] }, function (given) {
+      if (given && !chrome.runtime.lastError) {
+        saveCompanion({ grantedAt: Date.now(), pending: '' });
+        renderAllowed('allowed-list');
+        return;
+      }
+      /* Opened straight away rather than after a pause to read the note: the
+       * page that opens says the same thing, and a delay is one more moment
+       * where nothing appears to be happening. */
+      toastNote('The browser would not ask here. Opening the page where it can.');
+      chrome.runtime.openOptionsPage();
+    });
+  }
+
+  /* Adding one opens it. Filing a link away and then having to find it again
+   * in a second list is two steps where the instruction was one. */
+  function addPane() {
     const field = $('companion-url');
     const raw = field.value.trim();
-    const src = NWT.companionSrc(raw);
 
-    if (!src) {
+    if (!NWT.companionSrc(raw)) {
       field.setAttribute('aria-invalid', 'true');
       /* Worded without the scheme spelled out. The audit forbids a remote
        * address in shipped code and it is right to: an exception for prose
@@ -401,15 +513,18 @@
       toastNote('That needs to be a full web address, starting with https.');
       return;
     }
+    const panes = openPanes();
+    if (panes.some(function (x) { return x.url === raw; })) {
+      toastNote('That one is already open.');
+      return;
+    }
+    if (panes.length >= MAX_PANES) {
+      toastNote('Three panes is as many as a page can hold and stay usable.');
+      return;
+    }
     field.removeAttribute('aria-invalid');
-
-    const c = companionState();
-    const tiles = (Array.isArray(c.tiles) ? c.tiles : [])
-      .filter(function (t) { return t.url !== raw; });
-    tiles.push({ label: labelFor(raw), url: raw });
-
     field.value = '';
-    saveCompanion({ tiles: tiles, url: raw, enabled: true });
+    togglePane(raw);
   }
 
   /* A short name from the address, since typing one for every link is a
@@ -450,6 +565,16 @@
     try { localStorage.setItem('nwt-tab', name); } catch (e) { /* private mode */ }
   }
 
+  /* The two halves of this tab, remembered the same way the tabs above are:
+   * where you were a moment ago, not something to write in with the themes. */
+  function showSub(name) {
+    ['page', 'float'].forEach(function (id) {
+      $('sub-' + id).setAttribute('aria-selected', String(id === name));
+      $('pane-' + id).hidden = id !== name;
+    });
+    try { localStorage.setItem('nwt-sub', name); } catch (e) { /* private mode */ }
+  }
+
   /* ---- the split ---- */
   function splitState() {
     return Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
@@ -462,15 +587,118 @@
     return next;
   }
 
+  function splitPanels() {
+    const sp = splitState();
+    return (Array.isArray(sp.panels) ? sp.panels : [])
+      .filter(function (x) { return x && typeof x.url === 'string'; });
+  }
+
   function renderSplitPanel() {
     const sp = splitState();
+    const panels = splitPanels();
+
     $('splitEnabled').checked = !!sp.enabled;
-    /* Not while it is being typed into, or every keystroke is overwritten by
-     * whatever was last saved. */
-    if (document.activeElement !== $('split-url')) $('split-url').value = sp.url || '';
+    $('split-empty').style.display = panels.length ? 'none' : '';
     const pct = Math.round(Math.max(0.18, Math.min(0.72, Number(sp.width) || 0.36)) * 100);
     $('split-width').value = String(pct);
     $('split-width-out').textContent = pct + '%';
+    /* Which edge it is on now, said the same way the session lengths say
+     * which one is chosen - two buttons with neither of them marked is a pair
+     * of things to press rather than a setting you can read. */
+    const side = sp.side === 'top' ? 'top' : 'right';
+    [...$('split-side').querySelectorAll('button')].forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-side') === side));
+    });
+    /* Three is the ceiling: a third of a column is a usable panel and a
+     * quarter is a letterbox. */
+    $('split-set').disabled = panels.length >= 3;
+
+    const host = $('split-panels');
+    host.textContent = '';
+    panels.forEach(function (panel, i) {
+      const row = document.createElement('div');
+      row.className = 'row between beside-item';
+
+      const name = document.createElement('span');
+      name.className = 'grow';
+      name.title = panel.url;
+      name.textContent = labelFor(panel.url) + (panel.collapsed ? ' · folded' : '');
+      row.appendChild(name);
+
+      const fold = document.createElement('button');
+      fold.type = 'button';
+      fold.className = 'tiny ghost';
+      fold.textContent = panel.collapsed ? 'Open' : 'Fold';
+      fold.title = panel.collapsed
+        ? 'Show this panel again'
+        : 'Fold it down to its bar, keeping its place in the column';
+      fold.addEventListener('click', function () {
+        saveSplit({ panels: panels.map(function (q, k) {
+          return k === i ? Object.assign({}, q, { collapsed: !q.collapsed }) : q;
+        }) });
+      });
+      row.appendChild(fold);
+
+      const drop = document.createElement('button');
+      drop.type = 'button';
+      drop.className = 'drop';
+      drop.title = 'Remove this panel';
+      drop.setAttribute('aria-label', 'Remove ' + labelFor(panel.url));
+      drop.textContent = '\u00d7';
+      drop.addEventListener('click', function () {
+        /* The sizes belonged to a column with one more panel in it, so they go
+         * with it and the rest share the space out evenly again. */
+        const rest = panels.filter(function (q, k) { return k !== i; })
+          .map(function (q) { const r = Object.assign({}, q); delete r.size; return r; });
+        saveSplit({ panels: rest, enabled: rest.length > 0 && sp.enabled });
+      });
+      row.appendChild(drop);
+      host.appendChild(row);
+    });
+  }
+
+  /* The same block, for the split's own list. */
+  function renderSplitAccess() {
+    const panels = splitPanels()
+      .map(function (x) { return x && NWT.companionSrc(x.url); })
+      .filter(function (u) { return u && !NWT.framesFreely(u); });
+    const src = panels[0];
+    renderAllowed('split-allowed-list', function (count) {
+      if (!src) restAccess('split', count);
+    });
+    if (!src) return;
+
+    chrome.runtime.sendMessage({ type: 'companion:allowed', url: src }, function (r) {
+      if (chrome.runtime.lastError) return;
+      const allowed = !!(r && r.allowed);
+      const host = (r && r.origin ? r.origin : src).replace(/^https:\/\//, '');
+      $('split-access-note').textContent = !allowed
+        ? host + ' refuses to be shown inside another page.'
+        : r.active
+          ? host + ' is allowed to open in a panel.'
+          : host + ' is allowed, but the rule that carries it is missing. ' +
+            'Take it back and allow it again.';
+      const btn = $('split-access-btn');
+      btn.textContent = 'Allow ' + host;
+      btn.title = 'Ask the browser for permission to open ' + host + ' here';
+      btn.hidden = allowed;
+    });
+  }
+
+  function askAllowFor(src) {
+    if (!src) return;
+    const origin = src.replace(/^(https:\/\/[^/]+).*$/, '$1') + '/*';
+    saveCompanion({ pending: src });
+    chrome.permissions.request({ origins: [origin] }, function (given) {
+      if (given && !chrome.runtime.lastError) {
+        saveCompanion({ grantedAt: Date.now(), pending: '' });
+        renderAllowed('allowed-list');
+        renderAllowed('split-allowed-list');
+        return;
+      }
+      toastNote('The browser would not ask here. Opening the page where it can.');
+      chrome.runtime.openOptionsPage();
+    });
   }
 
   function setSplitLink() {
@@ -481,125 +709,22 @@
       toastNote('That needs to be a full web address, starting with https.', 'split-note');
       return;
     }
-    field.removeAttribute('aria-invalid');
-    /* Choosing something to show is the whole instruction; turning the split
-     * on afterwards would be a second step with no meaning of its own. */
-    saveSplit({ url: raw, enabled: true });
-  }
-
-/* ---- beside the page ----
-   *
-   * Real windows, not a frame. The pane above puts a site inside the page,
-   * which only works for sites that publish something meant to be embedded.
-   * These are for everything else - the applications that refuse to be
-   * embedded at all, where the refusal is about being inside another page and
-   * a window of their own is not. */
-  function windowsState() {
-    return Object.assign({}, NWT.DEFAULT_SETTINGS.windows, settings.windows);
-  }
-
-  function saveWindows(patch) {
-    const next = Object.assign({}, windowsState(), patch);
-    save({ windows: next });
-    renderWindows();
-    return next;
-  }
-
-  /* The screen this popup is on, which is the screen the page is on. Read here
-   * rather than in the worker because reading it properly there needs a
-   * permission this extension does not want. availWidth and availLeft, so a
-   * taskbar counts as space taken rather than space to hide a window under. */
-  function screenArea() {
-    return { left: screen.availLeft | 0, top: screen.availTop | 0,
-             width: screen.availWidth, height: screen.availHeight };
-  }
-
-  function arrange(state) {
-    const w = state || windowsState();
-    if (!w.enabled) return;
-    const urls = (w.items || []).filter(it => it && it.on)
-      .map(it => NWT.companionSrc(it.url) || it.url).slice(0, 4);
-    chrome.runtime.sendMessage({
-      type: 'windows:arrange', screen: screenArea(), split: w.split, urls: urls
-    }, function () { void chrome.runtime.lastError; });
-  }
-
-  function renderWindows() {
-    const w = windowsState();
-    const items = Array.isArray(w.items) ? w.items : [];
-
-    $('windowsEnabled').checked = !!w.enabled;
-    $('windows-empty').style.display = items.length ? 'none' : '';
-    $('windows-split').value = String(w.split);
-    $('windows-split-out').textContent = w.split + '%';
-
-    const host = $('windows-list');
-    host.textContent = '';
-    items.forEach(function (item) {
-      const row = document.createElement('div');
-      row.className = 'row between beside-item';
-
-      const label = document.createElement('label');
-      label.className = 'check tiny grow';
-      label.title = item.url;
-      const box = document.createElement('input');
-      box.type = 'checkbox';
-      box.checked = !!item.on;
-      /* Four is the ceiling: a quarter of a screen is usable, a sixth is not.
-       * The ones already on stay clickable so you can swap. */
-      const open = items.filter(it => it.on).length;
-      box.disabled = !item.on && open >= 4;
-      box.addEventListener('change', function () {
-        const next = items.map(function (it) {
-          return it.url === item.url ? Object.assign({}, it, { on: box.checked }) : it;
-        });
-        /* Turning one on implies wanting them arranged; nobody adds a window
-         * and then goes looking for a second switch. */
-        const state = saveWindows({ items: next, enabled: box.checked || w.enabled });
-        if (box.checked) arrange(state);
-        else chrome.runtime.sendMessage(
-          { type: 'windows:close', url: NWT.companionSrc(item.url) || item.url },
-          function () { void chrome.runtime.lastError; arrange(state); });
-      });
-      label.appendChild(box);
-      const name = document.createElement('span');
-      name.textContent = ' ' + item.label;
-      label.appendChild(name);
-      row.appendChild(label);
-
-      const drop = document.createElement('button');
-      drop.type = 'button';
-      drop.className = 'drop';
-      drop.title = 'Remove ' + item.label;
-      drop.setAttribute('aria-label', 'Remove ' + item.label);
-      drop.textContent = '×';
-      drop.addEventListener('click', function () {
-        saveWindows({ items: items.filter(it => it.url !== item.url) });
-        chrome.runtime.sendMessage(
-          { type: 'windows:close', url: NWT.companionSrc(item.url) || item.url },
-          function () { void chrome.runtime.lastError; });
-      });
-      row.appendChild(drop);
-      host.appendChild(row);
-    });
-  }
-
-  function addWindowLink() {
-    const field = $('windows-url');
-    const raw = field.value.trim();
-    if (!NWT.companionSrc(raw)) {
-      field.setAttribute('aria-invalid', 'true');
-      toastNote('That needs to be a full web address, starting with https.', 'windows-note');
+    const panels = splitPanels();
+    if (panels.length >= 3) {
+      toastNote('Three panels is the most a column can hold and stay usable.', 'split-note');
       return;
     }
     field.removeAttribute('aria-invalid');
-    const w = windowsState();
-    const items = (Array.isArray(w.items) ? w.items : [])
-      .filter(function (it) { return it.url !== raw; });
-    items.push({ label: labelFor(raw), url: raw, on: true });
     field.value = '';
-    const state = saveWindows({ items: items, enabled: true });
-    arrange(state);
+    /* Adding one is the whole instruction; turning the split on afterwards
+     * would be a second step with no meaning of its own. The sizes are dropped
+     * so the column shares itself out evenly with the new one included. */
+    saveSplit({
+      enabled: true,
+      panels: panels.map(function (q) {
+        const r = Object.assign({}, q); delete r.size; return r;
+      }).concat([{ url: raw, collapsed: false }])
+    });
   }
 
   function toastNote(text, target) {
@@ -616,18 +741,23 @@
     $('companionEnabled').addEventListener('change', function () {
       saveCompanion({ enabled: $('companionEnabled').checked });
     });
-    $('companion-add').addEventListener('click', addTile);
-    $('companion-access-btn').addEventListener('click', toggleAccess);
+    $('companion-add').addEventListener('click', addPane);
+    $('companion-access-btn').addEventListener('click', askAllow);
 
-    $('windowsEnabled').addEventListener('change', function () {
-      const on = $('windowsEnabled').checked;
-      const state = saveWindows({ enabled: on });
-      if (on) arrange(state);
-      else chrome.runtime.sendMessage({ type: 'windows:restore' },
-        function () { void chrome.runtime.lastError; load(renderAll); });
-    });
     ['theme', 'focus', 'split'].forEach(function (name) {
       $('tab-' + name).addEventListener('click', function () { showTab(name); });
+    });
+    ['page', 'float'].forEach(function (name) {
+      $('sub-' + name).addEventListener('click', function () { showSub(name); });
+    });
+    let sub = 'page';
+    try { sub = localStorage.getItem('nwt-sub') || 'page'; } catch (e) { /* private mode */ }
+    showSub(sub === 'float' ? 'float' : 'page');
+
+    [...$('split-side').querySelectorAll('button')].forEach(function (b) {
+      b.addEventListener('click', function () {
+        saveSplit({ side: b.getAttribute('data-side') });
+      });
     });
     let opening = 'theme';
     try { opening = localStorage.getItem('nwt-tab') || 'theme'; } catch (e) { /* private mode */ }
@@ -637,6 +767,12 @@
       saveSplit({ enabled: $('splitEnabled').checked });
     });
     $('split-set').addEventListener('click', setSplitLink);
+    $('split-access-btn').addEventListener('click', function () {
+      const panels = splitPanels()
+        .map(function (x) { return x && NWT.companionSrc(x.url); })
+        .filter(function (u) { return u && !NWT.framesFreely(u); });
+      askAllowFor(panels[0]);
+    });
     $('split-url').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') setSplitLink();
     });
@@ -651,19 +787,6 @@
       writeWidth();
     });
 
-    $('windows-add').addEventListener('click', addWindowLink);
-    $('windows-url').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') addWindowLink();
-    });
-    /* Held back like the other sliders: a range fires on every pixel, and each
-     * write here would move every window on the screen. */
-    const writeSplit = NWT.debounce(function () {
-      arrange(saveWindows({ split: Number($('windows-split').value) }));
-    }, 200);
-    $('windows-split').addEventListener('input', function () {
-      $('windows-split-out').textContent = $('windows-split').value + '%';
-      writeSplit();
-    });
     $('companion-url').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') addTile();
     });
@@ -727,17 +850,42 @@
     $('focus-targets').addEventListener('click', function (e) {
       const btn = e.target.closest('button[data-min]');
       if (!btn) return;
-      /* The other thing that begins a new session: a different length is a
-       * different end to reach, and it has not been announced yet.
-       *
-       * Only when it actually differs. Clicking the length that is already
-       * chosen changes nothing about the session, and clearing the marker
-       * there re-announced an end that had already been announced - the same
-       * fault the resume path was fixed for, through another door. */
       const chosen = Number(btn.dataset.min);
-      const patch = { targetMin: chosen };
-      if (chosen !== focusState().targetMin) patch.chimedFor = 0;
-      saveFocus(patch);
+      /* Custom is a request to be asked, not a length. */
+      if (chosen < 0) {
+        customOpen = true;
+        renderFocus();
+        $('focus-custom-min').focus();
+        return;
+      }
+      customOpen = false;
+      setLength(chosen);
+    });
+
+    $('focus-custom-set').addEventListener('click', function () {
+      const wanted = Math.round(Number($('focus-custom-min').value) || 0);
+      if (!(wanted > 0)) {
+        $('focus-custom-min').setAttribute('aria-invalid', 'true');
+        return;
+      }
+      $('focus-custom-min').removeAttribute('aria-invalid');
+      customOpen = false;
+      setLength(Math.min(600, wanted));
+    });
+
+    /* Counting up has no length, so choosing it puts the one in force away
+     * rather than losing it: coming back finds the session you had. */
+    $('focus-way').addEventListener('click', function (e) {
+      const btn = e.target.closest('button[data-way]');
+      if (!btn) return;
+      const f = focusState();
+      customOpen = false;
+      if (btn.dataset.way === 'up') {
+        if (!f.targetMin) return;
+        saveFocus({ downMin: f.targetMin, targetMin: 0, chimedFor: 0 });
+        return;
+      }
+      setLength(f.downMin || 25);
     });
 
     $('sceneBackdrop').addEventListener('change', function () {

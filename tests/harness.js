@@ -109,6 +109,13 @@ class FakeStyle {
   }
 }
 
+/* data-some-thing <-> dataset.someThing, the way a browser spells it. */
+function dataKey(name) {
+  return name.replace(/^data-/, '').replace(/-(\w)/g, function (_, c) {
+    return c.toUpperCase();
+  });
+}
+
 let nodeSeq = 0;
 
 class FakeElement {
@@ -191,15 +198,30 @@ class FakeElement {
     while (n.parentNode) n = n.parentNode;
     return n.ownerDocument || n;
   }
+  /* A browser keeps `data-*` attributes and `dataset` as two views of one
+   * thing. Held separately here, an element written with setAttribute was
+   * invisible to a [data-x] selector and one written through dataset was
+   * invisible to getAttribute - so a lookup could miss an element that is
+   * plainly there, and the code under test would look like it had failed to
+   * create it. Both directions are kept in step. */
   setAttribute(k, v) {
     if (k === 'class') { this.className = v; return; }
     this.attributes[k] = String(v);
+    if (k.indexOf('data-') === 0) this.dataset[dataKey(k)] = String(v);
   }
   getAttribute(k) {
     if (k === 'class') return this.className || null;
-    return k in this.attributes ? this.attributes[k] : null;
+    if (k in this.attributes) return this.attributes[k];
+    if (k.indexOf('data-') === 0) {
+      const key = dataKey(k);
+      if (key in this.dataset) return String(this.dataset[key]);
+    }
+    return null;
   }
-  removeAttribute(k) { delete this.attributes[k]; }
+  removeAttribute(k) {
+    delete this.attributes[k];
+    if (k.indexOf('data-') === 0) delete this.dataset[dataKey(k)];
+  }
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
   removeEventListener() {}
   getBoundingClientRect() { return Object.assign({}, this._rect); }
@@ -214,6 +236,20 @@ class FakeElement {
   blur() { if (this.ownerDocument && this.ownerDocument.activeElement === this) {
     this.ownerDocument.activeElement = null;
   } }
+  /* Any event on this element, travelling up through its parents the way a
+   * click does. Only `click` had a way in, so a form that answers `submit`
+   * could be built and wired and never exercised. */
+  dispatchEvent(event) {
+    let stopped = false;
+    const e = Object.assign({ target: this, preventDefault() {},
+                              stopPropagation() { stopped = true; } }, event);
+    let node = this;
+    while (node && !stopped) {
+      (node.listeners[e.type] || []).forEach(fn => fn.call(node, e));
+      node = node.parentElement;
+    }
+    return true;
+  }
   /* A script clicking an element itself, which is how the editor opens the
    * file chooser and how it starts a download. */
   click() {

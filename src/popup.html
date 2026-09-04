@@ -22,7 +22,7 @@
   <div class="tabs" role="tablist">
     <button type="button" role="tab" id="tab-theme" data-tab="theme" aria-selected="true">Theme</button>
     <button type="button" role="tab" id="tab-focus" data-tab="focus" aria-selected="false">Focus</button>
-    <button type="button" role="tab" id="tab-split" data-tab="split" aria-selected="false">Split</button>
+    <button type="button" role="tab" id="tab-split" data-tab="split" aria-selected="false">Panels</button>
   </div>
 
   <div class="tab-panel" id="panel-theme">
@@ -34,10 +34,6 @@
     <label class="switch-item" title="Show the wallpaper behind the page">
       <span class="switch-label">Wallpaper</span>
       <span class="switch"><input type="checkbox" id="sceneBackdrop"><span></span></span>
-    </label>
-    <label class="switch-item" title="Show the focus timer on the page">
-      <span class="switch-label">Focus</span>
-      <span class="switch"><input type="checkbox" id="focusEnabled"><span></span></span>
     </label>
   </div>
 
@@ -86,21 +82,34 @@
   <section class="card focus" id="focus-panel">
     <div class="row between">
       <h2 class="section-title">Focus</h2>
-      <span class="tiny muted" id="focus-state">paused</span>
+      <span class="row">
+        <span class="tiny muted" id="focus-state">paused</span>
+        <label class="switch-inline" title="Show the focus timer on the page">
+          <span class="tiny muted">Show</span>
+          <span class="switch sm"><input type="checkbox" id="focusEnabled"><span></span></span>
+        </label>
+      </span>
     </div>
 
     <div class="focus-group">
       <span class="group-label">Session</span>
       <div class="focus-clock" id="focus-clock">25:00</div>
 
+      <div class="chips" id="focus-way" role="group" aria-label="Which way the timer runs">
+        <button type="button" data-way="down" title="Run out a set length and say when it is up">Count down</button>
+        <button type="button" data-way="up" title="Count up with no end to reach">Count up</button>
+      </div>
+
       <div class="chips" id="focus-targets" role="group" aria-label="Session length">
-        <button type="button" data-min="5">5m</button>
-        <button type="button" data-min="10">10m</button>
         <button type="button" data-min="15">15m</button>
-        <button type="button" data-min="25">25m</button>
-        <button type="button" data-min="45">45m</button>
-        <button type="button" data-min="60">60m</button>
-        <button type="button" data-min="0" title="Count up with no end">Open</button>
+        <button type="button" data-min="30">30m</button>
+        <button type="button" data-min="60">1h</button>
+        <button type="button" data-min="-1" title="Any length you like">Custom</button>
+      </div>
+      <div class="row" id="focus-custom-row">
+        <input type="number" id="focus-custom-min" min="1" max="600" step="5"
+               aria-label="Session length in minutes">
+        <button id="focus-custom-set">Set</button>
       </div>
 
       <div class="row" style="gap:8px">
@@ -126,85 +135,75 @@
   </div><!-- /panel-focus -->
 
   <div class="tab-panel" id="panel-split" hidden>
-  <section class="stack dimmable" id="split-panel">
-    <div class="row between">
-      <span class="section-title">Split the page</span>
-      <label class="switch-item" title="Divide this tab between the page and something else">
-        <span class="switch-label">Split</span>
-        <span class="switch"><input type="checkbox" id="splitEnabled"><span></span></span>
-      </label>
-    </div>
+  <div class="tabs sub" role="tablist">
+    <button type="button" role="tab" id="sub-page" data-sub="page" aria-selected="true">In the page</button>
+    <button type="button" role="tab" id="sub-float" data-sub="float" aria-selected="false">Floating</button>
+  </div>
 
-    <div class="card stack">
-      <p class="tiny muted" id="split-lead">The page moves over and shares the tab. Drag the divider on the page to change how it is divided.</p>
+  <section class="sub-panel" id="pane-page">
+    <div class="focus-group">
+      <div class="row between">
+        <span class="group-label">Your panels</span>
+        <label class="switch-inline" title="Share this tab between the page and the panels">
+          <span class="tiny muted">Show</span>
+          <span class="switch sm"><input type="checkbox" id="splitEnabled"><span></span></span>
+        </label>
+      </div>
+      <div class="stack" id="split-panels"></div>
+      <p class="tiny muted" id="split-empty">Nothing here yet.</p>
       <div class="row">
         <input type="url" id="split-url" placeholder="Paste a link" aria-label="Address to show beside the page">
-        <button id="split-set" title="Show this beside the page">Show</button>
+        <button id="split-set" title="Add a panel for this">Add</button>
+      </div>
+      <p class="tiny muted" id="split-note">Up to three, sharing the band.</p>
+    </div>
+
+    <div class="focus-group">
+      <span class="group-label">Where it sits</span>
+      <div class="chips" id="split-side" role="group" aria-label="Which edge the band is fixed to">
+        <button type="button" data-side="right" title="A column down the right, with the page narrowed beside it">Side</button>
+        <button type="button" data-side="top" title="A band across the top, with the page pushed down below it">Top</button>
       </div>
       <div class="field">
         <div class="row between">
-          <label for="split-width">Panel width</label><output id="split-width-out"></output>
+          <label for="split-width">How much it takes</label><output id="split-width-out"></output>
         </div>
         <input type="range" id="split-width" min="18" max="72" step="1">
       </div>
-      <p class="tiny muted" id="split-note">A video or a document sits here. An application you sign in to &mdash; Discord, mail &mdash; cannot be put inside a page by anyone; the panel offers to open it beside the page instead, where it runs in full.</p>
+      <p class="tiny muted">Or drag its edge on the page.</p>
+    </div>
+
+    <div class="focus-group" id="split-access">
+      <span class="group-label">Sites you have allowed</span>
+      <div class="stack" id="split-allowed-list"></div>
+      <p class="tiny muted" id="split-access-note"></p>
+      <button class="ghost tiny" id="split-access-btn">Allow it here</button>
     </div>
   </section>
 
-  <section class="stack dimmable" id="companion-panel">
-    <div class="row between">
-      <span class="section-title">Beside your work</span>
-      <label class="switch-item" title="Show the pane on the page">
-        <span class="switch-label">Show</span>
-        <span class="switch"><input type="checkbox" id="companionEnabled"><span></span></span>
-      </label>
-    </div>
-
-    <div class="card stack">
-      <div class="chips" id="companion-tiles" role="group" aria-label="Saved places"></div>
-      <p class="tiny muted" id="companion-empty">Nothing saved yet. Paste a link below — a video, a chat, whatever you want in view while you build.</p>
-
+  <section class="sub-panel" id="pane-float" hidden>
+    <div class="focus-group">
+      <div class="row between">
+        <span class="group-label">Your panes</span>
+        <label class="switch-inline" title="Show the panes on the page">
+          <span class="tiny muted">Show</span>
+          <span class="switch sm"><input type="checkbox" id="companionEnabled"><span></span></span>
+        </label>
+      </div>
+      <div class="stack" id="companion-panes"></div>
+      <p class="tiny muted" id="companion-empty">Nothing open yet.</p>
       <div class="row">
         <input type="url" id="companion-url" placeholder="Paste a link" aria-label="Address to open beside your work">
-        <button id="companion-add" title="Save this as a tile">Add</button>
+        <button id="companion-add" title="Open a pane for this">Add</button>
       </div>
-
-      <div class="row between access" id="companion-access">
-        <span class="tiny muted" id="companion-access-note"></span>
-        <button class="ghost tiny" id="companion-access-btn">Allow it here</button>
-      </div>
-
-      <p class="tiny muted" id="companion-note">The pane floats on the project page. Drag its bar to move it, its corner to resize.</p>
-    </div>
-  </section>
-
-  <section class="stack dimmable" id="windows-panel">
-    <div class="row between">
-      <span class="section-title">Beside the page</span>
-      <label class="switch-item" title="Arrange these around the page">
-        <span class="switch-label">Arrange</span>
-        <span class="switch"><input type="checkbox" id="windowsEnabled"><span></span></span>
-      </label>
+      <p class="tiny muted" id="companion-note">Up to three. Drag a pane's bar to move it.</p>
     </div>
 
-    <div class="card stack">
-      <p class="tiny muted" id="windows-lead">For sites that will not sit inside a page &mdash; Discord, a mail client, anything you sign in to. Each opens as its own small browser window beside your work, up to four.</p>
-
-      <div class="stack" id="windows-list"></div>
-      <p class="tiny muted" id="windows-empty">Nothing here yet. Paste a link below.</p>
-
-      <div class="row">
-        <input type="url" id="windows-url" placeholder="Paste a link" aria-label="Address to open beside the page">
-        <button id="windows-add" title="Save this">Add</button>
-      </div>
-
-      <div class="field">
-        <div class="row between">
-          <label for="windows-split">Page keeps</label><output id="windows-split-out"></output>
-        </div>
-        <input type="range" id="windows-split" min="35" max="80" step="1">
-      </div>
-      <p class="tiny muted" id="windows-note">Turning one on opens its window. Closing a window turns it off. &ldquo;Arrange&rdquo; off puts your page back to full size.</p>
+    <div class="focus-group" id="companion-access">
+      <span class="group-label">Sites you have allowed</span>
+      <div class="stack" id="allowed-list"></div>
+      <p class="tiny muted" id="companion-access-note"></p>
+      <button class="ghost tiny" id="companion-access-btn">Allow it here</button>
     </div>
   </section>
 

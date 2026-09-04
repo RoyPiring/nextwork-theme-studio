@@ -358,7 +358,29 @@
     'orange-dark': '#ff4405'
   };
 
+  /* The two suggestions the pane starts with, so its row is not an empty box
+   * you have to guess the purpose of. They are the two sites this was built
+   * for - something to watch and somewhere to talk - and each is removed with
+   * one click, after which they are not offered again.
+   *
+   * Nothing is requested from either until someone clicks one. They are text
+   * in a list, and the audit allows these two lines by name for that reason,
+   * the same way it allows the player below. A fourth remote address is a
+   * change to the audit that has to be argued for on its own. */
+
   const DEFAULT_SETTINGS = {
+    /* Everything the extension puts on the page, out of the way for a moment.
+     *
+     * Separate from folding each pane and from turning anything off, because
+     * it answers a different question: not "I am done with this" but "I need
+     * to see what is behind it". So it changes nothing about what is open -
+     * every pane keeps its place, its size and its address - and one press
+     * brings it all back exactly as it was. */
+    peek: false,
+    /* Where the dock sits, as a fraction of the window so it keeps its place
+     * when the window is resized. Both null means the top centre, which is a
+     * rule rather than a measurement and so stays centred by itself. */
+    dock: { x: null, y: null },
     enabled: true,
     themeId: 'concrete',
     /* User-made themes live here, keyed by id. */
@@ -375,6 +397,9 @@
       startedAt: 0,        /* epoch ms of the current run */
       accumulatedMs: 0,    /* time banked from previous runs */
       targetMin: 25,     /* 0 counts up; anything else counts down */
+      /* The length to come back to when counting down is chosen again, so
+       * switching to counting up and back does not silently lose it. */
+      downMin: 25,
       /* A session that ends silently has not really ended: the whole point is
        * to look away from the screen, which is where the timer is. */
       chime: true,
@@ -406,12 +431,6 @@
       y: null,
       w: 380,              /* px, and resizable by dragging the corner */
       h: 260,
-      /* Side by side: the page on the left of the screen and the companion in
-       * its own window on the right, both real browser windows. Set here so
-       * the pane knows to stand aside, and so it survives a reload. */
-      docked: false,
-      /* Where the page's window was before it was moved, to put it back. */
-      priorWindow: null,
       /* Bumped when a site is allowed or taken back. An open page caches what
        * it was told about a site, and this is how it learns the answer moved. */
       grantedAt: 0,
@@ -419,8 +438,22 @@
        * raised from an extension page, so the pane writes down what it wanted
        * and the popup leads with it. */
       pending: '',
-      /* Saved places to put in it, as { label, url }. The list is the point:
-       * the pane holds one at a time and these are what to switch between. */
+      /* Every floating pane that is open, each with its own place and size:
+       * { url, x, y, w, h }. One is the common case; a second for something
+       * else you want in view at the same time is the reason this is a list.
+       *
+       * `url` above is what a single pane used to be, and is folded in here on
+       * first read so nothing written before this is lost. */
+      panes: [],
+      /* There was a row of suggestions here - YouTube and Discord, offered
+       * before anything had been saved - and a second list behind it of the
+       * places you had kept. Two lists for one feature: one of what is open
+       * and one of what could be, each with its own controls, and pressing
+       * something in the second was the only way to reach the first.
+       *
+       * The panels beside the page never had that and never needed it. This
+       * is the same shape now: what is open is the list, adding a link opens
+       * it, and closing it is the same cross that closes a panel. */
       tiles: []
     },
     /* The page narrowed to one side, and something else in the other - one
@@ -434,35 +467,25 @@
      * The page is narrowed rather than scaled, so its own layout reflows to
      * the width it has been given and stays readable. */
     split: {
+      /* Which edge the band is fixed to: 'right' for a column beside the
+       * page, 'top' for a band across it. The page gives up width for one and
+       * height for the other; everything else about it is the same. */
+      side: 'right',
       enabled: false,
-      url: '',
-      /* How much of the window the panel takes, as a fraction, so it holds
-       * its proportion when the window is resized. */
-      width: 0.36
-    },
-    /* Beside the page, rather than inside it.
-     *
-     * A separate feature from the pane above, because the two answer different
-     * questions and the difference is not cosmetic. The pane puts a site in a
-     * frame on the page, which only works for sites that publish something
-     * meant to be embedded - a video player, a document. Most applications
-     * refuse to be embedded at all, and no permission changes that: the
-     * refusal is about being inside another page.
-     *
-     * These are real browser windows, arranged around the page rather than
-     * drawn on it. A window is not an embedding, so a site that will not be
-     * framed signs in and behaves exactly as it does in a tab. Discord belongs
-     * here; a YouTube video belongs in the pane. Keeping them as one feature
-     * meant every site had to pretend to be the other. */
-    windows: {
-      enabled: false,
-      /* Per cent of the screen the page keeps. The rest is shared out among
-       * whatever is open beside it. */
-      split: 62,
-      /* { label, url, on } - `on` is whether its window is open now. */
-      items: [],
-      /* Where the page's window was before it was first moved. */
-      priorWindow: null
+      /* How much of the window the whole column takes, as a fraction, so it
+       * holds its proportion when the window is resized. */
+      width: 0.36,
+      /* One or more, stacked down the column: { url, size, collapsed }.
+       *
+       * `size` is that panel's share of the column, as a fraction of the
+       * whole, so the shares always add up to one and a panel keeps its
+       * proportion whatever the window does. `collapsed` leaves the panel in
+       * the stack as a bar you can open again, rather than removing it and
+       * losing where it was. */
+      panels: [],
+      /* Carried for anything written before panels existed, and folded into
+       * the list on first read. */
+      url: ''
     },
     options: {
       dimImages: 0,          /* 0-40 % - knocks the glare off bright screenshots */
@@ -488,6 +511,7 @@
    * is the browser loading a page a person chose, the same as opening a tab.
    * The audit allows this one literal by name and nothing else. */
   const YOUTUBE_PLAYER = 'https://www.youtube.com/embed/';
+
 
 
   /* What to actually put in the companion pane for a given address.
@@ -519,8 +543,60 @@
    * permission from anybody, because the site already said yes by having it.
    * Kept to what the extension itself produces rather than a list of hosts to
    * keep up to date: anything else has to be asked for. */
+  /* Whether this address is a doorway rather than a destination.
+   *
+   * A YouTube link with a video in it becomes the player and plays. YouTube
+   * itself is a front page: it cannot be embedded, and embedding it would show
+   * you a wall of recommendations rather than the thing you meant. So the
+   * panel asks which video instead of loading something and failing.
+   *
+   * Discord is deliberately not in this list. There the address is the point -
+   * you are signed in and it opens where you left off - and asking for a
+   * different link would be asking a question with no answer. */
+  function needsLink(raw) {
+    let url;
+    try { url = new URL(String(raw == null ? '' : raw).trim()); } catch (e) { return false; }
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.replace(/^www\./, '');
+    const isYouTube = host === 'youtube.com' || host === 'm.youtube.com' ||
+                      host === 'youtu.be';
+    if (!isYouTube) return false;
+    /* A watch page, a short or a youtu.be link all name a video, and
+     * companionSrc turns each into the player. Anything else on the site is
+     * the doorway. */
+    return !/\/embed\//.test(url.pathname) && !companionSrc(raw).includes('/embed/');
+  }
+
   function framesFreely(src) {
     return typeof src === 'string' && src.indexOf(YOUTUBE_PLAYER) === 0;
+  }
+
+  /* The shares of the column, in order, adding to one.
+   *
+   * A panel with no size of its own takes an equal part of whatever is left,
+   * so adding one never has to rewrite the others. A collapsed panel is not in
+   * the sharing at all - it is a bar, and its height is fixed - so the rest of
+   * the column grows to fill what it gave up rather than leaving a gap.
+   *
+   * Returned as fractions rather than pixels because the column is resized by
+   * dragging its edge, and a proportion survives that where a pixel does not. */
+  function panelShares(panels) {
+    const list = (panels || []).filter(Boolean);
+    const open = list.filter(function (p) { return !p.collapsed; });
+    if (!open.length) return list.map(function () { return 0; });
+
+    const known = open.filter(function (p) { return Number(p.size) > 0; });
+    const claimed = known.reduce(function (t, p) { return t + Number(p.size); }, 0);
+    /* Anything already claiming more than the whole column is scaled back
+     * rather than allowed to push the others to nothing. */
+    const scale = claimed > 1 ? 1 / claimed : 1;
+    const spare = Math.max(0, 1 - claimed * scale);
+    const each = open.length > known.length ? spare / (open.length - known.length) : 0;
+
+    return list.map(function (p) {
+      if (p.collapsed) return 0;
+      return Number(p.size) > 0 ? Number(p.size) * scale : each;
+    });
   }
 
   function companionSrc(raw) {
@@ -632,6 +708,23 @@
       s.tuningOverrides = {};
       s.schema = SCHEMA;
       s.migrated = true;        /* caller has to persist, or this repeats */
+    }
+
+    /* Both of these were a single address before they were a list. Folding the
+     * old field in rather than dropping it means an upgrade keeps whatever was
+     * on screen, instead of quietly emptying it and looking like a fault. */
+    const split = s.split;
+    if (split && split.url && !(split.panels || []).length) {
+      split.panels = [{ url: split.url, size: 1, collapsed: false }];
+      split.url = '';
+    }
+    const companion = s.companion;
+    if (companion && companion.url && !(companion.panes || []).length) {
+      companion.panes = [{
+        url: companion.url,
+        x: companion.x, y: companion.y,
+        w: companion.w, h: companion.h
+      }];
     }
     return s;
   }
@@ -1499,93 +1592,99 @@
      * by and a corner to size from. The frame in the middle belongs to
      * whatever is inside it, which is why neither of those is the whole
      * surface. */
-    L.push('#nwt-companion { position: fixed; right: 24px; bottom: 24px;' +
+    L.push('.nwt-companion { position: fixed; right: 24px; bottom: 24px;' +
            ' z-index: 2147483646; display: flex; flex-direction: column;' +
            ' overflow: hidden; border-radius: 12px;' +
            ' border: 1px solid ' + p.panelEdge + ';' +
            ' background: ' + p.surface + '; color: var(--nwt-text);' +
            ' box-shadow: 0 10px 34px ' + rgba('#000000', light ? 0.16 : 0.44) + ';' +
            ' font-family: inherit; }');
-    L.push('#nwt-companion[data-dragging="1"] { opacity: .92; }');
+    L.push('.nwt-companion[data-dragging="1"] { opacity: .92; }');
 
-    L.push('#nwt-companion .nwt-companion-bar { display: flex; align-items: center;' +
+    L.push('.nwt-companion .nwt-companion-bar { display: flex; align-items: center;' +
            ' gap: 8px; padding: 6px 8px 6px 12px; cursor: grab;' +
            ' background: ' + p.surfaceAlt + ';' +
            ' border-bottom: 1px solid ' + p.panelEdge + '; flex: none;' +
            ' user-select: none; }');
-    L.push('#nwt-companion[data-dragging="1"] .nwt-companion-bar { cursor: grabbing; }');
-    L.push('#nwt-companion .nwt-companion-title { flex: 1; min-width: 0;' +
+    L.push('.nwt-companion[data-dragging="1"] .nwt-companion-bar { cursor: grabbing; }');
+    L.push('.nwt-companion .nwt-companion-title { flex: 1; min-width: 0;' +
            ' overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' +
            ' font-size: 12px; color: var(--nwt-text-dim); }');
 
     /* Both buttons are the same size whatever glyph is in them, so the bar
      * does not shift as the title changes. */
-    L.push('#nwt-companion .nwt-companion-bar button { flex: none; width: 22px;' +
+    L.push('.nwt-companion .nwt-companion-bar button { flex: none; width: 22px;' +
            ' height: 22px; display: grid; place-items: center; padding: 0;' +
            ' border: 0; border-radius: 6px; background: transparent; cursor: pointer;' +
            ' font: inherit; font-size: 13px; line-height: 1;' +
            ' color: var(--nwt-text-dim); }');
-    L.push('#nwt-companion .nwt-companion-bar button:hover {' +
+    L.push('.nwt-companion .nwt-companion-bar button:hover {' +
            ' background: ' + rgba(p.accent, 0.16) + '; color: var(--nwt-text); }');
 
-    L.push('#nwt-companion .nwt-companion-body { position: relative; flex: 1;' +
+    L.push('.nwt-companion .nwt-companion-body { position: relative; flex: 1;' +
            ' min-height: 0; background: ' + p.canvas + '; }');
-    L.push('#nwt-companion .nwt-companion-frame { width: 100%; height: 100%;' +
+    L.push('.nwt-companion .nwt-companion-frame { width: 100%; height: 100%;' +
            ' border: 0; display: block; }');
 
     /* The message sits over the frame rather than replacing it, so a frame
      * that arrives late simply covers it. */
-    L.push('#nwt-companion .nwt-companion-refused { position: absolute; inset: 0;' +
+    /* The address bar inside a panel, for a doorway address. */
+    L.push('.nwt-companion .nwt-companion-ask-link,' +
+           ' #nwt-split .nwt-panel-ask-link { position: absolute; inset: 0;' +
+           ' display: flex; flex-direction: column; align-items: center;' +
+           ' justify-content: center; gap: 10px; padding: 20px; margin: 0;' +
+           ' background: ' + p.canvas + '; }');
+    L.push('.nwt-companion .nwt-companion-ask-input,' +
+           ' #nwt-split .nwt-panel-ask-input { width: 100%; max-width: 320px;' +
+           ' padding: 8px 10px; font: inherit; font-size: 12.5px;' +
+           ' border-radius: 8px; border: 1px solid ' + p.panelEdge + ';' +
+           ' background: ' + p.surfaceAlt + '; color: ' + p.textPrimary + '; }');
+    L.push('.nwt-companion .nwt-companion-ask-input[aria-invalid="true"],' +
+           ' #nwt-split .nwt-panel-ask-input[aria-invalid="true"] {' +
+           ' border-color: ' + p.status.error[400] + '; }');
+    L.push('.nwt-companion .nwt-companion-ask-link button,' +
+           ' #nwt-split .nwt-panel-ask-link button { padding: 7px 16px;' +
+           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
+           ' background: ' + rgba(p.accent, 0.16) + '; color: ' + p.textPrimary + '; }');
+    L.push('.nwt-companion:not([data-state="ask"]) .nwt-companion-ask-link,' +
+           ' #nwt-split .nwt-panel:not([data-state="ask"]) .nwt-panel-ask-link {' +
+           ' display: none; }');
+
+    L.push('.nwt-companion .nwt-companion-refused { position: absolute; inset: 0;' +
            ' display: flex; flex-direction: column; align-items: center;' +
            ' justify-content: center; gap: 12px; padding: 18px; margin: 0;' +
            ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
            ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
-    L.push('#nwt-companion .nwt-companion-said { margin: 0; }');
+    L.push('.nwt-companion .nwt-companion-said { margin: 0; }');
     /* Offered here rather than described here. Being told to go and find a
      * button on another surface is not an answer to "how do I allow this". */
-    L.push('#nwt-companion .nwt-companion-ask { flex: none; padding: 7px 14px;' +
+    L.push('.nwt-companion .nwt-companion-ask { flex: none; padding: 7px 14px;' +
            ' font: inherit; font-size: 12.5px; cursor: pointer;' +
            ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
            ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
-    L.push('#nwt-companion .nwt-companion-ask:hover { background: ' +
+    L.push('.nwt-companion .nwt-companion-ask:hover { background: ' +
            rgba(p.accent, 0.26) + '; }');
     /* Each of these belongs to one state and nothing else. */
-    L.push('#nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
+    L.push('.nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
            ' display: none; }');
-    L.push('#nwt-companion .nwt-companion-here { flex: none; padding: 7px 14px;' +
-           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
-           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
-           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
-    L.push('#nwt-companion .nwt-companion-here:hover { background: ' +
-           rgba(p.accent, 0.26) + '; }');
-    L.push('#nwt-companion:not([data-state="windowed"]) .nwt-companion-here {' +
-           ' display: none; }');
-    /* The way back out of side-by-side, offered only while it is on. */
-    L.push('#nwt-companion .nwt-companion-undock { flex: none; padding: 7px 14px;' +
-           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
-           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
-           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
-    L.push('#nwt-companion .nwt-companion-undock:hover { background: ' +
-           rgba(p.accent, 0.26) + '; }');
-    L.push('#nwt-companion:not([data-state="docked"]) .nwt-companion-undock {' +
-           ' display: none; }');
-    L.push('#nwt-companion[data-state="docked"] .nwt-companion-refused {' +
+    L.push('.nwt-companion[data-state="docked"] .nwt-companion-refused {' +
            ' color: var(--nwt-text); }');
     /* Shown over a frame that loaded, since that is the only case where a
      * blank rectangle has nothing else on it. Faint until you go near it. */
-    L.push('#nwt-companion .nwt-companion-hint { position: absolute; left: 50%;' +
+    L.push('.nwt-companion .nwt-companion-hint { position: absolute; left: 50%;' +
            ' bottom: 10px; transform: translateX(-50%); z-index: 2;' +
            ' padding: 5px 11px; font: inherit; font-size: 11.5px;' +
            ' cursor: pointer; white-space: nowrap; border-radius: 999px;' +
            ' border: 1px solid ' + p.panelEdge + '; opacity: .55;' +
            ' background: ' + p.surface + '; color: ' + p.textSecondary + '; }');
-    L.push('#nwt-companion .nwt-companion-hint:hover { opacity: 1; }');
-    L.push('#nwt-companion:not([data-state="ready"]) .nwt-companion-hint {' +
+    L.push('.nwt-companion .nwt-companion-hint:hover { opacity: 1; }');
+    L.push('.nwt-companion:not([data-state="ready"]) .nwt-companion-hint {' +
            ' display: none; }');
-    L.push('#nwt-companion[data-state="ready"] .nwt-companion-refused {' +
+    L.push('.nwt-companion[data-state="ready"] .nwt-companion-refused {' +
            ' display: none; }');
-    L.push('#nwt-companion[data-state="blocked"] .nwt-companion-refused,' +
-           ' #nwt-companion[data-state="page-blocked"] .nwt-companion-refused {' +
+    L.push('.nwt-companion[data-state="blocked"] .nwt-companion-refused,' +
+           ' .nwt-companion[data-state="page-blocked"] .nwt-companion-refused {' +
            ' color: ' + p.status.warning[400] + '; }');
 
     /* Big enough to find and dark enough to see. At 16px with a half-strength
@@ -1598,68 +1697,187 @@
      * reflows to the width it has and stays readable at that size. */
     L.push('html.nwt-split-on { width: calc(100% - var(--nwt-split-w, 36%))' +
            ' !important; overflow-x: hidden !important; }');
-    /* Fixed to the window rather than to the narrowed page, so it keeps the
-     * right-hand strip whatever the page does with its own layout. */
+    /* Lying along the top instead: the page keeps its full width and is
+     * pushed down by the height of the band. Two classes rather than one, so
+     * this outranks the rule above without either needing to know about the
+     * other. */
+    L.push('html.nwt-split-on.nwt-split-top { width: auto !important;' +
+           ' margin-top: var(--nwt-split-w, 30%) !important; }');
+    /* Fixed to the window rather than to the narrowed page, so it keeps its
+     * strip whatever the page does with its own layout. */
     L.push('#nwt-split { position: fixed; top: 0; right: 0; height: 100vh;' +
            ' width: var(--nwt-split-w, 36%); z-index: 2147483645;' +
            ' display: flex; flex-direction: column; box-sizing: border-box;' +
            ' border-left: 1px solid ' + p.panelEdge + ';' +
            ' background: ' + p.surface + '; color: var(--nwt-text);' +
            ' font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }');
-    L.push('#nwt-split .nwt-split-bar { display: flex; align-items: center;' +
+
+    /* ---- along the top --------------------------------------------------
+     * The same band turned through a right angle. Panels that stacked now sit
+     * side by side, the handle between two of them stands up instead of lying
+     * down, and the edge you drag to resize the whole thing is the bottom one
+     * rather than the left. Nothing else changes: the shares, the folding and
+     * the frames are all written in terms of "along the band". */
+    L.push('#nwt-split[data-side="top"] { top: 0; left: 0; right: 0;' +
+           ' bottom: auto; width: 100%; height: var(--nwt-split-w, 30%);' +
+           ' flex-direction: row; border-left: 0;' +
+           ' border-bottom: 1px solid ' + p.panelEdge + '; }');
+    L.push('#nwt-split[data-side="top"] .nwt-panel + .nwt-panel {' +
+           ' border-top: 0; border-left: 1px solid ' + p.panelEdge + '; }');
+    L.push('#nwt-split[data-side="top"] .nwt-panel-grip { top: 0; bottom: 0;' +
+           ' left: -3px; right: auto; width: 6px; height: auto;' +
+           ' cursor: col-resize; }');
+    L.push('#nwt-split[data-side="top"] .nwt-split-grip { left: 0; right: 0;' +
+           ' top: auto; bottom: -4px; width: auto; height: 8px;' +
+           ' cursor: row-resize; }');
+    L.push('#nwt-split[data-side="top"][data-peek="1"] {' +
+           ' transform: translateY(-100%); }');
+
+    /* ---- one panel or several -------------------------------------------
+     * The column is a stack. Each panel carries its own share as a flex
+     * basis, so one panel fills the column and three divide it, without the
+     * markup or the rules knowing which case they are in.
+     *
+     * A collapsed panel keeps its bar and gives up the rest, so the stack
+     * never has a gap in it and you can always get the panel back. */
+    L.push('#nwt-split .nwt-panel { display: flex; flex-direction: column;' +
+           ' min-height: 0; position: relative; overflow: hidden;' +
+           ' flex: 0 0 var(--nwt-panel-share, 100%); }');
+    L.push('#nwt-split .nwt-panel[data-collapsed="1"] { flex: 0 0 auto; }');
+    L.push('#nwt-split .nwt-panel + .nwt-panel { border-top: 1px solid ' +
+           p.panelEdge + '; }');
+    /* The handle between two panels. Nine pixels of target, with the line
+     * drawn by the border above it, because a one pixel target is missed. */
+    L.push('#nwt-split .nwt-panel-grip { position: absolute; left: 0; right: 0;' +
+           ' top: -5px; height: 9px; cursor: row-resize; z-index: 2; }');
+    L.push('#nwt-split .nwt-panel:first-child .nwt-panel-grip { display: none; }');
+    L.push('#nwt-split .nwt-panel-grip:hover,' +
+           ' #nwt-split[data-drag="row"] .nwt-panel-grip {' +
+           ' background: ' + rgba(p.accent, 0.5) + '; }');
+    L.push('#nwt-split .nwt-panel-bar { display: flex; align-items: center;' +
            ' gap: 6px; padding: 6px 8px; flex: none; cursor: default;' +
            ' border-bottom: 1px solid ' + p.panelEdge + ';' +
            ' background: ' + p.surfaceAlt + '; }');
-    L.push('#nwt-split .nwt-split-title { flex: 1; min-width: 0; font-size: 12px;' +
+    L.push('#nwt-split .nwt-panel-title { flex: 1; min-width: 0; font-size: 12px;' +
            ' font-weight: 600; overflow: hidden; text-overflow: ellipsis;' +
            ' white-space: nowrap; color: var(--nwt-text); }');
-    L.push('#nwt-split .nwt-split-bar button { flex: none; width: 24px;' +
+    L.push('#nwt-split .nwt-panel-bar button { flex: none; width: 24px;' +
            ' height: 24px; padding: 0; font: inherit; font-size: 13px;' +
            ' cursor: pointer; border-radius: 6px; border: 0;' +
            ' background: transparent; color: var(--nwt-text-dim); }');
-    L.push('#nwt-split .nwt-split-bar button:hover { background: ' +
+    L.push('#nwt-split .nwt-panel-bar button:hover { background: ' +
            rgba(p.textMuted, 0.18) + '; color: var(--nwt-text); }');
-    L.push('#nwt-split .nwt-split-body { position: relative; flex: 1;' +
+    L.push('#nwt-split .nwt-panel-body { position: relative; flex: 1;' +
            ' min-height: 0; }');
-    L.push('#nwt-split .nwt-split-frame { width: 100%; height: 100%; border: 0;' +
+    L.push('#nwt-split .nwt-panel-frame { width: 100%; height: 100%; border: 0;' +
            ' display: block; background: ' + p.canvas + '; }');
-    L.push('#nwt-split .nwt-split-said { position: absolute; inset: 0; margin: 0;' +
+    L.push('#nwt-split .nwt-panel-said { position: absolute; inset: 0; margin: 0;' +
            ' display: flex; flex-direction: column; align-items: center;' +
            ' justify-content: center; gap: 12px; padding: 20px;' +
            ' text-align: center; font-size: 12.5px; line-height: 1.5;' +
            ' color: var(--nwt-text-dim); background: ' + p.canvas + '; }');
-    L.push('#nwt-split[data-state="ready"] .nwt-split-said { display: none; }');
-    L.push('#nwt-split[data-state="blocked"] .nwt-split-said { color: ' +
+    L.push('#nwt-split .nwt-panel[data-state="ready"] .nwt-panel-said { display: none; }');
+    L.push('#nwt-split .nwt-panel[data-state="blocked"] .nwt-panel-said { color: ' +
            p.status.warning[400] + '; }');
-    L.push('#nwt-split .nwt-split-instead { position: absolute; left: 50%;' +
+    L.push('#nwt-split .nwt-panel-instead { position: absolute; left: 50%;' +
            ' bottom: 22%; transform: translateX(-50%); z-index: 2;' +
            ' padding: 8px 14px; font: inherit; font-size: 12.5px;' +
            ' cursor: pointer; border-radius: 8px;' +
            ' border: 1px solid ' + p.accent + ';' +
            ' background: ' + rgba(p.accent, 0.16) + '; color: ' + p.textPrimary + '; }');
-    L.push('#nwt-split .nwt-split-instead:hover { background: ' +
+    L.push('#nwt-split .nwt-panel-instead:hover { background: ' +
            rgba(p.accent, 0.3) + '; }');
     /* Only where the site publishes something else worth trying. */
-    L.push('#nwt-split:not([data-state="blocked"]) .nwt-split-instead,' +
-           ' #nwt-split:not([data-instead="1"]) .nwt-split-instead {' +
+    L.push('#nwt-split .nwt-panel:not([data-state="blocked"]) .nwt-panel-instead,' +
+           ' #nwt-split .nwt-panel:not([data-instead="1"]) .nwt-panel-instead {' +
            ' display: none; }');
+    /* A collapsed panel is its bar and nothing else. */
+    L.push('#nwt-split .nwt-panel[data-collapsed="1"] .nwt-panel-body {' +
+           ' display: none; }');
+    L.push('#nwt-split .nwt-panel-bar { cursor: default; }');
+    L.push('#nwt-split[data-drag="col"] .nwt-panel-frame,' +
+           ' #nwt-split[data-drag="row"] .nwt-panel-frame {' +
+           ' pointer-events: none; }');
     /* The divider. Wider than it looks, because a 1px target is a target you
      * miss; the line is drawn by the border beside it. */
     L.push('#nwt-split .nwt-split-grip { position: absolute; left: -4px; top: 0;' +
            ' bottom: 0; width: 9px; cursor: col-resize; z-index: 1; }');
-    L.push('#nwt-split .nwt-split-grip:hover, #nwt-split[data-drag="1"]' +
+    L.push('#nwt-split .nwt-split-grip:hover, #nwt-split[data-drag="col"]' +
            ' .nwt-split-grip { background: ' + rgba(p.accent, 0.5) + '; }');
-    /* While dragging, the frame must not swallow the pointer - a cross-origin
-     * frame takes every move event over it and the divider stops halfway. */
-    L.push('#nwt-split[data-drag="1"] .nwt-split-frame { pointer-events: none; }');
+    /* While dragging, no frame may swallow the pointer - a cross-origin frame
+     * takes every move event over it and the divider stops halfway. */
 
-    L.push('#nwt-companion .nwt-companion-grip { position: absolute; right: 0;' +
+    /* The handle that gets everything out of the way. Small, on the edge, and
+     * the only thing left on the page while it is pressed - so there is always
+     * something to press to bring it back. */
+    /* ---- the dock ----
+     * A strip in the same materials as everything else this draws: the panel
+     * surface, the panel edge, the accent for what is showing. It hangs from
+     * the top of the window by default, where a browser puts its own tabs,
+     * and it is the one thing that stays put while everything else is hidden.
+     */
+    L.push('#nwt-dock { position: fixed; z-index: 2147483647;' +
+           ' display: flex; align-items: center; gap: 3px;' +
+           ' padding: 3px 5px 3px 3px; border-radius: 0 0 12px 12px;' +
+           ' border: 1px solid ' + p.panelEdge + '; border-top: 0;' +
+           ' background: ' + p.surface + ';' +
+           ' box-shadow: 0 6px 20px ' + rgba('#000000', light ? 0.13 : 0.4) + ';' +
+           ' font: 600 11px/1 ui-sans-serif, system-ui, sans-serif;' +
+           ' opacity: .72; transition: opacity .14s ease; }');
+    L.push('#nwt-dock:hover, #nwt-dock:focus-within,' +
+           ' #nwt-dock[data-peek="1"] { opacity: 1; }');
+    L.push('#nwt-dock[data-home="1"] { left: 50%; top: 0;' +
+           ' transform: translateX(-50%); }');
+    L.push('#nwt-dock[data-dragging="1"] { opacity: 1; }');
+
+    /* The one part of the strip that is for moving it rather than pressing
+     * it, marked as such: three dots and a grab cursor. */
+    L.push('#nwt-dock .nwt-dock-grip { flex: none; width: 14px; height: 22px;' +
+           ' border-radius: 7px; cursor: grab;' +
+           ' background: radial-gradient(circle, ' + p.textSecondary +
+           ' 1px, transparent 1.2px) center / 5px 6px repeat-y; opacity: .5; }');
+    L.push('#nwt-dock .nwt-dock-grip:hover { opacity: 1; background-color: ' +
+           p.surfaceAlt + '; }');
+    L.push('#nwt-dock[data-dragging="1"] .nwt-dock-grip { cursor: grabbing; }');
+
+    L.push('#nwt-dock .nwt-dock-eye { flex: none; padding: 6px 14px;' +
+           ' font: inherit; cursor: pointer; border-radius: 8px;' +
+           ' border: 1px solid transparent; background: transparent;' +
+           ' color: ' + p.textSecondary + '; }');
+    L.push('#nwt-dock .nwt-dock-eye:hover { background: ' + p.surfaceAlt + ';' +
+           ' color: ' + p.textPrimary + '; }');
+    L.push('#nwt-dock .nwt-dock-eye:focus-visible { outline: 2px solid ' +
+           p.accent + '; outline-offset: 1px; }');
+    /* Put away rather than closed, said plainly: the control is holding
+     * something back, and it should look like it is. */
+    L.push('#nwt-dock .nwt-dock-eye[aria-pressed="true"] { color: ' +
+           p.textPrimary + '; background: ' + rgba(p.accent, 0.15) + ';' +
+           ' border-color: ' + rgba(p.accent, 0.5) + '; }');
+
+    /* ---- hidden, and still running ----
+     * Everything below is about not painting a pane rather than not having
+     * one. A frame taken off the page is destroyed with it: the video stops,
+     * the call drops, and pressing Show would start from nothing. So the pane
+     * keeps its place in the document and only stops being drawn, and the
+     * column slides out of the window rather than out of the page. */
+    L.push('.nwt-companion { transition: opacity .16s ease; }');
+    L.push('.nwt-companion[data-peek="1"] { opacity: 0; pointer-events: none; }');
+    L.push('#nwt-split { transition: transform .18s ease; }');
+    L.push('#nwt-split[data-peek="1"] { transform: translateX(100%);' +
+           ' pointer-events: none; }');
+
+    /* Folded, it is its bar and nothing else. */
+    L.push('.nwt-companion[data-collapsed="1"] { height: auto !important; }');
+    L.push('.nwt-companion[data-collapsed="1"] .nwt-companion-body,' +
+           ' .nwt-companion[data-collapsed="1"] .nwt-companion-grip {' +
+           ' display: none; }');
+    L.push('.nwt-companion .nwt-companion-grip { position: absolute; right: 0;' +
            ' bottom: 0; width: 22px; height: 22px; cursor: nwse-resize;' +
            ' background: linear-gradient(135deg, transparent 46%, ' +
            rgba(p.textMuted, 0.9) + ' 46%, ' + rgba(p.textMuted, 0.9) + ' 58%,' +
            ' transparent 58%, transparent 68%, ' + rgba(p.textMuted, 0.9) + ' 68%,' +
            ' ' + rgba(p.textMuted, 0.9) + ' 80%, transparent 80%); }');
-    L.push('#nwt-companion .nwt-companion-grip:hover { background-color: ' +
+    L.push('.nwt-companion .nwt-companion-grip:hover { background-color: ' +
            rgba(p.textMuted, 0.18) + '; }');
 
     /* Root surface last, so nothing above accidentally wins it. */
@@ -1871,6 +2089,8 @@
     BASE_KEYS, PRESETS, DEFAULT_SETTINGS, DEFAULT_TUNING, SCHEMA,
     getTheme, cloneTheme, migrate, buildPalette, buildCSS, formatDial, svgUrl,
     focusElapsed, focusRemaining, formatDuration, companionSrc, framesFreely,
+    needsLink,
+    panelShares,
     cssReachesOut, withoutCssEscapes,
     toneOf,
     debounce,

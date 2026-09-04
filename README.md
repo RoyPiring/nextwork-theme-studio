@@ -75,22 +75,63 @@ The 18 built-in themes cannot be edited. Change a colour and the extension
 makes you a copy, leaving the original alone. Your themes are saved on your own
 computer. They are never uploaded.
 
-**Focus timer.** Choose 5, 10, 15, 25, 45 or 60 minutes, or count up. A pill
-appears in the corner while you work. It only shows on project pages, keeps
+**Focus timer.** Count down or count up — said in those words, because the
+control that used to mean counting up was called *Open* and only made sense
+once you had pressed it. Counting down offers 15 minutes, 30, an hour, or
+**Custom** for any length you like; the length you were on is kept while you
+count up, so switching back finds the session you had. A pill appears in the
+corner while you work. It only shows on project pages, keeps
 running across tabs, and counts past zero so you can see when you go over. When
 the session reaches its length it can chime and flash red until you look at it;
 both can be turned off.
 
-**Beside your work.** For one screen. Paste a link in the popup and it becomes
-a tile; the pane floats over the page with that link in it, and you drag its
+**Beside your work.** For one screen. Paste a link under **Panels → Floating**
+and press Add; a pane opens on the page with that link in it, and you drag its
 bar to move it and its corner to resize it. It stays where you put it.
+
+The list in the popup is what is open, not what you have saved for later —
+the same shape as the panels beside the page, with a **Fold** control and an ×
+on each row.
+
+**YouTube and Discord work differently, and the panel follows that.** A Discord
+link is the thing itself — you are signed in and it opens where you left off.
+YouTube's front page is a doorway: it cannot be embedded, and embedding it
+would show a wall of recommendations rather than what you meant. So a panel
+pointed at YouTube asks *which video*, in the panel, with a box to paste a link
+into. Paste one and it plays there. Your sign-in comes with it, so Premium and
+your history work as they do in a tab.
+
+Each pane has a fold control that collapses it to its bar — for getting
+something out of the way for a minute without closing it and setting it up
+again — and nothing loads behind a folded bar. **Up to three can be open at
+once** — something you are watching and something you are talking in — and
+each new one lands a window's-cascade clear of the last, so a second does not
+sit on the first and read as nothing having happened. Each keeps its own place
+and size, and the × on a pane closes that pane rather than the lot.
 
 A YouTube link works straight away — paste the address from your browser's bar
 and it plays. Most other sites, Discord among them, refuse to be shown inside
-another page. The pane says so and offers you two ways on: **allow this site**,
+another page. The pane says so and offers you the way on: **allow this site**,
 which asks your browser for permission to set that refusal aside for this one
-frame, or the arrow in its bar, which opens the site in a small window of its
-own and needs no permission at all.
+frame. The button is in the pane, beside the site it is about.
+
+**The dock.** A small strip hangs from the top of the page whenever anything
+is open, carrying one control: **Hide**. Press it and every pane and panel
+stops being drawn; it then reads **Open**, and pressing it brings them all
+back exactly as they were — same places, same sizes, same addresses. Drag the
+strip's handle to move it anywhere on the page; double-click the handle to put
+it back at the top.
+
+One control and no others, deliberately. Anything that could close something
+does not belong beside a control that only hides — a press meant to get the
+page back for a moment must never be able to end a call.
+
+**Hidden is not closed, and this matters.** A pane that is hidden is still
+there and still running: a video keeps playing, a voice channel stays
+connected, a page that was loading finishes loading. The pane simply stops
+being painted and stops taking clicks, so the page underneath is fully usable.
+The only thing that stops a video or leaves a call is closing it — the × on
+the pane, or its button on the dock.
 
 Allowing a site is worth understanding before you do it, and
 [SECURITY.md](SECURITY.md) explains what it changes and how far it reaches.
@@ -114,9 +155,28 @@ right, with a divider you drag. Not a panel floating over the page and not a
 second window to manage — the page gives up part of its width and carries on
 working at the width it has, reflowing its own layout to fit.
 
-Paste a link in the **Split** tab and press Show. Drag the divider on the page
-itself, or use **Panel width** in the popup. The × on its bar gives the page
-its full width back.
+Paste a link in the **Panels** tab, under *In the page*, and press Add. One panel fills the column;
+add a second or a third and they stack, with a handle between them you can
+drag. Each has a **Fold** control that collapses it to its bar, keeping its
+place in the stack so you can open it again — and an × that closes it. Closing
+the last one gives the page its full width back.
+
+Drag the band's own edge on the page to change how much of the window it
+takes, or use **How much it takes** in the popup. Three panels is the ceiling:
+a third of a band is usable and a quarter is a letterbox.
+
+**Down the side, or across the top.** *Where it sits* has two buttons. **Side**
+is a column down the right with the page narrowed beside it. **Top** is a band
+across the top with the page pushed down below it, and the panels sitting side
+by side instead of stacked — the same sharing, the same folding, the same
+drag handles, turned through a right angle. One thing to know before you pick
+it: a site with a header of its own fixed to the top of the window will end up
+behind the band, because a fixed header ignores the room the page makes.
+
+**Sizing.** A panel with no size of its own takes an equal share of whatever is
+left, so adding one never rewrites the others. A folded panel gives its share
+back to the rest rather than leaving a gap. Everything is stored as a
+proportion, so the arrangement survives resizing the window.
 
 **A link is loaded as you gave it.** The one translation is YouTube: a watch
 address becomes the player, because the player is the same video and the watch
@@ -129,13 +189,15 @@ header or setting changes that — the refusal is specifically about being
 views such sites publish leave out the parts you wanted, and none of them
 carries a voice channel.
 
-So the panel offers to open it **beside the page** instead. One button: this
-window takes the left of the screen, that site takes the right, both as real
-browser windows. It runs in full there — signed in, every channel, and voice
-you can actually hear — because a window of its own is not inside another page.
+So the panel offers the one thing that can change it: **allow this site**,
+which asks your browser to set that refusal aside for this frame. The button
+sits in the panel, next to the site it is about, and the list of what you have
+allowed is in the same place — each with a way to take it back.
 
-That is the honest division. Things built to be embedded go in the split;
-applications go beside it.
+Some sites will still refuse after that, and the panel says so rather than
+leaving a white rectangle. Everything here stays inside the browser tab; there
+is no window opened somewhere else, because a window somewhere else is the
+thing this was built to avoid.
 
 **If a panel is empty, check your other extensions first.** A content blocker —
 Privacy Badger, uBlock and their kin — will replace a third-party frame with a
@@ -143,33 +205,7 @@ placeholder, and from the page that looks exactly like the site refusing. They
 generally offer an "allow on this site" button in the space where the frame
 should be.
 
-### Beside the page
 
-A second, separate section, because there are two different problems here and
-one answer cannot serve both.
-
-The pane above puts a site **inside** the page, in a frame. That works only for
-sites that publish something meant to be embedded — a video player, a document
-viewer. Most applications refuse to be embedded at all, and no permission
-changes that: the refusal is specifically about being inside another page.
-
-**Beside the page** uses real browser windows instead. A window is not an
-embedding, so a site that will not be framed — Discord, a mail client, anything
-you sign in to — opens, signs in, joins a voice channel and behaves exactly as
-it does in a tab, because as far as it is concerned it *is* one.
-
-Paste a link, and it becomes a row with its own switch. Turn it on and its
-window opens beside your work; turn it off and the window closes. Close a
-window from its own corner and the switch follows. Up to four at once: one or
-two share the right-hand column, three or four make a grid of quarters. A fifth
-is refused rather than shrinking the rest into slivers.
-
-**Page keeps** is how much of the screen your work holds — the rest is shared
-among whatever is open beside it. Turn **Arrange** off and your window goes
-back exactly where it was, maximised if that is how you had it.
-
-The rule of thumb: **a video goes in the pane, an application goes beside the
-page.**
 
 ---
 

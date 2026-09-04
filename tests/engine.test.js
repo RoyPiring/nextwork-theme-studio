@@ -619,3 +619,117 @@ test('a Discord channel link is kept as it was given', () => {
   assert.equal(NWT.companionSrc(channel), channel);
 });
 
+
+test('an upgrade keeps whatever was on screen', () => {
+  /* Both the pane and the split were a single address before they were lists.
+   * Dropping the old field on upgrade would empty the screen and read as the
+   * feature having been removed. */
+  const before = {
+    schema: NWT.SCHEMA,
+    split: { enabled: true, url: 'https://a.example/', width: 0.4 },
+    companion: { enabled: true, url: 'https://b.example/', x: 0.1, y: 0.2, w: 400, h: 300 }
+  };
+  const after = NWT.migrate(JSON.parse(JSON.stringify(before)));
+
+  assert.deepEqual(after.split.panels, [{ url: 'https://a.example/', size: 1, collapsed: false }]);
+  assert.equal(after.split.url, '', 'the old field was left to be read twice');
+  assert.equal(after.companion.panes.length, 1);
+  assert.deepEqual(
+    { url: after.companion.panes[0].url, w: after.companion.panes[0].w },
+    { url: 'https://b.example/', w: 400 },
+    'the pane came back without the size it had');
+});
+
+test('a list that already exists is not overwritten by the old field', () => {
+  const s = NWT.migrate({
+    schema: NWT.SCHEMA,
+    split: { url: 'https://old.example/', panels: [{ url: 'https://new.example/' }] },
+    companion: { url: 'https://old.example/', panes: [{ url: 'https://new.example/' }] }
+  });
+  assert.equal(s.split.panels.length, 1);
+  assert.equal(s.split.panels[0].url, 'https://new.example/');
+  assert.equal(s.companion.panes[0].url, 'https://new.example/');
+});
+
+test('shares that claim more than the column are scaled back, not honoured', () => {
+  /* These come from storage and from dragging, and two panels that each think
+   * they own most of the column would push the third out of it entirely. */
+  const shares = NWT.panelShares([{ size: 0.9 }, { size: 0.9 }]);
+  assert.deepEqual(shares, [0.5, 0.5]);
+  const sum = shares.reduce((a, b) => a + b, 0);
+  assert.ok(Math.abs(sum - 1) < 1e-9, 'the shares add up to ' + sum);
+});
+
+test('the shares always add up to the whole column', () => {
+  [[{}], [{}, {}], [{}, {}, {}], [{ size: 0.5 }, {}], [{ size: 0.2 }, { size: 0.3 }, {}],
+   [{ collapsed: true }, {}, {}], [{ size: 2 }, {}]
+  ].forEach(function (panels) {
+    const sum = NWT.panelShares(panels).reduce((a, b) => a + b, 0);
+    assert.ok(Math.abs(sum - 1) < 1e-9,
+      JSON.stringify(panels) + ' shares add up to ' + sum);
+  });
+});
+
+test('a column of nothing but folded panels asks for no space', () => {
+  assert.deepEqual(NWT.panelShares([{ collapsed: true }, { collapsed: true }]), [0, 0]);
+});
+
+test('a doorway address is told apart from something to watch', () => {
+  /* A YouTube link with a video becomes the player. YouTube itself is a front
+   * page: it cannot be embedded, and embedding it would show a wall of
+   * recommendations rather than the thing you meant. */
+  ['https://www.youtube.com', 'https://www.youtube.com/', 'https://m.youtube.com/feed/subscriptions'
+  ].forEach(u => assert.equal(NWT.needsLink(u), true, u));
+
+  ['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'https://youtu.be/dQw4w9WgXcQ',
+   'https://www.youtube.com/shorts/dQw4w9WgXcQ', 'https://www.youtube.com/embed/x'
+  ].forEach(u => assert.equal(NWT.needsLink(u), false, u));
+});
+
+test('nothing else is treated as a doorway', () => {
+  /* Discord is deliberately not in this list: there the address is the point,
+   * it opens where you left off, and asking for a different link would be a
+   * question with no answer. */
+  ['https://discord.com/channels/@me', 'https://discord.com/channels/1/2',
+   'https://example.com/', 'http://www.youtube.com', 'not a url', ''
+  ].forEach(u => assert.equal(NWT.needsLink(u), false, JSON.stringify(u)));
+});
+
+/* ------------------------------------------------------- out of the way */
+
+test('a hidden pane stops being painted rather than being emptied', () => {
+  /* The attributes are set by the content script; these are the rules that
+   * make them mean anything. A frame with no rule behind data-peek is a frame
+   * still sitting in front of the page, and a rule that used display or
+   * visibility would let the browser stop the video inside it. */
+  const css = NWT.buildCSS(settings());
+  assert.match(css, /\.nwt-companion\[data-peek="1"\][^}]*opacity:\s*0/);
+  assert.match(css, /\.nwt-companion\[data-peek="1"\][^}]*pointer-events:\s*none/);
+  assert.doesNotMatch(css, /\.nwt-companion\[data-peek="1"\][^}]*display:\s*none/);
+  /* The column moves out of the window rather than out of the page, for the
+   * same reason: a call in it has to survive being hidden. */
+  assert.match(css, /#nwt-split\[data-peek="1"\][^}]*transform:\s*translateX\(100%\)/);
+  assert.doesNotMatch(css, /#nwt-split\[data-peek="1"\][^}]*display:\s*none/);
+});
+
+test('the band along the top gives back width and takes height', () => {
+  const css = NWT.buildCSS(settings());
+  assert.match(css, /html\.nwt-split-on\.nwt-split-top[^}]*width:\s*auto/);
+  assert.match(css, /html\.nwt-split-on\.nwt-split-top[^}]*margin-top:\s*var\(--nwt-split-w/);
+  /* Panels that stacked now sit side by side, and the handle between two of
+   * them stands up instead of lying down. */
+  assert.match(css, /#nwt-split\[data-side="top"\][^}]*flex-direction:\s*row/);
+  assert.match(css, /#nwt-split\[data-side="top"\] \.nwt-panel-grip[^}]*col-resize/);
+  assert.match(css, /#nwt-split\[data-side="top"\] \.nwt-split-grip[^}]*row-resize/);
+  assert.match(css, /#nwt-split\[data-side="top"\]\[data-peek="1"\][^}]*translateY\(-100%\)/);
+});
+
+test('the dock stays on top of what it opens', () => {
+  /* It is the way back to everything else, so nothing this draws may cover
+   * it - and it has to outrank both the panes and the column. */
+  const css = NWT.buildCSS(settings());
+  const zOf = (re) => Number((css.match(re) || [])[1]);
+  const dock = zOf(/#nwt-dock \{[^}]*z-index:\s*(\d+)/);
+  assert.ok(dock > zOf(/\.nwt-companion \{[^}]*z-index:\s*(\d+)/), 'a pane covers the dock');
+  assert.ok(dock > zOf(/#nwt-split \{[^}]*z-index:\s*(\d+)/), 'the column covers the dock');
+});

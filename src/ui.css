@@ -110,10 +110,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .switch-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .switch-item {
   /* Label above, switch below. Side by side they compete for the same line,
-   * and "Wallpaper" plus a 36px switch times three does not fit across a
-   * popup: first it overflowed and cut the Focus toggle off, then it fitted
-   * by ellipsising every label to "Th...". Stacked, the label gets the whole
-   * width of its tile and the row needs about a third less. */
+   * and a word plus a 36px switch does not fit across a popup more than
+   * twice. Stacked, the label gets the whole width of its tile.
+   *
+   * There were three of these once, the third being the focus timer. It now
+   * lives in the focus panel, which is where it belongs and where there is
+   * room to say what it does; the two left are both about how the site looks
+   * and share the row between them. */
   flex: 1 1 0; min-width: 0;
   display: flex; flex-direction: column; align-items: center;
   gap: 7px; padding: 8px 10px; text-align: center;
@@ -133,9 +136,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .switch-item .switch input:checked + span::after { transform: translateX(15px); }
 
 /* ---- focus panel ---- */
+/* The heading, the state and the switch on one line - but not crowded into
+ * one another, and not sitting straight on top of the group below. */
+#focus-panel > .row.between { gap: 12px; margin-bottom: 6px; padding: 2px 0; }
+#focus-panel > .row.between > .row { gap: 12px; }
+#focus-panel .switch-inline { gap: 8px; }
+#focus-custom-row[hidden] { display: none; }
 .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
   color: var(--ui-text-muted); font-weight: 600; }
-.focus { gap: 10px; }
+/* The two groups in this panel are separate things - running a session, and
+ * how the pill is drawn on the page - and they were touching, edge on edge,
+ * reading as one long box with a line through it.
+ *
+ * There was a `gap` here before and it did nothing: a card is a block, and a
+ * gap needs a flex container to be a gap of. */
+.focus { display: flex; flex-direction: column; gap: 14px; }
 /* Two groups, because the panel has two jobs and the tiles for them looked
  * identical: picking a session length and pressing Start sat in the same flat
  * run of buttons as the settings for where the pill is drawn. Boxing each one
@@ -186,6 +201,23 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 }
 .tab-panel { display: flex; flex-direction: column; gap: 12px; }
 .tab-panel[hidden] { display: none; }
+/* The two things that sit beside the page are the same shape as each other -
+ * a list, a size, a set of permissions - and stacking them made a column you
+ * scrolled past one to reach the other. Lighter than the tabs above, because
+ * they divide one feature rather than three. */
+.tabs.sub { margin-bottom: 0; background: transparent; border: 0; padding: 0;
+  gap: 6px; }
+.tabs.sub button { padding: 5px 4px; font-size: 11px; border-radius: 0;
+  border-bottom: 2px solid transparent; }
+.tabs.sub button[aria-selected="true"] { background: transparent;
+  border-bottom-color: var(--ui-accent); }
+.sub-panel { display: flex; flex-direction: column; gap: 10px; }
+.sub-panel[hidden] { display: none; }
+/* Beside a group label rather than standing on its own, so it reads as part
+ * of the heading instead of as the biggest control in the panel. */
+.switch.sm { width: 30px; height: 17px; }
+.switch.sm span::after { width: 11px; height: 11px; }
+.switch.sm input:checked + span::after { transform: translateX(13px); }
 
 /* ---- theme cards ---- */
 .themes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -285,11 +317,6 @@ a { color: var(--ui-accent); }
 /* Shown on hover or focus, so a row of tiles reads as places to go rather than
  * as a row of delete buttons - but always reachable, and always visible once
  * the keyboard is on it. */
-/* A tile that opens in a window rather than in the pane, marked so the row
- * says which is which before you click. */
-#companion-tiles .tile-go.windowed::after {
-  content: " 97"; opacity: .7; font-size: 10px;
-}
 #companion-tiles .drop {
   flex: none; width: 20px; padding: 0; font-size: 13px; line-height: 1;
   color: var(--ui-text-muted); opacity: 0;
@@ -311,16 +338,21 @@ a { color: var(--ui-accent); }
   line-height: 1; color: var(--ui-text-muted); }
 .beside-item:hover .drop, .beside-item:focus-within .drop { color: var(--ui-text); }
 
-/* Hidden until there is a site whose answer to being framed matters. */
-#companion-access { align-items: center; gap: 8px; }
-#companion-access-note { flex: 1; min-width: 0; }
+/* Both permission groups are built the same way as every other group in the
+ * panel: a label, a list, a note, a button, each running the full width. The
+ * pane's copy used to centre its contents from when it was a single row, and
+ * kept doing it once it became a group - so one of the two read as a column
+ * and the other as a poster. */
+#companion-access-note, #split-access-note { margin: 0; }
 
-input[type="url"] {
+/* The custom length is a number, and it should not look like a different
+ * kind of control from every other field in the panel. */
+input[type="number"], input[type="url"] {
   flex: 1; min-width: 0; padding: 6px 8px; font: inherit; font-size: 12px;
   color: var(--ui-text); background: var(--ui-surface-alt);
   border: 1px solid var(--ui-border); border-radius: 7px;
 }
-input[type="url"]:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 1px; }
+input[type="number"]:focus-visible, input[type="url"]:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 1px; }
 input[type="url"]::placeholder { color: var(--ui-text-muted); }
 input[type="url"][aria-invalid="true"] { border-color: #f0a77a; }
 
