@@ -65,6 +65,10 @@ were never released.
 - The popup is three tabs - Theme, Focus, Panels - and the Panels tab is two
   halves, In the page and Floating, each built from the same named groups.
 
+- The README is an index again rather than a manual. It says what this is, what
+  each of the three tabs holds, and where to read more; the detail moved into
+  [docs/FOCUS.md](docs/FOCUS.md) and [docs/PANELS.md](docs/PANELS.md).
+
 ## [2.10.0] - 2026-09-03
 
 ### Security
