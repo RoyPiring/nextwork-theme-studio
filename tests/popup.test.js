@@ -750,6 +750,17 @@ test('removing a tile closes its pane as well', () => {
     'the tile went but its pane was left on the page with no way to close it');
 });
 
+test('the focus switch is in the focus panel, not the theme row', () => {
+  /* It sat in the theme row from before there was a focus tab to put it in.
+   * The two left there are both about how the site looks. */
+  const p = openPopup({ enabled: true });
+  const row = p.doc.querySelectorAll('.switch-row')[0];
+  assert.deepEqual([...row.querySelectorAll('input')].map(function (i) { return i.id; }),
+    ['enabled', 'sceneBackdrop']);
+  assert.ok(p.el('focus-panel').contains(p.el('focusEnabled')),
+    'the switch is not in the panel it governs');
+});
+
 test('the two things beside the page are two tabs, not one column', () => {
   /* They are the same shape as each other - a list, a size, a set of
    * permissions - and stacked they made a panel you scrolled past one to

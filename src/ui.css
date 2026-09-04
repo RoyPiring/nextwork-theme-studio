@@ -110,10 +110,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .switch-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .switch-item {
   /* Label above, switch below. Side by side they compete for the same line,
-   * and "Wallpaper" plus a 36px switch times three does not fit across a
-   * popup: first it overflowed and cut the Focus toggle off, then it fitted
-   * by ellipsising every label to "Th...". Stacked, the label gets the whole
-   * width of its tile and the row needs about a third less. */
+   * and a word plus a 36px switch does not fit across a popup more than
+   * twice. Stacked, the label gets the whole width of its tile.
+   *
+   * There were three of these once, the third being the focus timer. It now
+   * lives in the focus panel, which is where it belongs and where there is
+   * room to say what it does; the two left are both about how the site looks
+   * and share the row between them. */
   flex: 1 1 0; min-width: 0;
   display: flex; flex-direction: column; align-items: center;
   gap: 7px; padding: 8px 10px; text-align: center;

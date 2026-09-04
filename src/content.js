@@ -1467,59 +1467,14 @@
    * the extension's own popup, which is two presses away from the thing you
    * were looking at and off the page entirely.
    *
-   * So the places you saved live here as well, one press each, and the same
-   * press closes what it opened. The last control hides everything at once -
-   * hides, not closes: what is in a pane keeps running.
+   * It carries one control, and only one. Buttons that opened a saved place
+   * lived here for a while and were the wrong thing twice over: they opened a
+   * floating pane, which is not what you want while you are working in the
+   * band at the side, and the one that turned the band off took it off the
+   * page - which ends the session inside it. Hiding must never be able to do
+   * that, so nothing that can sits next to it.
    * --------------------------------------------------------------------- */
   const DOCK_ID = 'nwt-dock';
-
-  /* The saved places, read the way the popup reads them: the starters stand
-   * in until the list has been touched, so the strip is never an empty bar. */
-  function dockTiles(companion) {
-    const saved = Array.isArray(companion.tiles) ? companion.tiles : [];
-    const list = (saved.length || companion.tilesTouched)
-      ? saved : (companion.starters || []);
-    return list.filter(function (t) { return t && typeof t.url === 'string'; });
-  }
-
-  /* One press opens it, the same press closes it. Opening also brings the
-   * page back from hidden - asking for something and having it arrive
-   * invisibly is not an answer. */
-  function toggleDockPane(url) {
-    chrome.storage.local.get({ companion: {} }, function (stored) {
-      if (chrome.runtime.lastError) return;
-      const c = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, stored.companion);
-      const panes = paneList(c);
-      const kept = panes.filter(function (x) { return x.url !== url; });
-      if (kept.length !== panes.length) {
-        /* The address that came before the list goes with it, or reading it
-         * back would put the pane straight up again. */
-        chrome.storage.local.set({
-          companion: Object.assign({}, c, { panes: kept, url: '', enabled: kept.length > 0 })
-        });
-        return;
-      }
-      if (panes.length >= 3) return;
-      chrome.storage.local.set({
-        peek: false,
-        companion: Object.assign({}, c, {
-          enabled: true,
-          panes: panes.concat([{ url: url, x: null, y: null, w: 380, h: 260,
-                                 offset: panes.length * 0.04 }])
-        })
-      });
-    });
-  }
-
-  function toggleSplitColumn() {
-    chrome.storage.local.get({ split: {} }, function (stored) {
-      if (chrome.runtime.lastError) return;
-      const sp = Object.assign({}, NWT.DEFAULT_SETTINGS.split, stored.split);
-      const patch = { split: Object.assign({}, sp, { enabled: !sp.enabled }) };
-      if (!sp.enabled) patch.peek = false;
-      chrome.storage.local.set(patch);
-    });
-  }
 
   function togglePeek() {
     chrome.storage.local.get({ peek: false }, function (stored) {
@@ -1549,10 +1504,6 @@
     grip.className = 'nwt-dock-grip';
     grip.title = 'Drag to move this bar. Double-click to put it back at the top.';
     el.appendChild(grip);
-
-    const items = document.createElement('span');
-    items.className = 'nwt-dock-items';
-    el.appendChild(items);
 
     const eye = document.createElement('button');
     eye.type = 'button';
@@ -1594,57 +1545,27 @@
                             Math.max(0, dock.y * window.innerHeight)) + 'px';
   }
 
-  function dockItem(text, pressed, title, onPress) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'nwt-dock-item';
-    b.textContent = text;
-    b.setAttribute('aria-pressed', String(!!pressed));
-    b.title = title;
-    b.addEventListener('click', function (e) { e.stopPropagation(); onPress(); });
-    return b;
-  }
-
-  /* Drawn whenever there is something it could open, which is not the same as
-   * something being open: a strip that disappeared with the last pane would
-   * take the way back with it. */
+  /* Drawn while there is something on the page to get out of the way of, and
+   * not otherwise: with one control on it, a strip on an empty page would be
+   * a button for hiding nothing. */
   function renderDock(settings) {
     const companion = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
     const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
-    const tiles = dockTiles(companion);
-    const panels = splitPanels(split);
-    if (!settings.enabled || !TOP_FRAME || (!tiles.length && !panels.length)) {
+    const showing = (companion.enabled && paneList(companion).length) ||
+                    (split.enabled && splitPanels(split).length);
+    if (!settings.enabled || !TOP_FRAME || !showing) {
       removeDock();
       return;
     }
 
     const el = dockEl();
     el.setAttribute('data-peek', settings.peek ? '1' : '0');
-    const open = companion.enabled
-      ? paneList(companion).map(function (x) { return x.url; }) : [];
-
-    const items = el.querySelector('.nwt-dock-items');
-    items.textContent = '';
-    tiles.forEach(function (tile) {
-      const showing = open.indexOf(tile.url) !== -1;
-      const name = tile.label || tile.url;
-      items.appendChild(dockItem(name, showing,
-        showing ? 'Close the ' + name + ' pane' : 'Open ' + name + ' in a pane here',
-        function () { toggleDockPane(tile.url); }));
-    });
-    if (panels.length) {
-      items.appendChild(dockItem('Column', split.enabled,
-        split.enabled
-          ? 'Give the page its full width back'
-          : 'Share the tab with the column of panels again',
-        toggleSplitColumn));
-    }
 
     const eye = el.querySelector('.nwt-dock-eye');
-    eye.textContent = settings.peek ? 'Show' : 'Hide';
+    eye.textContent = settings.peek ? 'Open' : 'Hide';
     eye.setAttribute('aria-pressed', String(!!settings.peek));
     eye.title = settings.peek
-      ? 'Bring everything back where it was'
+      ? 'Put it back exactly as it was'
       : 'Out of sight for a moment. Nothing closes - a video keeps playing ' +
         'and a call stays connected.';
 

@@ -35,10 +35,6 @@
       <span class="switch-label">Wallpaper</span>
       <span class="switch"><input type="checkbox" id="sceneBackdrop"><span></span></span>
     </label>
-    <label class="switch-item" title="Show the focus timer on the page">
-      <span class="switch-label">Focus</span>
-      <span class="switch"><input type="checkbox" id="focusEnabled"><span></span></span>
-    </label>
   </div>
 
   <div class="stack dimmable">
@@ -86,7 +82,13 @@
   <section class="card focus" id="focus-panel">
     <div class="row between">
       <h2 class="section-title">Focus</h2>
-      <span class="tiny muted" id="focus-state">paused</span>
+      <span class="row" style="gap:8px">
+        <span class="tiny muted" id="focus-state">paused</span>
+        <label class="switch-inline" title="Show the focus timer on the page">
+          <span class="tiny muted">Show</span>
+          <span class="switch sm"><input type="checkbox" id="focusEnabled"><span></span></span>
+        </label>
+      </span>
     </div>
 
     <div class="focus-group">

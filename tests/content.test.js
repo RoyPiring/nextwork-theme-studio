@@ -1581,10 +1581,6 @@ test('a split panel pointed at YouTube itself asks in the panel', () => {
 /* ----------------------------------------------------- out of the way */
 
 function dock(page) { return page.doc.getElementById('nwt-dock'); }
-function dockItems(page) {
-  return [...dock(page).querySelectorAll('.nwt-dock-item')];
-}
-
 test('hiding stops the panes being painted, not being there', () => {
   /* A frame taken off the page is destroyed with it: the video stops and the
    * call drops. Hiding has to mean hiding, or there is no difference between
@@ -1633,50 +1629,49 @@ test('showing again puts everything back where it was', () => {
     'the page never gave the column its width back');
 });
 
-test('the dock is there with nothing open, so there is a way to open it', () => {
-  /* The dead end this exists for: closing the last pane used to leave the
-   * extension's popup as the only way back to it. */
-  const page = loadContentScript({ settings: { enabled: true } });
-  page.flush();
-  assert.ok(dock(page), 'nothing on the page offers to open anything');
-  assert.deepEqual(dockItems(page).map(function (b) { return b.textContent; }),
-    ['YouTube', 'Discord']);
-  assert.equal(dockItems(page)[0].getAttribute('aria-pressed'), 'false');
-});
-
-test('a dock button opens what it names, and the same press closes it', () => {
-  const page = loadContentScript({ settings: { enabled: true } });
-  page.flush();
-  dockItems(page)[0].click();
-  page.flush();
-
-  assert.equal(page.stored.companion.panes.length, 1);
-  assert.equal(page.stored.companion.panes[0].url, 'https://www.youtube.com');
-  assert.equal(page.stored.companion.enabled, true, 'opened it but left it hidden');
-  assert.equal(dockItems(page)[0].getAttribute('aria-pressed'), 'true');
-
-  dockItems(page)[0].click();
-  page.flush();
-
-  assert.deepEqual(page.stored.companion.panes, []);
-  assert.equal(page.stored.companion.enabled, false);
-});
-
-test('opening something from the dock brings the page back from hidden', () => {
-  /* Asking for something and having it arrive invisibly is not an answer. */
-  const page = loadContentScript({ settings: { enabled: true, peek: true } });
-  page.flush();
-  dockItems(page)[0].click();
-  page.flush();
-  assert.equal(page.stored.peek, false);
-});
-
-test('the dock is not drawn when there is nothing it could open', () => {
+test('the dock carries one control and nothing that could close anything', () => {
+  /* Buttons that opened a saved place lived here for a while and were wrong
+   * twice over: they opened a floating pane, which is not what you reach for
+   * while working in the band at the side, and the one that turned the band
+   * off took it off the page - which ends the session inside it. Hiding must
+   * never be able to do that, so nothing that can sits beside it. */
   const page = loadContentScript({
-    settings: { enabled: true, companion: { tiles: [], tilesTouched: true } }
+    settings: { enabled: true, companion: { enabled: true, panes: [{ url: VIDEO }] },
+                split: { enabled: true, panels: [{ url: VIDEO }] } }
   });
   page.flush();
+  const buttons = [...dock(page).querySelectorAll('button')];
+  assert.equal(buttons.length, 1, 'something else on the strip can be pressed');
+  assert.ok(buttons[0].classList.contains('nwt-dock-eye'));
+  assert.equal(buttons[0].textContent, 'Hide');
+});
+
+test('the control says what pressing it will do', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, peek: true,
+                companion: { enabled: true, panes: [{ url: VIDEO }] } }
+  });
+  page.flush();
+  assert.equal(dock(page).querySelector('.nwt-dock-eye').textContent, 'Open');
+});
+
+test('the dock is not drawn when there is nothing to get out of the way', () => {
+  /* One control, and it hides things: on an empty page it would be a button
+   * for hiding nothing. */
+  const page = loadContentScript({ settings: { enabled: true } });
+  page.flush();
   assert.equal(dock(page), null);
+});
+
+test('the dock stays while everything is hidden', () => {
+  /* Hiding does not close anything, so there is always something to bring
+   * back - and always something on screen to bring it back with. */
+  const page = loadContentScript({
+    settings: { enabled: true, peek: true,
+                companion: { enabled: true, panes: [{ url: VIDEO }] } }
+  });
+  page.flush();
+  assert.ok(dock(page), 'nothing left to bring it back with');
 });
 
 test('turning the extension off takes the dock with it', () => {

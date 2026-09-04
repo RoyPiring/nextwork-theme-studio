@@ -1847,26 +1847,19 @@
            p.surfaceAlt + '; }');
     L.push('#nwt-dock[data-dragging="1"] .nwt-dock-grip { cursor: grabbing; }');
 
-    L.push('#nwt-dock .nwt-dock-items { display: flex; align-items: center;' +
-           ' gap: 3px; }');
-    L.push('#nwt-dock button { flex: none; max-width: 140px; overflow: hidden;' +
-           ' white-space: nowrap; text-overflow: ellipsis;' +
-           ' padding: 6px 11px; font: inherit; cursor: pointer;' +
-           ' border-radius: 8px; border: 1px solid transparent;' +
-           ' background: transparent; color: ' + p.textSecondary + '; }');
-    L.push('#nwt-dock button:hover { background: ' + p.surfaceAlt + ';' +
+    L.push('#nwt-dock .nwt-dock-eye { flex: none; padding: 6px 14px;' +
+           ' font: inherit; cursor: pointer; border-radius: 8px;' +
+           ' border: 1px solid transparent; background: transparent;' +
+           ' color: ' + p.textSecondary + '; }');
+    L.push('#nwt-dock .nwt-dock-eye:hover { background: ' + p.surfaceAlt + ';' +
            ' color: ' + p.textPrimary + '; }');
-    L.push('#nwt-dock button:focus-visible { outline: 2px solid ' + p.accent + ';' +
-           ' outline-offset: 1px; }');
-    /* Showing now, said the way the popup says it. */
-    L.push('#nwt-dock .nwt-dock-item[aria-pressed="true"] { color: ' +
+    L.push('#nwt-dock .nwt-dock-eye:focus-visible { outline: 2px solid ' +
+           p.accent + '; outline-offset: 1px; }');
+    /* Put away rather than closed, said plainly: the control is holding
+     * something back, and it should look like it is. */
+    L.push('#nwt-dock .nwt-dock-eye[aria-pressed="true"] { color: ' +
            p.textPrimary + '; background: ' + rgba(p.accent, 0.15) + ';' +
            ' border-color: ' + rgba(p.accent, 0.5) + '; }');
-    L.push('#nwt-dock .nwt-dock-eye { margin-left: 3px;' +
-           ' border-left: 1px solid ' + p.panelEdge + '; border-radius: 0 8px 8px 0;' +
-           ' padding-left: 12px; }');
-    L.push('#nwt-dock .nwt-dock-eye[aria-pressed="true"] { color: ' +
-           p.textPrimary + '; }');
 
     /* ---- hidden, and still running ----
      * Everything below is about not painting a pane rather than not having

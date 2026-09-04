@@ -110,16 +110,16 @@ another page. The pane says so and offers you the way on: **allow this site**,
 which asks your browser for permission to set that refusal aside for this one
 frame. The button is in the pane, beside the site it is about.
 
-**The dock.** A small strip hangs from the top of the page whenever there is
-anything it could open — the places you have saved, one press each. The same
-press closes what it opened, so nothing is a one-way trip: closing a pane no
-longer means going back to the extension's popup to get it again. Drag the
+**The dock.** A small strip hangs from the top of the page whenever anything
+is open, carrying one control: **Hide**. Press it and every pane and panel
+stops being drawn; it then reads **Open**, and pressing it brings them all
+back exactly as they were — same places, same sizes, same addresses. Drag the
 strip's handle to move it anywhere on the page; double-click the handle to put
 it back at the top.
 
-The last control on it is **Hide**. Press it and every pane and panel stops
-being drawn; press it again and they all come back exactly as they were, same
-places, same sizes, same addresses.
+One control and no others, deliberately. Anything that could close something
+does not belong beside a control that only hides — a press meant to get the
+page back for a moment must never be able to end a call.
 
 **Hidden is not closed, and this matters.** A pane that is hidden is still
 there and still running: a video keeps playing, a voice channel stays
