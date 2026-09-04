@@ -228,15 +228,84 @@
     if (el) el.remove();
   }
 
+  /* The chime is played once, when the session first goes past its length.
+   *
+   * Held here rather than in storage: it marks a moment in this page's life,
+   * not a setting. Writing it would also put a change event on every other
+   * open tab, each of which would then chime for a session it is not
+   * showing. */
+  let chimedFor = null;
+
   function paintHud(focus) {
     const el = hudEl();
     const counting = focus.targetMin > 0;
     const value = counting ? NWT.focusRemaining(focus) : NWT.focusElapsed(focus);
+    const over = focus.running && counting && value < 0;
+
     el.querySelector('.nwt-focus-time').textContent = NWT.formatDuration(value);
     el.querySelector('.nwt-focus-label').textContent =
-      !focus.running ? 'paused' : (counting && value < 0 ? 'over' : 'focus');
+      !focus.running ? 'paused' : (over ? 'over' : 'focus');
     el.setAttribute('data-state',
-      !focus.running ? 'paused' : (counting && value < 0 ? 'over' : 'running'));
+      !focus.running ? 'paused' : (over ? 'over' : 'running'));
+
+    /* Once per session, and only on the crossing. The session is identified
+     * by when it started, so a reset or a new session chimes again while a
+     * paint every second does not. */
+    const session = focus.startedAt || 0;
+    if (!over || !focus.chime) {
+      if (!over) chimedFor = null;
+      return;
+    }
+    if (chimedFor !== session) {
+      chimedFor = session;
+      chime();
+    }
+  }
+
+  /* A short two-note chime, built rather than fetched.
+   *
+   * The extension never loads anything, and that is not a rule to work around
+   * for a sound: an audio file would be a request, or a payload to carry.
+   * Two oscillators cost nothing and are quieter to ship.
+   *
+   * Everything here is wrapped: audio is not worth a broken timer. A page
+   * with no audio, a browser that refuses one before it has been clicked, a
+   * device with nothing to play through - each ends with the sound missing,
+   * which is what the flashing pill is also there for. */
+  function chime() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+
+      const play = (hz, at, seconds) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = hz;
+        /* Eased in and out. A square-edged tone clicks at both ends, which
+         * reads as a fault rather than a chime. */
+        gain.gain.setValueAtTime(0, ctx.currentTime + at);
+        gain.gain.linearRampToValueAtTime(0.14, ctx.currentTime + at + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + seconds);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + at);
+        osc.stop(ctx.currentTime + at + seconds + 0.02);
+      };
+
+      /* A fifth apart, the second a little softer: two notes read as a signal
+       * where one reads as a notification from something else. */
+      play(880, 0, 0.28);
+      play(1320, 0.16, 0.34);
+
+      /* Closed once it has finished, so a long session does not leave a
+       * context open for every chime it played. */
+      setTimeout(function () {
+        try { ctx.close(); } catch (e) { /* already closed */ }
+      }, 1200);
+    } catch (e) {
+      /* No sound. The pill is still flashing. */
+    }
   }
 
   /* ---- dragging --------------------------------------------------------

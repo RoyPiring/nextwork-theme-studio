@@ -84,6 +84,8 @@
       <div class="focus-clock" id="focus-clock">25:00</div>
 
       <div class="chips" id="focus-targets" role="group" aria-label="Session length">
+        <button type="button" data-min="5">5m</button>
+        <button type="button" data-min="10">10m</button>
         <button type="button" data-min="15">15m</button>
         <button type="button" data-min="25">25m</button>
         <button type="button" data-min="45">45m</button>
@@ -106,6 +108,7 @@
         <input type="range" id="focus-size" min="80" max="220" step="10">
       </div>
       <label class="check tiny"><input type="checkbox" id="focus-locked"> Lock in place</label>
+      <label class="check tiny" title="A short chime and a flash when the session reaches its length"><input type="checkbox" id="focus-chime"> Sound when time is up</label>
       <p class="tiny muted" id="focus-note">Shows while you are building a project. Drag to move, double-click to reset.</p>
     </div>
   </section>

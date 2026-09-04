@@ -195,6 +195,7 @@
     $('focus-toggle').textContent = f.running ? 'Pause' : (NWT.focusElapsed(f) ? 'Resume' : 'Start');
     $('focusEnabled').checked = !!f.enabled;
     $('focus-locked').checked = !!f.locked;
+    $('focus-chime').checked = !!f.chime;
     $('focus-size').value = String(Math.round((f.hudScale || 1) * 100));
     $('focus-size-out').textContent = $('focus-size').value + '%';
 
@@ -247,6 +248,10 @@
     $('random-theme').addEventListener('click', function () {
       save({ themeId: randomThemeId() });
       renderAll();
+    });
+
+    $('focus-chime').addEventListener('change', function () {
+      saveFocus({ chime: $('focus-chime').checked });
     });
 
     $('focus-locked').addEventListener('change', function () {

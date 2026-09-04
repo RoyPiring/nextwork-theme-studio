@@ -548,3 +548,85 @@ test('the timer is drawn at the size that was asked for, within reason', () => {
   assert.strictEqual(at(0), '1', 'zero would make it invisible');
   assert.strictEqual(at('nonsense'), '1', 'so would a value that is not a number');
 });
+
+/* ------------------------------------------------------------ the session */
+
+function running(overrides) {
+  return Object.assign({
+    enabled: true, running: true, locked: false,
+    startedAt: Date.now(), accumulatedMs: 0, targetMin: 25, chime: true
+  }, overrides || {});
+}
+
+test('a session that runs over flashes and says so', () => {
+  /* The point of a session length is to be noticed from across the room. */
+  const page = loadContentScript({
+    settings: { focus: running({ accumulatedMs: 26 * 60000 }) }
+  });
+  page.flush();
+
+  const hud = page.doc.getElementById('nwt-focus');
+  assert.ok(hud, 'the timer is not on the page');
+  assert.equal(hud.getAttribute('data-state'), 'over');
+  assert.match(hud.textContent, /over/);
+});
+
+test('the sound plays once when the session runs over, not every second', () => {
+  /* paintHud runs every second. A chime on each one would be unusable. */
+  const page = loadContentScript({
+    settings: { focus: running({ accumulatedMs: 26 * 60000 }) }
+  });
+  page.flush();
+  assert.equal(page.played.length, 1, 'it did not chime when the session ran over');
+
+  /* Several more paints of the same session.
+   *
+   * Driven by writing the session back unchanged, which is what a storage
+   * change does. Calling flush alone repaints nothing - the clock runs on an
+   * interval the harness does not fire - so a loop over it would have proved
+   * only that nothing happened. */
+  const session = page.stored.focus;
+  for (let i = 0; i < 5; i++) {
+    page.chrome.storage.local.set({ focus: session });
+    page.flush();
+  }
+  assert.equal(page.played.length, 1,
+    'it chimed ' + page.played.length + ' times for one session');
+
+  /* Two notes, and the context closed rather than left open. */
+  assert.equal(page.played[0].notes.length, 2);
+  assert.ok(page.played[0].notes.every(n => n.frequency.value > 0));
+});
+
+test('a session still inside its length makes no sound', () => {
+  const page = loadContentScript({
+    settings: { focus: running({ accumulatedMs: 60000 }) }
+  });
+  page.flush();
+
+  assert.equal(page.doc.getElementById('nwt-focus').getAttribute('data-state'), 'running');
+  assert.deepEqual(page.played, [], 'it chimed before the session was over');
+});
+
+test('turning the sound off leaves the flashing', () => {
+  /* The two are separate on purpose: someone in a quiet room still wants to
+   * know the session ended. */
+  const page = loadContentScript({
+    settings: { focus: running({ accumulatedMs: 26 * 60000, chime: false }) }
+  });
+  page.flush();
+
+  assert.equal(page.doc.getElementById('nwt-focus').getAttribute('data-state'), 'over');
+  assert.deepEqual(page.played, [], 'it chimed with the sound turned off');
+});
+
+test('an open session never runs over, so it never chimes', () => {
+  /* Counting up has no end to reach. */
+  const page = loadContentScript({
+    settings: { focus: running({ targetMin: 0, accumulatedMs: 90 * 60000 }) }
+  });
+  page.flush();
+
+  assert.equal(page.doc.getElementById('nwt-focus').getAttribute('data-state'), 'running');
+  assert.deepEqual(page.played, []);
+});
