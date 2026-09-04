@@ -574,6 +574,10 @@ function loadContentScript(options) {
     document: doc,
     location: { pathname: opts.pathname || '/projects/abc' },
     chrome,
+    /* The address parser the browser has. Left out, new URL() threw, the
+     * caller caught it, and a missing feature read as a considered "no" -
+     * the popup quietly refused every link it was given. */
+    URL, URLSearchParams,
     CSSStyleSheet: FakeSheet,
     getComputedStyle(el) {
       return Object.assign(
@@ -889,15 +893,23 @@ function loadPage(options) {
     document: doc,
     location: { pathname: '/' + path.basename(opts.page) },
     chrome,
+    URLSearchParams,
     Blob: FakeBlob,
-    URL: {
+    /* The real parser, carrying the two statics the editor uses.
+     *
+     * In a browser createObjectURL lives on the URL constructor. Declared as
+     * an object of its own it replaced the constructor, so every new URL()
+     * threw - and the code that parses an address caught it and read as a
+     * considered "no". The popup refused every link it was given and looked
+     * like it had decided to. */
+    URL: Object.assign(class extends URL {}, {
       createObjectURL(blob) {
         blobSeq += 1;
         saved.push({ type: blob.type, text: (blob.parts || []).join('') });
         return 'blob:test/' + blobSeq;
       },
       revokeObjectURL() {}
-    },
+    }),
     /* Counted, so a test can tell "it did not delete" from "it never
      * asked". A version that prompts and then does nothing satisfies the
      * first and not the second. */

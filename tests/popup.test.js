@@ -317,3 +317,136 @@ test('the editor and reload buttons act and then close the popup', () => {
   assert.equal(p.opened.reloadedTabs, 1);
   assert.equal(p.opened.closed, 2);
 });
+
+/* ------------------------------------------------------ the companion pane */
+
+const VIDEO = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+function tiles(p) { return p.el('companion-tiles').querySelectorAll('button'); }
+
+test('adding a link saves it and shows the pane in one step', () => {
+  /* Adding something to watch and then having to turn the pane on as well is
+   * a second step with no meaning behind it. */
+  const p = openPopup({ enabled: true });
+  p.set('companion-url', VIDEO);
+  p.click(p.el('companion-add'));
+  p.flush();
+
+  const c = p.stored.companion;
+  assert.equal(c.enabled, true, 'the pane was left switched off');
+  assert.equal(c.url, VIDEO);
+  assert.deepEqual(c.tiles, [{ label: 'YouTube', url: VIDEO }]);
+  assert.equal(p.el('companion-url').value, '', 'the field kept the link it just saved');
+});
+
+test('the saved link is the one that was typed, not the player address', () => {
+  /* The tile is what a person recognises and what they would send to someone
+   * else; turning it into a player address is the pane's job, at the point it
+   * loads it. */
+  const p = openPopup({ enabled: true });
+  p.set('companion-url', VIDEO);
+  p.click(p.el('companion-add'));
+  p.flush();
+  assert.equal(p.stored.companion.tiles[0].url, VIDEO);
+});
+
+test('an address the pane cannot open is refused and nothing is saved', () => {
+  const p = openPopup({ enabled: true });
+  p.set('companion-url', 'notes.txt');
+  /* Without flushing: the message puts itself away after a few seconds, and
+   * flushing here would run that timer before the test could read it. */
+  p.fireOnly('companion-add', 'click');
+
+  assert.match(p.el('companion-note').textContent, /full web address/);
+  assert.equal(p.el('companion-url').getAttribute('aria-invalid'), 'true');
+  p.flush();
+  assert.equal(p.stored.companion, undefined, 'a bad address was saved anyway');
+});
+
+test('adding the same link twice leaves one tile', () => {
+  const p = openPopup({ enabled: true });
+  ['first', 'second'].forEach(function () {
+    p.set('companion-url', VIDEO);
+    p.click(p.el('companion-add'));
+    p.flush();
+  });
+  assert.equal(p.stored.companion.tiles.length, 1);
+});
+
+test('choosing a tile switches the pane to it and marks it as chosen', () => {
+  const p = openPopup({
+    enabled: true,
+    companion: { enabled: true, url: VIDEO, tiles: [
+      { label: 'YouTube', url: VIDEO }, { label: 'docs', url: 'https://docs.example/a' }
+    ] }
+  });
+  const row = tiles(p);
+  assert.equal(row.length, 2);
+  assert.equal(row[0].getAttribute('aria-pressed'), 'true');
+  assert.equal(row[1].getAttribute('aria-pressed'), 'false');
+
+  p.click(row[1]);
+  p.flush();
+  assert.equal(p.stored.companion.url, 'https://docs.example/a');
+  assert.equal(tiles(p)[1].getAttribute('aria-pressed'), 'true');
+});
+
+test('removing a tile is a control of its own, not a second click target', () => {
+  /* A row of places you go to should not drop one because you missed. */
+  const p = openPopup({
+    enabled: true,
+    companion: { enabled: true, url: VIDEO, tiles: [{ label: 'YouTube', url: VIDEO }] }
+  });
+  const drop = tiles(p)[0].querySelector('.drop');
+  p.click(drop, { target: drop });
+  p.flush();
+
+  assert.deepEqual(p.stored.companion.tiles, []);
+  assert.equal(p.stored.companion.url, '',
+    'the pane was left pointed at a tile that no longer exists');
+});
+
+test('the switch turns the pane off without losing what was saved', () => {
+  const p = openPopup({
+    enabled: true,
+    companion: { enabled: true, url: VIDEO, tiles: [{ label: 'YouTube', url: VIDEO }] }
+  });
+  p.set('companionEnabled', false);
+  p.fire('companionEnabled', 'change');
+  p.flush();
+
+  assert.equal(p.stored.companion.enabled, false);
+  assert.equal(p.stored.companion.tiles.length, 1, 'turning it off dropped the tiles');
+  assert.equal(p.stored.companion.url, VIDEO);
+});
+
+test('the popup opens on the pane as it was left', () => {
+  const p = openPopup({
+    enabled: true,
+    companion: { enabled: true, url: VIDEO, tiles: [{ label: 'YouTube', url: VIDEO }] }
+  });
+  assert.equal(p.el('companionEnabled').checked, true);
+  assert.equal(p.el('companion-empty').style.display, 'none');
+});
+
+test('with nothing saved it says so rather than showing an empty row', () => {
+  const p = openPopup({ enabled: true });
+  assert.equal(tiles(p).length, 0);
+  assert.notEqual(p.el('companion-empty').style.display, 'none');
+});
+
+test('the timer offers the short sessions as well as the long ones', () => {
+  /* Five and ten minutes are the ones you reach for to start at all. */
+  const p = openPopup({ enabled: true });
+  const lengths = [...p.el('focus-targets').querySelectorAll('button')]
+    .map(b => Number(b.dataset.min));
+  assert.deepEqual(lengths, [5, 10, 15, 25, 45, 60, 0]);
+});
+
+test('the sound can be turned off on its own', () => {
+  const p = openPopup({ enabled: true });
+  assert.equal(p.el('focus-chime').checked, true, 'it should start on');
+  p.set('focus-chime', false);
+  p.fire('focus-chime', 'change');
+  p.flush();
+  assert.equal(p.stored.focus.chime, false);
+});

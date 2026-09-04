@@ -157,7 +157,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 }
 .focus[data-state="running"] .focus-clock { color: var(--ui-accent); }
 .focus[data-state="over"] .focus-clock { color: #f0a77a; }
-.chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+  gap: 4px; }
 .chips button {
   padding: 5px 0; font-size: 11px; border-radius: 7px; min-width: 0;
   background: transparent; color: var(--ui-text-dim);
@@ -246,3 +247,35 @@ input[type="checkbox"] { accent-color: var(--ui-accent); width: 15px; height: 15
 
 hr { border: none; border-top: 1px solid var(--ui-border); margin: 4px 0; }
 a { color: var(--ui-accent); }
+
+/* ---- the companion pane's controls ----
+ *
+ * The pane itself is drawn on the project page by the content script and
+ * themed there. These are only the controls that put something in it. */
+#companion-tiles { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
+#companion-tiles button {
+  display: flex; align-items: center; gap: 4px; justify-content: center;
+  padding: 5px 6px;
+}
+/* The remove cross sits inside its tile and only shows on hover, so a row of
+ * tiles reads as places to go rather than as a row of delete buttons. */
+#companion-tiles .drop {
+  flex: none; opacity: 0; font-size: 12px; line-height: 1;
+  color: var(--ui-text-muted);
+}
+#companion-tiles button:hover .drop, #companion-tiles button:focus-within .drop {
+  opacity: 1;
+}
+#companion-tiles .drop:hover { color: var(--ui-text); }
+
+input[type="url"] {
+  flex: 1; min-width: 0; padding: 6px 8px; font: inherit; font-size: 12px;
+  color: var(--ui-text); background: var(--ui-surface-alt);
+  border: 1px solid var(--ui-border); border-radius: 7px;
+}
+input[type="url"]:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 1px; }
+input[type="url"]::placeholder { color: var(--ui-text-muted); }
+input[type="url"][aria-invalid="true"] { border-color: #f0a77a; }
+
+/* A label that reads as one line beside a heading, rather than as a tile. */
+.switch-inline { display: flex; align-items: center; gap: 6px; cursor: pointer; }

@@ -13,7 +13,7 @@ It restyles one site in your browser. That is the whole capability.
 
 | Property | Status | Enforced by |
 | --- | --- | --- |
-| Network requests | none | `tools/audit.js`, in CI |
+| Network requests | none from the extension's own code | `tools/audit.js`, in CI |
 | Remote code | none | no `eval`, no `new Function`, no remote scripts |
 | Permissions | `storage` | audit fails on anything else |
 | Host access | `https://nextwork.ai/*` and `https://*.nextwork.ai/*` | audit fails on any other match pattern |
@@ -26,6 +26,17 @@ been removed.
 
 Your themes are in `chrome.storage.local`, which does not sync. They stay on the
 machine you made them on.
+
+The one exception to "no network requests" is the pane, and it is yours to
+start: a link you paste into the popup is loaded in a frame on the project
+page, so that site sees a request the same way it would if you opened it in a
+tab. Nothing about you or your themes is added to it. The pane is off until you
+turn it on, loads nothing until you give it an address, and accepts only
+`https`. The frame is given the referrer policy `strict-origin-when-cross-origin`
+and no permission to navigate the tab it sits in. The single remote address
+written anywhere in the source is YouTube's player, used to turn a link to a
+video into the form that can be framed; the audit allows that one literal by
+name and rejects every other.
 
 ## Threat model
 

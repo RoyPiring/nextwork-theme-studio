@@ -630,3 +630,141 @@ test('an open session never runs over, so it never chimes', () => {
   assert.equal(page.doc.getElementById('nwt-focus').getAttribute('data-state'), 'running');
   assert.deepEqual(page.played, []);
 });
+
+/* ------------------------------------------------------ the companion pane */
+
+function withPane(companion, rest) {
+  return loadContentScript({
+    settings: Object.assign({ enabled: true, companion:
+      Object.assign({ enabled: true, url: '' }, companion) }, rest)
+  });
+}
+const VIDEO = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+const EMBED = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+function pane(page) { return page.doc.getElementById('nwt-companion'); }
+function frameOf(page) { return pane(page).querySelector('.nwt-companion-frame'); }
+
+test('the pane appears only when it has been turned on', () => {
+  const off = withPane({ enabled: false, url: VIDEO });
+  off.flush();
+  assert.equal(pane(off), null, 'the pane appeared without being asked for');
+
+  const on = withPane({ url: VIDEO });
+  on.flush();
+  assert.ok(pane(on), 'the pane was turned on and did not appear');
+});
+
+test('turning the theme off takes the pane with it', () => {
+  /* One switch turns the extension off. Leaving a frame floating over the
+   * page after that would be the extension ignoring it. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.ok(pane(page), 'precondition: the pane is there');
+
+  page.chrome.storage.local.set({ enabled: false });
+  page.flush();
+  assert.equal(pane(page), null, 'the pane outlived the theme');
+});
+
+test('a video link is loaded as the player, not as the watch page', () => {
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  assert.equal(frameOf(page).getAttribute('src'), EMBED);
+  assert.equal(pane(page).querySelector('.nwt-companion-title').textContent, 'youtube.com');
+});
+
+test('the name on the bar is the one that was saved with the tile', () => {
+  const page = withPane({ url: VIDEO, tiles: [{ label: 'Lecture', url: VIDEO }] });
+  page.flush();
+  assert.equal(pane(page).querySelector('.nwt-companion-title').textContent, 'Lecture');
+});
+
+test('a site that refuses to be framed says so, and offers the way out', () => {
+  /* No error event exists for this - the browser blocks the frame and the
+   * load event simply never comes - so the only signal is that nothing
+   * arrived. Someone staring at an empty rectangle needs to be told why. */
+  const page = withPane({ url: 'https://discord.com/channels/1/2' });
+  page.flush();
+
+  assert.equal(pane(page).getAttribute('data-state'), 'refused');
+  const said = pane(page).querySelector('.nwt-companion-refused').textContent;
+  assert.match(said, /will not open inside another page/);
+  assert.notEqual(pane(page).querySelector('.nwt-companion-out').style.display, 'none',
+    'the button that opens it in a window was hidden');
+});
+
+test('a frame that does arrive is not called refused', () => {
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  frameOf(page).onload();
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+});
+
+test('an address it cannot open leaves the frame empty rather than loading it', () => {
+  const page = withPane({ url: 'javascript:alert(1)' });
+  page.flush();
+
+  assert.equal(frameOf(page).getAttribute('src'), null,
+    'something that is not a web address was put in the frame');
+  assert.equal(pane(page).getAttribute('data-state'), 'empty');
+  assert.equal(pane(page).querySelector('.nwt-companion-out').style.display, 'none');
+});
+
+test('nothing chosen yet reads as an invitation, not as an error', () => {
+  const page = withPane({ url: '' });
+  page.flush();
+  assert.match(pane(page).querySelector('.nwt-companion-refused').textContent,
+    /Nothing chosen yet/);
+});
+
+test('a repaint does not reload a video that is already playing', () => {
+  /* Setting src again restarts it from the beginning. Any storage write -
+   * the timer ticking, a dial moving - repaints, so this has to hold. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const frame = frameOf(page);
+  frame.onload();
+  let sets = 0;
+  const real = frame.setAttribute.bind(frame);
+  frame.setAttribute = function (n, v) { if (n === 'src') sets++; return real(n, v); };
+
+  page.chrome.storage.local.set({ hue: 20 });
+  page.flush();
+  page.chrome.storage.local.set({ hue: 40 });
+  page.flush();
+
+  assert.equal(sets, 0, 'the frame was reloaded ' + sets + ' times by an unrelated change');
+  assert.equal(pane(page).getAttribute('data-state'), 'ready');
+});
+
+test('switching to another link does load the new one', () => {
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  page.chrome.storage.local.set({
+    companion: { enabled: true, url: 'https://example.com/notes' }
+  });
+  page.flush();
+  assert.equal(frameOf(page).getAttribute('src'), 'https://example.com/notes');
+});
+
+test('the frame is not allowed to navigate the tab it sits in', () => {
+  /* Without sandbox restrictions a page in here could replace the tab. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  const allow = frameOf(page).getAttribute('allow') || '';
+  assert.ok(!/top-navigation/.test(allow), 'the frame was allowed to navigate the tab');
+  assert.equal(frameOf(page).getAttribute('referrerpolicy'), 'strict-origin-when-cross-origin');
+});
+
+test('hiding the pane from its own corner turns it off for good', () => {
+  /* Not just removed from the page - it has to stay gone after a reload. */
+  const page = withPane({ url: VIDEO });
+  page.flush();
+  pane(page).querySelector('.nwt-companion-hide').click();
+  page.flush();
+
+  assert.equal(page.stored.companion.enabled, false,
+    'closing the pane did not turn it off in storage');
+  assert.equal(pane(page), null, 'the pane is still on the page');
+});

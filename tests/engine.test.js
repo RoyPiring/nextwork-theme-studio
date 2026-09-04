@@ -512,3 +512,45 @@ test('an ordinary theme keeps its own colours, not the default ones', () => {
     assert.equal(p.canvas, NWT.PRESETS[id].colors.canvas, id + ' lost its canvas');
   });
 });
+
+/* ------------------------------------------------------ the companion pane */
+
+test('a YouTube link becomes the player, which is the part that can be framed', () => {
+  /* A watch page refuses to appear in a frame. The player does not, and it is
+   * at a different address - so pasting the link from the address bar, which
+   * is the obvious thing to do, has to work. */
+  const embed = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+  assert.equal(NWT.companionSrc('https://www.youtube.com/watch?v=dQw4w9WgXcQ'), embed);
+  assert.equal(NWT.companionSrc('https://youtube.com/watch?v=dQw4w9WgXcQ'), embed);
+  assert.equal(NWT.companionSrc('https://m.youtube.com/watch?v=dQw4w9WgXcQ'), embed);
+  assert.equal(NWT.companionSrc('https://youtu.be/dQw4w9WgXcQ'), embed);
+  assert.equal(NWT.companionSrc('https://www.youtube.com/shorts/dQw4w9WgXcQ'), embed);
+});
+
+test('a timestamp on the link is kept', () => {
+  assert.equal(NWT.companionSrc('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=90'),
+               'https://www.youtube.com/embed/dQw4w9WgXcQ?start=90');
+});
+
+test('anything else is passed through as it was given', () => {
+  const url = 'https://discord.com/channels/1/2';
+  assert.equal(NWT.companionSrc(url), url);
+});
+
+test('an address the pane cannot open is refused', () => {
+  /* http would be blocked as mixed content on an https page and the pane
+   * would sit there empty; the others would run in the page rather than in a
+   * frame of their own. */
+  ['', '   ', null, undefined, 'not a url', 'example.com',
+   'http://example.com', 'javascript:alert(1)',
+   'data:text/html,<b>x</b>', 'file:///etc/passwd'].forEach(bad => {
+    assert.equal(NWT.companionSrc(bad), null, JSON.stringify(bad) + ' was accepted');
+  });
+});
+
+test('a video id that is not one is not turned into a player', () => {
+  /* Rather than building a player address around whatever was in v=. */
+  const odd = 'https://www.youtube.com/watch?v=' + '../../evil';
+  assert.ok(!String(NWT.companionSrc(odd)).includes('/embed/'),
+    'a bad id was built into a player address');
+});

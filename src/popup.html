@@ -113,6 +113,27 @@
     </div>
   </section>
 
+  <section class="stack dimmable" id="companion-panel">
+    <div class="row between">
+      <span class="section-title">Beside your work</span>
+      <label class="switch-inline" title="Show the pane on the project page">
+        <input type="checkbox" id="companionEnabled">
+        <span class="tiny">Show</span>
+      </label>
+    </div>
+
+    <div class="card stack">
+      <div class="chips" id="companion-tiles" role="group" aria-label="Saved places"></div>
+      <p class="tiny muted" id="companion-empty">Nothing saved yet. Paste a link below — a YouTube video works; most other sites will ask to open in their own window.</p>
+
+      <div class="row">
+        <input type="url" id="companion-url" placeholder="https://www.youtube.com/watch?v=…" aria-label="Address to open beside your work">
+        <button id="companion-add" title="Save this as a tile">Add</button>
+      </div>
+      <p class="tiny muted" id="companion-note">The pane floats on the project page. Drag its bar to move it, its corner to resize.</p>
+    </div>
+  </section>
+
   <footer>
     <button class="primary" id="open-editor">Open editor</button>
     <button id="reload-tab" title="Reload the NextWork tab">Reload page</button>

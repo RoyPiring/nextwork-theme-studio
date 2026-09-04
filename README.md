@@ -66,6 +66,7 @@ Click the extension icon in your toolbar.
 | **Theme** | Turns the colours on and off. |
 | **Wallpaper** | Turns the picture behind the page on and off. |
 | **Focus** | A timer that sits on the page while you work. |
+| **Beside your work** | A small pane over the page, for something to keep in view. |
 | **Surprise me** | Picks a theme at random. |
 | **Dials** | Tint, saturation, contrast and brightness, all at once. |
 | **Open editor** | Full control of all nine colours, with a live contrast score. |
@@ -74,16 +75,27 @@ The 18 built-in themes cannot be edited. Change a colour and the extension
 makes you a copy, leaving the original alone. Your themes are saved on your own
 computer. They are never uploaded.
 
-**Focus timer.** Choose 15, 25, 45 or 60 minutes, or count up. A pill appears
-in the corner while you work. It only shows on project pages, keeps running
-across tabs, and counts past zero so you can see when you go over.
+**Focus timer.** Choose 5, 10, 15, 25, 45 or 60 minutes, or count up. A pill
+appears in the corner while you work. It only shows on project pages, keeps
+running across tabs, and counts past zero so you can see when you go over. When
+the session reaches its length it can chime and flash red until you look at it;
+both can be turned off.
+
+**Beside your work.** For one screen. Paste a link in the popup and it becomes
+a tile; the pane floats over the project page with that link in it, and you
+drag its bar to move it and its corner to resize it. A YouTube link works -
+paste the address from the browser's bar and it plays. Most other sites,
+Discord among them, refuse to appear inside another page; that is their setting
+and no extension can override it, so the pane offers to open them in a small
+window of their own instead.
 
 ---
 
 ## Themes and wallpapers
 
 Every theme has its own picture and its own drifting scenery, and no two are
-the same. Nothing is downloaded while you browse.
+the same. Nothing is downloaded while you browse, apart from a link you put in the
+pane yourself.
 
 Text on nextwork.ai sits straight on the page background, so you read it
 *through* the picture. Every wallpaper is measured and held to a contrast ratio
