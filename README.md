@@ -110,12 +110,23 @@ another page. The pane says so and offers you the way on: **allow this site**,
 which asks your browser for permission to set that refusal aside for this one
 frame. The button is in the pane, beside the site it is about.
 
-**Getting everything out of the way for a moment.** A small handle sits on the
-right edge of the page whenever anything is open. Press it and every pane and
-panel goes; press it again and they all come back exactly as they were —
-same places, same sizes, same addresses. Nothing is closed and nothing is
-folded. It is for the times you need to see the page underneath and then carry
-straight on.
+**The dock.** A small strip hangs from the top of the page whenever there is
+anything it could open — the places you have saved, one press each. The same
+press closes what it opened, so nothing is a one-way trip: closing a pane no
+longer means going back to the extension's popup to get it again. Drag the
+strip's handle to move it anywhere on the page; double-click the handle to put
+it back at the top.
+
+The last control on it is **Hide**. Press it and every pane and panel stops
+being drawn; press it again and they all come back exactly as they were, same
+places, same sizes, same addresses.
+
+**Hidden is not closed, and this matters.** A pane that is hidden is still
+there and still running: a video keeps playing, a voice channel stays
+connected, a page that was loading finishes loading. The pane simply stops
+being painted and stops taking clicks, so the page underneath is fully usable.
+The only thing that stops a video or leaves a call is closing it — the × on
+the pane, or its button on the dock.
 
 Allowing a site is worth understanding before you do it, and
 [SECURITY.md](SECURITY.md) explains what it changes and how far it reaches.
@@ -139,15 +150,23 @@ right, with a divider you drag. Not a panel floating over the page and not a
 second window to manage — the page gives up part of its width and carries on
 working at the width it has, reflowing its own layout to fit.
 
-Paste a link in the **Split** tab and press Add. One panel fills the column;
+Paste a link in the **Panels** tab, under *In the page*, and press Add. One panel fills the column;
 add a second or a third and they stack, with a handle between them you can
 drag. Each has a **Fold** control that collapses it to its bar, keeping its
 place in the stack so you can open it again — and an × that closes it. Closing
 the last one gives the page its full width back.
 
-Drag the column's own edge on the page to change how much of the window it
-takes, or use **Panel width** in the popup. Three panels is the ceiling: a
-third of a column is usable and a quarter is a letterbox.
+Drag the band's own edge on the page to change how much of the window it
+takes, or use **How much it takes** in the popup. Three panels is the ceiling:
+a third of a band is usable and a quarter is a letterbox.
+
+**Down the side, or across the top.** *Where it sits* has two buttons. **Side**
+is a column down the right with the page narrowed beside it. **Top** is a band
+across the top with the page pushed down below it, and the panels sitting side
+by side instead of stacked — the same sharing, the same folding, the same
+drag handles, turned through a right angle. One thing to know before you pick
+it: a site with a header of its own fixed to the top of the window will end up
+behind the band, because a fixed header ignores the room the page makes.
 
 **Sizing.** A panel with no size of its own takes an equal share of whatever is
 left, so adding one never rewrites the others. A folded panel gives its share

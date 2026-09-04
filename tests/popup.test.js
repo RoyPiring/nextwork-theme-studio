@@ -750,16 +750,33 @@ test('removing a tile closes its pane as well', () => {
     'the tile went but its pane was left on the page with no way to close it');
 });
 
-test('shift-clicking a marked link lifts the mark without opening a pane', () => {
-  const p = openPopup({
-    enabled: true,
-    companion: { enabled: true,
-                 tiles: [{ label: 'Discord', url: DISCORD, windowed: true }] }
-  });
-  p.click(tiles(p)[0], { shiftKey: true });
-  p.flush();
+test('the two things beside the page are two tabs, not one column', () => {
+  /* They are the same shape as each other - a list, a size, a set of
+   * permissions - and stacked they made a panel you scrolled past one to
+   * reach the other. */
+  const p = openPopup({ enabled: true });
+  assert.equal(p.el('pane-page').hidden, false);
+  assert.equal(p.el('pane-float').hidden, true);
 
-  assert.ok(!p.stored.companion.tiles[0].windowed, 'the mark was not lifted');
+  p.click(p.el('sub-float'));
+  assert.equal(p.el('pane-page').hidden, true);
+  assert.equal(p.el('pane-float').hidden, false);
+  assert.equal(p.el('sub-float').getAttribute('aria-selected'), 'true');
+});
+
+test('which edge the band sits on is two buttons', () => {
+  const p = openPopup({
+    enabled: true, split: { enabled: true, panels: [{ url: VIDEO }] }
+  });
+  p.click(p.el('split-side').querySelector('[data-side="top"]'));
+  p.flush();
+  assert.equal(p.stored.split.side, 'top');
+
+  p.click(p.el('split-side').querySelector('[data-side="right"]'));
+  p.flush();
+  assert.equal(p.stored.split.side, 'right');
+  assert.deepEqual(p.stored.split.panels.map(function (q) { return q.url; }), [VIDEO],
+    'changing where it sits emptied it');
 });
 
 test('the row starts with the two it was built for, not empty', () => {

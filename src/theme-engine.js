@@ -379,6 +379,10 @@
      * every pane keeps its place, its size and its address - and one press
      * brings it all back exactly as it was. */
     peek: false,
+    /* Where the dock sits, as a fraction of the window so it keeps its place
+     * when the window is resized. Both null means the top centre, which is a
+     * rule rather than a measurement and so stays centred by itself. */
+    dock: { x: null, y: null },
     enabled: true,
     themeId: 'concrete',
     /* User-made themes live here, keyed by id. */
@@ -470,6 +474,10 @@
      * The page is narrowed rather than scaled, so its own layout reflows to
      * the width it has been given and stays readable. */
     split: {
+      /* Which edge the band is fixed to: 'right' for a column beside the
+       * page, 'top' for a band across it. The page gives up width for one and
+       * height for the other; everything else about it is the same. */
+      side: 'right',
       enabled: false,
       /* How much of the window the whole column takes, as a fraction, so it
        * holds its proportion when the window is resized. */
@@ -1667,23 +1675,6 @@
     /* Each of these belongs to one state and nothing else. */
     L.push('.nwt-companion:not([data-state="blocked"]) .nwt-companion-ask {' +
            ' display: none; }');
-    L.push('.nwt-companion .nwt-companion-here { flex: none; padding: 7px 14px;' +
-           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
-           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
-           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
-    L.push('.nwt-companion .nwt-companion-here:hover { background: ' +
-           rgba(p.accent, 0.26) + '; }');
-    L.push('.nwt-companion:not([data-state="windowed"]) .nwt-companion-here {' +
-           ' display: none; }');
-    /* The way back out of side-by-side, offered only while it is on. */
-    L.push('.nwt-companion .nwt-companion-undock { flex: none; padding: 7px 14px;' +
-           ' font: inherit; font-size: 12.5px; cursor: pointer;' +
-           ' border-radius: 8px; border: 1px solid ' + p.accent + ';' +
-           ' background: ' + rgba(p.accent, 0.14) + '; color: ' + p.textPrimary + '; }');
-    L.push('.nwt-companion .nwt-companion-undock:hover { background: ' +
-           rgba(p.accent, 0.26) + '; }');
-    L.push('.nwt-companion:not([data-state="docked"]) .nwt-companion-undock {' +
-           ' display: none; }');
     L.push('.nwt-companion[data-state="docked"] .nwt-companion-refused {' +
            ' color: var(--nwt-text); }');
     /* Shown over a frame that loaded, since that is the only case where a
@@ -1713,14 +1704,41 @@
      * reflows to the width it has and stays readable at that size. */
     L.push('html.nwt-split-on { width: calc(100% - var(--nwt-split-w, 36%))' +
            ' !important; overflow-x: hidden !important; }');
-    /* Fixed to the window rather than to the narrowed page, so it keeps the
-     * right-hand strip whatever the page does with its own layout. */
+    /* Lying along the top instead: the page keeps its full width and is
+     * pushed down by the height of the band. Two classes rather than one, so
+     * this outranks the rule above without either needing to know about the
+     * other. */
+    L.push('html.nwt-split-on.nwt-split-top { width: auto !important;' +
+           ' margin-top: var(--nwt-split-w, 30%) !important; }');
+    /* Fixed to the window rather than to the narrowed page, so it keeps its
+     * strip whatever the page does with its own layout. */
     L.push('#nwt-split { position: fixed; top: 0; right: 0; height: 100vh;' +
            ' width: var(--nwt-split-w, 36%); z-index: 2147483645;' +
            ' display: flex; flex-direction: column; box-sizing: border-box;' +
            ' border-left: 1px solid ' + p.panelEdge + ';' +
            ' background: ' + p.surface + '; color: var(--nwt-text);' +
            ' font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }');
+
+    /* ---- along the top --------------------------------------------------
+     * The same band turned through a right angle. Panels that stacked now sit
+     * side by side, the handle between two of them stands up instead of lying
+     * down, and the edge you drag to resize the whole thing is the bottom one
+     * rather than the left. Nothing else changes: the shares, the folding and
+     * the frames are all written in terms of "along the band". */
+    L.push('#nwt-split[data-side="top"] { top: 0; left: 0; right: 0;' +
+           ' bottom: auto; width: 100%; height: var(--nwt-split-w, 30%);' +
+           ' flex-direction: row; border-left: 0;' +
+           ' border-bottom: 1px solid ' + p.panelEdge + '; }');
+    L.push('#nwt-split[data-side="top"] .nwt-panel + .nwt-panel {' +
+           ' border-top: 0; border-left: 1px solid ' + p.panelEdge + '; }');
+    L.push('#nwt-split[data-side="top"] .nwt-panel-grip { top: 0; bottom: 0;' +
+           ' left: -3px; right: auto; width: 6px; height: auto;' +
+           ' cursor: col-resize; }');
+    L.push('#nwt-split[data-side="top"] .nwt-split-grip { left: 0; right: 0;' +
+           ' top: auto; bottom: -4px; width: auto; height: 8px;' +
+           ' cursor: row-resize; }');
+    L.push('#nwt-split[data-side="top"][data-peek="1"] {' +
+           ' transform: translateY(-100%); }');
 
     /* ---- one panel or several -------------------------------------------
      * The column is a stack. Each panel carries its own share as a flex
@@ -1799,14 +1817,68 @@
     /* The handle that gets everything out of the way. Small, on the edge, and
      * the only thing left on the page while it is pressed - so there is always
      * something to press to bring it back. */
-    L.push('#nwt-peek { position: fixed; right: 0; bottom: 96px;' +
-           ' z-index: 2147483647; padding: 7px 10px 7px 9px;' +
+    /* ---- the dock ----
+     * A strip in the same materials as everything else this draws: the panel
+     * surface, the panel edge, the accent for what is showing. It hangs from
+     * the top of the window by default, where a browser puts its own tabs,
+     * and it is the one thing that stays put while everything else is hidden.
+     */
+    L.push('#nwt-dock { position: fixed; z-index: 2147483647;' +
+           ' display: flex; align-items: center; gap: 3px;' +
+           ' padding: 3px 5px 3px 3px; border-radius: 0 0 12px 12px;' +
+           ' border: 1px solid ' + p.panelEdge + '; border-top: 0;' +
+           ' background: ' + p.surface + ';' +
+           ' box-shadow: 0 6px 20px ' + rgba('#000000', light ? 0.13 : 0.4) + ';' +
            ' font: 600 11px/1 ui-sans-serif, system-ui, sans-serif;' +
-           ' letter-spacing: .04em; cursor: pointer;' +
-           ' border-radius: 8px 0 0 8px; border: 1px solid ' + p.panelEdge + ';' +
-           ' border-right: 0; background: ' + p.surfaceAlt + ';' +
-           ' color: ' + p.textSecondary + '; opacity: .55; }');
-    L.push('#nwt-peek:hover { opacity: 1; color: ' + p.textPrimary + '; }');
+           ' opacity: .72; transition: opacity .14s ease; }');
+    L.push('#nwt-dock:hover, #nwt-dock:focus-within,' +
+           ' #nwt-dock[data-peek="1"] { opacity: 1; }');
+    L.push('#nwt-dock[data-home="1"] { left: 50%; top: 0;' +
+           ' transform: translateX(-50%); }');
+    L.push('#nwt-dock[data-dragging="1"] { opacity: 1; }');
+
+    /* The one part of the strip that is for moving it rather than pressing
+     * it, marked as such: three dots and a grab cursor. */
+    L.push('#nwt-dock .nwt-dock-grip { flex: none; width: 14px; height: 22px;' +
+           ' border-radius: 7px; cursor: grab;' +
+           ' background: radial-gradient(circle, ' + p.textSecondary +
+           ' 1px, transparent 1.2px) center / 5px 6px repeat-y; opacity: .5; }');
+    L.push('#nwt-dock .nwt-dock-grip:hover { opacity: 1; background-color: ' +
+           p.surfaceAlt + '; }');
+    L.push('#nwt-dock[data-dragging="1"] .nwt-dock-grip { cursor: grabbing; }');
+
+    L.push('#nwt-dock .nwt-dock-items { display: flex; align-items: center;' +
+           ' gap: 3px; }');
+    L.push('#nwt-dock button { flex: none; max-width: 140px; overflow: hidden;' +
+           ' white-space: nowrap; text-overflow: ellipsis;' +
+           ' padding: 6px 11px; font: inherit; cursor: pointer;' +
+           ' border-radius: 8px; border: 1px solid transparent;' +
+           ' background: transparent; color: ' + p.textSecondary + '; }');
+    L.push('#nwt-dock button:hover { background: ' + p.surfaceAlt + ';' +
+           ' color: ' + p.textPrimary + '; }');
+    L.push('#nwt-dock button:focus-visible { outline: 2px solid ' + p.accent + ';' +
+           ' outline-offset: 1px; }');
+    /* Showing now, said the way the popup says it. */
+    L.push('#nwt-dock .nwt-dock-item[aria-pressed="true"] { color: ' +
+           p.textPrimary + '; background: ' + rgba(p.accent, 0.15) + ';' +
+           ' border-color: ' + rgba(p.accent, 0.5) + '; }');
+    L.push('#nwt-dock .nwt-dock-eye { margin-left: 3px;' +
+           ' border-left: 1px solid ' + p.panelEdge + '; border-radius: 0 8px 8px 0;' +
+           ' padding-left: 12px; }');
+    L.push('#nwt-dock .nwt-dock-eye[aria-pressed="true"] { color: ' +
+           p.textPrimary + '; }');
+
+    /* ---- hidden, and still running ----
+     * Everything below is about not painting a pane rather than not having
+     * one. A frame taken off the page is destroyed with it: the video stops,
+     * the call drops, and pressing Show would start from nothing. So the pane
+     * keeps its place in the document and only stops being drawn, and the
+     * column slides out of the window rather than out of the page. */
+    L.push('.nwt-companion { transition: opacity .16s ease; }');
+    L.push('.nwt-companion[data-peek="1"] { opacity: 0; pointer-events: none; }');
+    L.push('#nwt-split { transition: transform .18s ease; }');
+    L.push('#nwt-split[data-peek="1"] { transform: translateX(100%);' +
+           ' pointer-events: none; }');
 
     /* Folded, it is its bar and nothing else. */
     L.push('.nwt-companion[data-collapsed="1"] { height: auto !important; }');

@@ -694,3 +694,42 @@ test('nothing else is treated as a doorway', () => {
    'https://example.com/', 'http://www.youtube.com', 'not a url', ''
   ].forEach(u => assert.equal(NWT.needsLink(u), false, JSON.stringify(u)));
 });
+
+/* ------------------------------------------------------- out of the way */
+
+test('a hidden pane stops being painted rather than being emptied', () => {
+  /* The attributes are set by the content script; these are the rules that
+   * make them mean anything. A frame with no rule behind data-peek is a frame
+   * still sitting in front of the page, and a rule that used display or
+   * visibility would let the browser stop the video inside it. */
+  const css = NWT.buildCSS(settings());
+  assert.match(css, /\.nwt-companion\[data-peek="1"\][^}]*opacity:\s*0/);
+  assert.match(css, /\.nwt-companion\[data-peek="1"\][^}]*pointer-events:\s*none/);
+  assert.doesNotMatch(css, /\.nwt-companion\[data-peek="1"\][^}]*display:\s*none/);
+  /* The column moves out of the window rather than out of the page, for the
+   * same reason: a call in it has to survive being hidden. */
+  assert.match(css, /#nwt-split\[data-peek="1"\][^}]*transform:\s*translateX\(100%\)/);
+  assert.doesNotMatch(css, /#nwt-split\[data-peek="1"\][^}]*display:\s*none/);
+});
+
+test('the band along the top gives back width and takes height', () => {
+  const css = NWT.buildCSS(settings());
+  assert.match(css, /html\.nwt-split-on\.nwt-split-top[^}]*width:\s*auto/);
+  assert.match(css, /html\.nwt-split-on\.nwt-split-top[^}]*margin-top:\s*var\(--nwt-split-w/);
+  /* Panels that stacked now sit side by side, and the handle between two of
+   * them stands up instead of lying down. */
+  assert.match(css, /#nwt-split\[data-side="top"\][^}]*flex-direction:\s*row/);
+  assert.match(css, /#nwt-split\[data-side="top"\] \.nwt-panel-grip[^}]*col-resize/);
+  assert.match(css, /#nwt-split\[data-side="top"\] \.nwt-split-grip[^}]*row-resize/);
+  assert.match(css, /#nwt-split\[data-side="top"\]\[data-peek="1"\][^}]*translateY\(-100%\)/);
+});
+
+test('the dock stays on top of what it opens', () => {
+  /* It is the way back to everything else, so nothing this draws may cover
+   * it - and it has to outrank both the panes and the column. */
+  const css = NWT.buildCSS(settings());
+  const zOf = (re) => Number((css.match(re) || [])[1]);
+  const dock = zOf(/#nwt-dock \{[^}]*z-index:\s*(\d+)/);
+  assert.ok(dock > zOf(/\.nwt-companion \{[^}]*z-index:\s*(\d+)/), 'a pane covers the dock');
+  assert.ok(dock > zOf(/#nwt-split \{[^}]*z-index:\s*(\d+)/), 'the column covers the dock');
+});

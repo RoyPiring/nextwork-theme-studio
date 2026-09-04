@@ -576,20 +576,6 @@
     said.className = 'nwt-companion-said';
     refused.appendChild(said);
 
-    /* Only for a link that has been set to open in a window. Whatever put it
-     * there, the way back has to be where you are looking when you notice. */
-    const here = document.createElement('button');
-    here.type = 'button';
-    here.className = 'nwt-companion-here';
-    here.textContent = 'Try it in the pane';
-    refused.appendChild(here);
-
-    const undock = document.createElement('button');
-    undock.type = 'button';
-    undock.className = 'nwt-companion-undock';
-    undock.textContent = 'Bring the page back to full width';
-    refused.appendChild(undock);
-
     const ask = document.createElement('button');
     ask.type = 'button';
     ask.className = 'nwt-companion-ask';
@@ -742,32 +728,6 @@
 
     el.querySelector('.nwt-companion-title').textContent = label(companion);
 
-    /* Side by side: the link is in its own window beside the page, so there
-     * is nothing for the frame to hold. The pane stays as the way back. */
-    if (src && companion.docked) {
-      frame.removeAttribute('src');
-      el.setAttribute('data-state', 'docked');
-      refused.textContent =
-        label(companion) + ' is beside the page, in a window of its own. ' +
-        'That is the one place a site which refuses to be embedded still ' +
-        'works properly.';
-      delete paneShowing[index];
-      return;
-    }
-
-    /* Marked as belonging in a window, either by choosing it that way or by
-     * giving up on the frame once. Drawing the rectangle again would repeat a
-     * failure that has already been seen. */
-    if (src && windowedNow(companion)) {
-      frame.removeAttribute('src');
-      el.setAttribute('data-state', 'windowed');
-      refused.textContent =
-        label(companion) + ' is set to open in a window of its own. The arrow ' +
-        'above opens it; the button below tries it here instead.';
-      delete paneShowing[index];
-      return;
-    }
-
     if (!src) {
       frame.removeAttribute('src');
       el.setAttribute('data-state', 'empty');
@@ -839,14 +799,6 @@
         'This site refuses to be shown inside another page. Your browser can ' +
         'allow it here, or the arrow above opens it in a window of its own.';
     });
-  }
-
-  /* Whether the link showing now is one of the marked ones. */
-  function windowedNow(companion) {
-    const tile = (companion.tiles || []).filter(function (t) {
-      return t && t.url === companion.url;
-    })[0];
-    return !!(tile && tile.windowed);
   }
 
   function label(companion) {
@@ -921,17 +873,6 @@
     });
   }
 
-  function saveCompanion(patch) {
-    chrome.storage.local.get({ companion: {} }, function (stored) {
-      /* Nothing to merge into if the read failed, and overwriting the
-       * whole record with defaults would lose the saved tiles. */
-      if (chrome.runtime.lastError) return;
-      chrome.storage.local.set({
-        companion: Object.assign({}, NWT.DEFAULT_SETTINGS.companion, stored.companion, patch)
-      });
-    });
-  }
-
   function wirePane(el, index) {
     if (el.dataset.wired === '1') return;
     el.dataset.wired = '1';
@@ -950,31 +891,6 @@
      * which opens the page that can, with this site already named on it. The
      * alternative was a sentence telling you to go and find a button
      * elsewhere, which is how it read the first time and is not an answer. */
-    /* A way out, and nothing more than that.
-     *
-     * This used to mark the link so it went to a window from then on. That
-     * read one press as a decision about where the link lives, and the pane
-     * then refused to try again - which is the opposite of what a pane on the
-     * page is for. Wanting to see something in a window once is not the same
-     * as wanting it out of the pane. Marking it is now something you do on
-     * purpose, from the popup. */
-    el.querySelector('.nwt-companion-undock').addEventListener('click', function (e) {
-      e.stopPropagation();
-      chrome.runtime.sendMessage({ type: 'companion:undock' },
-        function () { void chrome.runtime.lastError; });
-    });
-
-    el.querySelector('.nwt-companion-here').addEventListener('click', function (e) {
-      e.stopPropagation();
-      chrome.storage.local.get({ companion: {} }, function (stored) {
-        if (chrome.runtime.lastError) return;
-        const c = stored.companion || {};
-        saveCompanion({ tiles: (c.tiles || []).map(function (t) {
-          return t && t.url === c.url ? Object.assign({}, t, { windowed: false }) : t;
-        }) });
-      });
-    });
-
     el.querySelector('.nwt-companion-ask').addEventListener('click', function (e) {
       e.stopPropagation();
       chrome.storage.local.get({ companion: {} }, function (stored) {
@@ -1193,15 +1109,26 @@
     const el = document.getElementById(SPLIT_ID);
     if (el) el.remove();
     document.documentElement.classList.remove('nwt-split-on');
+    document.documentElement.classList.remove('nwt-split-top');
     document.documentElement.style.removeProperty('--nwt-split-w');
   }
 
-  /* Clamped rather than trusted: this comes from storage, and a divider
+  /* Which edge the band is fixed to. Anything but 'top' is the side, so a
+   * setting written by an older version, or a bad one, lands on the original
+   * behaviour rather than on a layout nobody asked for. */
+  function splitSide(split) {
+    return split && split.side === 'top' ? 'top' : 'right';
+  }
+
+  /* How much of the window the band takes, along whichever axis it lies on.
+   *
+   * Clamped rather than trusted: this comes from storage, and a divider
    * dragged off either edge leaves one half unusable with no way back. */
   function splitWidth(split) {
     const f = Number(split.width);
     const frac = isFinite(f) ? Math.max(0.18, Math.min(0.72, f)) : 0.36;
-    return Math.round(window.innerWidth * frac);
+    const along = splitSide(split) === 'top' ? window.innerHeight : window.innerWidth;
+    return Math.round(along * frac);
   }
 
   function splitPanels(split) {
@@ -1230,15 +1157,27 @@
   function renderSplit(settings) {
     const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
     const panels = splitPanels(split);
-    if (!settings.enabled || !split.enabled || !TOP_FRAME || !panels.length
-        || settings.peek) {
+    if (!settings.enabled || !split.enabled || !TOP_FRAME || !panels.length) {
       removeSplit();
       return;
     }
 
     const el = splitEl();
+    const side = splitSide(split);
+    el.setAttribute('data-side', side);
+    document.documentElement.classList.toggle('nwt-split-top', side === 'top');
     document.documentElement.style.setProperty('--nwt-split-w', splitWidth(split) + 'px');
-    document.documentElement.classList.add('nwt-split-on');
+    /* Hidden, the column slides off the side of the window and the page takes
+     * its width back - but the column is still there, still loaded, still
+     * playing. Taking it off the document would have been the quick way to
+     * free the width and would have ended every call in it. */
+    if (settings.peek) {
+      el.setAttribute('data-peek', '1');
+      document.documentElement.classList.remove('nwt-split-on');
+    } else {
+      el.removeAttribute('data-peek');
+      document.documentElement.classList.add('nwt-split-on');
+    }
     wireSplit(el);
 
     /* Any panel beyond the list has been closed, so its element goes with it. */
@@ -1422,17 +1361,23 @@
     let dragging = false;
     const host = node.parentElement;
 
+    /* "Along the band" rather than "down the column": the same arithmetic
+     * reads a height when the band stands at the side and a width when it
+     * lies across the top. */
+    const alongTop = function () { return host.getAttribute('data-side') === 'top'; };
+    const spanOf = function (node) {
+      const r = node.getBoundingClientRect();
+      return alongTop() ? r.width : r.height;
+    };
     const settle = NWT.debounce(function () {
       const nodes = [...host.querySelectorAll('.nwt-panel')];
-      const total = host.getBoundingClientRect().height || 1;
+      const total = spanOf(host) || 1;
       chrome.storage.local.get({ split: {} }, function (stored) {
         if (chrome.runtime.lastError) return;
         const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, stored.split);
         const panels = splitPanels(split).map(function (p, i) {
           if (p.collapsed || !nodes[i]) return p;
-          return Object.assign({}, p, {
-            size: nodes[i].getBoundingClientRect().height / total
-          });
+          return Object.assign({}, p, { size: spanOf(nodes[i]) / total });
         });
         chrome.storage.local.set({ split: Object.assign({}, split, { panels: panels }) });
       });
@@ -1448,13 +1393,15 @@
       if (!dragging) return;
       const above = node.previousElementSibling;
       if (!above || !above.classList.contains('nwt-panel')) return;
-      const total = host.getBoundingClientRect().height || 1;
-      const top = above.getBoundingClientRect().top;
+      const total = spanOf(host) || 1;
+      const box = above.getBoundingClientRect();
+      const start = alongTop() ? box.left : box.top;
+      const at = alongTop() ? e.clientX : e.clientY;
       /* Both sides keep a usable minimum, or a panel can be dragged away to
        * nothing with no edge left to take hold of. */
       const min = 64;
-      const pair = above.getBoundingClientRect().height + node.getBoundingClientRect().height;
-      const wanted = Math.max(min, Math.min(pair - min, e.clientY - top));
+      const pair = spanOf(above) + spanOf(node);
+      const wanted = Math.max(min, Math.min(pair - min, at - start));
       above.style.setProperty('--nwt-panel-share', (wanted / total * 100).toFixed(3) + '%');
       node.style.setProperty('--nwt-panel-share', ((pair - wanted) / total * 100).toFixed(3) + '%');
       settle();
@@ -1479,9 +1426,11 @@
      * open tab. */
     const grip = el.querySelector('.nwt-split-grip');
     let dragging = false;
+    const alongTop = function () { return el.getAttribute('data-side') === 'top'; };
     const settle = NWT.debounce(function () {
       const px = parseFloat(document.documentElement.style.getPropertyValue('--nwt-split-w'));
-      if (px > 0) saveSplit({ width: px / window.innerWidth });
+      const along = alongTop() ? window.innerHeight : window.innerWidth;
+      if (px > 0) saveSplit({ width: px / along });
     }, 160);
 
     grip.addEventListener('pointerdown', function (e) {
@@ -1492,10 +1441,12 @@
     });
     grip.addEventListener('pointermove', function (e) {
       if (!dragging) return;
-      /* Measured from the right edge of the window, so the divider lands under
-       * the pointer rather than drifting away from it. */
-      const px = Math.max(160, Math.min(window.innerWidth - 240,
-                                        window.innerWidth - e.clientX));
+      /* Measured from the edge the band is fixed to, so the divider lands
+       * under the pointer rather than drifting away from it. */
+      const px = alongTop()
+        ? Math.max(120, Math.min(window.innerHeight - 160, e.clientY))
+        : Math.max(160, Math.min(window.innerWidth - 240,
+                                 window.innerWidth - e.clientX));
       document.documentElement.style.setProperty('--nwt-split-w', Math.round(px) + 'px');
       settle();
     });
@@ -1510,45 +1461,194 @@
     grip.addEventListener('pointercancel', stop);
   }
 
-  /* ---- out of the way ----------------------------------------------------
-   * One press hides everything this extension has put on the page, and the
-   * next brings it all back exactly as it was. Nothing is closed and nothing
-   * is folded: the question it answers is "let me see what is behind this",
-   * not "I am finished with it", and those want different answers.
+  /* ---- the dock ----------------------------------------------------------
+   * A strip that stays on the page whether anything is open or not, because
+   * the alternative was a dead end: close a pane and the only way back was
+   * the extension's own popup, which is two presses away from the thing you
+   * were looking at and off the page entirely.
+   *
+   * So the places you saved live here as well, one press each, and the same
+   * press closes what it opened. The last control hides everything at once -
+   * hides, not closes: what is in a pane keeps running.
    * --------------------------------------------------------------------- */
-  const PEEK_ID = 'nwt-peek';
+  const DOCK_ID = 'nwt-dock';
 
-  function peekEl() {
-    let el = document.getElementById(PEEK_ID);
-    if (el) return el;
-    el = document.createElement('button');
-    el.id = PEEK_ID;
-    el.type = 'button';
-    el.addEventListener('click', function (e) {
-      e.stopPropagation();
-      chrome.storage.local.get({ peek: false }, function (stored) {
-        if (chrome.runtime.lastError) return;
-        chrome.storage.local.set({ peek: !stored.peek });
+  /* The saved places, read the way the popup reads them: the starters stand
+   * in until the list has been touched, so the strip is never an empty bar. */
+  function dockTiles(companion) {
+    const saved = Array.isArray(companion.tiles) ? companion.tiles : [];
+    const list = (saved.length || companion.tilesTouched)
+      ? saved : (companion.starters || []);
+    return list.filter(function (t) { return t && typeof t.url === 'string'; });
+  }
+
+  /* One press opens it, the same press closes it. Opening also brings the
+   * page back from hidden - asking for something and having it arrive
+   * invisibly is not an answer. */
+  function toggleDockPane(url) {
+    chrome.storage.local.get({ companion: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const c = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, stored.companion);
+      const panes = paneList(c);
+      const kept = panes.filter(function (x) { return x.url !== url; });
+      if (kept.length !== panes.length) {
+        /* The address that came before the list goes with it, or reading it
+         * back would put the pane straight up again. */
+        chrome.storage.local.set({
+          companion: Object.assign({}, c, { panes: kept, url: '', enabled: kept.length > 0 })
+        });
+        return;
+      }
+      if (panes.length >= 3) return;
+      chrome.storage.local.set({
+        peek: false,
+        companion: Object.assign({}, c, {
+          enabled: true,
+          panes: panes.concat([{ url: url, x: null, y: null, w: 380, h: 260,
+                                 offset: panes.length * 0.04 }])
+        })
       });
     });
+  }
+
+  function toggleSplitColumn() {
+    chrome.storage.local.get({ split: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const sp = Object.assign({}, NWT.DEFAULT_SETTINGS.split, stored.split);
+      const patch = { split: Object.assign({}, sp, { enabled: !sp.enabled }) };
+      if (!sp.enabled) patch.peek = false;
+      chrome.storage.local.set(patch);
+    });
+  }
+
+  function togglePeek() {
+    chrome.storage.local.get({ peek: false }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      chrome.storage.local.set({ peek: !stored.peek });
+    });
+  }
+
+  function saveDock(patch) {
+    chrome.storage.local.get({ dock: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      chrome.storage.local.set({ dock: Object.assign({}, stored.dock, patch) });
+    });
+  }
+
+  function dockEl() {
+    let el = document.getElementById(DOCK_ID);
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = DOCK_ID;
+    el.setAttribute('role', 'toolbar');
+    el.setAttribute('aria-label', 'What sits beside your work');
+
+    /* Its own small handle, so that dragging the strip and pressing what is
+     * on it are different gestures and neither one costs you the other. */
+    const grip = document.createElement('span');
+    grip.className = 'nwt-dock-grip';
+    grip.title = 'Drag to move this bar. Double-click to put it back at the top.';
+    el.appendChild(grip);
+
+    const items = document.createElement('span');
+    items.className = 'nwt-dock-items';
+    el.appendChild(items);
+
+    const eye = document.createElement('button');
+    eye.type = 'button';
+    eye.className = 'nwt-dock-eye';
+    el.appendChild(eye);
+    eye.addEventListener('click', function (e) { e.stopPropagation(); togglePeek(); });
+
+    /* Home is a rule rather than a pair of numbers - centred stays centred
+     * when the window is resized - so it has to be given up before the drag
+     * writes any, or the strip jumps sideways on the first movement. */
+    grip.addEventListener('pointerdown', function () {
+      el.removeAttribute('data-home');
+    });
+    dragBy(el, grip, function (r) {
+      saveDock({ x: r.left / window.innerWidth, y: r.top / window.innerHeight });
+    });
+    grip.addEventListener('dblclick', function () { saveDock({ x: null, y: null }); });
+
     (document.body || document.documentElement).appendChild(el);
     return el;
   }
 
-  function removePeek() {
-    const el = document.getElementById(PEEK_ID);
+  function removeDock() {
+    const el = document.getElementById(DOCK_ID);
     if (el) el.remove();
   }
 
-  /* Drawn only when there is something to get out of the way, so a page with
-   * nothing on it does not grow a control for hiding nothing. */
-  function renderPeek(settings, showing) {
-    if (!settings.enabled || !TOP_FRAME || !showing) { removePeek(); return; }
-    const el = peekEl();
-    el.textContent = settings.peek ? '\u25C0 Panels' : 'Hide \u25B6';
-    el.title = settings.peek
-      ? 'Bring the panels back, exactly as they were'
-      : 'Put everything out of the way for a moment. Nothing is closed.';
+  function placeDock(el, dock) {
+    if (dock.x == null || dock.y == null) {
+      el.setAttribute('data-home', '1');
+      el.style.left = el.style.top = '';
+      return;
+    }
+    el.removeAttribute('data-home');
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.min(Math.max(0, window.innerWidth - w - 8),
+                             Math.max(8, dock.x * window.innerWidth)) + 'px';
+    el.style.top = Math.min(Math.max(0, window.innerHeight - h - 8),
+                            Math.max(0, dock.y * window.innerHeight)) + 'px';
+  }
+
+  function dockItem(text, pressed, title, onPress) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'nwt-dock-item';
+    b.textContent = text;
+    b.setAttribute('aria-pressed', String(!!pressed));
+    b.title = title;
+    b.addEventListener('click', function (e) { e.stopPropagation(); onPress(); });
+    return b;
+  }
+
+  /* Drawn whenever there is something it could open, which is not the same as
+   * something being open: a strip that disappeared with the last pane would
+   * take the way back with it. */
+  function renderDock(settings) {
+    const companion = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
+    const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
+    const tiles = dockTiles(companion);
+    const panels = splitPanels(split);
+    if (!settings.enabled || !TOP_FRAME || (!tiles.length && !panels.length)) {
+      removeDock();
+      return;
+    }
+
+    const el = dockEl();
+    el.setAttribute('data-peek', settings.peek ? '1' : '0');
+    const open = companion.enabled
+      ? paneList(companion).map(function (x) { return x.url; }) : [];
+
+    const items = el.querySelector('.nwt-dock-items');
+    items.textContent = '';
+    tiles.forEach(function (tile) {
+      const showing = open.indexOf(tile.url) !== -1;
+      const name = tile.label || tile.url;
+      items.appendChild(dockItem(name, showing,
+        showing ? 'Close the ' + name + ' pane' : 'Open ' + name + ' in a pane here',
+        function () { toggleDockPane(tile.url); }));
+    });
+    if (panels.length) {
+      items.appendChild(dockItem('Column', split.enabled,
+        split.enabled
+          ? 'Give the page its full width back'
+          : 'Share the tab with the column of panels again',
+        toggleSplitColumn));
+    }
+
+    const eye = el.querySelector('.nwt-dock-eye');
+    eye.textContent = settings.peek ? 'Show' : 'Hide';
+    eye.setAttribute('aria-pressed', String(!!settings.peek));
+    eye.title = settings.peek
+      ? 'Bring everything back where it was'
+      : 'Out of sight for a moment. Nothing closes - a video keeps playing ' +
+        'and a call stays connected.';
+
+    placeDock(el, settings.dock || {});
   }
 
   let paneGrantSeen = 0;
@@ -1572,8 +1672,7 @@
      * project because a session is about building one; something to keep in
      * view while you work is not. The top frame only, so it is not drawn once
      * per embedded frame. */
-    if (!settings.enabled || !companion.enabled || !TOP_FRAME || !panes.length
-        || settings.peek) {
+    if (!settings.enabled || !companion.enabled || !TOP_FRAME || !panes.length) {
       removePane();
       return;
     }
@@ -1600,6 +1699,16 @@
       paintPane(el, one, i);
       wirePane(el, i);
       placePane(el, one, i);
+      /* Out of sight, not out of the page.
+       *
+       * Hiding used to take the pane off the document, which destroys the
+       * frame inside it - a video stops, a call drops, and bringing it back
+       * starts the whole thing again from nothing. That is closing, and there
+       * is already a control for closing. So the pane stays exactly where it
+       * is, fully alive, and only stops being painted: sound carries on and a
+       * conversation stays connected while you look at what is underneath. */
+      el.setAttribute('data-peek', settings.peek ? '1' : '0');
+      el.setAttribute('aria-hidden', settings.peek ? 'true' : 'false');
     });
   }
 
@@ -2122,7 +2231,7 @@
       removeHud();
       removePane();
       removeSplit();
-      removePeek();
+      removeDock();
       unrescue();                   /* inline styles outlive the stylesheet */
       groundPalette = null;
       shadowSheetFor('');           /* neutralise the adopted copies in place */
@@ -2137,13 +2246,7 @@
     renderHud(s);
     renderPane(s);
     renderSplit(s);
-    /* Whether anything would be on the page if it were not being peeked past,
-     * which is what decides whether the handle is worth drawing. */
-    const companionOn = (s.companion || {}).enabled &&
-      paneList(Object.assign({}, NWT.DEFAULT_SETTINGS.companion, s.companion)).length;
-    const splitOn = (s.split || {}).enabled &&
-      splitPanels(Object.assign({}, NWT.DEFAULT_SETTINGS.split, s.split)).length;
-    renderPeek(s, !!(companionOn || splitOn));
+    renderDock(s);
     reportRules(s);
 
     const theme = NWT.getTheme(s);

@@ -1580,9 +1580,15 @@ test('a split panel pointed at YouTube itself asks in the panel', () => {
 
 /* ----------------------------------------------------- out of the way */
 
-test('one handle hides everything, and brings it back as it was', () => {
-  /* Not folding and not closing: the question is "let me see what is behind
-   * this", and the answer has to leave every pane where it was. */
+function dock(page) { return page.doc.getElementById('nwt-dock'); }
+function dockItems(page) {
+  return [...dock(page).querySelectorAll('.nwt-dock-item')];
+}
+
+test('hiding stops the panes being painted, not being there', () => {
+  /* A frame taken off the page is destroyed with it: the video stops and the
+   * call drops. Hiding has to mean hiding, or there is no difference between
+   * it and the × that closes things. */
   const page = loadContentScript({
     settings: { enabled: true, companion: { enabled: true, panes: [
       { url: VIDEO, w: 400, h: 300 }] },
@@ -1591,39 +1597,147 @@ test('one handle hides everything, and brings it back as it was', () => {
   page.flush();
   assert.ok(pane(page), 'precondition: a pane');
   assert.ok(page.doc.getElementById('nwt-split'), 'precondition: a column');
-  const handle = page.doc.getElementById('nwt-peek');
-  assert.ok(handle, 'there is no way to get behind the page');
 
-  handle.click();
+  dock(page).querySelector('.nwt-dock-eye').click();
   page.flush();
 
   assert.equal(page.stored.peek, true);
-  assert.equal(pane(page), null, 'the pane stayed');
-  assert.equal(page.doc.getElementById('nwt-split'), null, 'the column stayed');
-  assert.ok(page.doc.getElementById('nwt-peek'), 'nothing left to bring it back with');
+  assert.ok(pane(page), 'the pane was taken off the page, which stops it');
+  assert.equal(pane(page).getAttribute('data-peek'), '1');
+  assert.equal(pane(page).querySelector('.nwt-companion-frame').getAttribute('src'),
+    EMBED, 'the frame was emptied, which is the same as closing it');
+  const column = page.doc.getElementById('nwt-split');
+  assert.ok(column, 'the column was taken off the page, which ends every call in it');
+  assert.equal(column.getAttribute('data-peek'), '1');
   assert.ok(!page.doc.documentElement.classList.contains('nwt-split-on'),
-    'the page was left narrowed with nothing in the space');
-
-  page.doc.getElementById('nwt-peek').click();
-  page.flush();
-
-  assert.ok(pane(page), 'the pane did not come back');
-  assert.equal(page.stored.companion.panes[0].w, 400, 'it came back a different size');
-  assert.ok(page.doc.getElementById('nwt-split'), 'the column did not come back');
+    'the page was left narrowed with nothing showing in the space');
 });
 
-test('the handle is not drawn when there is nothing to get out of the way', () => {
+test('showing again puts everything back where it was', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, peek: true,
+      companion: { enabled: true, panes: [{ url: VIDEO, w: 400, h: 300 }] },
+      split: { enabled: true, panels: [{ url: VIDEO }] } }
+  });
+  page.flush();
+  assert.equal(pane(page).getAttribute('data-peek'), '1', 'precondition: hidden');
+
+  dock(page).querySelector('.nwt-dock-eye').click();
+  page.flush();
+
+  assert.equal(page.stored.peek, false);
+  assert.equal(pane(page).getAttribute('data-peek'), '0');
+  assert.equal(page.stored.companion.panes[0].w, 400, 'it came back a different size');
+  assert.equal(page.doc.getElementById('nwt-split').getAttribute('data-peek'), null);
+  assert.ok(page.doc.documentElement.classList.contains('nwt-split-on'),
+    'the page never gave the column its width back');
+});
+
+test('the dock is there with nothing open, so there is a way to open it', () => {
+  /* The dead end this exists for: closing the last pane used to leave the
+   * extension's popup as the only way back to it. */
   const page = loadContentScript({ settings: { enabled: true } });
   page.flush();
-  assert.equal(page.doc.getElementById('nwt-peek'), null);
+  assert.ok(dock(page), 'nothing on the page offers to open anything');
+  assert.deepEqual(dockItems(page).map(function (b) { return b.textContent; }),
+    ['YouTube', 'Discord']);
+  assert.equal(dockItems(page)[0].getAttribute('aria-pressed'), 'false');
 });
 
-test('turning the extension off takes the handle with it', () => {
+test('a dock button opens what it names, and the same press closes it', () => {
+  const page = loadContentScript({ settings: { enabled: true } });
+  page.flush();
+  dockItems(page)[0].click();
+  page.flush();
+
+  assert.equal(page.stored.companion.panes.length, 1);
+  assert.equal(page.stored.companion.panes[0].url, 'https://www.youtube.com');
+  assert.equal(page.stored.companion.enabled, true, 'opened it but left it hidden');
+  assert.equal(dockItems(page)[0].getAttribute('aria-pressed'), 'true');
+
+  dockItems(page)[0].click();
+  page.flush();
+
+  assert.deepEqual(page.stored.companion.panes, []);
+  assert.equal(page.stored.companion.enabled, false);
+});
+
+test('opening something from the dock brings the page back from hidden', () => {
+  /* Asking for something and having it arrive invisibly is not an answer. */
+  const page = loadContentScript({ settings: { enabled: true, peek: true } });
+  page.flush();
+  dockItems(page)[0].click();
+  page.flush();
+  assert.equal(page.stored.peek, false);
+});
+
+test('the dock is not drawn when there is nothing it could open', () => {
+  const page = loadContentScript({
+    settings: { enabled: true, companion: { tiles: [], tilesTouched: true } }
+  });
+  page.flush();
+  assert.equal(dock(page), null);
+});
+
+test('turning the extension off takes the dock with it', () => {
   const page = withPane({ url: VIDEO });
   page.flush();
-  assert.ok(page.doc.getElementById('nwt-peek'));
+  assert.ok(dock(page));
 
   page.chrome.storage.local.set({ enabled: false });
   page.flush();
-  assert.equal(page.doc.getElementById('nwt-peek'), null);
+  assert.equal(dock(page), null);
+});
+
+/* ------------------------------------------------------ side, or top */
+
+test('the band can lie along the top instead of standing at the side', () => {
+  const page = loadContentScript({
+    settings: { enabled: true,
+      split: { enabled: true, side: 'top', width: 0.3, panels: [{ url: VIDEO }] } }
+  });
+  page.flush();
+
+  const column = page.doc.getElementById('nwt-split');
+  assert.equal(column.getAttribute('data-side'), 'top');
+  assert.ok(page.doc.documentElement.classList.contains('nwt-split-top'));
+  /* Measured down the window rather than across it, or a band across the top
+   * would be as deep as a third of the width. */
+  assert.equal(page.doc.documentElement.style.getPropertyValue('--nwt-split-w'),
+    '270px');
+});
+
+test('at the side it is still measured across the window', () => {
+  const page = loadContentScript({
+    settings: { enabled: true,
+      split: { enabled: true, width: 0.3, panels: [{ url: VIDEO }] } }
+  });
+  page.flush();
+  assert.equal(page.doc.getElementById('nwt-split').getAttribute('data-side'), 'right');
+  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-top'));
+  assert.equal(page.doc.documentElement.style.getPropertyValue('--nwt-split-w'),
+    '432px');
+});
+
+test('a side nobody has heard of is the side it always was', () => {
+  const page = loadContentScript({
+    settings: { enabled: true,
+      split: { enabled: true, side: 'sideways', panels: [{ url: VIDEO }] } }
+  });
+  page.flush();
+  assert.equal(page.doc.getElementById('nwt-split').getAttribute('data-side'), 'right');
+});
+
+test('closing the column takes the top band class with it', () => {
+  const page = loadContentScript({
+    settings: { enabled: true,
+      split: { enabled: true, side: 'top', panels: [{ url: VIDEO }] } }
+  });
+  page.flush();
+  assert.ok(page.doc.documentElement.classList.contains('nwt-split-top'));
+
+  page.chrome.storage.local.set({ split: { enabled: false, panels: [] } });
+  page.flush();
+  assert.ok(!page.doc.documentElement.classList.contains('nwt-split-top'),
+    'the page was left pushed down with nothing above it');
 });

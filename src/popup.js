@@ -289,12 +289,6 @@
        * say which is chosen. */
       btn.setAttribute('aria-pressed', String(open.indexOf(tile.url) !== -1));
       btn.textContent = tile.label;
-      if (tile.windowed) {
-        btn.classList.add('windowed');
-        btn.title = tile.url +
-                    ' - opens in a window of its own.' +
-                    ' Shift-click to try it in the pane again.';
-      }
       /* Choosing one shows the pane: picking something to watch and then
        * having to turn the pane on as well is a step with no meaning.
        *
@@ -306,22 +300,7 @@
        * another page - in which case choosing it means opening its window,
        * because that is where it works. Shift undoes the mark, for a site
        * that was marked by mistake or has since changed. */
-      btn.addEventListener('click', function (e) {
-        if (tile.windowed && !e.shiftKey) {
-          chrome.runtime.sendMessage({
-            type: 'companion:window', url: NWT.companionSrc(tile.url) || tile.url,
-            w: c.w, h: c.h
-          }, function () { void chrome.runtime.lastError; });
-          return;
-        }
-        if (e.shiftKey) {
-          saveCompanion({ tiles: tiles.map(function (t) {
-            return t.url === tile.url ? Object.assign({}, t, { windowed: false }) : t;
-          }) });
-          return;
-        }
-        togglePane(tile.url);
-      });
+      btn.addEventListener('click', function () { togglePane(tile.url); });
 
       /* Its own control rather than a second click target on the tile: a row
        * of things you go to should not lose one when you miss. */
@@ -527,6 +506,16 @@
     try { localStorage.setItem('nwt-tab', name); } catch (e) { /* private mode */ }
   }
 
+  /* The two halves of this tab, remembered the same way the tabs above are:
+   * where you were a moment ago, not something to write in with the themes. */
+  function showSub(name) {
+    ['page', 'float'].forEach(function (id) {
+      $('sub-' + id).setAttribute('aria-selected', String(id === name));
+      $('pane-' + id).hidden = id !== name;
+    });
+    try { localStorage.setItem('nwt-sub', name); } catch (e) { /* private mode */ }
+  }
+
   /* ---- the split ---- */
   function splitState() {
     return Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
@@ -691,6 +680,18 @@
 
     ['theme', 'focus', 'split'].forEach(function (name) {
       $('tab-' + name).addEventListener('click', function () { showTab(name); });
+    });
+    ['page', 'float'].forEach(function (name) {
+      $('sub-' + name).addEventListener('click', function () { showSub(name); });
+    });
+    let sub = 'page';
+    try { sub = localStorage.getItem('nwt-sub') || 'page'; } catch (e) { /* private mode */ }
+    showSub(sub === 'float' ? 'float' : 'page');
+
+    [...$('split-side').querySelectorAll('button')].forEach(function (b) {
+      b.addEventListener('click', function () {
+        saveSplit({ side: b.getAttribute('data-side') });
+      });
     });
     let opening = 'theme';
     try { opening = localStorage.getItem('nwt-tab') || 'theme'; } catch (e) { /* private mode */ }
