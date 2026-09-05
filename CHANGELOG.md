@@ -7,7 +7,7 @@ Versioning is [semver](https://semver.org/); the `version` field in
 1.3.0 is the first version published to a public repository. Entries below it
 were never released.
 
-## [Unreleased]
+## [2.11.0] - 2026-09-05
 
 ### Added
 
@@ -516,6 +516,7 @@ First working version. Never published.
   `*://*.nextwork.ai/*`.
 
 [Unreleased]: https://github.com/RoyPiring/nextwork-theme-studio/compare/v2.10.0...HEAD
+[2.11.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.11.0
 [2.10.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.10.0
 [2.9.0]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.9.0
 [2.8.3]: https://github.com/RoyPiring/nextwork-theme-studio/releases/tag/v2.8.3
