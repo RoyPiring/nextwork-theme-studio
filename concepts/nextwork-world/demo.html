@@ -142,6 +142,26 @@
   .reward .row .x { color: var(--xp); } .reward .row .c { color: var(--gold); } .reward .row .g { color: var(--gem); }
   .reward .btn { margin-top: 10px; }
 
+  .series { display: flex; flex-direction: column; gap: 4px; }
+  .srow { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; background: rgba(0,0,0,.22); border: 1px solid var(--glass-line); border-radius: 10px; }
+  .srow.full { border-color: rgba(124,240,164,.5); }
+  .srow.going { border-color: rgba(255,197,49,.45); }
+  .srow i { width: 30px; height: 30px; border-radius: 8px; background: var(--panel-2); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .srow .n { min-width: 0; }
+  .srow .n b { display: block; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .srow .n small { display: block; font-size: 11px; color: var(--text-dim); }
+  .srow .bar { height: 5px; border-radius: 4px; background: rgba(0,0,0,.35); margin-top: 4px; overflow: hidden; }
+  .srow .bar i { display: block; height: 100%; width: 0; border-radius: 0; background: linear-gradient(90deg, var(--xp-2), var(--xp)); }
+  .srow.full .bar i { background: var(--ok); }
+  .srow .v { text-align: right; font-family: var(--display); font-weight: 800; font-size: 12px; white-space: nowrap; }
+  .srow .v small { display: block; font-family: var(--body); font-weight: 600; font-size: 10.5px; color: var(--text-dim); }
+  .expansion { background: linear-gradient(180deg, #2a2340, #1f2a42); border: 1px solid rgba(255,197,49,.35); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; }
+  .expansion .row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .expansion .row b { font-family: var(--display); font-weight: 800; font-size: 14px; }
+  .expansion .chip { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: var(--gold); color: var(--gold-ink); padding: 2px 7px; border-radius: 999px; }
+  .expansion p { margin: 0 0 6px; color: var(--text-dim); } .expansion p b { color: var(--text); }
+  .expansion .sample { display: flex; flex-wrap: wrap; gap: 4px; }
+  .expansion .sample span { font-size: 11px; background: rgba(255,255,255,.08); border: 1px solid var(--glass-line); border-radius: 999px; padding: 2px 8px; }
   .notes { font-size: 13.5px; line-height: 1.5; }
   .notes h2 { font-family: var(--display); font-weight: 800; font-size: 15px; color: var(--gold); margin: 16px 0 6px; }
   .notes h2:first-child { margin-top: 0; }
@@ -189,6 +209,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
         <div class="tabs" role="tablist">
           <button role="tab" id="tab-world" aria-selected="true" data-view="world">World</button>
           <button role="tab" id="tab-build" aria-selected="false" data-view="build">Build</button>
+          <button role="tab" id="tab-projects" aria-selected="false" data-view="projects">Projects</button>
           <button role="tab" id="tab-notes" aria-selected="false" data-view="notes">Notes</button>
         </div>
       </div>
@@ -214,21 +235,21 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
           <div class="badge" id="tier">Homestead<small>300 XP</small></div>
           <div class="toast" id="toast"></div>
           <div class="place" id="placehint" hidden>Choose a plot on your land</div>
-          <div class="mini"><button id="gohq">Visit HQ</button><button id="gohome">My land</button></div>
+          <div class="mini"><button id="gohq">Visit HQ</button><button id="gohome">My land</button><button id="goisland">Expansion</button></div>
         </div>
         <div class="speech" id="say"><b>Hamlet</b>Three projects in. The land greens as you build on it. Drag to look around — NextWork HQ is up the road, and other learners are building next door.</div>
         <div class="ladder" id="ladder"></div>
         <div class="controls">
           <button class="btn go" id="finish">Simulate: finish a project</button>
         </div>
-        <div class="caption">Growth is <b>cumulative</b> — by XP from finished projects, never by time. Each tier opens more of the map; builders arrive at 500 and 1,500 XP and finish things faster. <b>Simulate</b> finishes the next project and hands you the thing it built to place.</div>
+        <div class="caption">Growth is <b>cumulative</b> — by XP from the real NextWork catalogue, never by time. Each series is one building that grows with its parts; builders arrive at 700 and 1,500 XP. <b>Simulate</b> finishes the next project the way you would on the site: the series you are in first, then a new one.</div>
       </section>
 
       <!-- ================= BUILD ================= -->
       <section class="view" id="view-build" hidden>
         <div class="project">
-          <div class="name">Build a Typed Crossplane v2 API</div>
-          <div class="meta"><span>Kubernetes</span><span>·</span><span>7 steps</span><span>·</span><span><em>+140 XP</em>, a gem, and the thing you built stays on your land</span></div>
+          <div class="name">Build a Chatbot with Amazon Lex</div>
+          <div class="meta"><span>Amazon Lex Chatbot · part 2 of 6</span><span>·</span><span>7 steps</span><span>·</span><span><em>+60 XP</em>, and the thing you built stays on your land</span></div>
         </div>
         <div class="seg three" role="group" aria-label="What this project builds">
           <button class="btn" data-template="house" aria-pressed="true">House<small>for your land</small></button>
@@ -244,7 +265,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
           <div class="badge" id="sitetier"></div>
           <div class="reward" id="reward" hidden>
             <div class="big">Project complete</div>
-            <div class="row"><span class="x">+140 XP</span><span class="c">+60 coins</span><span class="g">+1 gem</span></div>
+            <div class="row"><span class="x">+60 XP</span><span class="c">+27 coins</span></div>
             <button class="btn go" id="placeit">Keep it →</button>
           </div>
         </div>
@@ -258,27 +279,39 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
         <div class="caption">This is <b>your land</b>, camera on the plot. Every step you tick sends a truck from the hub with the next piece, the builders run out from the hut and put it up, and the XP floats off the site. Drag to look around. Walking away costs nothing — the clock pauses when the tab does.</div>
       </section>
 
+      <!-- ================= PROJECTS ================= -->
+      <section class="view" id="view-projects" hidden>
+        <div class="project"><div class="name">The NextWork catalogue</div><div class="meta"><span id="cat-summary"></span></div></div>
+        <div class="series" id="series"></div>
+        <div class="expansion">
+          <div class="row"><b>Project Generator</b><span class="chip">Expansion</span></div>
+          <p>Your own island across the water: <b id="exp-count"></b> projects you generated yourself, in <b id="exp-series"></b> series of your own. The shared world is the ninety everyone can do, so every learner's town means the same thing; the island is yours alone.</p>
+          <div class="sample" id="exp-sample"></div>
+        </div>
+        <div class="caption">Every series is one building on your land. It goes up when you finish the first part and grows with each one after — half the parts is tier two, all of them is tier three and a gem. XP is by rarity: the fewer people who have done a project, the more it is worth.</div>
+      </section>
+
       <!-- ================= NOTES ================= -->
       <section class="view notes" id="view-notes" hidden>
         <h2>The loop</h2>
         <p>Tick a step on a project → XP and coins → a piece of the component you are building. Finish the project → a gem, and the component goes onto your land, on a plot you choose. Nothing else is ever asked for; the site already knows all of it.</p>
 
         <h2>Growth is cumulative, not calendar</h2>
+        <p>The thresholds are set so that finishing the beginner path is a homestead, one full series is a village, and the whole catalogue is a metropolis.</p>
         <table>
           <tr><th>XP</th><th>Tier</th><th>What opens</th></tr>
           <tr><td>0</td><td>Plot</td><td>Barren land, a survey stake, one builder</td></tr>
           <tr><td>100</td><td>Homestead</td><td>Your first building; the land greens around it</td></tr>
-          <tr><td>250</td><td>Hamlet</td><td>Two more plots, a path to the road</td></tr>
-          <tr><td>500</td><td>Village</td><td>Second builder. Lamp posts, a fence</td></tr>
-          <tr><td>1,000</td><td>Town</td><td>Paved road, districts by tag, cars</td></tr>
-          <tr><td>1,500</td><td>—</td><td>Third builder</td></tr>
-          <tr><td>2,000</td><td>City</td><td>Second storeys, a skyline</td></tr>
-          <tr><td>4,000</td><td>Metropolis</td><td>Landmark buildings; your land joins the hub's road grid</td></tr>
+          <tr><td>300</td><td>Hamlet</td><td>A street forms either side of the road</td></tr>
+          <tr><td>700</td><td>Village</td><td>Second builder. Lamp posts, a fence</td></tr>
+          <tr><td>1,500</td><td>Town</td><td>Districts by series, cars, a third builder</td></tr>
+          <tr><td>3,000</td><td>City</td><td>Second storeys, a skyline</td></tr>
+          <tr><td>6,000</td><td>Metropolis</td><td>Landmark buildings; your land joins the hub's road grid</td></tr>
         </table>
         <p>A learner who does two projects has a homestead. A learner who does twenty has a town. Nobody waits a year for anything, and nothing is lost by walking away for one.</p>
 
         <h2>Builders</h2>
-        <p>You start with one. A second arrives at 500 XP and a third at 1,500. On a build, each builder lays a piece per step — so with three builders a seven-piece component is up in three steps rather than seven. Builders live in the hut on your land; it is the one building nobody has to earn.</p>
+        <p>You start with one. A second arrives at 700 XP and a third at 1,500. On a build, each builder lays a piece per step — so with three builders a seven-piece component is up in three steps rather than seven. Builders live in the hut on your land; it is the one building nobody has to earn.</p>
 
         <h2>The open world</h2>
         <ul>
@@ -295,18 +328,23 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
         </ul>
         <p>Same XP, same finished thing. A different feeling in the middle — which is what the two methods feel like on a real team, and a thing worth teaching.</p>
 
-        <h2>What a tag builds</h2>
+        <h2>Built from the real catalogue</h2>
+        <p>The world uses NextWork's own ninety projects, in their twenty-seven series. <b>A series is a building.</b> It goes up when you finish the first part and grows with each one after: Amazon VPC is nine parts, so its signal tower rises in nine stages; Kubernetes fills a container yard over four. Half the parts is tier two; all of them is tier three and a gem.</p>
         <table>
-          <tr><th>Tag</th><th>Component</th></tr>
-          <tr><td>Cloud / AWS</td><td>Data centre</td></tr>
-          <tr><td>Kubernetes</td><td>Container yard</td></tr>
-          <tr><td>Networking</td><td>Signal tower</td></tr>
-          <tr><td>Security</td><td>Gatehouse</td></tr>
-          <tr><td>AI / ML</td><td>Observatory</td></tr>
-          <tr><td>DevOps / CI</td><td>Workshop</td></tr>
+          <tr><th>Series</th><th>Building</th></tr>
+          <tr><td>Account Management, Cloud Beginner Challenge</td><td>House</td></tr>
+          <tr><td>Amazon VPC</td><td>Signal tower</td></tr>
+          <tr><td>Security, Security x AI</td><td>Gatehouse</td></tr>
           <tr><td>Databases</td><td>Warehouse</td></tr>
-          <tr><td>Anything else</td><td>House</td></tr>
+          <tr><td>Kubernetes</td><td>Container yard</td></tr>
+          <tr><td>Three-Tier, RAG API</td><td>Data centre</td></tr>
+          <tr><td>DevOps, Git, Terraform, Cursor, Claude Code, System Design</td><td>Workshop</td></tr>
+          <tr><td>Lex, Bedrock, Transcribe, all the Claude and AI series</td><td>Observatory</td></tr>
         </table>
+        <p><b>XP is by rarity.</b> <em>Set Up An AWS Account</em> has 5,680 completions and is worth 60. <em>Give Hermes Agent Powers with MCP</em> has three and is worth 140. The whole catalogue is worth about 9,000, which is Metropolis.</p>
+
+        <h2>The expansion</h2>
+        <p>The Project Generator is a second island across the water with its own bridge. Your own generated projects live there - 112 of them at last count, in 48 series - and they build the island, not the town. The main world stays the shared ninety, so that every learner's town means the same thing when two of them stand side by side. Whether the bridge opens, and what unlocks it, is NextWork's call.</p>
 
         <h2>What the extension can actually read</h2>
         <p>Everything here runs inside the existing extension's rules: <b>no network, no account, nothing leaves the machine.</b> The tag and title come from the page heading, ticked steps from the page's own checkboxes, and time on the page from the focus timer that already exists. State lives where the themes live.</p>
@@ -655,58 +693,106 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   function crenel(I, t) { for (let i = 0; i < 3; i++) { const q = I.P(t.D2, t.C2, 0.15 + i * 0.35); I.poly([q, [q[0] + 4, q[1] + 2], [q[0] + 4, q[1] - 3], [q[0], q[1] - 5]], '#a39d93'); } }
 
   /* =============================================================== the data */
-  const PROJECTS = [
-    { title: 'Host a Website on S3',            tag: 'cloud',      xp: 80  },
-    { title: 'Set Up a Kubernetes Cluster',      tag: 'kubernetes', xp: 110 },
-    { title: 'Build a VPC from Scratch',         tag: 'networking', xp: 90  },
-    { title: 'Lock Down an S3 Bucket',           tag: 'security',   xp: 100 },
-    { title: 'Deploy a Model with SageMaker',    tag: 'ai',         xp: 130 },
-    { title: 'CI Pipeline with GitHub Actions',  tag: 'devops',     xp: 100 },
-    { title: 'Query Logs with Athena',           tag: 'database',   xp: 90  },
-    { title: 'Build a Typed Crossplane v2 API',  tag: 'kubernetes', xp: 140 },
-    { title: 'Serverless API with Lambda',       tag: 'cloud',      xp: 120 },
-    { title: 'Threat Model a Web App',           tag: 'security',   xp: 110 }
+  /* ------------------------------------------------ the NextWork catalogue
+   * All ninety projects, as listed on the site, grouped by series. Each series
+   * is one building on your land that grows as its parts are finished. XP is
+   * earned by rarity: a project 5,680 people have done is worth less than one
+   * three people have.
+   * --------------------------------------------------------------------- */
+  const SERIES = [
+    { id: 'account',   name: 'Account Management',          kind: 'house',       hard: 0, projects: [['Set Up An AWS Account', 5680]] },
+    { id: 'cbc',       name: 'Cloud Beginner Challenge',    kind: 'house',       hard: 0, projects: [['Join the Cloud Beginner Challenge!', 1380], ['Host a Website on Amazon S3', 4710], ['Cloud Security with AWS IAM', 2290]] },
+    { id: 'vpc',       name: 'Amazon VPC',                  kind: 'tower',       hard: 1, projects: [['Build a Virtual Private Cloud', 1870], ['VPC Traffic Flow and Security', 1240], ['Creating a Private Subnet', 980], ['Launching VPC Resources', 850], ['Testing VPC Connectivity', 700], ['VPC Peering', 640], ['VPC Monitoring with Flow Logs', 580], ['Access S3 from a VPC', 540], ['VPC Endpoints', 490]] },
+    { id: 'databases', name: 'Databases',                   kind: 'warehouse',   hard: 1, projects: [['Aurora Database with EC2', 490], ['Connect a Web App with Aurora', 390], ['Load Data into DynamoDB', 400], ['Query Data with DynamoDB', 330]] },
+    { id: 'k8s',       name: 'Kubernetes',                  kind: 'containers',  hard: 1, projects: [['Launch a Kubernetes Cluster', 270], ['Set Up Kubernetes Deployment', 200], ['Create Kubernetes Manifests', 170], ['Deploy Backend with Kubernetes', 170]] },
+    { id: 'devops',    name: '6 Day DevOps Challenge',      kind: 'workshop',    hard: 1, projects: [['Set Up a Web App in the Cloud', 1550], ['Connect a GitHub Repo with AWS', 1070], ['Secure Packages with CodeArtifact', 630], ['Continuous Integration with CodeBuild', 490], ['Deploy a Web App with CodeDeploy', 390], ['Build a CI/CD Pipeline with AWS', 300]] },
+    { id: 'threetier', name: 'Three-Tier',                  kind: 'datacentre',  hard: 1, projects: [['Website Delivery with CloudFront', 260], ['APIs with Lambda + API Gateway', 220], ['Fetch Data with AWS Lambda', 210], ['Build a Three-Tier Web App', 200]] },
+    { id: 'security',  name: 'Security',                    kind: 'gate',        hard: 1, projects: [['Encrypt Data with AWS KMS', 320], ['Threat Detection with GuardDuty', 200], ['Secure Secrets with Secrets Manager', 140], ['Build a Security Monitoring System', 210]] },
+    { id: 'lex',       name: 'Amazon Lex Chatbot',          kind: 'observatory', hard: 0, projects: [['Welcome to the Lex Chatbot series!', 230], ['Build a Chatbot with Amazon Lex', 1240], ['Add Custom Slots to a Lex Chatbot', 780], ['Connect Amazon Lex with Lambda', 610], ['Save User Info with a Lex Chatbot', 480], ['Set Up Multiple Slots in a Lex Chatbot', 410]] },
+    { id: 'bedrock',   name: 'Amazon Bedrock',              kind: 'observatory', hard: 1, projects: [['Build an AI Chatbot with Amazon Bedrock', 60], ['AI Finance Agent with Amazon Bedrock', 30], ['AI Email Router with Bedrock Flows', 20]] },
+    { id: 'rag',       name: 'RAG API',                     kind: 'datacentre',  hard: 1, projects: [['Run Ollama On Your Own Machine', 320], ['Build a RAG API with FastAPI', 520]] },
+    { id: 'terraform', name: 'Terraform',                   kind: 'workshop',    hard: 1, projects: [['Create S3 Buckets with Terraform', 230]] },
+    { id: 'transcribe',name: 'Amazon Transcribe',           kind: 'observatory', hard: 0, projects: [['Transcribe Audio Files with AI', 40]] },
+    { id: 'intro',     name: 'Intro to Claude',             kind: 'observatory', hard: 0, projects: [['Explore Claude.ai, Code, and Cowork', 50], ['Claude Code Skills Basics', 30], ['Get Started with Claude Code', 80]] },
+    { id: 'everyday',  name: 'Claude for Everyday Life',    kind: 'observatory', hard: 0, projects: [['Build a Fitness Coach with Claude', 30], ['Tailor Your Resume with Claude Dispatch', 10], ['Build a Calorie Tracker with Claude', 10]] },
+    { id: 'work',      name: 'Claude for Work Productivity',kind: 'observatory', hard: 0, projects: [['Build a Dashboard with Claude Artifacts', 20], ['Automate Your Email Briefing with Claude', 10], ['Build an AI Meeting Prep Assistant', 5], ['Intro to Linear Agents + Claude', 0]] },
+    { id: 'brain',     name: 'Claude AI Second Brain',      kind: 'observatory', hard: 0, projects: [['Build an AI Second Brain with Claude Code', 120], ['Automate Your AI Second Brain', 20]] },
+    { id: 'code',      name: 'Claude Code',                 kind: 'workshop',    hard: 1, projects: [['Set Up Claude Code Guardrails', 30], ['Design to Code: Paper + Claude Code via MCP', 10], ['Claude Code with Git Worktrees', 10], ["Set Up Claude Code's Status Line", 30], ['Video Editing with Claude x Remotion', 0], ['Viral Carousels with Claude x Paper', 0]] },
+    { id: 'prompt',    name: 'Claude Prompt Engineering',   kind: 'observatory', hard: 0, projects: [['Prompt Engineering for Healthcare', 20], ['Prompt Engineering for Research', 20], ['Prompt Engineer a Lesson Plan', 20]] },
+    { id: 'git',       name: 'Git & GitHub',                kind: 'workshop',    hard: 0, projects: [['Learn Git Fundamentals', 0], ['Git Pull Requests and Merging', 0], ['Git Branching and Rebasing', 0], ['Git Undo, Recovery, and Debugging', 0]] },
+    { id: 'beginnerai',name: 'Beginner AI Projects',        kind: 'observatory', hard: 0, projects: [['Ship a Landing Page with v0 and Vercel', 190], ['Build a Blog Writing Crew with CrewAI', 40], ['Automate Your Calendar with AI', 340]] },
+    { id: 'agents',    name: 'AI Agents · Hermes',          kind: 'observatory', hard: 1, projects: [['Set Up Hermes Agent for Free', 10], ['Give Hermes Agent Powers with MCP', 3]] },
+    { id: 'openclaw',  name: 'Build with OpenClaw',         kind: 'observatory', hard: 1, projects: [['Build a Telegram AI Bot with OpenClaw', 10], ['Give Your Assistant a Memory', 7], ['Build an Automated AI Briefing', 8]] },
+    { id: 'cursor',    name: 'Cursor',                      kind: 'workshop',    hard: 0, projects: [['Build a Spotify Clone with Cursor', 130], ['Create a Docker Container using Cursor', 90]] },
+    { id: 'chat',      name: 'Gemini · ChatGPT',            kind: 'observatory', hard: 0, projects: [['Gemini AI Email Assistant', 0], ['Personalize Your ChatGPT', 10], ['ChatGPT Prompting Hack', 8]] },
+    { id: 'secai',     name: 'Security x AI · AI Safety',   kind: 'gate',        hard: 1, projects: [['AI Security Scanner for Python', 70], ['Do this before downloading any MCP or Skill', 10]] },
+    { id: 'design',    name: 'System Design',               kind: 'workshop',    hard: 1, projects: [['URL Shortener System Design', 20], ['Break a Distributed System on Purpose', 10]] }
   ];
-  const KIND = { cloud: ['datacentre', 'Data centre'], kubernetes: ['containers', 'Container yard'], networking: ['tower', 'Signal tower'], security: ['gate', 'Gatehouse'], ai: ['observatory', 'Observatory'], devops: ['workshop', 'Workshop'], database: ['warehouse', 'Warehouse'], other: ['house', 'House'] };
-  const TIERS = [[0, 'Plot'], [100, 'Homestead'], [250, 'Hamlet'], [500, 'Village'], [1000, 'Town'], [2000, 'City'], [4000, 'Metropolis']];
-  const LEVEL_XP = 300;
+  /* Rarity: how many people have done it decides how much it is worth. */
+  const xpFor = (done, hard) => 50 + (done >= 1000 ? 10 : done >= 200 ? 25 : done >= 50 ? 45 : 70) + (hard ? 20 : 0);
+  const PROJECTS = [];
+  SERIES.forEach(sr => sr.projects.forEach((pr, i) => PROJECTS.push({ title: pr[0], done: pr[1], series: sr.id, part: i + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard) })));
+  const CATALOGUE_XP = PROJECTS.reduce((a, p) => a + p.xp, 0);
+  const KIND_NAME = { house: 'House', datacentre: 'Data centre', containers: 'Container yard', tower: 'Signal tower', gate: 'Gatehouse', observatory: 'Observatory', workshop: 'Workshop', warehouse: 'Warehouse' };
+  /* The expansion: the learner's own generated projects, on their own island. */
+  const EXPANSION = { name: 'Project Generator', count: 112, series: 48, sample: ['Build a Typed Crossplane v2 API', 'Zero-Cost Federal Platform Rehearsal Rig', 'Build a 28-Agent Advisory Firm', 'Aging Biology on One Graph'] };
+
+  const TIERS = [[0, 'Plot'], [100, 'Homestead'], [300, 'Hamlet'], [700, 'Village'], [1500, 'Town'], [3000, 'City'], [6000, 'Metropolis']];
+  const LEVEL_XP = 400;
 
   /* The world: 18 x 18. The hub is at the top, your land at the bottom, the
    * neighbours either side, and a road running the length of it. */
-  const N = 18;
-  const HUB = { gx: 7, gy: 1 };
-  const YOURS = { x0: 4, y0: 9, x1: 13, y1: 16 };
-  const ROAD = new Set(); for (let g = 0; g < N; g++) ROAD.add('8,' + g); for (let g = 3; g < 15; g++) ROAD.add(g + ',8'); for (let g = 5; g < 12; g++) { ROAD.add(g + ',4'); }
-  const PLAZA = new Set(); for (let x = 5; x < 12; x++) for (let y = 4; y < 8; y++) if (!ROAD.has(x + ',' + y)) PLAZA.add(x + ',' + y);
-  const WATER = new Set(['0,0', '1,0', '0,1', '2,0', '16,17', '17,17', '17,16']);
-  const TREES = [[1, 3, 1.1], [2, 2, 0.9], [15, 2, 1], [16, 3, 1.2], [3, 5, 1], [14, 6, 0.9], [1, 12, 1.1], [16, 12, 1], [2, 16, 0.9], [15, 15, 1.1], [0, 8, 1], [17, 8, 0.9], [4, 1, 0.8], [13, 1, 0.9]];
+  const N = 26;
+  const HUB = { gx: 11, gy: 1 };
+  const YOURS = { x0: 6, y0: 11, x1: 17, y1: 21 };
+  const ROAD = new Set(); for (let g = 0; g < 22; g++) ROAD.add('12,' + g); for (let g = 3; g < 21; g++) ROAD.add(g + ',9'); for (let g = 9; g < 16; g++) ROAD.add(g + ',4'); for (let g = 12; g < 20; g++) ROAD.add(g + ',22');
+  const PLAZA = new Set(); for (let x = 9; x < 16; x++) for (let y = 4; y < 9; y++) if (!ROAD.has(x + ',' + y)) PLAZA.add(x + ',' + y);
+  const WATER = new Set(); for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) { if (x + y < 3) WATER.add(x + ',' + y); if (x >= 19 && y >= 17 && !(y === 22 && x <= 19) && !(x >= 21 && y >= 19)) WATER.add(x + ',' + y); }
+  /* The expansion island, across the water at the bottom right. */
+  const ISLAND = { x0: 21, y0: 19, x1: 25, y1: 25 };
+  const TREES = [[3, 2, 1.1], [4, 1, 0.9], [20, 2, 1], [22, 3, 1.2], [6, 6, 1], [18, 6, 0.9], [1, 13, 1.1], [23, 12, 1], [2, 20, 0.9], [4, 24, 1.1], [0, 9, 1], [22, 9, 0.9], [8, 1, 0.8], [16, 1, 0.9], [7, 24, 1], [10, 24, 0.9], [22, 24, 1], [24, 21, 0.9], [19, 14, 1.1], [3, 16, 0.9]];
   const NEIGHBOURS = [
-    { name: 'Kalpana', tier: 'Village', at: [0, 10], built: [['house', 1, 11, 2], ['workshop', 2, 13, 1], ['tower', 0, 14, 1]] },
-    { name: 'Adam',    tier: 'Town',    at: [14, 10], built: [['datacentre', 14, 11, 2], ['house', 16, 13, 2], ['observatory', 15, 15, 1], ['containers', 16, 10, 1]] }
+    { name: 'Kalpana', tier: 'Village', at: [0, 12], built: [['house', 1, 14, 2], ['workshop', 3, 15, 1], ['tower', 1, 17, 1], ['house', 3, 18, 1]] },
+    { name: 'Adam',    tier: 'Town',    at: [19, 11], built: [['datacentre', 19, 12, 2], ['house', 22, 14, 2], ['observatory', 20, 16, 1], ['containers', 23, 11, 1], ['warehouse', 21, 13, 1]] }
   ];
+  /* Where each series lands on your land, in the order they are started:
+   * along the streets either side of the main road, working outward. */
+  const PLOT_ORDER = [];
+  [12, 13, 15, 16, 18, 19, 21].forEach(y => [11, 13, 10, 14, 9, 15, 8, 16, 7, 17, 6].forEach(x => { if (!ROAD.has(x + ',' + y)) PLOT_ORDER.push([x, y]); }));
 
-  let SG = 9, SGY = 12;   /* the plot under construction, on your land */
+  let SG = 13, SGY = 15;   /* the plot under construction, on your land */
+  /* A learner partway down the classic path: the account, the beginner
+   * challenge, three parts of VPC, a database, a cluster, two days of DevOps,
+   * and the Claude intro. */
+  const DONE = new Set(['Set Up An AWS Account', 'Join the Cloud Beginner Challenge!', 'Host a Website on Amazon S3', 'Cloud Security with AWS IAM',
+    'Build a Virtual Private Cloud', 'VPC Traffic Flow and Security', 'Creating a Private Subnet', 'Aurora Database with EC2', 'Launch a Kubernetes Cluster',
+    'Set Up a Web App in the Cloud', 'Connect a GitHub Repo with AWS', 'Explore Claude.ai, Code, and Cowork', 'Claude Code Skills Basics']);
   const state = {
-    done: 3,
-    placed: [ { kind: 'house', gx: 6, gy: 11, tier: 1 }, { kind: 'datacentre', gx: 10, gy: 10, tier: 1 }, { kind: 'containers', gx: 6, gy: 14, tier: 1 } ],
-    pending: null,          /* a finished component waiting for a plot */
+    placed: [],             /* { series, kind, gx, gy } - one per series started */
+    pending: null,          /* a series that just started, waiting for a plot */
     anim: null,             /* { i, start } while something drops in */
     hover: null
   };
-  const xpOf = () => PROJECTS.slice(0, state.done).reduce((a, p) => a + p.xp, 0);
+  /* Buildings for the series already started, on the first plots. */
+  SERIES.forEach(sr => { if (sr.projects.some(pr => DONE.has(pr[0]))) state.placed.push({ series: sr.id, kind: sr.kind, gx: PLOT_ORDER[state.placed.length][0], gy: PLOT_ORDER[state.placed.length][1] }); });
+  const doneIn = sr => sr.projects.filter(pr => DONE.has(pr[0])).length;
+  const tierIn = sr => { const d = doneIn(sr), n = sr.projects.length; return d >= n ? 3 : d >= Math.ceil(n / 2) ? 2 : 1; };
+  const xpOf = () => PROJECTS.filter(p => DONE.has(p.title)).reduce((a, p) => a + p.xp, 0);
   const tierOf = xp => { let t = TIERS[0]; TIERS.forEach(x => { if (xp >= x[0]) t = x; }); return t; };
   const nextTier = xp => TIERS.find(x => x[0] > xp);
-  const buildersOf = xp => 1 + (xp >= 500 ? 1 : 0) + (xp >= 1500 ? 1 : 0);
+  const buildersOf = xp => 1 + (xp >= 700 ? 1 : 0) + (xp >= 1500 ? 1 : 0);
 
   /* ================================================================ world */
   const world = makeIso($('world'), 440, 310);
   function camTo(gx, gy) { const q = [(gx - gy) * TW / 2, 60 + (gx + gy) * TH / 2]; return { x: q[0], y: q[1] - 165 }; }
-  Object.assign(world.cam, camTo(8.5, 12.5));
+  const HOME = [12, 16.5];
+  Object.assign(world.cam, camTo(HOME[0], HOME[1]));
   let camGoal = null;
 
   /* Land greens around what is built on it. */
   function greenness(gx, gy) {
-    if (gy < 8) return 1;                    /* the hub is tended */
+    if (gy < 9 && gx > 6 && gx < 18) return 1;     /* the hub is tended */
+    if (gx >= ISLAND.x0 && gy >= ISLAND.y0) return 0.15;  /* the island is wild */
     let g = 0;
     const near = (x, y, r) => { const d = Math.hypot(gx + 0.5 - x, gy + 0.5 - y); g = Math.max(g, clamp(1 - (d - 0.6) / r, 0, 1)); };
     state.placed.forEach(b => near(b.gx + 0.5, b.gy + 0.5, 2.2));
@@ -714,7 +800,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     NEIGHBOURS.forEach(nb => nb.built.forEach(b => near(b[1] + 0.5, b[2] + 0.5, 2)));
     return g;
   }
-  const HUT = [12, 15];
+  const HUT = [17, 21];
   const isYours = (x, y) => x >= YOURS.x0 && x <= YOURS.x1 && y >= YOURS.y0 && y <= YOURS.y1;
   const occupied = (x, y) => ROAD.has(x + ',' + y) || WATER.has(x + ',' + y) || (x === HUT[0] && y === HUT[1]) || (x === SG && y === SGY) || state.placed.some(b => b.gx === x && b.gy === y) || TREES.some(t => t[0] === x && t[1] === y);
 
@@ -731,7 +817,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     for (let gy = 0; gy < N; gy++) for (let gx = 0; gx < N; gx++) {
       const k = gx + ',' + gy;
       if (WATER.has(k)) { I.tile(gx, gy, '#3ea3e8'); const c = I.p(gx + 0.5, gy + 0.5); ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1.5; const ph = (now / 900 + gx) % 1; ctx.beginPath(); ctx.moveTo(c[0] - 12 + ph * 6, c[1] - 2); ctx.lineTo(c[0] - 2 + ph * 6, c[1] - 2); ctx.stroke(); continue; }
-      if (ROAD.has(k)) { I.tile(gx, gy, '#8c8f98', 'rgba(0,0,0,.08)'); continue; }
+      if (ROAD.has(k)) { I.tile(gx, gy, (gy === 22 && gx >= 19) ? '#a88c5f' : '#8c8f98', 'rgba(0,0,0,.08)'); if (gy === 22 && gx >= 19) { const a = I.p(gx, gy), b = I.p(gx + 1, gy), c = I.p(gx + 1, gy + 1), d = I.p(gx, gy + 1); I.line(a, b, '#6b4a2b', 2); I.line(d, c, '#6b4a2b', 2); } continue; }
       if (PLAZA.has(k)) { I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.06)'); continue; }
       const gr = greenness(gx, gy);
       const dirt = (gx * 7 + gy * 3) % 3 === 0 ? '#cdb58c' : '#c4ab82', grass = (gx + gy) % 2 ? '#79c853' : '#84d15c';
@@ -740,9 +826,11 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
       if (gr < 0.3 && (gx * 13 + gy * 7) % 5 === 0) { const q = I.p(gx + 0.5, gy + 0.5); ctx.fillStyle = 'rgba(120,90,50,.35)'; ctx.fillRect(q[0] - 2, q[1] - 1, 4, 2); }   /* a stone in the dust */
       if (I === world && isYours(gx, gy) && !occupied(gx, gy) && state.pending) I.tile(gx, gy, 'rgba(255,255,255,.14)', 'rgba(255,255,255,.35)');
     }
-    /* road markings and kerb */
+    /* road markings */
     ctx.setLineDash([6, 6]); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.2;
-    ctx.beginPath(); const r0 = I.p(8.5, 0), r1 = I.p(8.5, N); ctx.moveTo(r0[0], r0[1]); ctx.lineTo(r1[0], r1[1]); const s0 = I.p(3, 8.5), s1 = I.p(15, 8.5); ctx.moveTo(s0[0], s0[1]); ctx.lineTo(s1[0], s1[1]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); const r0 = I.p(12.5, 0), r1 = I.p(12.5, 22); ctx.moveTo(r0[0], r0[1]); ctx.lineTo(r1[0], r1[1]); const s0 = I.p(3, 9.5), s1 = I.p(21, 9.5); ctx.moveTo(s0[0], s0[1]); ctx.lineTo(s1[0], s1[1]); ctx.stroke(); ctx.setLineDash([]);
+    /* the island: hatched until it is unlocked */
+    for (let gy = ISLAND.y0; gy <= ISLAND.y1; gy++) for (let gx = ISLAND.x0; gx <= ISLAND.x1; gx++) if (!WATER.has(gx + ',' + gy)) I.tile(gx, gy, 'rgba(255,255,255,.06)', 'rgba(255,255,255,.18)');
     /* your boundary */
     I.poly([I.p(YOURS.x0, YOURS.y0), I.p(YOURS.x1 + 1, YOURS.y0), I.p(YOURS.x1 + 1, YOURS.y1 + 1), I.p(YOURS.x0, YOURS.y1 + 1)], null, 'rgba(255,197,49,.55)', 1.5);
     /* hover plot */
@@ -753,19 +841,23 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     const add = (d, fn) => items.push({ d, fn });
     TREES.forEach(t => add(t[0] + t[1] + 0.5, () => I.tree(t[0], t[1], t[2])));
     add(HUB.gx + HUB.gy + 2.4, () => B.hq(I, HUB.gx, HUB.gy, 1, now));
-    add(8.5 + 6.5, () => B.fountain(I, 8, 6, 1, now)); add(5 + 6 + 0.5, () => B.board(I, 5, 6, 1, now));
-    [[5, 5], [11, 5], [5, 7], [11, 7]].forEach(q => add(q[0] + q[1] + 0.6, () => I.lamp(q[0] + 0.5, q[1] + 0.5, now)));
-    [[6, 6], [10, 6]].forEach(q => add(q[0] + q[1] + 0.5, () => I.bush(q[0], q[1], true)));
+    add(12.5 + 6.5, () => B.fountain(I, 12, 6, 1, now)); add(9 + 6 + 0.5, () => B.board(I, 9, 6, 1, now)); add(15 + 7 + 0.5, () => B.board(I, 15, 7, 1, now));
+    [[9, 5], [15, 5], [9, 8], [15, 8]].forEach(q => add(q[0] + q[1] + 0.6, () => I.lamp(q[0] + 0.5, q[1] + 0.5, now)));
+    [[10, 7], [14, 7], [10, 5], [14, 5]].forEach(q => add(q[0] + q[1] + 0.5, () => I.bush(q[0], q[1], true)));
     add(HUT[0] + HUT[1] + 0.5, () => B.hut(I, HUT[0], HUT[1], 1, now));
-    if (!state.placed.length) add(YOURS.x0 + YOURS.y0 + 3, () => B.stake(I, 8, 12));
-    state.placed.forEach((b, i) => { let k = 1; if (state.anim && state.anim.i === i) k = reduce ? 1 : clamp((now - state.anim.start) / 1600, 0, 1); add(b.gx + b.gy + 0.5, () => B[b.kind](I, b.gx, b.gy, k, now, b.tier)); });
+    if (!state.placed.length) add(YOURS.x0 + YOURS.y0 + 3, () => B.stake(I, 12, 15));
+    state.placed.forEach((b, i) => { const sr = SERIES.find(x => x.id === b.series) || { projects: [[1, 1]] }; let k = 1; if (state.anim && state.anim.i === i) k = reduce ? 1 : clamp((now - state.anim.start) / 1600, 0, 1); add(b.gx + b.gy + 0.5, () => B[b.kind](I, b.gx, b.gy, k, now, tierIn(sr))); });
+    /* the expansion island: a gate at the end of the bridge and a sign */
+    add(21 + 22 + 0.5, () => B.gate(I, 21, 21.7, 1, now, 1));
+    add(23 + 22 + 0.6, () => { const q = I.p(23.5, 21.6); I.roundRect(q[0] - 46, q[1] - 30, 92, 24, 8, 'rgba(16,24,44,.8)'); ctx.fillStyle = '#ffc531'; ctx.font = '800 8px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(EXPANSION.name.toUpperCase(), q[0], q[1] - 19); ctx.fillStyle = '#fff'; ctx.font = '700 7px Nunito, sans-serif'; ctx.fillText('Expansion · ' + EXPANSION.count + ' of your own projects', q[0], q[1] - 10); ctx.textAlign = 'left'; });
+    [[23, 23], [24, 24]].forEach(q => add(q[0] + q[1] + 0.5, () => B.stake(I, q[0], q[1])));
     NEIGHBOURS.forEach(nb => { nb.built.forEach(b => add(b[1] + b[2] + 0.5, () => B[b[0]](I, b[1], b[2], 1, now, b[3])));
       add(nb.at[0] + nb.at[1] + 0.2, () => { const q = I.p(nb.at[0] + 1, nb.at[1] - 0.2); I.roundRect(q[0] - 30, q[1] - 12, 60, 16, 8, 'rgba(16,24,44,.75)'); ctx.fillStyle = '#fff'; ctx.font = '700 8px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(nb.name + ' · ' + nb.tier, q[0], q[1] - 1); ctx.textAlign = 'left'; }); });
     /* lamps on your land come with Village */
-    if (xpOf() >= 500) [[5, 9], [12, 9]].forEach(q => add(q[0] + q[1] + 0.6, () => I.lamp(q[0] + 0.5, q[1] + 0.9, now)));
+    if (xpOf() >= 700) [[7, 10], [16, 10], [7, 22], [16, 22]].forEach(q => add(q[0] + q[1] + 0.6, () => I.lamp(q[0] + 0.5, q[1] + 0.9, now)));
     /* people: you on the road, builders at the hut, a visitor in the plaza */
-    const walkT = reduce ? 3 : now / 1000; const u = reduce ? 0.4 : ((walkT * 0.16) % 2), s = u < 1 ? u : 2 - u;
-    const gy = 8.5 + s * 8.5, gx = 8.5; add(gx + gy, () => I.person(gx, gy, '#2f7fd6', walkT)); add(gx + gy - 0.01, () => I.pet(gx + 0.35, gy + (u < 1 ? -0.5 : 0.5), walkT));
+    const walkT = reduce ? 3 : now / 1000; const u = reduce ? 0.4 : ((walkT * 0.12) % 2), s = u < 1 ? u : 2 - u;
+    const gy = 9.5 + s * 12, gx = 12.5; add(gx + gy, () => I.person(gx, gy, '#2f7fd6', walkT)); add(gx + gy - 0.01, () => I.pet(gx + 0.35, gy + (u < 1 ? -0.5 : 0.5), walkT));
     /* builders: at the hut, or - while a step is landing - out at the site with hammers */
     const since = now - build.stepAt, busy = construction && since < 4200;
     for (let i = 0; i < buildersOf(xpOf()); i++) {
@@ -780,14 +872,15 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
       add(SG + SGY + 1.2, () => { $('sitetier').innerHTML = SITE[build.template][build.mode](I, build.done, ease(k), now) + '<small>' + build.done + ' of 7</small>'; });
       /* the delivery: down the road from the hub, then across to the plot */
       const tt = since / 1400;
-      if (tt < 1 && build.done > 0) { const a = tt < 0.6 ? tt / 0.6 : 1, b2 = tt < 0.6 ? 0 : (tt - 0.6) / 0.4; const tx = lerp(8.4, SG + 1.35, b2), ty = lerp(4.5, SGY + 0.4, a); add(tx + ty + 0.6, () => I.truck(tx, ty, TEMPLATE_COLOUR[build.template])); }
+      if (tt < 1 && build.done > 0) { const a = tt < 0.6 ? tt / 0.6 : 1, b2 = tt < 0.6 ? 0 : (tt - 0.6) / 0.4; const tx = lerp(12.4, SG + 1.35, b2), ty = lerp(9.5, SGY + 0.4, a); add(tx + ty + 0.6, () => I.truck(tx, ty, TEMPLATE_COLOUR[build.template])); }
       if (since >= 1400 && since < 2000) add(SG + SGY + 2, () => I.puff(SG + 1.2, SGY + 0.3, (since - 1400) / 600));
     }
     fx.forEach(f => { const t = (now - f.start) / f.life; if (t >= 1) return;
       if (f.type === 'float') add(99, () => { const q = I.p(f.gx, f.gy, 40 + t * 40); ctx.globalAlpha = 1 - t; ctx.font = '800 13px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.6)'; ctx.strokeText(f.text, q[0], q[1]); ctx.fillStyle = f.colour; ctx.fillText(f.text, q[0], q[1]); ctx.textAlign = 'left'; ctx.globalAlpha = 1; });
       if (f.type === 'sparkle') add(99, () => { const q = I.p(f.gx, f.gy, 20); for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + f.seed, r = ease(t) * 34; ctx.globalAlpha = 1 - t; I.blob(q[0] + Math.cos(a) * r, q[1] + Math.sin(a) * r * 0.55 - t * 18, 2.2 * (1 - t) + 0.5, ['#ffd54a', '#7cf0a4', '#4fc3ff', '#ff8fb1'][i % 4]); } ctx.globalAlpha = 1; });
     });
-    const v = (now / 1000 * 0.1) % 1; const vx = 6 + v * 5, vy = 5.5; add(vx + vy, () => I.person(vx, vy, '#8f5fd1', walkT * 0.8));
+    const v = (now / 1000 * 0.1) % 1; const vx = 9.5 + v * 5, vy = 7.5; add(vx + vy, () => I.person(vx, vy, '#8f5fd1', walkT * 0.8));
+    const v2 = (now / 1000 * 0.08 + 0.5) % 1; const wx = 14.5 - v2 * 4, wy = 5.5; add(wx + wy, () => I.person(wx, wy, '#3fa66b', walkT * 0.7));
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
 
     /* vignette */
@@ -803,7 +896,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   const toGrid = e => { const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) * 440 / r.width + world.cam.x - 220, y = (e.clientY - r.top) * 310 / r.height + world.cam.y - 60; return [Math.floor((x / (TW / 2) + y / (TH / 2)) / 2), Math.floor((y / (TH / 2) - x / (TW / 2)) / 2)]; };
   cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, cx: world.cam.x, cy: world.cam.y, moved: false }; cv.setPointerCapture(e.pointerId); });
   cv.addEventListener('pointermove', e => {
-    if (drag) { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 4) drag.moved = true; if (drag.moved) { const r = cv.getBoundingClientRect(); world.cam.x = clamp(drag.cx - dx * 440 / r.width, -280, 280); world.cam.y = clamp(drag.cy - dy * 310 / r.height, -40, 330); camGoal = null; } }
+    if (drag) { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 4) drag.moved = true; if (drag.moved) { const r = cv.getBoundingClientRect(); world.cam.x = clamp(drag.cx - dx * 440 / r.width, -420, 420); world.cam.y = clamp(drag.cy - dy * 310 / r.height, -40, 520); camGoal = null; } }
     state.hover = toGrid(e);
   });
   cv.addEventListener('pointerup', e => { const was = drag; drag = null; if (!was || was.moved) return; pick(toGrid(e)); });
@@ -815,17 +908,17 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
       if (!isYours(gx, gy)) { say('Not your land', 'Choose a plot inside the gold line. Other learners’ land is theirs.'); return; }
       if (occupied(gx, gy)) { say('Taken', 'Something is already there. Pick an open plot.'); return; }
       const pend = state.pending; state.pending = null;
-      const kin = state.placed.filter(b => b.kind === pend.kind).length;
-      state.placed.push({ kind: pend.kind, gx, gy, tier: 1 + Math.min(2, kin) });
+      state.placed.push({ series: pend.series, kind: pend.kind, gx, gy });
       state.anim = { i: state.placed.length - 1, start: performance.now() };
       $('placehint').hidden = true; cv.classList.remove('placing');
-      say(pend.name + ' placed', kin ? 'Your ' + (kin + 1) + (kin + 1 === 2 ? 'nd' : kin + 1 === 3 ? 'rd' : 'th') + ' of these — it comes in bigger.' : 'The land around it will green over.');
-      paintHud(); return;
+      say(pend.name + ' started', 'Its ' + KIND_NAME[pend.kind].toLowerCase() + ' goes up here, and grows with every part of the series you finish.');
+      paintHud(); paintCatalogue(); return;
     }
     if (gx === HUT[0] && gy === HUT[1]) { say('Builders’ hut', buildersOf(xpOf()) + ' builder' + (buildersOf(xpOf()) > 1 ? 's' : '') + ' live here. The next arrives at ' + (xpOf() < 500 ? '500' : '1,500') + ' XP.'); return; }
     if (gx === HUB.gx || gx === HUB.gx + 1) if (gy === HUB.gy || gy === HUB.gy + 1) { say('NextWork HQ', 'The hub. One day: events, the leaderboard, and who is online. Today: a very nice building.'); return; }
+    if (gx >= ISLAND.x0 && gy >= ISLAND.y0) { say(EXPANSION.name, 'The expansion. ' + EXPANSION.count + ' projects you generated yourself, across ' + EXPANSION.series + ' series of your own. It opens once the bridge is built - which is a decision for NextWork, not a level.'); return; }
     const hit = state.placed.findIndex(b => b.gx === gx && b.gy === gy);
-    if (hit >= 0) { const b = state.placed[hit]; const kin = PROJECTS.slice(0, state.done).filter(p => (KIND[p.tag] || KIND.other)[0] === b.kind); say(KIND[Object.keys(KIND).find(t => KIND[t][0] === b.kind)][1], 'Tier ' + b.tier + '. Built by ' + kin.length + ' project' + (kin.length > 1 ? 's' : '') + ' on this tag.', kin); return; }
+    if (hit >= 0) { const b = state.placed[hit]; const sr = SERIES.find(x => x.id === b.series) || { name: KIND_NAME[b.kind], hard: 0, projects: [] }; const list = sr.projects.filter(pr => DONE.has(pr[0])).map(pr => ({ title: pr[0], xp: xpFor(pr[1], sr.hard) })); say(sr.name, KIND_NAME[b.kind] + ' · tier ' + tierIn(sr) + ' · ' + doneIn(sr) + ' of ' + sr.projects.length + ' parts done.', list); return; }
     const nb = NEIGHBOURS.find(n => n.built.some(b => b[1] === gx && b[2] === gy)); if (nb) { say(nb.name + '’s land', nb.name + ' is at ' + nb.tier + '. You can look, and one day wave.'); return; }
     if (isYours(gx, gy)) say('Your land', 'Finish a project and place what it built here.');
   }
@@ -836,10 +929,12 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     $('lv').textContent = lv; $('ringfill').style.strokeDashoffset = String(138.2 * (1 - into / LEVEL_XP));
     $('xpfill').style.width = (nt ? (xp - t[0]) / (nt[0] - t[0]) * 100 : 100) + '%';
     $('xptext').textContent = xp + ' XP' + (nt ? ' · ' + (nt[0] - xp) + ' to ' + nt[1] : ' · top tier');
-    $('coins').textContent = Math.round(xp * 0.45); $('gems').textContent = state.done; $('builders').textContent = buildersOf(xp);
-    $('tier').innerHTML = t[1] + '<small>' + xp + ' XP</small>';
-    $('finish').disabled = state.done >= PROJECTS.length || !!state.pending;
-    $('finish').textContent = state.pending ? 'Place ' + state.pending.name.toLowerCase() + ' first' : state.done >= PROJECTS.length ? 'Every project is built' : 'Simulate: finish a project';
+    const nDone = PROJECTS.filter(p => DONE.has(p.title)).length;
+    $('coins').textContent = Math.round(xp * 0.45); $('gems').textContent = SERIES.filter(sr => doneIn(sr) === sr.projects.length).length; $('builders').textContent = buildersOf(xp);
+    $('tier').innerHTML = t[1] + '<small>' + nDone + ' of ' + PROJECTS.length + ' · ' + xp + ' XP</small>';
+    const next = nextProject();
+    $('finish').disabled = !next || !!state.pending;
+    $('finish').textContent = state.pending ? 'Choose a plot for ' + state.pending.name : !next ? 'Every project is built' : 'Simulate: finish “' + next.title + '”';
     const L = $('ladder'); L.innerHTML = '';
     TIERS.forEach(x => { const d = document.createElement('div'); d.className = x === t ? 'on' : x[0] < t[0] ? 'past' : ''; d.innerHTML = '<b>' + x[1] + '</b>' + x[0].toLocaleString(); L.appendChild(d); });
     $('sitebuilders').textContent = buildersOf(xp) + ' on site';
@@ -851,28 +946,39 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   let toastTimer = null;
   function toast(text) { const t = $('toast'); t.innerHTML = text; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2800); }
 
-  function handOver(kind, name, xp) {
-    state.pending = { kind, name };
+  function handOver(kind, name, series) {
+    state.pending = { kind, name, series };
     $('placehint').hidden = false; cv.classList.add('placing');
-    camGoal = camTo(8.5, 12.5);
-    say('Choose a plot', 'Your ' + name.toLowerCase() + ' is ready. Tap an open plot inside the gold line to put it there.');
+    camGoal = camTo(HOME[0], HOME[1]);
+    say('New series: ' + name, 'A ' + KIND_NAME[kind].toLowerCase() + ' for it. Tap an open plot inside the gold line to put it there.');
+    paintCatalogue();
     paintHud();
   }
+  /* The next thing to finish: carry on a series already started before
+   * opening a new one, the way a person actually works through the site. */
+  function nextProject() {
+    const started = SERIES.filter(sr => doneIn(sr) > 0 && doneIn(sr) < sr.projects.length);
+    for (const sr of started) { const pr = sr.projects.find(x => !DONE.has(x[0])); if (pr) return { title: pr[0], series: sr, xp: xpFor(pr[1], sr.hard) }; }
+    for (const sr of SERIES) { const pr = sr.projects.find(x => !DONE.has(x[0])); if (pr) return { title: pr[0], series: sr, xp: xpFor(pr[1], sr.hard) }; }
+    return null;
+  }
   $('finish').addEventListener('click', () => {
-    if (state.done >= PROJECTS.length || state.pending) return;
-    const p = PROJECTS[state.done]; state.done++;
-    const b = KIND[p.tag] || KIND.other; const before = buildersOf(xpOf() - p.xp), after = buildersOf(xpOf());
-    toast('+' + p.xp + ' XP · +' + Math.round(p.xp * 0.45) + ' coins · +1 gem' + (after > before ? '<br>A new builder has arrived' : ''));
-    handOver(b[0], b[1], p.xp);
+    const next = nextProject(); if (!next || state.pending) return;
+    const before = buildersOf(xpOf()); DONE.add(next.title); const after = buildersOf(xpOf());
+    const sr = next.series, finished = doneIn(sr) === sr.projects.length;
+    toast('+' + next.xp + ' XP · +' + Math.round(next.xp * 0.45) + ' coins' + (finished ? ' · +1 gem: series complete' : '') + (after > before ? '<br>A new builder has arrived' : ''));
+    const at = state.placed.findIndex(b => b.series === sr.id);
+    if (at >= 0) { state.anim = { i: at, start: performance.now() }; say(next.title, sr.name + ' part ' + doneIn(sr) + ' of ' + sr.projects.length + ' — the ' + KIND_NAME[sr.kind].toLowerCase() + ' grows.' + (finished ? ' Series complete: it is at full size.' : '')); paintHud(); paintCatalogue(); }
+    else handOver(sr.kind, sr.name, sr.id);
   });
-  $('gohq').addEventListener('click', () => { camGoal = camTo(8.5, 4); say('NextWork HQ', 'The hub town. Every learner’s road leads here. Drag around; press My land to go back.'); });
-  $('gohome').addEventListener('click', () => { camGoal = camTo(8.5, 12.5); });
-  const occupiedForBuild = () => state.placed.some(b => b.gx === SG && b.gy === SGY);
-  if (occupiedForBuild()) { SG = 9; SGY = 13; }
+  $('gohq').addEventListener('click', () => { camGoal = camTo(12.5, 4.5); say('NextWork HQ', 'The hub town. Every learner’s road leads here. Drag around; press My land to go back.'); });
+  $('gohome').addEventListener('click', () => { camGoal = camTo(HOME[0], HOME[1]); });
+  $('goisland').addEventListener('click', () => { camGoal = camTo(22.5, 21.5); say(EXPANSION.name, 'Your own island, across the bridge. ' + EXPANSION.count + ' generated projects in ' + EXPANSION.series + ' series. The main world is the shared ninety, so every learner’s town can be compared; this is yours alone.'); });
+  while (state.placed.some(b => b.gx === SG && b.gy === SGY)) SG++;
 
   /* ================================================================ build */
-  const STEPS = ['Start the control plane', 'Freeze the contract', 'Build the typed API', 'Reconcile the environment', 'Run the staleness check', 'Secret mission: measure drift', 'Clean up your resources'];
-  const STEP_XP = [15, 15, 25, 25, 20, 25, 15];
+  const STEPS = ['Create the bot', 'Add an intent', 'Add sample utterances', 'Build and test the bot', 'Add a fallback intent', 'Publish an alias', 'Clean up your resources'];
+  const STEP_XP = [8, 8, 10, 12, 8, 8, 6];
   const TEMPLATES = {
     house:      { name: 'House',       waterfall: ['Foundation', 'Frame', 'Walls', 'Roof', 'Windows', 'Door', 'Garden'], agile: ['Shed', 'Cabin', 'Cottage', 'House', 'House + garden', 'House + garage', 'Two storeys'] },
     car:        { name: 'Car',         waterfall: ['Chassis', 'Wheels', 'Engine', 'Body', 'Glass', 'Paint', 'Badge'],   agile: ['Skateboard', 'Scooter', 'Bicycle', 'Motorbike', 'Small car', 'Car', 'Car + spoiler'] },
@@ -880,7 +986,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   };
   const build = { template: 'house', mode: 'agile', done: 3, lastAt: -5000, stepAt: -9000 };
   const site = makeIso($('site'), 440, 310);
-  site.cam.x = camTo(9.8, 12.8).x; site.cam.y = camTo(9.8, 12.8).y + 20;
+  site.cam.x = camTo(SG + 0.8, SGY + 0.8).x; site.cam.y = camTo(SG + 0.8, SGY + 0.8).y + 20;
 
   const SITE = {
     house: {
@@ -996,17 +1102,16 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   $('placeit').addEventListener('click', () => {
     /* it was built on the plot; keeping it is one press */
     const kind = build.template === 'car' ? 'house' : build.template;
-    if (state.done < PROJECTS.length) state.done++;
-    const kin = state.placed.filter(b => b.kind === kind).length;
-    state.placed.push({ kind, gx: SG, gy: SGY, tier: 1 + Math.min(2, kin) });
+    const next = nextProject(); if (next) DONE.add(next.title);
+    state.placed.push({ series: 'built-' + Date.now(), kind, gx: SG, gy: SGY });
     state.anim = { i: state.placed.length - 1, start: performance.now() };
-    toast('+140 XP \u00b7 +60 coins \u00b7 +1 gem');
+    toast('+' + (next ? next.xp : 100) + ' XP · +' + Math.round((next ? next.xp : 100) * 0.45) + ' coins');
     /* the next build goes on the next open plot */
     for (let gy = YOURS.y0; gy <= YOURS.y1; gy++) for (let gx = YOURS.x0; gx <= YOURS.x1; gx++) if (!occupied(gx, gy) && !(gx === SG && gy === SGY)) { SG = gx; SGY = gy; gy = 99; break; }
     site.cam.x = camTo(SG + 0.8, SGY + 0.8).x; site.cam.y = camTo(SG + 0.8, SGY + 0.8).y + 20;
     build.done = 0; build.lastAt = performance.now(); build.stepAt = -9000; paintBubbles(); paintHud();
-    camGoal = camTo(8.5, 12.5); show('world');
-    say(TEMPLATES[build.template].name + ' finished', 'It is on your land now. The next build has its own plot.');
+    camGoal = camTo(HOME[0], HOME[1]); show('world');
+    say(TEMPLATES[build.template].name + ' finished', 'It is on your land now. The next build has its own plot.'); paintCatalogue();
   });
 
   let invested = 47 * 60 + 12, session = 12 * 60 + 40;
@@ -1015,14 +1120,34 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   setInterval(tick, 1000);
 
   /* ================================================================= tabs */
-  function show(view) { ['world', 'build', 'notes'].forEach(v => { $('tab-' + v).setAttribute('aria-selected', String(v === view)); $('view-' + v).hidden = v !== view; }); try { localStorage.setItem('nww-tab', view); } catch (e) { /* fine */ } }
+  const ICON = { house: '\ud83c\udfe0', datacentre: '\ud83c\udfe2', containers: '\ud83d\udce6', tower: '\ud83d\udce1', gate: '\ud83d\udee1\ufe0f', observatory: '\ud83d\udd2d', workshop: '\ud83d\udd27', warehouse: '\ud83c\udfed' };
+  function paintCatalogue() {
+    const host = $('series'); host.innerHTML = '';
+    SERIES.forEach(sr => {
+      const d = doneIn(sr), n = sr.projects.length, xp = sr.projects.filter(pr => DONE.has(pr[0])).reduce((a, pr) => a + xpFor(pr[1], sr.hard), 0);
+      const row = document.createElement('div'); row.className = 'srow' + (d === n ? ' full' : d ? ' going' : '');
+      const ic = document.createElement('i'); ic.textContent = ICON[sr.kind];
+      const nm = document.createElement('div'); nm.className = 'n';
+      const b = document.createElement('b'); b.textContent = sr.name; const sm = document.createElement('small'); sm.textContent = KIND_NAME[sr.kind] + (d ? ' · tier ' + tierIn(sr) : ' · not started');
+      const bar = document.createElement('div'); bar.className = 'bar'; const fill = document.createElement('i'); fill.style.width = (d / n * 100) + '%'; bar.appendChild(fill);
+      nm.appendChild(b); nm.appendChild(sm); nm.appendChild(bar);
+      const v = document.createElement('div'); v.className = 'v'; v.innerHTML = d + ' / ' + n + '<small>' + xp + ' XP</small>';
+      row.appendChild(ic); row.appendChild(nm); row.appendChild(v); host.appendChild(row);
+    });
+    const nDone = PROJECTS.filter(p => DONE.has(p.title)).length;
+    $('cat-summary').textContent = PROJECTS.length + ' projects in ' + SERIES.length + ' series · ' + nDone + ' done · ' + xpOf() + ' of ' + CATALOGUE_XP + ' XP';
+    $('exp-count').textContent = EXPANSION.count; $('exp-series').textContent = EXPANSION.series;
+    const smp = $('exp-sample'); smp.innerHTML = ''; EXPANSION.sample.forEach(t => { const x = document.createElement('span'); x.textContent = t; smp.appendChild(x); });
+  }
+  function show(view) { ['world', 'build', 'projects', 'notes'].forEach(v => { $('tab-' + v).setAttribute('aria-selected', String(v === view)); $('view-' + v).hidden = v !== view; }); try { localStorage.setItem('nww-tab', view); } catch (e) { /* fine */ } }
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => show(b.dataset.view)));
   let opening = 'world'; try { opening = localStorage.getItem('nww-tab') || 'world'; } catch (e) { /* fine */ }
-  show(['world', 'build', 'notes'].includes(opening) ? opening : 'world');
+  show(['world', 'build', 'projects', 'notes'].includes(opening) ? opening : 'world');
 
   function frame(now) { drawWorld(world, now); drawSite(now); requestAnimationFrame(frame); }
   paintHud(); paintBubbles(); tick();
-  say(tierOf(xpOf())[1], state.done + ' projects in. The land greens as you build on it. Drag to look around — NextWork HQ is up the road, and other learners are building next door.');
+  say(tierOf(xpOf())[1], PROJECTS.filter(p => DONE.has(p.title)).length + ' of the ' + PROJECTS.length + ' NextWork projects done, across ' + state.placed.length + ' series. Each series is a building that grows with its parts. Drag to look around — HQ is up the road, the expansion island is across the water.');
+  paintCatalogue();
   if (reduce) { drawWorld(world, performance.now()); drawSite(performance.now()); } else requestAnimationFrame(frame);
 })();
 </script>

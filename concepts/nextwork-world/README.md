@@ -5,6 +5,12 @@ a side panel beside the page. This is a concept demo for the NextWork team,
 not a feature of the extension: nothing here is wired to nextwork.ai and none
 of it ships in a build.
 
+The world is built from NextWork's real catalogue: the ninety projects in
+their twenty-seven series. A series is one building on your land that goes up
+with its first part and grows with each one after. XP is by rarity - the fewer
+people who have done a project, the more it is worth. The learner's own
+generated projects are an expansion island across the water.
+
 `demo.html` is self-contained. Open it in a browser. It shows:
 
 - **World** — the portfolio surface, as an open world. Your land starts as
@@ -22,7 +28,9 @@ of it ships in a build.
   flatbed drives in from the hub with the piece, the builders run out from
   their hut and hammer it up, the XP floats off the site. Keep it, and it
   stays where it was built.
-- **Notes** — the loop, what each tag builds, the growth tiers, what the
+- **Projects** — the catalogue, series by series, with progress, XP and the
+  building each one grows; and the expansion.
+- **Notes** — the loop, what each series builds, the growth tiers, what the
   extension can actually read from the page, and the open questions.
 
 The art is isometric and drawn in code from primitives — boxes, roofs, domes,
