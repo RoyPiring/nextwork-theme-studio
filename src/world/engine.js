@@ -14,12 +14,14 @@
   const TW = 48, TH = 24;
   function makeIso(canvas, W0, H0, scale) {
     const ctx = canvas.getContext('2d');
-    let S = scale || 1, W = W0, H = H0; const PW = W0 * 2 * S, PH = H0 * 2 * S;   /* the canvas, in device pixels */
+    let S = scale || 1, W = W0, H = H0, PW = W0 * 2 * S, PH = H0 * 2 * S;   /* the canvas, in device pixels */
     ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
     const cam = { x: 0, y: 0 };
     const lights = [];   /* what glows after dark: filled while drawing, spent by nightfall() */
     /* zoom: the same point stays under the middle of the canvas */
-    function setScale(next) { S = Math.max(0.12, Math.min(3, next)); W = PW / (2 * S); H = PH / (2 * S); ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0); cam.y = cam.y; out.S = S; out.W = W; out.H = H; }
+    function setScale(next) { S = Math.max(0.12, Math.min(3, next)); W = PW / (2 * S); H = PH / (2 * S); ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0); out.S = S; out.W = W; out.H = H; }
+    /* the pane changed size: give the canvas that many device pixels and keep the scale */
+    function resize(pw, ph) { pw = Math.max(200, Math.round(pw)); ph = Math.max(160, Math.round(ph)); if (pw === PW && ph === PH) return; canvas.width = pw; canvas.height = ph; PW = pw; PH = ph; out.PW = PW; out.PH = PH; setScale(S); }
     const p = (gx, gy, z) => [W / 2 + (gx - gy) * TW / 2 - cam.x, 60 + (gx + gy) * TH / 2 - (z || 0) - cam.y];
     const P = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
     const up = (q, h) => [q[0], q[1] - h];
@@ -97,7 +99,7 @@
     /* after dark: the scene under a blue wash, then every light glowing through it */
     function nightfall(n) { if (!(n > 0)) { lights.length = 0; return; } ctx.fillStyle = 'rgba(6,10,40,' + (0.72 * n) + ')'; ctx.fillRect(-2, -2, W + 4, H + 4); ctx.fillStyle = 'rgba(30,40,90,' + (0.18 * n) + ')'; ctx.fillRect(-2, -2, W + 4, H + 4); ctx.save(); ctx.globalCompositeOperation = 'lighter'; lights.forEach(l => { const g = ctx.createRadialGradient(l.x, l.y, 1, l.x, l.y, l.r); g.addColorStop(0, 'rgba(' + l.c + ',' + (0.55 * n * l.k) + ')'); g.addColorStop(1, 'rgba(' + l.c + ',0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2); ctx.fill(); }); ctx.restore(); lights.length = 0; }
     const reset = () => ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
-    const out = { ctx, cam, W, H, S, PW, PH, night: 0, lights, nightfall, reset, setScale, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, blob, roundRect, shadow, label };
+    const out = { ctx, cam, W, H, S, PW, PH, night: 0, lights, nightfall, reset, setScale, resize, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, blob, roundRect, shadow, label };
     return out;
   }
 

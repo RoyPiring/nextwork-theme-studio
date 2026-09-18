@@ -83,5 +83,7 @@
     return null;
   }
   function setup(t) { tools = t; }
+  /* the browser changed size: the pane keeps its place and its share of it */
+  window.addEventListener('resize', () => { if (el && tools) place(world(tools.current())); });
   self.NWT_WORLD = { ID, setup, render, remove, read, isOpen: () => !!el };
 })();
