@@ -20,7 +20,9 @@
   TERRAINS.hill = TERRAINS.plains; TERRAINS.desert = TERRAINS.sandy;
   const terrainOf = s => TERRAINS[s.biome] || TERRAINS.plains;
   let T = TERRAINS.plains;
-  const groundColour = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? T.stone : NW.shade(T.stone, -0.06); const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(T.grass[0]), b = NW.hex(T.grass[1]); return rgb(a.map((v, i) => Math.round(lerp(v, b[i], dry)))); };
+  /* the ground as [r,g,b], so it can be darkened without going through a hex string */
+  const groundRGB = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) { const st = NW.hex(T.stone); return (gx + gy) % 2 ? st : st.map(v => Math.round(v * 0.94)); } const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(T.grass[0]), b = NW.hex(T.grass[1]); return a.map((v, i) => Math.round(lerp(v, b[i], dry))); };
+  const groundColour = (gx, gy) => rgb(groundRGB(gx, gy));
   const treeOf = (I, gx, gy, size) => { const t = T.tree; if (t === 'cactus') B.cactus(I, gx, gy, size); else if (t === 'pine') B.pine(I, gx, gy, size); else if (t === 'palm') B.palm(I, gx, gy, size); else B.oak(I, gx, gy, size); };
   /* the edge of the world, by terrain: ocean round an island, peaks round the mountains, mesas in the desert */
   const edgeOf = (gx, gy) => { const dx = (gx - 34) / 33, dy = (gy - 34) / 33, r = dx * dx + dy * dy; if (T.edge === 'ocean') return r > 1 ? 'ocean' : r > 0.86 ? 'beach' : null; if (T.edge === 'peaks') { const h = S.height(gx * 1.7, gy * 1.7); if (r > 0.92 || (r > 0.7 && h > 0.55)) return h > 0.62 ? 'snow' : 'rock'; return null; } if (T.edge === 'mesa') { const h = S.height(gx * 1.3 + 50, gy * 1.3); return r > 0.8 && h > 0.6 ? 'rock' : null; } return null; };
@@ -63,7 +65,7 @@
       case G.FIELD: return gy % 2 ? '#a8783f' : '#c8a06a';
       case G.ROCK: return (gx + gy) % 2 ? T.stone : NW.shade(T.stone, -0.12); case G.SNOW: return (gx + gy) % 2 ? '#f4f7fa' : '#e6ecf2';
       case G.MANAGED: return groundColour(gx, gy);
-      default: return NW.shade(groundColour(gx, gy), -0.08);
+      default: return rgb(groundRGB(gx, gy).map(v => Math.round(v * 0.92)));   /* the wild: the same ground, a shade quieter */
     }
   };
   const edgeStroke = k => k === G.ROAD ? 'rgba(110,75,30,.35)' : k === G.PAVED || k === G.PROM ? 'rgba(0,0,0,.08)' : k === G.BRIDGE ? '#6b4a2b' : k === G.EMBANK ? 'rgba(0,0,0,.12)' : k === G.PLAZA ? 'rgba(0,0,0,.05)' : k === G.FIELD ? 'rgba(90,50,10,.35)' : null;

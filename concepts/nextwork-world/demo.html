@@ -882,31 +882,30 @@
     /* 6 kingdom: the future. a rounded shell, a light band, a lit spire */
     function (I, gx, gy, k, now, kind) { const c = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.25)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 3, c[1] + 2, 18, 8, 0, 0, Math.PI * 2); I.ctx.fill(); const g = I.ctx.createLinearGradient(c[0] - 16, c[1], c[0] + 16, c[1]); g.addColorStop(0, '#ffffff'); g.addColorStop(0.55, '#e6e9ef'); g.addColorStop(1, '#9aa3b0'); I.ctx.fillStyle = g; I.ctx.beginPath(); I.ctx.moveTo(c[0] - 16, c[1]); I.ctx.quadraticCurveTo(c[0] - 18, c[1] - 60, c[0], c[1] - 66); I.ctx.quadraticCurveTo(c[0] + 18, c[1] - 60, c[0] + 16, c[1]); I.ctx.closePath(); I.ctx.fill(); const a = accent(kind); I.ctx.strokeStyle = a; I.ctx.lineWidth = 2.5; I.ctx.beginPath(); I.ctx.moveTo(c[0] - 16.5, c[1] - 22); I.ctx.quadraticCurveTo(c[0], c[1] - 16, c[0] + 16.5, c[1] - 22); I.ctx.stroke(); I.ctx.fillStyle = 'rgba(79,240,255,.55)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] - 4, c[1] - 38, 6, 9, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#172033'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 5, c[1] - 10, 4, 8, 0, 0, Math.PI * 2); I.ctx.fill(); I.line([c[0], c[1] - 66], [c[0], c[1] - 80], '#e6e9ef', 2); I.blob(c[0], c[1] - 82, 2.5, a); I.lights.push({ x: c[0], y: c[1] - 30, r: 30, c: '120,220,255', k: 0.6 }); const q = I.p(gx + 0.5, gy + 1.02); I.ctx.fillStyle = 'rgba(79,240,255,.5)'; I.ctx.fillRect(q[0] - 10, q[1] - 1.5, 20, 1.5); }
   ];
-  /* what a building goes up as, one component per step */
-  const STAGES = ['pegs', 'slab', 'posts', 'walls', 'windows', 'roof', 'door', 'trim', 'garden'];
+  /* what a building goes up as: the very building it will be, revealed from
+   * the ground up one slice per step, with scaffolding to the height reached */
+  const TOP = [34, 52, 66, 84, 110, 100, 108];   /* how tall each era's home is, for the reveal */
   function drawStage(I, gx, gy, done, total, kind, era, k, now) {
-    const n = Math.max(1, total | 0), reached = Math.round(Math.min(done, n) / n * STAGES.length), z = (1 - k) * -50;
-    const has = s => reached >= STAGES.indexOf(s) + 1, lift = s => reached === STAGES.indexOf(s) + 1 ? -z : 0;
+    const n = Math.max(1, total | 0), frac = Math.min(done, n) / n, rise = frac * TOP[era] * (0.75 + 0.25 * k);
     I.ctx.setLineDash([4, 4]); I.poly([I.p(gx - 0.2, gy - 0.2), I.p(gx + 1.2, gy - 0.2), I.p(gx + 1.2, gy + 1.2), I.p(gx - 0.2, gy + 1.2)], 'rgba(255,255,255,.1)', 'rgba(255,255,255,.8)', 1.2); I.ctx.setLineDash([]);
     [[-0.2, -0.2], [1.2, -0.2], [-0.2, 1.2], [1.2, 1.2]].forEach(o => { const q = I.p(gx + o[0], gy + o[1]); I.ctx.fillStyle = '#f4f1e8'; I.ctx.fillRect(q[0] - 1, q[1] - 9, 2, 9); I.ctx.fillStyle = '#ffc531'; I.ctx.fillRect(q[0] - 3, q[1] - 11, 6, 3); });
-    if (done >= n && n > 0) { ERA_HOME[era](I, gx, gy, 1, now, kind); return 'Finished'; }
-    const wall = era <= 1 ? '#a8763f' : era === 2 ? '#f3e6cc' : era === 3 ? '#b8553f' : era === 4 ? '#3b6fb5' : '#f4f1e8', tex = era <= 1 ? 'siding' : era === 2 ? 'siding' : era === 3 ? 'brick' : era === 4 ? 'glass' : 'stone', H = era <= 2 ? 34 : era === 3 ? 56 : era === 4 ? 78 : 64;
-    if (has('slab')) I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 5, era >= 2 ? '#c9c2b0' : '#8a6a3f', lift('slab'), { top: 0.1 });
-    if (has('posts') && !has('walls')) [[0.12, 0.12], [0.88, 0.12], [0.12, 0.88], [0.88, 0.88]].forEach(o => I.box(gx + o[0] - 0.04, gy + o[1] - 0.04, 0.08, 0.08, H, era <= 2 ? '#b58a5a' : '#8a95a6', 5 + lift('posts'), { noShadow: true }));
-    let b = null; if (has('walls')) { b = I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, H, wall, 5 + lift('walls'), { noShadow: true, tex }); }
-    if (has('windows') && b) { I.win(b.D, b.C, 0.15, 12, 0.22, 14, false); I.win(b.C, b.B, 0.25, 12, 0.3, 14, false); if (H > 40) I.win(b.D, b.C, 0.15, 38, 0.22, 14, false); }
-    if (has('roof')) { if (era <= 2) I.roof(gx + 0.1, gy + 0.1, 0.8, 0.8, H + 5 + lift('roof'), 22, era === 0 ? '#e9e4d6' : era === 1 ? '#6b4a2b' : accent(kind)); else I.flatRoof(gx + 0.1, gy + 0.1, 0.8, 0.8, H + 5 + lift('roof'), era === 3 ? '#4b5563' : '#9aa3b0'); }
-    if (has('door') && b) I.door(b.D, b.C, 0.6, 0.24, 22, '#6b3a22');
-    if (has('trim') && b) I.poly([I.up(b.D, H + 5), I.up(b.C, H + 5), I.up(b.C, H + 9), I.up(b.D, H + 9)], accent(kind));
-    if (has('garden')) { I.bush(gx - 0.05, gy + 0.95, true); I.bush(gx + 0.95, gy - 0.05, false); }
-    if (done > 0) I.puff(gx, gy, k);
-    return reached ? STAGES[Math.min(reached, STAGES.length) - 1].replace(/^\w/, ch => ch.toUpperCase()) : 'Pegged out';
+    if (done >= n) { ERA_HOME[era](I, gx, gy, 1, now, kind); return 'Finished'; }
+    if (done > 0) {
+      /* the slab, then the building itself up to the height the steps have reached */
+      I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 4, era >= 2 ? '#c9c2b0' : '#8a6a3f', 0, { top: 0.1 });
+      const base = I.p(gx + 0.5, gy + 1.2); I.ctx.save(); I.ctx.beginPath(); I.ctx.rect(base[0] - 60, base[1] - 4 - rise, 120, rise + 8); I.ctx.clip(); ERA_HOME[era](I, gx, gy, 1, now, kind); I.ctx.restore();
+      /* scaffolding at the corners, a cut line where the work stops */
+      [[0.05, 0.05], [0.95, 0.05], [0.05, 0.95], [0.95, 0.95]].forEach(o => { const q = I.p(gx + o[0], gy + o[1], 4); I.line(q, [q[0], q[1] - rise - 6], '#b58a5a', 1.5); });
+      const a = I.p(gx + 0.02, gy + 0.98, rise + 4), b = I.p(gx + 0.98, gy + 0.98, rise + 4), c = I.p(gx + 0.98, gy + 0.02, rise + 4); I.line(a, b, '#b58a5a', 1.5); I.line(b, c, '#b58a5a', 1.5); I.ctx.setLineDash([2, 2]); I.line(a, b, 'rgba(255,255,255,.7)', 1); I.line(b, c, 'rgba(255,255,255,.7)', 1); I.ctx.setLineDash([]);
+      I.puff(gx, gy, k);
+    }
+    return done === 0 ? 'Pegged out' : 'Step ' + done + ' of ' + n + ' up';
   }
   /* the hospital, at hospital size: three wide, two deep, three storeys, the cross on the roof */
   B.CIV.hospital = function (I, gx, gy, now) { I.box(gx - 0.2, gy - 0.2, 3.4, 2.4, 4, '#cfd5df', 0, { top: 0.1 }); const H = 62, b = I.box(gx, gy, 3, 2, H, '#f4f6f8', 4, { tex: 'siding' }); for (let r = 0; r < 3; r++) for (let u = 0.06; u < 0.95; u += 0.12) { if (r === 0 && u > 0.38 && u < 0.6) continue; I.win(b.D, b.C, u, 10 + r * 19, 0.07, 12, ((r + Math.floor(u * 10)) % 3) !== 0); } for (let r = 0; r < 3; r++) [0.15, 0.45, 0.75].forEach(u => I.win(b.C, b.B, u, 10 + r * 19, 0.16, 12, r !== 1)); const a = I.P(b.D, b.C, 0.4), c = I.P(b.D, b.C, 0.6); I.poly([a, c, I.up(c, 20), I.up(a, 20)], '#9ad3ff'); I.poly([I.p(gx + 0.9, gy + 2.05, 24), I.p(gx + 2.1, gy + 2.05, 24), I.p(gx + 2.1, gy + 2.5, 20), I.p(gx + 0.9, gy + 2.5, 20)], '#e8352f'); I.flatRoof(gx, gy, 3, 2, H + 4, '#dfe5ee'); const s = I.p(gx + 1.5, gy + 1, H + 12); I.roundRect(s[0] - 9, s[1] - 9, 18, 18, 3, '#ffffff'); I.ctx.fillStyle = '#e8352f'; I.ctx.fillRect(s[0] - 2.5, s[1] - 7, 5, 14); I.ctx.fillRect(s[0] - 7, s[1] - 2.5, 14, 5); I.box(gx + 2.5, gy + 0.3, 0.3, 0.3, 10, '#dfe5ee', H + 4, { noShadow: true }); I.label(gx + 1.5, gy + 2.9, 'Hospital', '', 9); };
   B.CIV.library = function (I, gx, gy, now) { B.library(I, gx, gy, 1, now, 3); B.library(I, gx + 1, gy, 1, now, 3); I.label(gx + 1, gy + 1.7, 'Library', '', 8); };
   B.CIV.datacentre = function (I, gx, gy, now) { B.datacentre(I, gx, gy, 1, now, 3); I.label(gx + 0.6, gy + 1.7, 'Data Centre', 'what keeps the city running', 8); };
-  NW.Homes = { ERA_HOME, drawStage, STAGES, KIND };
+  NW.Homes = { ERA_HOME, drawStage, KIND };
 })();
 
 /* NextWorld · land: your world, drawn
@@ -931,7 +930,9 @@
   TERRAINS.hill = TERRAINS.plains; TERRAINS.desert = TERRAINS.sandy;
   const terrainOf = s => TERRAINS[s.biome] || TERRAINS.plains;
   let T = TERRAINS.plains;
-  const groundColour = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? T.stone : NW.shade(T.stone, -0.06); const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(T.grass[0]), b = NW.hex(T.grass[1]); return rgb(a.map((v, i) => Math.round(lerp(v, b[i], dry)))); };
+  /* the ground as [r,g,b], so it can be darkened without going through a hex string */
+  const groundRGB = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) { const st = NW.hex(T.stone); return (gx + gy) % 2 ? st : st.map(v => Math.round(v * 0.94)); } const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(T.grass[0]), b = NW.hex(T.grass[1]); return a.map((v, i) => Math.round(lerp(v, b[i], dry))); };
+  const groundColour = (gx, gy) => rgb(groundRGB(gx, gy));
   const treeOf = (I, gx, gy, size) => { const t = T.tree; if (t === 'cactus') B.cactus(I, gx, gy, size); else if (t === 'pine') B.pine(I, gx, gy, size); else if (t === 'palm') B.palm(I, gx, gy, size); else B.oak(I, gx, gy, size); };
   /* the edge of the world, by terrain: ocean round an island, peaks round the mountains, mesas in the desert */
   const edgeOf = (gx, gy) => { const dx = (gx - 34) / 33, dy = (gy - 34) / 33, r = dx * dx + dy * dy; if (T.edge === 'ocean') return r > 1 ? 'ocean' : r > 0.86 ? 'beach' : null; if (T.edge === 'peaks') { const h = S.height(gx * 1.7, gy * 1.7); if (r > 0.92 || (r > 0.7 && h > 0.55)) return h > 0.62 ? 'snow' : 'rock'; return null; } if (T.edge === 'mesa') { const h = S.height(gx * 1.3 + 50, gy * 1.3); return r > 0.8 && h > 0.6 ? 'rock' : null; } return null; };
@@ -974,7 +975,7 @@
       case G.FIELD: return gy % 2 ? '#a8783f' : '#c8a06a';
       case G.ROCK: return (gx + gy) % 2 ? T.stone : NW.shade(T.stone, -0.12); case G.SNOW: return (gx + gy) % 2 ? '#f4f7fa' : '#e6ecf2';
       case G.MANAGED: return groundColour(gx, gy);
-      default: return NW.shade(groundColour(gx, gy), -0.08);
+      default: return rgb(groundRGB(gx, gy).map(v => Math.round(v * 0.92)));   /* the wild: the same ground, a shade quieter */
     }
   };
   const edgeStroke = k => k === G.ROAD ? 'rgba(110,75,30,.35)' : k === G.PAVED || k === G.PROM ? 'rgba(0,0,0,.08)' : k === G.BRIDGE ? '#6b4a2b' : k === G.EMBANK ? 'rgba(0,0,0,.12)' : k === G.PLAZA ? 'rgba(0,0,0,.05)' : k === G.FIELD ? 'rgba(90,50,10,.35)' : null;
