@@ -79,6 +79,7 @@
   .badge { position: absolute; left: 10px; top: 10px; font-family: var(--display); font-weight: 800; font-size: 12px; color: #fff; background: rgba(16,24,44,.72); backdrop-filter: blur(6px); padding: 6px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); }
   .badge small { font-weight: 700; color: var(--text-dim); margin-left: 6px; }
   .mini { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+  .compass { position: absolute; left: 10px; bottom: 10px; width: 40px; height: 40px; }
   .mini button { font-family: var(--display); font-weight: 700; font-size: 11.5px; padding: 6px 10px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(16,24,44,.72); color: #fff; backdrop-filter: blur(6px); }
   .mini button:hover { background: rgba(30,40,70,.85); }
   .toast { position: absolute; right: 10px; top: 10px; font-family: var(--display); font-weight: 800; font-size: 13px; color: var(--gold-ink); background: linear-gradient(180deg, #ffe27a, var(--gold)); padding: 8px 12px; border-radius: 12px; line-height: 1.25; box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.15); opacity: 0; transform: translateY(-8px) scale(.96); transition: opacity .25s, transform .25s; pointer-events: none; }
@@ -142,6 +143,58 @@
   .reward .row .x { color: var(--xp); } .reward .row .c { color: var(--gold); } .reward .row .g { color: var(--gem); }
   .reward .btn { margin-top: 10px; }
 
+  /* ---- the HUD sits on the scene, the way it does in the game ---- */
+  .hud-tl { position: absolute; left: 8px; top: 8px; display: flex; align-items: center; gap: 7px; pointer-events: none; }
+  .shield { width: 40px; height: 44px; background: linear-gradient(180deg, #5db2ff, #1f6fd1); clip-path: polygon(50% 0, 100% 15%, 92% 72%, 50% 100%, 8% 72%, 0 15%); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 800; font-size: 17px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.4); }
+  .hud-tl .who2 { background: rgba(16,24,44,.72); border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 4px 9px 5px; backdrop-filter: blur(6px); min-width: 96px; }
+  .hud-tl .who2 b { font-family: var(--display); font-weight: 800; font-size: 12px; display: block; line-height: 1.1; color: #fff; }
+  .hud-tl .who2 small { font-size: 10px; color: var(--text-dim); font-weight: 700; }
+  .xpmini { height: 6px; border-radius: 4px; background: rgba(0,0,0,.45); margin: 3px 0 2px; overflow: hidden; }
+  .xpmini i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--xp-2), var(--xp)); }
+  .hud-bld { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; background: rgba(16,24,44,.72); border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 4px 10px 4px 5px; font-family: var(--display); font-weight: 800; font-size: 12px; color: #fff; pointer-events: none; }
+  .hud-bld i { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffd9a8, #e8552f 60%); display: inline-block; }
+  .hud-res { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+  .res { display: flex; align-items: center; gap: 6px; background: rgba(16,24,44,.72); border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 3px 9px 3px 4px; min-width: 92px; }
+  .res i { width: 16px; height: 16px; border-radius: 50%; flex: none; }
+  .res.coins i { background: radial-gradient(circle at 35% 30%, #fff1a8, var(--gold) 45%, var(--gold-2)); }
+  .res.gems i { background: linear-gradient(135deg, #b8ffd0, var(--gem) 50%, #1fb765); border-radius: 4px; transform: rotate(45deg) scale(.8); }
+  .res.xp i { background: radial-gradient(circle at 35% 30%, #cfeaff, var(--xp) 50%, var(--xp-2)); }
+  .res .v { flex: 1; }
+  .res .v b { font-family: var(--display); font-weight: 800; font-size: 12px; color: #fff; display: block; line-height: 1; }
+  .res .v .bar2 { height: 4px; border-radius: 3px; background: rgba(0,0,0,.45); margin-top: 3px; overflow: hidden; }
+  .res .v .bar2 i { display: block; height: 100%; width: 0; border-radius: 0; }
+  .res.coins .bar2 i { background: var(--gold); } .res.gems .bar2 i { background: var(--gem); } .res.xp .bar2 i { background: var(--xp); }
+  .hud-btn { position: absolute; bottom: 10px; font-family: var(--display); font-weight: 800; font-size: 12.5px; padding: 9px 14px; border: 0; border-radius: 12px; color: var(--gold-ink); background: linear-gradient(180deg, #ffe27a, var(--gold) 55%, var(--gold-2)); box-shadow: inset 0 -3px 0 rgba(0,0,0,.2), 0 6px 14px rgba(0,0,0,.35); }
+  .hud-btn.bl { left: 10px; } .hud-btn.br { right: 10px; background: linear-gradient(180deg, #8fe3a4, #47d16c 55%, #1fa34a); color: #0b3d1b; }
+  .hud-btn:hover { filter: brightness(1.06); }
+
+  /* the building card and the shop, as sheets over the panel */
+  .card2 { background: #fff; color: #172033; border-radius: 14px; padding: 10px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.4); display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; }
+  .card2[hidden] { display: none; }
+  .card2 .ic { width: 44px; height: 44px; border-radius: 10px; background: #eef2f8; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .card2 b { font-family: var(--display); font-weight: 800; font-size: 14px; display: block; line-height: 1.15; }
+  .card2 small { font-size: 12px; color: #5b6478; display: block; }
+  .card2 .acts { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 2px; }
+  .card2 .acts button { font-family: var(--display); font-weight: 800; font-size: 11.5px; padding: 8px 4px; border: 0; border-radius: 10px; background: #eef2f8; color: #172033; box-shadow: inset 0 -3px 0 rgba(0,0,0,.08); }
+  .card2 .acts button.up { background: linear-gradient(180deg, #8fe3a4, #47d16c); color: #0b3d1b; }
+  .card2 .acts button:disabled { opacity: .45; }
+  .sheet { background: var(--panel-2); border: 1px solid var(--glass-line); border-radius: 14px; padding: 10px 12px; }
+  .sheet[hidden] { display: none; }
+  .sheet .head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .sheet .head b { font-family: var(--display); font-weight: 800; font-size: 15px; }
+  .sheet .head .x { margin-left: auto; background: rgba(0,0,0,.3); border: 0; color: #fff; border-radius: 999px; width: 26px; height: 26px; font-weight: 800; }
+  .cats { display: flex; gap: 4px; margin-bottom: 8px; }
+  .cats button { flex: 1; font-family: var(--display); font-weight: 800; font-size: 11px; padding: 6px 4px; border: 0; border-radius: 8px; background: rgba(0,0,0,.25); color: var(--text-dim); }
+  .cats button[aria-pressed="true"] { background: #fff; color: #172033; }
+  .shopgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 260px; overflow-y: auto; }
+  .shopcard { background: rgba(0,0,0,.25); border: 1px solid var(--glass-line); border-radius: 11px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .shopcard .ic { font-size: 22px; line-height: 1; }
+  .shopcard b { font-family: var(--display); font-weight: 800; font-size: 12px; line-height: 1.15; }
+  .shopcard small { font-size: 10.5px; color: var(--text-dim); }
+  .shopcard button { margin-top: auto; font-family: var(--display); font-weight: 800; font-size: 11px; padding: 6px; border: 0; border-radius: 8px; background: linear-gradient(180deg, #ffe27a, var(--gold)); color: var(--gold-ink); box-shadow: inset 0 -2px 0 rgba(0,0,0,.18); }
+  .shopcard button:disabled { background: rgba(255,255,255,.12); color: var(--text-dim); box-shadow: none; }
+  .speech.guide { display: grid; grid-template-columns: 46px 1fr; gap: 10px; align-items: start; }
+  .speech.guide canvas { width: 46px; height: 46px; border-radius: 50%; background: #dfe9f7; }
   .basehead { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 6px; }
   .basehead > div { background: rgba(0,0,0,.25); border: 1px solid var(--glass-line); border-radius: 11px; padding: 7px 10px; }
   .basehead .th { display: flex; align-items: center; gap: 8px; }
@@ -225,22 +278,34 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
 
       <!-- ================= MY WORLD ================= -->
       <section class="view" id="view-base">
-        <div class="basehead">
-          <div class="th"><i></i><div><b>Town Hall</b><small id="th-level">Level 3 · Village</small></div></div>
-          <div class="stat"><b id="b-count">0</b><small>buildings</small></div>
-          <div class="stat"><b id="b-districts">0</b><small>districts</small></div>
-          <div class="stat"><b id="b-walls">0</b><small>wall</small></div>
-        </div>
         <div class="scene">
           <canvas class="iso" id="base" width="880" height="620" tabindex="0" aria-label="Your base. Every finished project is a building. Drag to look around, tap a building for its project."></canvas>
-          <div class="badge" id="basetier">Village</div>
+          <div class="hud-tl"><div class="shield" id="hud-lv">3</div><div class="who2"><b>Roy</b><div class="xpmini"><i id="hud-xp"></i></div><small id="hud-tier">Village</small></div></div>
+          <div class="hud-bld"><i></i><span id="hud-builders">1/1</span></div>
+          <div class="hud-res">
+            <div class="res coins"><i></i><div class="v"><b id="hud-coins">0</b><div class="bar2"><i id="hud-coins-bar"></i></div></div></div>
+            <div class="res gems"><i></i><div class="v"><b id="hud-gems">0</b><div class="bar2"><i id="hud-gems-bar"></i></div></div></div>
+            <div class="res xp"><i></i><div class="v"><b id="hud-xpv">0</b><div class="bar2"><i id="hud-xp-bar"></i></div></div></div>
+          </div>
+          <button class="hud-btn bl" id="toworld">World map</button>
+          <button class="hud-btn br" id="shopbtn">Shop</button>
           <div class="toast" id="basetoast"></div>
         </div>
-        <div class="speech" id="basesay"><b>Your base</b>Every project you have finished is a building here, at its own level, grouped by series into districts. Tap one.</div>
+        <div class="card2" id="bcard" hidden>
+          <div class="ic" id="bc-ic"></div>
+          <div><b id="bc-name"></b><small id="bc-sub"></small></div>
+          <div class="acts"><button id="bc-info">Info</button><button class="up" id="bc-up">Upgrade</button><button id="bc-go">Open project</button></div>
+        </div>
+        <div class="sheet" id="shop" hidden>
+          <div class="head"><b>Shop · Blueprints</b><small id="shop-sub"></small><button class="x" id="shop-x" aria-label="Close">×</button></div>
+          <div class="cats" id="cats"><button data-cat="cloud" aria-pressed="true">Cloud</button><button data-cat="ai" aria-pressed="false">AI</button><button data-cat="dev" aria-pressed="false">DevOps</button><button data-cat="sec" aria-pressed="false">Security</button></div>
+          <div class="shopgrid" id="shopgrid"></div>
+        </div>
+        <div class="speech guide" id="basesay"><canvas id="guide" width="92" height="92"></canvas><div><b>Foreman Pua</b>Welcome back, Chief. Every project you have finished is a building here, at its own level. Tap one — and tap a coin bubble to collect.</div></div>
         <div class="controls">
           <button class="btn go" id="basefinish">Simulate: finish a project</button>
         </div>
-        <div class="caption"><b>Building = project.</b> Its level is the project's rarity — the fewer people who have done it, the higher the level. Finish the next part of a series and the district grows; finish a whole series and its buildings get a gold roof. The wall grows with your tier.</div>
+        <div class="caption"><b>Building = project.</b> Its level is the project's rarity. Districts are series; the wall goes fence → stone → crenels → gold → crystal with your tier; buildings put up a coin bubble now and then that you tap to collect. The Shop is the catalogue: every series you have not started, and what its first part is worth.</div>
       </section>
 
       <!-- ================= WORLD ================= -->
@@ -265,6 +330,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
           <div class="toast" id="toast"></div>
           <div class="place" id="placehint" hidden>Choose a plot on your land</div>
           <div class="mini"><button id="gohq">Visit HQ</button><button id="gohome">My land</button><button id="goisland">Expansion</button></div>
+          <svg class="compass" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="rgba(16,24,44,.7)" stroke="rgba(255,255,255,.25)"/><polygon points="20,4 24,20 20,36 16,20" fill="#fff"/><polygon points="20,4 24,20 20,20" fill="#e8552f"/><text x="20" y="9" font-size="6" font-weight="800" fill="#fff" text-anchor="middle" font-family="Baloo 2, sans-serif">N</text></svg>
         </div>
         <div class="speech" id="say"><b>Hamlet</b>Three projects in. The land greens as you build on it. Drag to look around — NextWork HQ is up the road, and other learners are building next door.</div>
         <div class="ladder" id="ladder"></div>
@@ -786,7 +852,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   const WATER = new Set(); for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) { if (x + y < 3) WATER.add(x + ',' + y); if (x >= 19 && y >= 17 && !(y === 22 && x <= 19) && !(x >= 21 && y >= 19)) WATER.add(x + ',' + y); }
   /* The expansion island, across the water at the bottom right. */
   const ISLAND = { x0: 21, y0: 19, x1: 25, y1: 25 };
-  const TREES = [[3, 2, 1.1], [4, 1, 0.9], [20, 2, 1], [22, 3, 1.2], [6, 6, 1], [18, 6, 0.9], [1, 13, 1.1], [23, 12, 1], [2, 20, 0.9], [4, 24, 1.1], [0, 9, 1], [22, 9, 0.9], [8, 1, 0.8], [16, 1, 0.9], [7, 24, 1], [10, 24, 0.9], [22, 24, 1], [24, 21, 0.9], [19, 14, 1.1], [3, 16, 0.9]];
+  const TREES = [[3, 2, 1.1], [4, 1, 0.9], [20, 2, 1], [22, 3, 1.2], [6, 6, 1], [18, 6, 0.9], [1, 13, 1.1], [23, 12, 1], [2, 20, 0.9], [4, 24, 1.1], [0, 9, 1], [22, 9, 0.9], [8, 1, 0.8], [16, 1, 0.9], [7, 24, 1], [10, 24, 0.9], [22, 24, 1], [24, 21, 0.9], [19, 14, 1.1], [3, 16, 0.9], [5, 3, 1], [2, 5, 0.9], [24, 5, 1.1], [21, 1, 0.8], [0, 22, 1], [1, 24, 0.9], [13, 25, 1], [16, 24, 0.9], [25, 8, 1], [24, 15, 0.9], [0, 17, 1.1], [3, 24, 0.8], [6, 1, 1], [19, 4, 0.9], [25, 12, 1]];
   const NEIGHBOURS = [
     { name: 'Kalpana', tier: 'Village', at: [0, 12], built: [['house', 1, 14, 2], ['workshop', 3, 15, 1], ['tower', 1, 17, 1], ['house', 3, 18, 1]] },
     { name: 'Adam',    tier: 'Town',    at: [19, 11], built: [['datacentre', 19, 12, 2], ['house', 22, 14, 2], ['observatory', 20, 16, 1], ['containers', 23, 11, 1], ['warehouse', 21, 13, 1]] }
@@ -865,12 +931,18 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     /* road markings */
     ctx.setLineDash([6, 6]); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.2;
     ctx.beginPath(); const r0 = I.p(12.5, 0), r1 = I.p(12.5, 22); ctx.moveTo(r0[0], r0[1]); ctx.lineTo(r1[0], r1[1]); const s0 = I.p(3, 9.5), s1 = I.p(21, 9.5); ctx.moveTo(s0[0], s0[1]); ctx.lineTo(s1[0], s1[1]); ctx.stroke(); ctx.setLineDash([]);
+    /* map labels, the way a world map names its regions */
+    const label = (gx, gy, text, sub) => { const q = I.p(gx, gy); ctx.font = '800 11px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.75)'; ctx.strokeText(text, q[0], q[1]); ctx.fillStyle = '#fff'; ctx.fillText(text, q[0], q[1]); if (sub) { ctx.font = '700 8px Nunito, sans-serif'; ctx.strokeText(sub, q[0], q[1] + 10); ctx.fillStyle = '#ffe9a6'; ctx.fillText(sub, q[0], q[1] + 10); } ctx.textAlign = 'left'; };
+    label(12.5, 9.2, 'HQ PLAZA', 'NextWork');
+    label(12, 12.2, "ROY'S LAND", tierOf(xpOf())[1]);
+    NEIGHBOURS.forEach(nb => label(nb.at[0] + 1.5, nb.at[1] + 0.3, nb.name.toUpperCase() + "'S LAND", nb.tier));
+    label(23.5, 24.6, 'THE DOJO', 'expansion');
     /* the island: hatched until it is unlocked */
     for (let gy = ISLAND.y0; gy <= ISLAND.y1; gy++) for (let gx = ISLAND.x0; gx <= ISLAND.x1; gx++) if (!WATER.has(gx + ',' + gy)) I.tile(gx, gy, 'rgba(255,255,255,.06)', 'rgba(255,255,255,.18)');
     /* your boundary */
     I.poly([I.p(YOURS.x0, YOURS.y0), I.p(YOURS.x1 + 1, YOURS.y0), I.p(YOURS.x1 + 1, YOURS.y1 + 1), I.p(YOURS.x0, YOURS.y1 + 1)], null, 'rgba(255,197,49,.55)', 1.5);
     /* hover plot */
-    if (I === world && state.pending && state.hover && isYours(state.hover[0], state.hover[1]) && !occupied(state.hover[0], state.hover[1])) I.tile(state.hover[0], state.hover[1], 'rgba(255,197,49,.35)', '#ffc531');
+    if (I === world && state.pending && state.hover) { const ok = isYours(state.hover[0], state.hover[1]) && !occupied(state.hover[0], state.hover[1]); I.tile(state.hover[0], state.hover[1], ok ? 'rgba(71,209,108,.45)' : 'rgba(255,90,90,.45)', ok ? '#47d16c' : '#ff5a5a'); }
     if (construction) { ctx.setLineDash([4, 4]); I.poly([I.p(SG - 0.15, SGY - 0.15), I.p(SG + 1.6, SGY - 0.15), I.p(SG + 1.6, SGY + 1.6), I.p(SG - 0.15, SGY + 1.6)], 'rgba(255,255,255,.1)', 'rgba(255,255,255,.8)', 1.5); ctx.setLineDash([]); }
 
     const items = [];
@@ -887,8 +959,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     add(21 + 22 + 0.5, () => B.gate(I, 21, 21.7, 1, now, 1));
     add(23 + 22 + 0.6, () => { const q = I.p(23.5, 21.6); I.roundRect(q[0] - 46, q[1] - 30, 92, 24, 8, 'rgba(16,24,44,.8)'); ctx.fillStyle = '#ffc531'; ctx.font = '800 8px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(EXPANSION.name.toUpperCase(), q[0], q[1] - 19); ctx.fillStyle = '#fff'; ctx.font = '700 7px Nunito, sans-serif'; ctx.fillText('Expansion · ' + EXPANSION.count + ' of your own projects', q[0], q[1] - 10); ctx.textAlign = 'left'; });
     [[23, 23], [24, 24]].forEach(q => add(q[0] + q[1] + 0.5, () => B.stake(I, q[0], q[1])));
-    NEIGHBOURS.forEach(nb => { nb.built.forEach(b => add(b[1] + b[2] + 0.5, () => B[b[0]](I, b[1], b[2], 1, now, b[3])));
-      add(nb.at[0] + nb.at[1] + 0.2, () => { const q = I.p(nb.at[0] + 1, nb.at[1] - 0.2); I.roundRect(q[0] - 30, q[1] - 12, 60, 16, 8, 'rgba(16,24,44,.75)'); ctx.fillStyle = '#fff'; ctx.font = '700 8px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(nb.name + ' · ' + nb.tier, q[0], q[1] - 1); ctx.textAlign = 'left'; }); });
+    NEIGHBOURS.forEach(nb => nb.built.forEach(b => add(b[1] + b[2] + 0.5, () => B[b[0]](I, b[1], b[2], 1, now, b[3]))));
     /* lamps on your land come with Village */
     if (xpOf() >= 700) [[7, 10], [16, 10], [7, 22], [16, 22]].forEach(q => add(q[0] + q[1] + 0.6, () => I.lamp(q[0] + 0.5, q[1] + 0.9, now)));
     /* people: you on the road, builders at the hut, a visitor in the plaza */
@@ -1022,6 +1093,12 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
    * --------------------------------------------------------------------- */
   const base = makeIso($('base'), 440, 310);
   const BN = 18, BC = 9;                              /* base grid and its centre */
+  let coinBank = 0;                                   /* what the bubbles have paid */
+  const collectAt = {};                                /* title -> when its bubble is due */
+  const wallLevel = () => TIERS.indexOf(tierOf(xpOf()));   /* 0 fence ... 6 crystal */
+  /* obstacles outside the wall: rocks, stumps and bushes on fixed spots so
+   * the base reads the same every time; the tier clears the nearer ones */
+  const OBST = [[3, 4, 'rock'], [5, 2, 'bush'], [14, 3, 'rock'], [16, 6, 'stump'], [2, 12, 'bush'], [4, 15, 'rock'], [13, 16, 'stump'], [16, 13, 'bush'], [7, 1, 'stump'], [1, 7, 'rock'], [16, 10, 'rock'], [10, 17, 'bush'], [6, 16, 'rock'], [15, 1, 'bush'], [12, 1, 'rock'], [1, 4, 'stump']];
   const levelOf = pr => pr.xp >= 140 ? 5 : pr.xp >= 120 ? 4 : pr.xp >= 95 ? 3 : pr.xp >= 75 ? 2 : 1;
   const wallRadius = () => { const t = tierOf(xpOf())[1]; return t === 'Metropolis' ? 8 : t === 'City' ? 7 : t === 'Town' ? 6 : t === 'Village' ? 5 : 4; };
 
@@ -1053,27 +1130,43 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     const I = base, ctx = I.ctx;
     ctx.clearRect(0, 0, 440, 310);
     const g = ctx.createLinearGradient(0, 0, 0, 310); g.addColorStop(0, '#79c0ff'); g.addColorStop(0.5, '#bfe4ff'); g.addColorStop(1, '#e6f4ff'); ctx.fillStyle = g; ctx.fillRect(0, 0, 440, 310);
-    const R = wallRadius();
+    const R = wallRadius(), WL = wallLevel();
+    /* the buildable square is a lighter green inside a darker world, and the
+     * world runs out to a coast on two sides */
     for (let gy = 0; gy < BN; gy++) for (let gx = 0; gx < BN; gx++) {
-      const inside = Math.abs(gx - BC) <= R && Math.abs(gy - BC) <= R;
-      const dist = Math.max(Math.abs(gx - BC), Math.abs(gy - BC));
-      const grass = (gx + gy) % 2 ? '#79c853' : '#84d15c', dirt = (gx * 7 + gy * 3) % 3 === 0 ? '#cdb58c' : '#c4ab82';
-      const gr = inside ? 1 : clamp(1 - (dist - R) / 2.5, 0.15, 1);
-      const c = hex(dirt).map((v, i) => Math.round(lerp(v, hex(grass)[i], gr)));
-      I.tile(gx, gy, rgb(c));
-      if ((gx === BC || gx === BC + 1) && gy > BC + 1 && gy <= BC + R + 1) I.tile(gx, gy, '#e0d2b4', 'rgba(0,0,0,.06)');   /* the path out of the gate */
+      const d = gx + gy;
+      if (d < 4 || d > 30) { I.tile(gx, gy, '#3ea3e8'); const c = I.p(gx + 0.5, gy + 0.5); ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1.5; const ph = (now / 900 + gx) % 1; ctx.beginPath(); ctx.moveTo(c[0] - 12 + ph * 6, c[1] - 2); ctx.lineTo(c[0] - 2 + ph * 6, c[1] - 2); ctx.stroke(); continue; }
+      if (d === 4 || d === 30) { I.tile(gx, gy, (gx + gy) % 2 ? '#e6d7a8' : '#efe1b8'); continue; }
+      const inside = Math.abs(gx - BC) <= R + 1 && Math.abs(gy - BC) <= R + 1;
+      const light = (gx + gy) % 2 ? '#8fdc66' : '#82d05c', dark = (gx + gy) % 2 ? '#5fae46' : '#57a340';
+      I.tile(gx, gy, inside ? light : dark);
+      if (!inside && ((gx * 7 + gy * 3) % 5 === 0)) { const q = I.p(gx + 0.5, gy + 0.5); ctx.fillStyle = 'rgba(40,90,40,.35)'; ctx.fillRect(q[0] - 3, q[1] - 1, 2, 3); ctx.fillRect(q[0] + 2, q[1] - 2, 2, 3); }   /* tufts */
+      if ((gx === BC || gx === BC + 1) && gy > BC + 1 && gy <= BC + R + 2) I.tile(gx, gy, '#e0d2b4', 'rgba(0,0,0,.06)');   /* the path out of the gate */
     }
+    /* rocks on the sand */
+    [[2, 2], [1, 3], [3, 1], [15, 15], [16, 14], [14, 16]].forEach(q => { const c = I.p(q[0] + 0.5, q[1] + 0.5); I.blob(c[0], c[1] - 3, 7, '#9aa5ad', 0.7); I.blob(c[0] + 6, c[1], 4, '#8a95a3', 0.7); });
     const items = []; const add = (d, fn) => items.push({ d, fn });
-    /* the wall: low stone segments with crenels, a gap for the gate on the near side */
+    /* the wall, by tier: a fence, then stone, then crenels, then gold-capped,
+     * then crystal - with a gap for the gate on the near side */
+    const wallSeg = (q, corner) => {
+      if (WL <= 1) { const a = I.p(q[0] + 0.5, q[1] + 0.5); ctx.fillStyle = '#8b5a2b'; ctx.fillRect(a[0] - 1.5, a[1] - 12, 3, 12); ctx.fillStyle = '#a8743f'; ctx.fillRect(a[0] - 1.5, a[1] - 12, 1, 12); return; }
+      const col = WL >= 6 ? '#8f5fd1' : WL >= 5 ? '#c9b48a' : '#b3ada3';
+      const b = I.box(q[0] + 0.2, q[1] + 0.2, 0.6, 0.6, corner ? 26 : 16, col, 0, { tex: WL >= 6 ? null : 'stone', noShadow: !corner, top: WL >= 6 ? 0.45 : 0.2 });
+      if (WL >= 3 && corner) crenel(I, b); else if (WL >= 3) { const m = I.P(b.D2, b.C2, 0.5); I.poly([m, [m[0] + 5, m[1] + 2.5], [m[0] + 5, m[1] - 2], [m[0], m[1] - 4.5]], WL >= 6 ? '#c9b6ff' : '#a39d93'); }
+      if (WL === 5) I.line(b.D2, b.C2, '#ffc531', 2.5);
+      if (WL >= 6) { ctx.fillStyle = 'rgba(200,180,255,.14)'; ctx.beginPath(); ctx.ellipse(b.C2[0] - 6, b.C2[1] - 4, 14, 8, 0, 0, Math.PI * 2); ctx.fill(); }
+    };
     for (let i = -R; i <= R; i++) {
       const segs = [[BC + i, BC - R], [BC + i, BC + R], [BC - R, BC + i], [BC + R, BC + i]];
-      segs.forEach((q, side) => {
-        if (side === 1 && (i === 0 || i === 1)) return;                          /* the gate */
-        const corner = Math.abs(i) === R;
-        add(q[0] + q[1] + (corner ? 0.7 : 0.5), () => { const b = I.box(q[0] + 0.2, q[1] + 0.2, 0.6, 0.6, corner ? 26 : 16, '#b3ada3', 0, { tex: 'stone', noShadow: !corner }); if (corner) crenel(I, b); else { const m = I.P(b.D2, b.C2, 0.5); I.poly([m, [m[0] + 5, m[1] + 2.5], [m[0] + 5, m[1] - 2], [m[0], m[1] - 4.5]], '#a39d93'); } });
-      });
+      segs.forEach((q, side) => { if (side === 1 && (i === 0 || i === 1)) return; const corner = Math.abs(i) === R; add(q[0] + q[1] + (corner ? 0.7 : 0.5), () => wallSeg(q, corner)); });
     }
-    add(BC + BC + R + 1.2, () => { const t = I.box(BC - 0.1, BC + R + 0.1, 0.35, 0.8, 30, '#b3ada3', 0, { tex: 'stone' }); crenel(I, t); const t2 = I.box(BC + 1.75, BC + R + 0.1, 0.35, 0.8, 30, '#b3ada3', 0, { tex: 'stone' }); crenel(I, t2); });
+    if (WL <= 1) { for (let i = -R; i <= R; i++) [[BC + i, BC - R], [BC + i, BC + R], [BC - R, BC + i], [BC + R, BC + i]].forEach((q, side) => { if (side === 1 && (i === 0 || i === 1)) return; if (i === R) return; const nx = side < 2 ? q[0] + 1 : q[0], ny = side < 2 ? q[1] : q[1] + 1; if (side === 1 && (i === -1)) return; add(q[0] + q[1] + 0.45, () => { I.line(I.up(I.p(q[0] + 0.5, q[1] + 0.5), 5), I.up(I.p(nx + 0.5, ny + 0.5), 5), '#a8743f', 1.5); I.line(I.up(I.p(q[0] + 0.5, q[1] + 0.5), 9), I.up(I.p(nx + 0.5, ny + 0.5), 9), '#a8743f', 1.5); }); }); }
+    else add(BC + BC + R + 1.2, () => { const t = I.box(BC - 0.1, BC + R + 0.1, 0.35, 0.8, 30, '#b3ada3', 0, { tex: 'stone' }); crenel(I, t); const t2 = I.box(BC + 1.75, BC + R + 0.1, 0.35, 0.8, 30, '#b3ada3', 0, { tex: 'stone' }); crenel(I, t2); });
+    /* obstacles outside the wall; the nearer ones are cleared as the base grows */
+    OBST.forEach(o => { const dist = Math.max(Math.abs(o[0] - BC), Math.abs(o[1] - BC)); if (dist <= R + 1) return; add(o[0] + o[1] + 0.5, () => { const c = I.p(o[0] + 0.5, o[1] + 0.5);
+      if (o[2] === 'rock') { I.blob(c[0], c[1] - 4, 8, '#9aa5ad', 0.75); I.blob(c[0] + 6, c[1] - 1, 4.5, '#8a95a3', 0.75); }
+      else if (o[2] === 'bush') I.bush(o[0], o[1], false);
+      else { ctx.fillStyle = 'rgba(20,40,30,.22)'; ctx.beginPath(); ctx.ellipse(c[0] + 2, c[1] + 1, 6, 3, 0, 0, Math.PI * 2); ctx.fill(); I.box(o[0] + 0.35, o[1] + 0.35, 0.3, 0.3, 7, '#8b5a2b', 0, { noShadow: true, top: 0.35 }); } }); });
     /* the town hall: the tier, made visible */
     add(BC + BC + 0.9, () => { const t = tierOf(xpOf()); const two = t[0] >= 700;
       const b = I.box(BC - 0.55, BC - 0.55, 1.6, 1.6, two ? 60 : 40, '#f3e6cc', 0, { tex: 'brick' });
@@ -1087,10 +1180,13 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     const layout = baseLayout();
     layout.forEach(b => {
       let k = 1; if (baseAnim && baseAnim.title === b.title) k = reduce ? 1 : clamp((now - baseAnim.start) / 1600, 0, 1);
+      if (collectAt[b.title] == null) collectAt[b.title] = now + 4000 + (b.gx * 37 + b.gy * 91) % 20000;
       add(b.gx + b.gy + 0.5, () => {
         B[b.kind](I, b.gx, b.gy, k, now, b.level >= 4 ? 3 : b.level >= 2 ? 2 : 1);
         if (b.complete) { const q = I.p(b.gx + 0.5, b.gy + 0.5, 70); I.blob(q[0], q[1], 3.5, '#ffc531'); }   /* the series is whole */
         if (k >= 1) { const q = I.p(b.gx + 0.85, b.gy + 0.15, 4); I.roundRect(q[0] - 12, q[1] - 8, 24, 11, 5, 'rgba(16,24,44,.78)'); ctx.fillStyle = b.complete ? '#ffc531' : '#fff'; ctx.font = '800 7px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('LV ' + b.level, q[0], q[1] - 0.5); ctx.textAlign = 'left'; }
+        /* a coin bubble, when the building has something to collect */
+        if (k >= 1 && now >= collectAt[b.title]) { const q = I.p(b.gx + 0.5, b.gy + 0.5, 58 + Math.sin(now / 300 + b.gx) * 3); I.roundRect(q[0] - 11, q[1] - 11, 22, 22, 7, '#fff'); I.poly([[q[0] - 4, q[1] + 10], [q[0] + 4, q[1] + 10], [q[0], q[1] + 15]], '#fff'); I.blob(q[0], q[1], 7, '#ffc531'); ctx.fillStyle = '#7a4b00'; ctx.font = '800 8px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('$', q[0], q[1] + 3); ctx.textAlign = 'left'; }
       });
     });
     /* builders potter about; a few trees outside the wall */
@@ -1100,37 +1196,89 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
     const vg = ctx.createRadialGradient(220, 155, 120, 220, 155, 300); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,20,40,.35)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, 440, 310);
     if (baseAnim && now - baseAnim.start > 1700) baseAnim = null;
-    /* the header */
-    const t = tierOf(xpOf());
-    $('th-level').textContent = 'Level ' + (TIERS.indexOf(t) + 1) + ' \u00b7 ' + t[1];
-    $('b-count').textContent = layout.length; $('b-districts').textContent = SERIES.filter(sr => doneIn(sr) > 0).length; $('b-walls').textContent = (R * 8) + 'm';
-    $('basetier').innerHTML = t[1] + '<small>' + layout.length + ' buildings</small>';
+    /* the HUD */
+    const t = tierOf(xpOf()), nt = nextTier(xpOf()), xp = xpOf();
+    $('hud-lv').textContent = TIERS.indexOf(t) + 1; $('hud-tier').textContent = t[1] + ' · ' + layout.length + ' buildings';
+    $('hud-xp').style.width = (nt ? (xp - t[0]) / (nt[0] - t[0]) * 100 : 100) + '%';
+    $('hud-builders').textContent = buildersOf(xp) + '/3';
+    const coins = Math.round(xp * 0.45) + coinBank, gems = SERIES.filter(sr => doneIn(sr) === sr.projects.length).length;
+    $('hud-coins').textContent = coins.toLocaleString(); $('hud-coins-bar').style.width = clamp(coins / 5000 * 100, 0, 100) + '%';
+    $('hud-gems').textContent = gems; $('hud-gems-bar').style.width = (gems / SERIES.length * 100) + '%';
+    $('hud-xpv').textContent = xp.toLocaleString(); $('hud-xp-bar').style.width = (xp / CATALOGUE_XP * 100) + '%';
   }
-  base.cam.x = camTo(BC + 0.5, BC + 0.5).x; base.cam.y = camTo(BC + 0.5, BC + 0.5).y + 10;
+  base.cam.x = camTo(BC + 0.5, BC + 0.5).x; base.cam.y = camTo(BC + 0.5, BC + 0.5).y - 28;
   const bcv = $('base'); let bdrag = null;
   const bGrid = e => { const r = bcv.getBoundingClientRect(); const x = (e.clientX - r.left) * 440 / r.width + base.cam.x - 220, y = (e.clientY - r.top) * 310 / r.height + base.cam.y - 60; return [Math.floor((x / (TW / 2) + y / (TH / 2)) / 2), Math.floor((y / (TH / 2) - x / (TW / 2)) / 2)]; };
   bcv.addEventListener('pointerdown', e => { bdrag = { x: e.clientX, y: e.clientY, cx: base.cam.x, cy: base.cam.y, moved: false }; bcv.setPointerCapture(e.pointerId); });
   bcv.addEventListener('pointermove', e => { if (!bdrag) return; const dx = e.clientX - bdrag.x, dy = e.clientY - bdrag.y; if (Math.hypot(dx, dy) > 4) bdrag.moved = true; if (bdrag.moved) { const r = bcv.getBoundingClientRect(); base.cam.x = clamp(bdrag.cx - dx * 440 / r.width, -260, 260); base.cam.y = clamp(bdrag.cy - dy * 310 / r.height, -20, 260); } });
   bcv.addEventListener('pointerup', e => { const was = bdrag; bdrag = null; if (!was || was.moved) return; const [gx, gy] = bGrid(e);
-    const hit = baseLayout().find(b => b.gx === gx && b.gy === gy);
-    if (hit) { baseSay(hit.title, hit.series.name + ' \u00b7 part ' + hit.part + ' of ' + hit.of + ' \u00b7 ' + KIND_NAME[hit.kind] + ' \u00b7 Level ' + hit.level + ' \u00b7 ' + hit.xp + ' XP' + (hit.complete ? ' \u00b7 series complete' : '')); return; }
-    if (Math.abs(gx - BC - 0.5) < 1.2 && Math.abs(gy - BC - 0.5) < 1.2) { const t = tierOf(xpOf()), nt = nextTier(xpOf()); baseSay('Town Hall \u00b7 ' + t[1], nt ? (nt[0] - xpOf()) + ' XP to ' + nt[1] + '. The wall grows with it.' : 'Top tier. The wall is as wide as it goes.'); return; }
-    baseSay('Open ground', 'Finish a project and its building goes up here, in its series\u2019 district.'); });
-  function baseSay(title, body) { const el = $('basesay'); el.innerHTML = '<b></b>'; el.querySelector('b').textContent = title; el.appendChild(document.createTextNode(body)); }
+    const hit = baseLayout().find(b => b.gx === gx && b.gy === gy) || baseLayout().find(b => b.gx === gx && b.gy === gy + 1);
+    $('shop').hidden = true;
+    if (hit) {
+      if (performance.now() >= (collectAt[hit.title] || 0)) { const got = 5 + hit.level * 3; coinBank += got; collectAt[hit.title] = performance.now() + 25000 + Math.random() * 20000; baseToast('+' + got + ' coins'); baseSay('Collected', got + ' coins from the ' + KIND_NAME[hit.kind].toLowerCase() + '. Buildings pay a little now and then; tap the bubble.'); return; }
+      showCard(hit); return;
+    }
+    if (Math.abs(gx - BC - 0.5) < 1.2 && Math.abs(gy - BC - 0.5) < 1.2) { const t = tierOf(xpOf()), nt = nextTier(xpOf()); $('bcard').hidden = true; baseSay('Town Hall · ' + t[1], nt ? (nt[0] - xpOf()) + ' XP to ' + nt[1] + '. The wall grows with it: fence, stone, crenels, gold, crystal.' : 'Top tier. The wall is crystal and as wide as it goes.'); return; }
+    $('bcard').hidden = true; baseSay('Open ground', 'Finish a project and its building goes up here, in its series’ district. The Shop lists every series you have not started.'); });
+  function showCard(b) {
+    const c = $('bcard'); c.hidden = false;
+    $('bc-ic').textContent = ICON[b.kind]; $('bc-name').textContent = b.title;
+    $('bc-sub').textContent = b.series.name + ' · part ' + b.part + ' of ' + b.of + ' · ' + KIND_NAME[b.kind] + ' · Level ' + b.level + ' · ' + b.xp + ' XP';
+    const nxt = b.series.projects.find(pr => !DONE.has(pr[0]));
+    $('bc-up').disabled = !nxt; $('bc-up').textContent = nxt ? 'Next part' : 'Series done';
+    $('bc-up').onclick = () => { if (!nxt) return; $('basefinish').click(); c.hidden = true; };
+    $('bc-info').onclick = () => baseSay(b.title, 'Part ' + b.part + ' of ' + b.of + ' in ' + b.series.name + '. Level ' + b.level + ' because ' + (b.level >= 4 ? 'few people have finished it' : b.level >= 2 ? 'a fair number have finished it' : 'thousands have finished it') + '. Worth ' + b.xp + ' XP.');
+    $('bc-go').onclick = () => baseSay('Open project', 'In the real thing this opens the project page on nextwork.ai in the tab. In the demo it is a sentence.');
+    baseSay(b.title, 'Level ' + b.level + ' ' + KIND_NAME[b.kind].toLowerCase() + ' in the ' + b.series.name + ' district.');
+  }
+  /* ---- the shop: every series not yet started, by category ---- */
+  const CAT = { cloud: ['account', 'cbc', 'vpc', 'databases', 'threetier', 'rag', 'transcribe'], ai: ['lex', 'bedrock', 'intro', 'everyday', 'work', 'brain', 'prompt', 'beginnerai', 'agents', 'openclaw', 'chat'], dev: ['k8s', 'devops', 'terraform', 'code', 'git', 'cursor', 'design'], sec: ['security', 'secai'] };
+  let shopCat = 'cloud';
+  function paintShop() {
+    const grid = $('shopgrid'); grid.innerHTML = '';
+    document.querySelectorAll('#cats button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cat === shopCat)));
+    const list = SERIES.filter(sr => CAT[shopCat].includes(sr.id));
+    $('shop-sub').textContent = list.filter(sr => doneIn(sr) === 0).length + ' to start';
+    list.forEach(sr => {
+      const d = doneIn(sr), n = sr.projects.length, first = sr.projects.find(pr => !DONE.has(pr[0]));
+      const card = document.createElement('div'); card.className = 'shopcard';
+      card.innerHTML = '<div class="ic">' + ICON[sr.kind] + '</div><b></b><small></small><button></button>';
+      card.querySelector('b').textContent = sr.name;
+      card.querySelector('small').textContent = KIND_NAME[sr.kind] + ' · ' + n + ' part' + (n > 1 ? 's' : '') + (d ? ' · ' + d + ' done' : '');
+      const btn = card.querySelector('button');
+      if (!first) { btn.textContent = 'Complete'; btn.disabled = true; }
+      else { btn.textContent = (d ? 'Next part' : 'Start') + ' · +' + xpFor(first[1], sr.hard) + ' XP'; btn.onclick = () => { finishProject(first[0], sr); paintShop(); }; }
+      grid.appendChild(card);
+    });
+  }
+  document.querySelectorAll('#cats button').forEach(b => b.addEventListener('click', () => { shopCat = b.dataset.cat; paintShop(); }));
+  $('shopbtn').addEventListener('click', () => { $('shop').hidden = !$('shop').hidden; $('bcard').hidden = true; paintShop(); });
+  $('shop-x').addEventListener('click', () => { $('shop').hidden = true; });
+  $('toworld').addEventListener('click', () => show('world'));
+  /* the guide's portrait */
+  (function () { const g = $('guide').getContext('2d'); g.scale(2, 2);
+    g.fillStyle = '#dfe9f7'; g.fillRect(0, 0, 46, 46);
+    g.fillStyle = '#e8552f'; g.beginPath(); g.ellipse(23, 44, 16, 14, 0, Math.PI, 0); g.fill();       /* shoulders */
+    g.fillStyle = '#ffd6ad'; g.beginPath(); g.arc(23, 24, 11, 0, Math.PI * 2); g.fill();               /* face */
+    g.fillStyle = '#ffc531'; g.beginPath(); g.ellipse(23, 15, 13, 5, 0, Math.PI, 0); g.fill(); g.fillRect(10, 13, 26, 4); g.beginPath(); g.ellipse(23, 12, 9, 6, 0, Math.PI, 0); g.fill();   /* hard hat */
+    g.fillStyle = '#4a2e1a'; g.fillRect(17, 22, 3, 3); g.fillRect(26, 22, 3, 3);                       /* eyes */
+    g.strokeStyle = '#a05a3a'; g.lineWidth = 1.5; g.beginPath(); g.arc(23, 27, 4, 0.2, Math.PI - 0.2); g.stroke();   /* smile */
+  })();
+  function baseSay(title, body) { const el = $('basesay').lastElementChild; el.innerHTML = '<b></b>'; el.querySelector('b').textContent = title; el.appendChild(document.createTextNode(body)); }
   let btoastTimer = null;
   function baseToast(text) { const t = $('basetoast'); t.innerHTML = text; t.classList.add('on'); clearTimeout(btoastTimer); btoastTimer = setTimeout(() => t.classList.remove('on'), 2800); }
-  $('basefinish').addEventListener('click', () => {
-    const next = nextProject(); if (!next) return;
-    const before = buildersOf(xpOf()); DONE.add(next.title); const after = buildersOf(xpOf());
-    const sr = next.series, finished = doneIn(sr) === sr.projects.length;
-    baseAnim = { title: next.title, start: performance.now() };
-    baseToast('+' + next.xp + ' XP \u00b7 +' + Math.round(next.xp * 0.45) + ' coins' + (finished ? ' \u00b7 +1 gem: series complete' : '') + (after > before ? '<br>A new builder has arrived' : ''));
-    baseSay(next.title, 'Level ' + levelOf(next) + ' ' + KIND_NAME[sr.kind].toLowerCase() + ' in the ' + sr.name + ' district.' + (finished ? ' The whole series is done: gold roofs.' : ''));
-    /* the world keeps its series building in step */
+  function finishProject(title, sr) {
+    const xp = xpFor(sr.projects.find(pr => pr[0] === title)[1], sr.hard);
+    const before = buildersOf(xpOf()); DONE.add(title); const after = buildersOf(xpOf());
+    const finished = doneIn(sr) === sr.projects.length;
+    baseAnim = { title, start: performance.now() };
+    baseToast('+' + xp + ' XP · +' + Math.round(xp * 0.45) + ' coins' + (finished ? ' · +1 gem: series complete' : '') + (after > before ? '<br>A new builder has arrived' : ''));
+    baseSay(title, 'Level ' + levelOf({ xp }) + ' ' + KIND_NAME[sr.kind].toLowerCase() + ' in the ' + sr.name + ' district.' + (finished ? ' The whole series is done: gold light on every one.' : ''));
     if (!state.placed.some(b => b.series === sr.id)) { const spot = PLOT_ORDER.find(q => !occupied(q[0], q[1])); if (spot) state.placed.push({ series: sr.id, kind: sr.kind, gx: spot[0], gy: spot[1] }); }
     paintHud(); paintCatalogue();
     $('basefinish').disabled = !nextProject(); if (!nextProject()) $('basefinish').textContent = 'Every project is built';
-  });
+  }
+  $('basefinish').addEventListener('click', () => { const next = nextProject(); if (!next) return; $('bcard').hidden = true; finishProject(next.title, next.series); });
 
   /* ================================================================ build */
   const STEPS = ['Create the bot', 'Add an intent', 'Add sample utterances', 'Build and test the bot', 'Add a fallback intent', 'Publish an alias', 'Clean up your resources'];
@@ -1276,7 +1424,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   setInterval(tick, 1000);
 
   /* ================================================================= tabs */
-  const ICON = { house: '\ud83c\udfe0', datacentre: '\ud83c\udfe2', containers: '\ud83d\udce6', tower: '\ud83d\udce1', gate: '\ud83d\udee1\ufe0f', observatory: '\ud83d\udd2d', workshop: '\ud83d\udd27', warehouse: '\ud83c\udfed' };
+  const ICON = { house: '🏠', datacentre: '🏢', containers: '📦', tower: '📡', gate: '🛡️', observatory: '🔭', workshop: '🔧', warehouse: '🏭' };
   function paintCatalogue() {
     const host = $('series'); host.innerHTML = '';
     SERIES.forEach(sr => {
