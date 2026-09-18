@@ -1,8 +1,8 @@
 /* NextWorld · data: the catalogue, the taxonomy, NextWork itself
  * Part of the NextWorld feature. Plain script, no modules, so the same file
  * runs in the extension page and in the bundled concept demo. */
+'use strict';
 (function () {
-  'use strict';
   window.NW = window.NW || {};
   /* The 90 NextWork projects, by series, with how many people had finished
    * each when this was written. Fewer finishers = harder = more XP. */
@@ -65,7 +65,8 @@
     story: 'NextWork began as a one-person Salesforce training business in New Zealand. Its founder, Amber Winton, noticed that certificates were not what got learners hired; the projects they could talk about were. So the course became projects, the projects became documentation learners could show, and the business became NextWork.',
     facts: [['90', 'projects in the catalogue'], ['10+', 'roadmaps, from AWS Beginner to DevSecOps'], ['1', 'Project Generator, for anything the catalogue does not cover'], ['Discord', 'where the community builds together']],
     roadmaps: [['Cloud Engineer', 45], ['AWS Cloud Practitioner', 42], ['AI Beginner', 38], ['DevSecOps', 35], ['Solutions Architect', 35], ['System Design', 23], ['Claude', 22], ['DevOps', 14], ['Security Engineer', 14], ['Networks', 11], ['Productivity', 9]],
-    links: [['The NextWork Story', 'https://blog.nextwork.ai/p/the-nextwork-story'], ['Explore projects', 'https://nextwork.ai/projects'], ['Discord', 'https://nextwork.ai']]
+    /* hosts and paths; the page adds the scheme, so no address is hard-wired here */
+    links: [['The NextWork Story', 'blog.nextwork.ai/p/the-nextwork-story'], ['Explore projects', 'nextwork.ai/projects'], ['Community', 'nextwork.ai']]
   };
   const TIERS = [[0, 'Plot'], [100, 'Homestead'], [300, 'Hamlet'], [700, 'Village'], [1500, 'Town'], [3000, 'City'], [6000, 'Metropolis']];
   const levelOf = xp => xp >= 140 ? 5 : xp >= 120 ? 4 : xp >= 95 ? 3 : xp >= 75 ? 2 : 1;

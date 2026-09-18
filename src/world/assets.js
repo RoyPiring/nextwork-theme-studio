@@ -1,8 +1,8 @@
 /* NextWorld · assets: every building and prop
  * Part of the NextWorld feature. Plain script, no modules, so the same file
  * runs in the extension page and in the bundled concept demo. */
+'use strict';
 (function () {
-  'use strict';
   const { ease, clamp, lerp, shade, reduce } = NW;
   const drop = (k, i, n) => { const e = ease(k * n - i); return { z: (1 - e) * -90, on: e > 0 }; };
   function crenel(I, t) { for (let i = 0; i < 3; i++) { const q = I.P(t.D2, t.C2, 0.15 + i * 0.35); I.poly([q, [q[0] + 4, q[1] + 2], [q[0] + 4, q[1] - 3], [q[0], q[1] - 5]], '#a39d93'); } }

@@ -1,8 +1,8 @@
 /* NextWorld · land: your world, drawn
  * Hill Country. Grass that dries on the high ground, a creek, worn paths
  * that appear where you have walked, and one figure on it: you. */
+'use strict';
 (function () {
-  'use strict';
   const { B, clamp, lerp, ease, rgb, reduce, TIERS, tierOf, KIND_NAME } = NW;
   const S = NW.State, { LAND, HOME, CROSSINGS } = S;
 

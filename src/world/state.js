@@ -2,8 +2,8 @@
  * Pure: no DOM, no storage. The host (demo page or extension pane) hands in
  * a saved object and gets back the same shape to save. Everything the map
  * draws is derived from here, so production and dev share one code path. */
+'use strict';
 (function () {
-  'use strict';
   const { SERIES, PROJECTS, xpFor, kindFor, SAMPLE_LISTS, SAMPLE_DONE, lerp } = NW;
   const SCHEMA = 1;
   const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
@@ -43,18 +43,18 @@
    * Sixty-four tiles. West of the creek, one spread per started series;
    * east of it, one spread per learn list. Spreads sit on a jittered grid so
    * nothing lines up; lots inside a spread come from a per-spread jitter too. */
-  const LAND = 64, HOME = [15, 33];
+  const LAND = 68, HOME = [15, 33];
   const hash = (x, y) => { let h = (Math.floor(x * 1000) * 374761393 + Math.floor(y * 1000) * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967296; };
   function noise(x, y) { const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return lerp(lerp(hash(x0, y0), hash(x0 + 1, y0), u), lerp(hash(x0, y0 + 1), hash(x0 + 1, y0 + 1), u), v); }
   const height = (gx, gy) => noise(gx / 9, gy / 9) * 0.65 + noise(gx / 3.5, gy / 3.5) * 0.35;
-  const creekX = gy => 33 + Math.sin(gy / 7.5) * 5 + Math.sin(gy / 3.3 + 1) * 2;
+  const creekX = gy => 33 + Math.sin(gy / 7.5) * 3 + Math.sin(gy / 3.3 + 1) * 1.2;
   const inCreek = (gx, gy) => Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 1.5;
   const onBank = (gx, gy) => !inCreek(gx, gy) && Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 2.6;
   const CROSSINGS = [9, 21, 33, 45, 57];
   function slots(x0, cols, rows, sx, sy) { const out = []; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) out.push([x0 + c * sx + (hash(c + 7, r + 3) - 0.5) * 2.4, 5 + r * sy + (hash(c + 1, r + 9) - 0.5) * 2.4]); return out; }
-  const WEST = slots(6, 4, 7, 6.2, 8.4).filter(a => Math.abs(a[0] - HOME[0]) > 2.2 || Math.abs(a[1] - HOME[1]) > 4);
-  const EAST = slots(42, 3, 8, 6.4, 7.5);
-  function lot(anchor, i) { /* the i-th lot of a spread: a loose spiral, jittered by the spread */ const a = i * 2.4 + hash(anchor[0], anchor[1]) * 6.3, r = i === 0 ? 0 : 2.3 + Math.floor((i - 1) / 5) * 2.4 + hash(anchor[1] + i, anchor[0]) * 0.6; return [anchor[0] + Math.cos(a) * r, anchor[1] + Math.sin(a) * r * 0.8]; }
+  const WEST = slots(4, 4, 7, 5.6, 8.4).filter(a => Math.abs(a[0] - HOME[0]) > 2.2 || Math.abs(a[1] - HOME[1]) > 4);
+  const EAST = slots(45, 3, 8, 5.6, 7.5);
+  function lot(anchor, i) { /* the i-th lot of a spread: a loose spiral, jittered by the spread */ const a = i * 2.4 + hash(anchor[0], anchor[1]) * 6.3, r = i === 0 ? 0 : 2.0 + Math.floor((i - 1) / 6) * 1.9 + hash(anchor[1] + i, anchor[0]) * 0.6; return [anchor[0] + Math.cos(a) * r, anchor[1] + Math.sin(a) * r * 0.8]; }
   function layout(s) {
     const started = SERIES.filter(sr => doneIn(s, sr) > 0), buildings = [], spreads = [];
     started.forEach((sr, i) => { const a = WEST[i]; const n = doneIn(s, sr); spreads.push({ id: sr.id, name: sr.name, at: a, n, of: sr.projects.length, whole: n === sr.projects.length, kind: sr.kind });

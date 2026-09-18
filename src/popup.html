@@ -23,6 +23,7 @@
     <button type="button" role="tab" id="tab-theme" data-tab="theme" aria-selected="true">Theme</button>
     <button type="button" role="tab" id="tab-focus" data-tab="focus" aria-selected="false">Focus</button>
     <button type="button" role="tab" id="tab-split" data-tab="split" aria-selected="false">Panels</button>
+    <button type="button" role="tab" id="tab-world" data-tab="world" aria-selected="false">World</button>
   </div>
 
   <div class="tab-panel" id="panel-theme">
@@ -211,6 +212,28 @@
   </section>
 
   </div><!-- /panel-split -->
+
+  <div class="tab-panel" id="panel-world" hidden>
+  <section class="card focus" id="world-panel">
+    <div class="row between">
+      <h2 class="section-title">NextWorld</h2>
+      <label class="switch-inline" title="Show your world on the page">
+        <span class="tiny muted">Show</span>
+        <span class="switch sm"><input type="checkbox" id="worldEnabled"><span></span></span>
+      </label>
+    </div>
+    <p class="tiny muted">Your finished projects, as land. A pane on the page: the NextWork ranch, your world, what you are building, and the map.</p>
+    <div class="focus-group">
+      <span class="group-label">Mode</span>
+      <div class="chips" id="world-mode" role="group" aria-label="Dev or production">
+        <button type="button" data-mode="prod" title="Only what the extension has read from your own pages">Production</button>
+        <button type="button" data-mode="dev" title="Seed, simulate and reset, to see how the world grows">Dev</button>
+      </div>
+      <p class="tiny muted" id="world-note"></p>
+      <button class="ghost tiny" id="world-reset">Reset the world</button>
+    </div>
+  </section>
+  </div><!-- /panel-world -->
 
   <footer>
     <button class="primary" id="open-editor">Open editor</button>

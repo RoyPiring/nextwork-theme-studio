@@ -3,8 +3,8 @@
  * eight hubs round it for the roadmaps, a lake, a paddock, and the eight
  * staff in black T-shirts going about their day. Learners' plots sit on
  * the outer ring, joined to the ranch by worn footpaths. No roads. */
+'use strict';
 (function () {
-  'use strict';
   const { B, lerp, HUBS, reduce } = NW;
   const S = NW.State, MAP = 72, C = [36, 36], STAFF_TEE = '#1c1f26';
   const ground = (gx, gy) => NW.Land.groundColour(gx + 120, gy + 40);

@@ -43,8 +43,8 @@
 /* NextWorld · engine: the isometric canvas
  * Part of the NextWorld feature. Plain script, no modules, so the same file
  * runs in the extension page and in the bundled concept demo. */
+'use strict';
 (function () {
-  'use strict';
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -143,8 +143,8 @@
 /* NextWorld · assets: every building and prop
  * Part of the NextWorld feature. Plain script, no modules, so the same file
  * runs in the extension page and in the bundled concept demo. */
+'use strict';
 (function () {
-  'use strict';
   const { ease, clamp, lerp, shade, reduce } = NW;
   const drop = (k, i, n) => { const e = ease(k * n - i); return { z: (1 - e) * -90, on: e > 0 }; };
   function crenel(I, t) { for (let i = 0; i < 3; i++) { const q = I.P(t.D2, t.C2, 0.15 + i * 0.35); I.poly([q, [q[0] + 4, q[1] + 2], [q[0] + 4, q[1] - 3], [q[0], q[1] - 5]], '#a39d93'); } }
@@ -348,8 +348,8 @@
 /* NextWorld · data: the catalogue, the taxonomy, NextWork itself
  * Part of the NextWorld feature. Plain script, no modules, so the same file
  * runs in the extension page and in the bundled concept demo. */
+'use strict';
 (function () {
-  'use strict';
   window.NW = window.NW || {};
   /* The 90 NextWork projects, by series, with how many people had finished
    * each when this was written. Fewer finishers = harder = more XP. */
@@ -412,7 +412,8 @@
     story: 'NextWork began as a one-person Salesforce training business in New Zealand. Its founder, Amber Winton, noticed that certificates were not what got learners hired; the projects they could talk about were. So the course became projects, the projects became documentation learners could show, and the business became NextWork.',
     facts: [['90', 'projects in the catalogue'], ['10+', 'roadmaps, from AWS Beginner to DevSecOps'], ['1', 'Project Generator, for anything the catalogue does not cover'], ['Discord', 'where the community builds together']],
     roadmaps: [['Cloud Engineer', 45], ['AWS Cloud Practitioner', 42], ['AI Beginner', 38], ['DevSecOps', 35], ['Solutions Architect', 35], ['System Design', 23], ['Claude', 22], ['DevOps', 14], ['Security Engineer', 14], ['Networks', 11], ['Productivity', 9]],
-    links: [['The NextWork Story', 'https://blog.nextwork.ai/p/the-nextwork-story'], ['Explore projects', 'https://nextwork.ai/projects'], ['Discord', 'https://nextwork.ai']]
+    /* hosts and paths; the page adds the scheme, so no address is hard-wired here */
+    links: [['The NextWork Story', 'blog.nextwork.ai/p/the-nextwork-story'], ['Explore projects', 'nextwork.ai/projects'], ['Community', 'nextwork.ai']]
   };
   const TIERS = [[0, 'Plot'], [100, 'Homestead'], [300, 'Hamlet'], [700, 'Village'], [1500, 'Town'], [3000, 'City'], [6000, 'Metropolis']];
   const levelOf = xp => xp >= 140 ? 5 : xp >= 120 ? 4 : xp >= 95 ? 3 : xp >= 75 ? 2 : 1;
@@ -464,8 +465,8 @@
  * Pure: no DOM, no storage. The host (demo page or extension pane) hands in
  * a saved object and gets back the same shape to save. Everything the map
  * draws is derived from here, so production and dev share one code path. */
+'use strict';
 (function () {
-  'use strict';
   const { SERIES, PROJECTS, xpFor, kindFor, SAMPLE_LISTS, SAMPLE_DONE, lerp } = NW;
   const SCHEMA = 1;
   const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
@@ -505,18 +506,18 @@
    * Sixty-four tiles. West of the creek, one spread per started series;
    * east of it, one spread per learn list. Spreads sit on a jittered grid so
    * nothing lines up; lots inside a spread come from a per-spread jitter too. */
-  const LAND = 64, HOME = [15, 33];
+  const LAND = 68, HOME = [15, 33];
   const hash = (x, y) => { let h = (Math.floor(x * 1000) * 374761393 + Math.floor(y * 1000) * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967296; };
   function noise(x, y) { const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return lerp(lerp(hash(x0, y0), hash(x0 + 1, y0), u), lerp(hash(x0, y0 + 1), hash(x0 + 1, y0 + 1), u), v); }
   const height = (gx, gy) => noise(gx / 9, gy / 9) * 0.65 + noise(gx / 3.5, gy / 3.5) * 0.35;
-  const creekX = gy => 33 + Math.sin(gy / 7.5) * 5 + Math.sin(gy / 3.3 + 1) * 2;
+  const creekX = gy => 33 + Math.sin(gy / 7.5) * 3 + Math.sin(gy / 3.3 + 1) * 1.2;
   const inCreek = (gx, gy) => Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 1.5;
   const onBank = (gx, gy) => !inCreek(gx, gy) && Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 2.6;
   const CROSSINGS = [9, 21, 33, 45, 57];
   function slots(x0, cols, rows, sx, sy) { const out = []; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) out.push([x0 + c * sx + (hash(c + 7, r + 3) - 0.5) * 2.4, 5 + r * sy + (hash(c + 1, r + 9) - 0.5) * 2.4]); return out; }
-  const WEST = slots(6, 4, 7, 6.2, 8.4).filter(a => Math.abs(a[0] - HOME[0]) > 2.2 || Math.abs(a[1] - HOME[1]) > 4);
-  const EAST = slots(42, 3, 8, 6.4, 7.5);
-  function lot(anchor, i) { /* the i-th lot of a spread: a loose spiral, jittered by the spread */ const a = i * 2.4 + hash(anchor[0], anchor[1]) * 6.3, r = i === 0 ? 0 : 2.3 + Math.floor((i - 1) / 5) * 2.4 + hash(anchor[1] + i, anchor[0]) * 0.6; return [anchor[0] + Math.cos(a) * r, anchor[1] + Math.sin(a) * r * 0.8]; }
+  const WEST = slots(4, 4, 7, 5.6, 8.4).filter(a => Math.abs(a[0] - HOME[0]) > 2.2 || Math.abs(a[1] - HOME[1]) > 4);
+  const EAST = slots(45, 3, 8, 5.6, 7.5);
+  function lot(anchor, i) { /* the i-th lot of a spread: a loose spiral, jittered by the spread */ const a = i * 2.4 + hash(anchor[0], anchor[1]) * 6.3, r = i === 0 ? 0 : 2.0 + Math.floor((i - 1) / 6) * 1.9 + hash(anchor[1] + i, anchor[0]) * 0.6; return [anchor[0] + Math.cos(a) * r, anchor[1] + Math.sin(a) * r * 0.8]; }
   function layout(s) {
     const started = SERIES.filter(sr => doneIn(s, sr) > 0), buildings = [], spreads = [];
     started.forEach((sr, i) => { const a = WEST[i]; const n = doneIn(s, sr); spreads.push({ id: sr.id, name: sr.name, at: a, n, of: sr.projects.length, whole: n === sr.projects.length, kind: sr.kind });
@@ -543,8 +544,8 @@
 /* NextWorld · land: your world, drawn
  * Hill Country. Grass that dries on the high ground, a creek, worn paths
  * that appear where you have walked, and one figure on it: you. */
+'use strict';
 (function () {
-  'use strict';
   const { B, clamp, lerp, ease, rgb, reduce, TIERS, tierOf, KIND_NAME } = NW;
   const S = NW.State, { LAND, HOME, CROSSINGS } = S;
 
@@ -625,8 +626,8 @@
  * eight hubs round it for the roadmaps, a lake, a paddock, and the eight
  * staff in black T-shirts going about their day. Learners' plots sit on
  * the outer ring, joined to the ranch by worn footpaths. No roads. */
+'use strict';
 (function () {
-  'use strict';
   const { B, lerp, HUBS, reduce } = NW;
   const S = NW.State, MAP = 72, C = [36, 36], STAFF_TEE = '#1c1f26';
   const ground = (gx, gy) => NW.Land.groundColour(gx + 120, gy + 40);
@@ -691,8 +692,8 @@
  * The same isometric ground, at world scale. Continents are painted from a
  * few ellipses so nothing is loaded. Population needs a count NextWork
  * publishes; until then production says so and dev shows sample dots. */
+'use strict';
 (function () {
-  'use strict';
   const S = NW.State, W = 52, H = 26;
   const LANDS = [[10, 7, 7, 5], [6, 4, 3, 1.6], [14, 16, 3.5, 5.2], [25, 6, 4.2, 2.6], [22.5, 4.6, 1.1, 1], [26.5, 13, 4.2, 5.6], [35, 7, 9.5, 5], [33.5, 12, 2.2, 2.6], [41, 18.5, 3.6, 2.4], [45, 8.5, 1.4, 2.2]];
   const isLand = (gx, gy) => LANDS.some(e => { const dx = (gx - e[0]) / e[2], dy = (gy - e[1]) / e[3]; return dx * dx + dy * dy < 1 + (S.hash(gx * 3, gy * 5) - 0.5) * 0.35; });
@@ -711,8 +712,8 @@
  * mount(root, host) builds the five tabs inside root (an element or a
  * shadow root) and draws only the tab that is showing. The host supplies
  * storage and what "open this project" means; nothing here touches the page. */
+'use strict';
 (function () {
-  'use strict';
   const { makeIso, B, clamp, lerp, ease, reduce, SERIES, START_HERE, HUBS, ABOUT, KIND_NAME, ICON, TW, TH } = NW;
   const S = NW.State, Land = NW.Land, HQ = NW.HQ, G = NW.Global;
   const TABS = [['world', 'NextWork World'], ['hq', 'NextWork'], ['base', 'My World'], ['build', 'My Build'], ['global', 'NextWork Global']];
@@ -815,7 +816,7 @@
     const facts = el('div', 'facts'); ABOUT.facts.forEach(f => { const d = el('div', 'fact'); put(d, el('b', null, f[0]), el('small', null, f[1])); facts.appendChild(d); }); about.appendChild(facts);
     about.appendChild(el('h3', null, 'Roadmaps, as hubs'));
     const rl = el('div', 'list'); ABOUT.roadmaps.forEach(r => { const row = el('div', 'row'); const n = el('div', 'n'); put(n, el('b', null, r[0]), el('small', null, r[1] + ' projects')); const v = el('div', 'v', String(r[1])); put(row, el('i', null, '🗺️'), n, v); rl.appendChild(row); }); about.appendChild(rl);
-    const links = el('p'); ABOUT.links.forEach((l, i) => { if (i) links.appendChild(document.createTextNode(' · ')); const a = el('a', null, l[0]); a.href = l[1]; a.target = '_blank'; a.rel = 'noopener'; links.appendChild(a); }); about.appendChild(links);
+    const links = el('p'); ABOUT.links.forEach((l, i) => { if (i) links.appendChild(document.createTextNode(' · ')); const a = el('a', null, l[0]); a.href = 'https:' + '//' + l[1]; a.target = '_blank'; a.rel = 'noopener'; links.appendChild(a); }); about.appendChild(links);
     about.appendChild(el('div', 'cap', 'In NextWork’s own words, read from nextwork.ai and the NextWork story. The tower on the map is this page.'));
 
     /* ---- 3. My World ---- */

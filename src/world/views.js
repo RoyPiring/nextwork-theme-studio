@@ -2,8 +2,8 @@
  * mount(root, host) builds the five tabs inside root (an element or a
  * shadow root) and draws only the tab that is showing. The host supplies
  * storage and what "open this project" means; nothing here touches the page. */
+'use strict';
 (function () {
-  'use strict';
   const { makeIso, B, clamp, lerp, ease, reduce, SERIES, START_HERE, HUBS, ABOUT, KIND_NAME, ICON, TW, TH } = NW;
   const S = NW.State, Land = NW.Land, HQ = NW.HQ, G = NW.Global;
   const TABS = [['world', 'NextWork World'], ['hq', 'NextWork'], ['base', 'My World'], ['build', 'My Build'], ['global', 'NextWork Global']];
@@ -106,7 +106,7 @@
     const facts = el('div', 'facts'); ABOUT.facts.forEach(f => { const d = el('div', 'fact'); put(d, el('b', null, f[0]), el('small', null, f[1])); facts.appendChild(d); }); about.appendChild(facts);
     about.appendChild(el('h3', null, 'Roadmaps, as hubs'));
     const rl = el('div', 'list'); ABOUT.roadmaps.forEach(r => { const row = el('div', 'row'); const n = el('div', 'n'); put(n, el('b', null, r[0]), el('small', null, r[1] + ' projects')); const v = el('div', 'v', String(r[1])); put(row, el('i', null, '🗺️'), n, v); rl.appendChild(row); }); about.appendChild(rl);
-    const links = el('p'); ABOUT.links.forEach((l, i) => { if (i) links.appendChild(document.createTextNode(' · ')); const a = el('a', null, l[0]); a.href = l[1]; a.target = '_blank'; a.rel = 'noopener'; links.appendChild(a); }); about.appendChild(links);
+    const links = el('p'); ABOUT.links.forEach((l, i) => { if (i) links.appendChild(document.createTextNode(' · ')); const a = el('a', null, l[0]); a.href = 'https:' + '//' + l[1]; a.target = '_blank'; a.rel = 'noopener'; links.appendChild(a); }); about.appendChild(links);
     about.appendChild(el('div', 'cap', 'In NextWork’s own words, read from nextwork.ai and the NextWork story. The tower on the map is this page.'));
 
     /* ---- 3. My World ---- */

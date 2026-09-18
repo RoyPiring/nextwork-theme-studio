@@ -2,8 +2,8 @@
  * The same isometric ground, at world scale. Continents are painted from a
  * few ellipses so nothing is loaded. Population needs a count NextWork
  * publishes; until then production says so and dev shows sample dots. */
+'use strict';
 (function () {
-  'use strict';
   const S = NW.State, W = 52, H = 26;
   const LANDS = [[10, 7, 7, 5], [6, 4, 3, 1.6], [14, 16, 3.5, 5.2], [25, 6, 4.2, 2.6], [22.5, 4.6, 1.1, 1], [26.5, 13, 4.2, 5.6], [35, 7, 9.5, 5], [33.5, 12, 2.2, 2.6], [41, 18.5, 3.6, 2.4], [45, 8.5, 1.4, 2.2]];
   const isLand = (gx, gy) => LANDS.some(e => { const dx = (gx - e[0]) / e[2], dy = (gy - e[1]) / e[3]; return dx * dx + dy * dy < 1 + (S.hash(gx * 3, gy * 5) - 0.5) * 0.35; });

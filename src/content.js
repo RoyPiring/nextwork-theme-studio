@@ -1543,8 +1543,9 @@
   function renderDock(settings) {
     const companion = Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
     const split = Object.assign({}, NWT.DEFAULT_SETTINGS.split, settings.split);
+    const worldOn = !!(settings.world && settings.world.enabled);
     const showing = (companion.enabled && paneList(companion).length) ||
-                    (split.enabled && splitPanels(split).length);
+                    (split.enabled && splitPanels(split).length) || worldOn;
     if (!settings.enabled || !TOP_FRAME || !showing) {
       removeDock();
       return;
@@ -2263,6 +2264,7 @@
       removePane();
       removeSplit();
       removeDock();
+      removeWorld();
       unrescue();                   /* inline styles outlive the stylesheet */
       groundPalette = null;
       shadowSheetFor('');           /* neutralise the adopted copies in place */
@@ -2278,6 +2280,7 @@
     renderPane(s);
     renderSplit(s);
     renderDock(s);
+    renderWorld(s);
     reportRules(s);
 
     const theme = NWT.getTheme(s);
@@ -2326,6 +2329,45 @@
    * already moved past. */
   let readSeq = 0;
 
+  /* ---- NextWorld ----
+   * The world lives in src/world/ and knows nothing about storage or the
+   * page. This is the whole of what it is lent: a way to drag and resize,
+   * a way to save its corner of the settings, and the page to read. Every
+   * call is wrapped, because a game must never break the site under it. */
+  let worldSettings = null, worldReadTimer = null;
+  function saveWorld(patch) {
+    chrome.storage.local.get({ world: {} }, function (stored) {
+      if (chrome.runtime.lastError) return;
+      const w = Object.assign({}, NWT.DEFAULT_SETTINGS.world, stored.world, patch);
+      chrome.storage.local.set({ world: w });
+    });
+  }
+  function openExplore() {
+    /* the catalogue, in a new tab, so the world stays where it is */
+    window.open(location.origin + '/projects', '_blank', 'noopener');
+  }
+  function renderWorld(settings) {
+    worldSettings = settings;
+    if (!TOP_FRAME || !self.NWT_WORLD) return;
+    try {
+      NWT_WORLD.setup({ dragBy: dragBy, resizeBy: resizeBy, saveWorld: saveWorld, current: function () { return worldSettings || {}; }, openExplore: openExplore });
+      NWT_WORLD.render(settings);
+      scheduleWorldRead();
+    } catch (e) { /* never break the page */ }
+  }
+  function removeWorld() {
+    if (!self.NWT_WORLD) return;
+    try { NWT_WORLD.remove(); } catch (e) { /* never break the page */ }
+  }
+  /* Read the page once it has settled, not on every mutation. */
+  function scheduleWorldRead() {
+    if (!TOP_FRAME || !self.NWT_WORLD || !worldSettings || !worldSettings.world || !worldSettings.world.enabled) return;
+    clearTimeout(worldReadTimer);
+    worldReadTimer = setTimeout(function () {
+      try { NWT_WORLD.read(document, location.pathname); } catch (e) { /* never break the page */ }
+    }, 700);
+  }
+
   function readAndRender() {
     const mine = ++readSeq;
     chrome.storage.local.get(null, function (settings) {
@@ -2355,6 +2397,8 @@
      * did come back it came back empty, because the guard that decides whether
      * to load anything was reading a variable rather than the frame. */
     if (paneSettings && !document.getElementById(PANE_ID)) renderPane(paneSettings);
+    if (worldSettings && self.NWT_WORLD && !document.getElementById(NWT_WORLD.ID)) renderWorld(worldSettings);
+    scheduleWorldRead();
 
     /* Only the subtrees that were actually added. A page that mounts a single
      * component should cost one small walk, not a walk of the document. */

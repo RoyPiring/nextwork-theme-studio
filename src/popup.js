@@ -137,6 +137,7 @@
     renderCompanion();
     renderSplitPanel();
     renderSplitAccess();
+    renderWorld();
   }
 
   /* A range input fires on every pixel of travel. Writing storage on each one
@@ -259,6 +260,24 @@
 
   function companionState() {
     return Object.assign({}, NWT.DEFAULT_SETTINGS.companion, settings.companion);
+  }
+
+  function worldState() { return Object.assign({}, NWT.DEFAULT_SETTINGS.world, settings.world); }
+  function renderWorld() {
+    const w = worldState();
+    $('worldEnabled').checked = !!w.enabled;
+    $('world-mode').querySelectorAll('[data-mode]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.mode === w.mode));
+    });
+    const read = w.read && Array.isArray(w.read.done) ? w.read.done.length : 0;
+    const lists = w.read && Array.isArray(w.read.lists) ? w.read.lists.length : 0;
+    $('world-note').textContent = w.mode === 'dev'
+      ? 'Dev: seed, finish and reset from the pane. Switching back to production drops anything simulated.'
+      : (read || lists ? 'Read from your pages: ' + read + ' finished, ' + lists + ' learn lists.' : 'Nothing read yet. Open a project or your portfolio on nextwork.ai with the world showing.');
+  }
+  function saveWorld(patch) {
+    save({ world: Object.assign(worldState(), patch) });
+    renderWorld();
   }
 
   function saveCompanion(patch) {
@@ -560,7 +579,7 @@
    * Which tab is showing is not a setting - it is where you were a moment ago
    * - so it is kept beside the popup rather than written in with the themes. */
   function showTab(name) {
-    ['theme', 'focus', 'split'].forEach(function (id) {
+    ['theme', 'focus', 'split', 'world'].forEach(function (id) {
       $('tab-' + id).setAttribute('aria-selected', String(id === name));
       $('panel-' + id).hidden = id !== name;
     });
@@ -746,7 +765,7 @@
     $('companion-add').addEventListener('click', addPane);
     $('companion-access-btn').addEventListener('click', askAllow);
 
-    ['theme', 'focus', 'split'].forEach(function (name) {
+    ['theme', 'focus', 'split', 'world'].forEach(function (name) {
       $('tab-' + name).addEventListener('click', function () { showTab(name); });
     });
     ['page', 'float'].forEach(function (name) {
@@ -763,7 +782,7 @@
     });
     let opening = 'theme';
     try { opening = localStorage.getItem('nwt-tab') || 'theme'; } catch (e) { /* private mode */ }
-    showTab(['theme', 'focus', 'split'].indexOf(opening) === -1 ? 'theme' : opening);
+    showTab(['theme', 'focus', 'split', 'world'].indexOf(opening) === -1 ? 'theme' : opening);
 
     $('splitEnabled').addEventListener('change', function () {
       saveSplit({ enabled: $('splitEnabled').checked });
@@ -802,6 +821,15 @@
      * Every control writes timestamps to storage; the popup only ever reads
      * the clock. That way closing the popup, switching tabs or restarting the
      * browser cannot lose or double-count time. */
+    /* ---- NextWorld ---- */
+    $('worldEnabled').addEventListener('change', function () { saveWorld({ enabled: $('worldEnabled').checked }); });
+    $('world-mode').querySelectorAll('[data-mode]').forEach(function (b) {
+      b.addEventListener('click', function () { saveWorld({ mode: b.dataset.mode }); });
+    });
+    $('world-reset').addEventListener('click', function () {
+      /* back to a tent, a board and one oak; what was read from your pages stays */
+      saveWorld({ state: null, tab: '' });
+    });
     $('focusEnabled').addEventListener('change', function () {
       saveFocus({ enabled: $('focusEnabled').checked });
     });

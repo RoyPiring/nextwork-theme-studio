@@ -1,8 +1,8 @@
 /* NextWorld · engine: the isometric canvas
  * Part of the NextWorld feature. Plain script, no modules, so the same file
  * runs in the extension page and in the bundled concept demo. */
+'use strict';
 (function () {
-  'use strict';
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;

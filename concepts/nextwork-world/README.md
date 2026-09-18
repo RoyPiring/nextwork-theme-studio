@@ -1,45 +1,32 @@
-# NextWorld — concept
+# NextWorld
 
-A 2D pixel base-builder that grows from completed NextWork projects, drawn as
-a side panel beside the page. This is a concept demo for the NextWork team,
-not a feature of the extension: nothing here is wired to nextwork.ai and none
-of it ships in a build.
+Your NextWork projects, as land. A concept for a pane inside the extension.
 
-The world is built from NextWork's real catalogue: the ninety projects in
-their twenty-seven series. A series is one building on your land that goes up
-with its first part and grows with each one after. XP is by rarity - the fewer
-people who have done a project, the more it is worth. The learner's own
-generated projects are an expansion island across the water.
+- `demo.html` is the concept demo. It is built, not written: run
+  `node tools/world-bundle.js` and it is assembled from `demo.src.html` and
+  the very same files the extension loads from `src/world/`.
+- Dev mode seeds, simulates and resets. Production shows only what the
+  extension has read from your own pages on nextwork.ai.
 
-`demo.html` is self-contained. Open it in a browser. It shows:
+## The five tabs
 
-- **My World** — your base, close up, the way Clash of Clans shows a
-  village. Every finished project is a building at its own level, grouped
-  by series into districts, inside a stone wall that grows with your tier.
-  The Town Hall in the middle is the tier. Tap a building for its project.
-- **World** — the portfolio surface, as an open world. Your land starts as
-  dust and greens around what you build. Growth is cumulative by XP, never by
-  time: Plot, Homestead, Hamlet, Village, Town, City, Metropolis, with
-  builders arriving at 500 and 1,500 XP. Drag to look around; NextWork HQ is
-  the hub town up the road, and other learners' land is either side with a
-  nameplate. *Simulate* finishes a project and hands you the component it
-  built, and you choose the plot it goes on.
-- **Build** — the project surface, on your land. The same world, camera on
-  the plot under construction. Pick what the project builds - a house, a
-  car, a data centre - and how: *agile*, where every step delivers something
-  whole (shed, cabin, cottage, house), or *waterfall*, where pieces arrive in
-  order and nothing is usable until the last one. Every step is an event: a
-  flatbed drives in from the hub with the piece, the builders run out from
-  their hut and hammer it up, the XP floats off the site. Keep it, and it
-  stays where it was built.
-- **Projects** — the catalogue, series by series, with progress, XP and the
-  building each one grows; and the expansion.
-- **Notes** — the loop, what each series builds, the growth tiers, what the
-  extension can actually read from the page, and the open questions.
+1. **NextWork World** - the NextWork ranch in the middle: the tower with the
+   cafe at its foot, eight hubs for the roadmaps, a lake, a paddock, the
+   eight staff in black T-shirts. Learners' plots on the ring round it,
+   joined by worn footpaths. Tap your plot to go home.
+2. **NextWork** - what NextWork is, in its own words.
+3. **My World** - your land. A tent, a board and one oak until the first
+   project; then a cabin, then spreads, windmills, fences, the creek and
+   your learn lists over it. Tap or use the arrow keys to walk.
+4. **My Build** - the project going up, four stages tied to its steps, the
+   catalogue and your library.
+5. **NextWork Global** - the map, and where people are building, once
+   NextWork publishes a count.
 
-The art is isometric and drawn in code from primitives — boxes, roofs, domes,
-wheels, blobs for trees — with one light from the top-left and shadows to the
-front. No image files, which is the constraint the extension lives under. The two fonts come from Google Fonts and would be inlined in a
-real build.
+## In the extension
 
-This branch is deliberately not merged into `main`.
+`src/world/` is loaded as content scripts before `content.js`. The pane is
+a fixed element with a shadow root; the world never touches the page and
+the page's styles never touch the world. The popup's World tab turns it on,
+picks dev or production, and resets it. Readers look at a project page
+(title, steps ticked) and the portfolio page (learn lists) and nothing else.
