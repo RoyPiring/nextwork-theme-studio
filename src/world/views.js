@@ -98,13 +98,13 @@
 
     /* ---- 1. NextWork World: the campus ---- */
     const w1 = scene(880, 620, 'NextWork World: NextWork Headquarters in Austin, and the learners’ plots round it. Tap your plot to enter your world. Drag to look, wheel to zoom.');
-    const world = makeIso(w1.cv, 880 / (2 * 0.5), 620 / (2 * 0.5), 0.5); const wc = camTo(HQ.C[0], HQ.C[1] + 1, world.H); world.cam.x = wc.x; world.cam.y = wc.y;
+    const world = makeIso(w1.cv, 880 / (2 * 0.5), 620 / (2 * 0.5), 0.5); const wc = camTo(HQ.C[0], HQ.C[1] + 8, world.H); world.cam.x = wc.x; world.cam.y = wc.y;
     const wbadge = el('div', 'badge', 'NextWork World'); wbadge.appendChild(el('small', null, 'Austin, Texas')); w1.sc.appendChild(wbadge);
     const aimW = (gx, gy) => { const c = camTo(gx, gy, world.H); world.cam.x = c.x; world.cam.y = c.y; };
-    nav(w1.sc, [['Headquarters', () => aimW(HQ.HALL[0] + 3, HQ.HALL[1] + 2)], ['The quad', () => aimW(HQ.C[0], HQ.C[1] + 1)], ['My plot', () => aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1])], ['Whole ranch', () => { world.setScale(0.24); aimW(HQ.C[0], HQ.C[1]); }]]);
+    nav(w1.sc, [['The entry', () => aimW(HQ.ARCH[0], HQ.ARCH[1] + 3)], ['Headquarters', () => aimW(HQ.HALL[0] + 3, HQ.HALL[1] + 2)], ['The quad', () => aimW(HQ.C[0], HQ.C[1] + 1)], ['My plot', () => aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1])], ['Whole ranch', () => { world.setScale(0.2); aimW(HQ.C[0], HQ.C[1] + 4); }]]);
     zoomer(w1.sc, w1.cv, f => world.zoom(f));
     views.world.appendChild(w1.sc); const wsay = sayer(views.world);
-    wsay('NextWork World', 'NextWork Headquarters, Austin, Texas: a fenced ranch campus. The headquarters hall at the top of the quad, the NextWork Cafe, eight hubs with their names on them, the lake, the paddock, and the eight of them in black T-shirts going about their day. The plots outside the fence are learners. Yours is named. Tap it to go home.');
+    wsay('NextWork World', 'NextWork Headquarters, Austin, Texas. You arrive on the entry road from the south, park in the lot or rack your bike, walk in under the archway and up the main avenue to the quad and the headquarters hall. Eight hubs stand either side, the NextWork Cafe on the east, the lake and the paddock in the corners. The plots outside the fence are learners. Yours is named. Tap it to go home.');
     views.world.appendChild(el('div', 'cap', 'Paved paths on campus, dirt roads out through the gates. Tap a hub for its roadmap, a staff member for a word, an open slot to see how a world begins. Drag to look, wheel or +/− to zoom.'));
     drag(w1.cv, world, g => { const h = HQ.hitHQ(state, g);
       if (h.kind === 'hall') { wsay('NextWork Headquarters', ABOUT.tagline + '. ' + ABOUT.mission + ' Austin, Texas.'); return; }
@@ -117,6 +117,9 @@
       if (h.kind === 'staff') { wsay(h.staff.name, h.staff.says); return; }
       if (h.kind === 'paddock') { wsay('The paddock', 'They belong to no one. Like the free tier.'); return; }
       if (h.kind === 'lake') { wsay('The lake', 'Ripples.'); return; }
+      if (h.kind === 'arch') { wsay('The entry', 'Under the archway, up the main avenue, past the quad to headquarters. Everyone comes in this way.'); return; }
+      if (h.kind === 'lot') { wsay('Parking', 'Drive in from town, park here, walk in under the arch. The lot and the racks are outside the fence, so campus stays for people on foot.'); return; }
+      if (h.kind === 'rack') { wsay('Bike racks', 'Ride in, rack it, walk in.'); return; }
       if (h.kind === 'outside') { wsay('Outside the fence', 'Open ground between the ranch and the plots.'); return; }
       wsay('The ranch', 'Inside the fence. Everything here has a path to it.'); });
 

@@ -408,6 +408,23 @@
     const rb = I.box(gx + 0.5, gy + 0.4, 2, 0.25, 18, '#172033', H + 8, { noShadow: true }); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 9px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; const rs = I.up(I.P(rb.D, rb.C, 0.5), 6); I.ctx.fillText(hub.name.toUpperCase(), rs[0], rs[1] + 3); I.ctx.textAlign = 'left';
     const f = I.p(gx + 2.7, gy + 0.3, H + 8); I.line(f, [f[0], f[1] - 22], '#e6e9ef', 2); const wv = Math.sin(now / 300 + gx) * 2; I.poly([[f[0], f[1] - 22], [f[0] + 13, f[1] - 19 + wv], [f[0], f[1] - 15]], '#ffc531');
   };
+
+  /* ---- the entry: a ranch archway on the fence line, and what sits outside it ---- */
+  B.arch = function (I, gx, gy, text) {
+    /* two posts either side of the road and a beam with the name on it */
+    const H = 52; [gx - 2.2, gx + 2.2].forEach(x => { I.box(x - 0.15, gy - 0.15, 0.3, 0.3, H, '#8a5a3a', 0, { tex: 'siding' }); });
+    const a = I.p(gx - 2.2, gy, H), b = I.p(gx + 2.2, gy, H);
+    I.line([a[0], a[1] - 2], [b[0], b[1] - 2], '#6b3a22', 8); I.line([a[0], a[1] - 2], [b[0], b[1] - 2], '#8a5a3a', 5);
+    const m = I.P(a, b, 0.5); I.roundRect(m[0] - 46, m[1] - 20, 92, 22, 3, '#4a2b17'); I.ctx.strokeStyle = '#ffc531'; I.ctx.lineWidth = 1.5; I.ctx.strokeRect(m[0] - 43, m[1] - 17, 86, 16);
+    I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 9px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(text.toUpperCase(), m[0], m[1] - 6); I.ctx.textAlign = 'left';
+    I.blob(m[0], m[1] - 26, 4, '#ffc531'); I.ctx.fillStyle = '#4a2b17'; I.ctx.font = '800 6px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NW', m[0], m[1] - 24); I.ctx.textAlign = 'left';
+  };
+  B.bikerack = function (I, gx, gy, n) {
+    const a = I.p(gx, gy + 0.5), b = I.p(gx + n * 0.5, gy + 0.5); I.line([a[0], a[1] - 6], [b[0], b[1] - 6], '#8a8f98', 2);
+    for (let i = 0; i <= n; i++) { const q = I.P(a, b, i / n); I.ctx.strokeStyle = '#8a8f98'; I.ctx.lineWidth = 1.5; I.ctx.beginPath(); I.ctx.arc(q[0], q[1] - 4, 4, Math.PI, 0); I.ctx.stroke(); }
+    for (let i = 0; i < n; i++) { if (i % 3 === 2) continue; const q = I.P(a, b, (i + 0.5) / n); I.wheel(q[0] - 3, q[1] + 1, 2.6); I.wheel(q[0] + 3, q[1] + 1, 2.6); I.line([q[0] - 3, q[1] + 1], [q[0] + 1, q[1] - 4], ['#e8552f', '#2f7fd6', '#3fa66b', '#f2b42a'][i % 4], 1.5); I.line([q[0] + 1, q[1] - 4], [q[0] + 3, q[1] + 1], ['#e8552f', '#2f7fd6', '#3fa66b', '#f2b42a'][i % 4], 1.5); }
+  };
+  B.sign = function (I, gx, gy, text, sub) { const q = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(q[0] - 1, q[1] - 22, 2, 22); I.roundRect(q[0] - 22, q[1] - 34, 44, 14, 2, '#172033'); I.ctx.fillStyle = '#fff'; I.ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(text, q[0], q[1] - 27); if (sub) { I.ctx.fillStyle = '#ffc531'; I.ctx.font = '700 5px Nunito, system-ui, sans-serif'; I.ctx.fillText(sub, q[0], q[1] - 21.5); } I.ctx.textAlign = 'left'; };
   NW.B = B; NW.drop = drop;
 })();
 
@@ -717,51 +734,65 @@
 })();
 
 /* NextWorld · HQ: the NextWork World map
- * NextWork Headquarters, Austin, Texas: a fenced ranch campus. The
- * headquarters hall at the top of the quad, the NextWork Cafe with its
- * terrace, eight hubs the size of the hall with their names on them, a
- * lake, a paddock. Paved paths join everything on campus and dirt roads
- * run out through the gates to the learners' plots, each with its name.
- * The staff walk real routes on the paths: somewhere to go, a while
- * there, somewhere else. Nothing ever stands on a road. */
+ * NextWork Headquarters, Austin, Texas, laid out like a campus should be:
+ * one axis. You arrive from the south on the entry road, park in the lot
+ * or rack your bike outside the fence, walk in under the archway, up the
+ * main avenue past the quad to the headquarters hall. Eight hubs stand in
+ * two colonnades either side of the quad, the NextWork Cafe on the east
+ * side, the lake in the north-east corner, the paddock in the north-west.
+ * Paved paths join everything inside the fence; dirt roads run from the
+ * gates to the learners' plots. Staff and visitors walk the paths, and
+ * visitors arrive by car and bike. Nothing stands on a road. */
 'use strict';
 (function () {
   const { B, lerp, HUBS, reduce } = NW;
-  const S = NW.State, MAP = 100, C = [50, 50], STAFF_TEE = '#1c1f26';
+  const S = NW.State, MAP = 110, C = [55, 55], STAFF_TEE = '#1c1f26';
   const at = (dx, dy) => [C[0] + dx, C[1] + dy];
   const ground = (gx, gy) => NW.Land.groundColour(gx + 120, gy + 40);
   const key = (x, y) => x + ',' + y;
   /* ---- the plan, as offsets from the middle of the quad ---- */
   const QUAD = { x0: -6, y0: -4, x1: 6, y1: 6 };
-  const FENCE = { x0: -26, y0: -24, x1: 26, y1: 22 };
-  const GATES = [at(0, 22), at(26, 1), at(-26, 1), at(0, -24)];
-  const HALL = at(-3, -10.4), HALL_DOOR = at(0, -7);
-  const CAFE = at(10, -2), CAFE_DOOR = at(11, 0), TERRACE = { x0: 9, y0: 1, x1: 14, y1: 4 };
-  const TABLES = [[9.4, 1.4], [11.4, 1.4], [13.4, 1.4], [9.4, 3.4], [11.4, 3.4], [13.4, 3.4]].map(o => at(o[0], o[1]));
-  /* the hubs: three tiles square each, with the paved tile they are entered from */
-  const HUB_AT = [at(-16, -4), at(-16, 5), at(12, 8), at(-13, -14), at(6, 13), at(-6, 13), at(14, -14), at(-21, 12)];
+  const FENCE = { x0: -30, y0: -27, x1: 30, y1: 22 };
+  const SOUTH_GATE = at(0, 22), NORTH_GATE = at(0, -27), ARCH = at(0, 22.5);
+  const HALL = at(-3, -12), HALL_DOOR = at(0, -9);
+  const CAFE = at(8, -3), CAFE_DOOR = at(9, 0), TERRACE = { x0: 7, y0: 1, x1: 11, y1: 4 };
+  const TABLES = [[7.4, 1.4], [9.4, 1.4], [11.4, 1.4], [7.4, 3.4], [9.4, 3.4], [11.4, 3.4]].map(o => at(o[0], o[1]));
+  /* two colonnades of hubs, west and east, each fronting its own avenue */
+  const WEST_AVE = -12, EAST_AVE = 12;
+  const HUB_AT = [at(-18, -19), at(-18, -9), at(-18, 1), at(-18, 11), at(15, -19), at(15, -9), at(15, 1), at(15, 11)];
   const HUB_DOOR = HUB_AT.map(h => [h[0] + 1, h[1] + 3]);
-  const LAKE = at(17, 10).concat([8, 8]); const JETTY = at(23, 18);
-  const PADDOCK = at(-24, -22).concat([8, 5]); const BARN = at(-15, -22); const PADDOCK_GATE = at(-16, -16);
-  const BENCHES = [[-5, -4.1], [-2, -4.1], [2, -4.1], [5, -4.1], [-5, 6.2], [-2, 6.2], [2, 6.2], [5, 6.2], [-6.2, -1], [-6.2, 3], [6.2, -1], [6.2, 3]].map(o => at(o[0], o[1]));
-  const SITTERS = ['#2f7fd6', STAFF_TEE, '#e8552f', null, '#3fa66b', null, STAFF_TEE, '#8f5fd1', null, '#f2b42a', '#2f7fd6', null];
-  const PLOTS = []; for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + 0.2 + (S.hash(i, 3) - 0.5) * 0.25, r = 38 + (S.hash(i, 5) - 0.5) * 3; PLOTS.push([Math.round(C[0] + Math.cos(a) * r * 1.15), Math.round(C[1] + Math.sin(a) * r * 0.85)]); }
+  const LAKE = at(20, -25).concat([9, 7]); const JETTY = at(24, -17);
+  const PADDOCK = at(-29, -26).concat([8, 5]); const BARN = at(-20, -26); const PADDOCK_GATE = at(-21, -20);
+  const BENCHES = [[-5, -4.1], [-2, -4.1], [2, -4.1], [5, -4.1], [-5, 6.2], [-2, 6.2], [2, 6.2], [5, 6.2], [-6.2, -1], [-6.2, 3], [6.2, -1], [6.2, 3], [-1.6, 10], [1.6, 10], [-1.6, 15], [1.6, 15]].map(o => at(o[0], o[1]));
+  const SITTERS = ['#2f7fd6', STAFF_TEE, '#e8552f', null, '#3fa66b', null, STAFF_TEE, '#8f5fd1', null, '#f2b42a', '#2f7fd6', null, '#3fa66b', null, null, '#e8552f'];
+  /* outside the fence: the entry road, the lot and the racks */
+  const LOT = { x0: 3, y0: 25, x1: 13, y1: 31 }; const LOT_IN = at(2, 28);
+  const SPACES = []; for (let i = 0; i < 8; i++) SPACES.push(at(4 + (i % 4) * 2.3, i < 4 ? 26 : 30));
+  const RACK = at(-8, 26); const RACK_IN = at(-1, 26);
+  const PLOTS = []; for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + 0.2 + (S.hash(i, 3) - 0.5) * 0.25, r = 42 + (S.hash(i, 5) - 0.5) * 3; PLOTS.push([Math.round(C[0] + Math.cos(a) * r * 1.15), Math.round(C[1] + Math.sin(a) * r * 0.85)]); }
   const MINE = 3;
   const NEIGHBOURS = { 7: ['Kalpana’s Ridge', 4], 11: ['Adam’s Acres', 22], 14: ['The Cloud Barn', 9] };
 
   /* ---- paved paths on campus, four-connected so people can walk them ---- */
-  const PAVED = new Set();
+  const PAVED = new Set(), ASPHALT = new Set();
   const lay = (x, y) => PAVED.add(key(x, y));
-  const line = (a, b) => { let [x, y] = a; lay(x, y); while (x !== b[0]) { x += x < b[0] ? 1 : -1; lay(x, y); } while (y !== b[1]) { y += y < b[1] ? 1 : -1; lay(x, y); } };
+  const line = (a, b, set) => { const put = set ? (x, y) => set.add(key(x, y)) : lay; let [x, y] = a; put(x, y); while (x !== b[0]) { x += x < b[0] ? 1 : -1; put(x, y); } while (y !== b[1]) { y += y < b[1] ? 1 : -1; put(x, y); } };
   for (let dx = QUAD.x0 - 1; dx <= QUAD.x1 + 1; dx++) { lay(C[0] + dx, C[1] + QUAD.y0 - 1); lay(C[0] + dx, C[1] + QUAD.y1 + 1); }
   for (let dy = QUAD.y0 - 1; dy <= QUAD.y1 + 1; dy++) { lay(C[0] + QUAD.x0 - 1, C[1] + dy); lay(C[0] + QUAD.x1 + 1, C[1] + dy); }
-  line(at(0, QUAD.y0 - 1), at(0, QUAD.y1 + 1)); line(at(QUAD.x0 - 1, 1), at(QUAD.x1 + 1, 1));
-  line(at(0, QUAD.y0 - 1), HALL_DOOR); line(at(QUAD.x1 + 1, 1), at(8, 1)); for (let dy = TERRACE.y0; dy <= TERRACE.y1; dy++) for (let dx = TERRACE.x0; dx <= TERRACE.x1; dx++) lay(C[0] + dx, C[1] + dy); line(at(11, 1), CAFE_DOOR);
-  const ringNearest = q => { let best = null, bd = 1e9; PAVED.forEach(k => { const t = k.split(',').map(Number); const d = Math.abs(t[0] - q[0]) + Math.abs(t[1] - q[1]); if (d < bd) { bd = d; best = t; } }); return best; };
-  HUB_DOOR.forEach(d => line(ringNearest(d), d));
-  line(ringNearest(JETTY), JETTY); line(ringNearest(PADDOCK_GATE), PADDOCK_GATE);
-  GATES.forEach(g => line(ringNearest(g), g));
-  const paved = (gx, gy) => PAVED.has(key(gx, gy));
+  line(at(0, QUAD.y0 - 1), at(0, QUAD.y1 + 1)); line(at(QUAD.x0 - 1, 1), at(QUAD.x1 + 1, 1));   /* the cross */
+  line(at(0, QUAD.y0 - 1), HALL_DOOR);                                                              /* up to the hall */
+  line(at(0, QUAD.y1 + 1), SOUTH_GATE); line(at(-1, QUAD.y1 + 1), at(-1, 21)); line(at(1, QUAD.y1 + 1), at(1, 21));   /* the main avenue, three wide */
+  line(at(WEST_AVE, -22), at(WEST_AVE, 16)); line(at(EAST_AVE, -22), at(EAST_AVE, 16));            /* the two hub avenues */
+  line(at(QUAD.x0 - 1, 1), at(WEST_AVE, 1)); line(at(QUAD.x1 + 1, 1), at(EAST_AVE, 1));           /* joined to the quad */
+  line(at(-1, -5), at(WEST_AVE, -5)); line(at(1, -5), at(EAST_AVE, -5)); line(at(0, 7), at(WEST_AVE, 7)); line(at(0, 7), at(EAST_AVE, 7));
+  for (let dy = TERRACE.y0; dy <= TERRACE.y1; dy++) for (let dx = TERRACE.x0; dx <= TERRACE.x1; dx++) lay(C[0] + dx, C[1] + dy); line(at(9, 1), CAFE_DOOR);
+  HUB_DOOR.forEach((d, i) => line([i < 4 ? C[0] + WEST_AVE : C[0] + EAST_AVE, d[1]], d));
+  line(at(EAST_AVE, -22), at(EAST_AVE, -20)); line(at(EAST_AVE, -20), JETTY); line(at(WEST_AVE, -22), PADDOCK_GATE); line(at(0, -9), NORTH_GATE);
+  /* outside: the entry road and the lot are asphalt, the lane to the racks is paved */
+  line(SOUTH_GATE, at(0, MAP - C[1] - 1), ASPHALT); line(at(-1, 23), at(-1, MAP - C[1] - 1), ASPHALT); line(at(1, 23), at(1, MAP - C[1] - 1), ASPHALT);
+  for (let dy = LOT.y0; dy <= LOT.y1; dy++) for (let dx = LOT.x0; dx <= LOT.x1; dx++) ASPHALT.add(key(C[0] + dx, C[1] + dy)); line(LOT_IN, at(LOT.x0, 28), ASPHALT);
+  line(at(-1, 26), at(-3, 26)); line(at(-3, 26), at(-8, 26)); line(at(2, 25), at(12, 25)); line(at(2, 25), at(2, 24));   /* footways from the racks and the lot to the gate */
+  const paved = (gx, gy) => PAVED.has(key(gx, gy)), asphalt = (gx, gy) => ASPHALT.has(key(gx, gy));
   const lawn = (gx, gy) => { const dx = gx - C[0], dy = gy - C[1]; return dx >= QUAD.x0 && dx <= QUAD.x1 && dy >= QUAD.y0 && dy <= QUAD.y1 && !paved(gx, gy); };
   const inside = (gx, gy) => gx > C[0] + FENCE.x0 && gx < C[0] + FENCE.x1 && gy > C[1] + FENCE.y0 && gy < C[1] + FENCE.y1;
 
@@ -770,51 +801,62 @@
   let roadsFor = '', ROADS = new Set();
   function roads(os) {
     const sig = os.map(o => o.built ? 1 : 0).join(''); if (sig === roadsFor) return ROADS;
-    const set = new Set(), tiles = GATES.map(g => g.slice()); const l = (x, y) => set.add(key(x, y));
+    const set = new Set(), tiles = [at(0, 34), at(-1, 34), at(1, 34), NORTH_GATE.slice()]; const l = (x, y) => set.add(key(x, y));
     const ln = (a, b) => { let [x, y] = a; l(x, y); while (x !== b[0]) { x += x < b[0] ? 1 : -1; l(x, y); tiles.push([x, y]); } while (y !== b[1]) { y += y < b[1] ? 1 : -1; l(x, y); tiles.push([x, y]); } };
     const bent = (a, b) => { const t = 0.35 + S.hash(a[0] + b[0], a[1] + b[1]) * 0.3; const m = [Math.round(lerp(a[0], b[0], t)), Math.round(lerp(a[1], b[1], 1 - t))]; ln(a, m); ln(m, b); };
     os.forEach(o => { if (!o.built && !o.mine) return; const to = [o.at[0], o.at[1] + 2]; let best = tiles[0], bd = 1e9; tiles.forEach(t => { const d = Math.abs(t[0] - to[0]) + Math.abs(t[1] - to[1]); if (d < bd) { bd = d; best = t; } }); bent(best, to); });
     ROADS = set; roadsFor = sig; return set;
   }
-  const walkableAll = (set) => { const u = new Set(PAVED); set.forEach(k => u.add(k)); return u; };
+  const walkableAll = set => { const u = new Set(PAVED); ASPHALT.forEach(k => u.add(k)); set.forEach(k => u.add(k)); return u; };
 
   /* ---- the staff and visitors: somewhere to be, a while there, on again ---- */
-  const POIS = { hall: HALL_DOOR, cafe: CAFE_DOOR, jetty: JETTY, paddock: PADDOCK_GATE, hub: i => HUB_DOOR[i], bench: i => { const b = BENCHES[i]; return ringNearest([Math.round(b[0]), Math.round(b[1])]); }, gate: i => GATES[i] };
+  const POIS = { hall: HALL_DOOR, cafe: CAFE_DOOR, jetty: JETTY, paddock: PADDOCK_GATE, gate: SOUTH_GATE, hub: i => HUB_DOOR[i], bench: i => { const b = BENCHES[i]; let best = null, bd = 1e9; PAVED.forEach(k => { const t = k.split(',').map(Number); const d = Math.abs(t[0] + 0.5 - b[0] - 0.5) + Math.abs(t[1] + 0.5 - b[1] - 0.5); if (d < bd) { bd = d; best = t; } }); return best; }, space: i => SPACES[i].map(Math.round), rack: () => RACK_IN };
   const STAFF = [
     { name: 'Amber', plan: ['hall', 'bench0', 'hub1', 'cafe', 'bench5', 'hall'], says: 'Show them what you built. That is the whole idea.' },
     { name: 'Barista', plan: ['cafe', 'cafe', 'bench10', 'cafe'], says: 'Flat white. Or a project. Both take about ten minutes.' },
-    { name: 'Guide', plan: ['hub0', 'hub1', 'hub2', 'hub3', 'hub4', 'hub5', 'hub6', 'hub7'], says: 'Every hub is a roadmap. Pick the one you keep thinking about.' },
+    { name: 'Guide', plan: ['gate', 'hub0', 'hub1', 'hub2', 'hub3', 'hub4', 'hub5', 'hub6', 'hub7'], says: 'Every hub is a roadmap. Pick the one you keep thinking about.' },
     { name: 'Wrangler', plan: ['paddock', 'paddock', 'cafe', 'paddock'], says: 'They belong to no one. Like the free tier.' },
     { name: 'Docs', plan: ['bench2', 'bench2', 'bench2', 'cafe', 'bench7', 'bench7'], says: 'Write it down while it is fresh. Future you will read it.' },
     { name: 'Support', plan: ['hub4', 'hub5', 'bench9', 'hall', 'hub6'], says: 'Stuck on a step? The chat is on every project page.' },
     { name: 'Jetty', plan: ['jetty', 'jetty', 'jetty', 'cafe', 'jetty'], says: 'Nothing to say. Nice out here though.' },
-    { name: 'Dean', plan: ['hall', 'hall', 'gate0', 'hall', 'bench3'], says: 'Austin. Where the work gets built. Welcome to campus.' }
+    { name: 'Dean', plan: ['hall', 'hall', 'gate', 'bench12', 'hall'], says: 'Austin. Where the work gets built. Welcome to campus.' }
   ];
   const poi = name => { const m = /^([a-z]+)(\d*)$/.exec(name); const p = POIS[m[1]]; return typeof p === 'function' ? p(+m[2]) : p; };
-  const agents = STAFF.map((st, i) => ({ st, i, at: poi(st.plan[0]).slice(), step: 0, path: null, dwell: 2 + i, colour: STAFF_TEE, bike: false }));
-  const visitors = [];
+  const agents = STAFF.map((st, i) => ({ st, i, at: poi(st.plan[0]).map(v => v + 0.5), step: 0, path: null, dwell: 2 + i, colour: STAFF_TEE }));
+  /* visitors: drive in, park, walk the campus, drive off; or ride in and rack the bike */
+  const VISITORS = [{ colour: '#3fa66b', car: '#3b7dd8', space: 1, plan: ['space1', 'gate', 'hub2', 'cafe', 'bench13', 'space1'] }, { colour: '#8f5fd1', car: '#e8552f', space: 5, plan: ['space5', 'gate', 'hub5', 'hall', 'space5'] }, { colour: '#f2b42a', bike: true, plan: ['rack', 'gate', 'hub6', 'bench14', 'rack'] }];
+  const visitors = VISITORS.map((v, i) => ({ st: { name: 'Visitor', plan: v.plan }, i: 20 + i, at: poi(v.plan[0]).map(x => x + 0.5), step: 0, path: null, dwell: 6 + i * 7, colour: v.colour, car: v.car, space: v.space, bike: v.bike, away: false }));
+  const CAR_COLOURS = ['#3b7dd8', '#e8552f', '#f2b42a', '#3fa66b', '#9aa3b0', '#8f5fd1'];
   let lastNow = 0;
-  function tick(now, state, os) {
+  function tick(now, os) {
     const dt = Math.min(0.1, lastNow ? (now - lastNow) / 1000 : 0); lastNow = now; if (reduce) return;
     const all = walkableAll(roads(os));
-    if (state.mode === 'dev' && !visitors.length) Object.keys(NEIGHBOURS).forEach((k, i) => { const o = os[+k]; if (!o.built) return; visitors.push({ st: { name: o.name, plan: ['home', 'hub' + (i * 2), 'cafe', 'hub' + (i * 2 + 1), 'home'] }, home: [o.at[0], o.at[1] + 2], at: [o.at[0], o.at[1] + 2], step: 0, path: null, dwell: 4 + i * 3, colour: ['#3fa66b', '#8f5fd1', '#f2b42a'][i], bike: true }); });
     agents.concat(visitors).forEach(a => {
-      if (a.path && a.path.length) { const w = a.path[0], dx = w[0] - a.at[0], dy = w[1] - a.at[1], d = Math.hypot(dx, dy), sp = (a.bike ? 3.2 : 1.5) * dt; if (d <= sp) { a.at = w.slice(); a.path.shift(); if (!a.path.length) a.dwell = 3 + S.hash(a.step, a.i || 9) * 5; } else { a.at[0] += dx / d * sp; a.at[1] += dy / d * sp; } a.moving = true; return; }
+      if (a.path && a.path.length) { const w = a.path[0], dx = w[0] - a.at[0], dy = w[1] - a.at[1], d = Math.hypot(dx, dy), sp = (a.bike && a.step === 0 ? 3 : 1.5) * dt; if (d <= sp) { a.at = w.slice(); a.path.shift(); if (!a.path.length) a.dwell = 3 + S.hash(a.step, a.i) * 5; } else { a.at[0] += dx / d * sp; a.at[1] += dy / d * sp; } a.moving = true; return; }
       a.moving = false; a.dwell -= dt; if (a.dwell > 0) return;
-      a.step = (a.step + 1) % a.st.plan.length; const name = a.st.plan[a.step]; const to = name === 'home' ? a.home : poi(name); const from = [Math.round(a.at[0] - 0.5), Math.round(a.at[1] - 0.5)];
+      a.step = (a.step + 1) % a.st.plan.length; const to = poi(a.st.plan[a.step]); const from = [Math.floor(a.at[0]), Math.floor(a.at[1])];
       const r = S.route(all, from, to); if (r) { a.path = r.map(t => [t[0] + 0.5, t[1] + 0.5]); if (a.path.length && Math.hypot(a.path[0][0] - a.at[0], a.path[0][1] - a.at[1]) < 0.1) a.path.shift(); } else a.dwell = 2;
     });
   }
 
   function drawHQ(I, state, now, opts) {
-    const ctx = I.ctx, os = owners(state), rd = roads(os); opts = opts || {}; tick(now, state, os);
-    for (let gy = 0; gy < MAP; gy++) for (let gx = 0; gx < MAP; gx++) { if (!I.onScreen(gx, gy)) continue; if (paved(gx, gy)) { I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.06)'); continue; } if (rd.has(key(gx, gy))) { I.tile(gx, gy, '#c8a877', 'rgba(110,75,30,.35)'); continue; } if (lawn(gx, gy)) { I.tile(gx, gy, (gx + gy) % 2 ? '#7fc55a' : '#86cc60'); continue; } I.tile(gx, gy, ground(gx, gy)); }
+    const ctx = I.ctx, os = owners(state), rd = roads(os); opts = opts || {}; tick(now, os);
+    for (let gy = 0; gy < MAP; gy++) for (let gx = 0; gx < MAP; gx++) { if (!I.onScreen(gx, gy)) continue; if (asphalt(gx, gy)) { I.tile(gx, gy, '#6f737b', 'rgba(0,0,0,.15)'); continue; } if (paved(gx, gy)) { I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.06)'); continue; } if (rd.has(key(gx, gy))) { I.tile(gx, gy, '#c8a877', 'rgba(110,75,30,.35)'); continue; } if (lawn(gx, gy)) { I.tile(gx, gy, (gx + gy) % 2 ? '#7fc55a' : '#86cc60'); continue; } I.tile(gx, gy, ground(gx, gy)); }
+    /* road markings: the centre line of the entry road, the bays in the lot */
+    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.beginPath(); const c0 = I.p(C[0] + 0.5, C[1] + 23), c1 = I.p(C[0] + 0.5, MAP - 1); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke(); ctx.setLineDash([]);
+    for (let i = 0; i <= 4; i++) [26, 30].forEach(row => { const a = I.p(C[0] + 4 + i * 2.3 - 0.3, C[1] + row - 0.2), b = I.p(C[0] + 4 + i * 2.3 - 0.3, C[1] + row + 1.2); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
     const items = []; const add = (d, fn) => items.push({ d, fn }); const late = fn => items.push({ d: 9999, fn });
-    /* the borders: a rail fence round the ranch, open at the gates */
+    /* the borders: a rail fence round the ranch, open at the two gates */
     const fx0 = C[0] + FENCE.x0, fy0 = C[1] + FENCE.y0, fx1 = C[0] + FENCE.x1, fy1 = C[1] + FENCE.y1;
     const seg = (a, b) => add(Math.min(a[0], b[0]) + Math.min(a[1], b[1]) - 0.5, () => I.fence(a[0], a[1], b[0], b[1], Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 1.5)));
-    seg([fx0, fy0], [C[0] - 1.2, fy0]); seg([C[0] + 1.2, fy0], [fx1, fy0]); seg([fx0, fy1], [C[0] - 1.2, fy1]); seg([C[0] + 1.2, fy1], [fx1, fy1]);
-    seg([fx0, fy0], [fx0, C[1] + 0.8]); seg([fx0, C[1] + 2.2], [fx0, fy1]); seg([fx1, fy0], [fx1, C[1] + 0.8]); seg([fx1, C[1] + 2.2], [fx1, fy1]);
+    seg([fx0, fy0], [C[0] - 1.2, fy0]); seg([C[0] + 2.2, fy0], [fx1, fy0]); seg([fx0, fy1], [C[0] - 2.2, fy1]); seg([C[0] + 3.2, fy1], [fx1, fy1]); seg([fx0, fy0], [fx0, fy1]); seg([fx1, fy0], [fx1, fy1]);
+    add(ARCH[0] + ARCH[1] + 1, () => B.arch(I, ARCH[0] + 0.5, ARCH[1] + 0.3, 'NextWork Headquarters'));
+    /* outside the fence: parked cars, the racks, a sign, a car coming or going */
+    SPACES.forEach((sp, i) => { const v = visitors.find(x => x.space === i); const parked = !v || (v.step === 0 || v.step === v.st.plan.length - 1) && !v.moving; if ((i === 2 || i === 6) && !v) return; if (parked) add(sp[0] + sp[1] + 0.5, () => I.car(sp[0], sp[1], v ? v.car : CAR_COLOURS[i % CAR_COLOURS.length])); });
+    const loop = (now / 16000) % 1; const cy = loop < 0.5 ? lerp(MAP - 2, C[1] + 29, loop * 2) : lerp(C[1] + 29, MAP - 2, (loop - 0.5) * 2); add(C[0] + 1 + cy + 0.6, () => I.car(C[0] + (loop < 0.5 ? 1 : -1) + 0.05, cy, loop < 0.5 ? '#9aa3b0' : '#3fa66b'));
+    add(RACK[0] + RACK[1] + 0.6, () => B.bikerack(I, RACK[0], RACK[1], 6)); add(C[0] + 2 + C[1] + 24.5, () => B.sign(I, C[0] + 2, C[1] + 23.6, 'PARKING', 'lot and racks'));
+    [[2, 33], [-2, 33], [2, 38], [-2, 38], [2, 43], [-2, 43]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.2, () => I.lamp(q[0] + 0.5, q[1] + 0.5)); });
+    /* the grounds */
     add(LAKE[0] + LAKE[1] + 2, () => B.lake(I, LAKE[0], LAKE[1], LAKE[2], LAKE[3], now));
     add(PADDOCK[0] + PADDOCK[1] - 1, () => B.paddock(I, PADDOCK[0], PADDOCK[1], PADDOCK[2], PADDOCK[3]));
     add(BARN[0] + BARN[1] + 0.6, () => B.barn(I, BARN[0], BARN[1], 1, now, 2)); add(PADDOCK[0] + PADDOCK[1] + 5.5, () => B.hay(I, PADDOCK[0] + 6, PADDOCK[1] + 3.5));
@@ -823,14 +865,15 @@
     add(CAFE[0] + 1.5 + CAFE[1] + 1.6, () => B.cafe(I, CAFE[0], CAFE[1], now));
     TABLES.forEach(t => add(t[0] + t[1] + 0.3, () => B.table(I, t[0], t[1])));
     BENCHES.forEach((b, i) => add(b[0] + b[1] + 0.3, () => B.bench(I, b[0], b[1], SITTERS[i], now)));
-    [[-4, -4.2], [4, -4.2], [-4, 6.3], [4, 6.3]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.2, () => I.lamp(q[0] + 0.5, q[1] + 0.5)); });
-    [[-4, -2], [4, -2], [-4, 4], [4, 4]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.5, () => B.oak(I, q[0], q[1], 1.1)); });
+    [[-2, -4.2], [2, -4.2], [-2, 6.3], [2, 6.3], [-2.2, 10], [2.2, 10], [-2.2, 15], [2.2, 15], [-2.2, 19], [2.2, 19], [-1.5, -7.5], [1.5, -7.5]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.2, () => I.lamp(q[0] + 0.5, q[1] + 0.5)); });
+    [[-4, -2], [4, -2], [-4, 4], [4, 4], [-9, -2], [-9, 4], [9, 5], [-4, 12], [4, 12], [-4, 17], [4, 17]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.5, () => B.oak(I, q[0], q[1], 1.05)); });
     add(C[0] + C[1] + 1.4, () => B.fountain(I, C[0] - 0.5, C[1] + 0.5, 1, now));
     HUBS.forEach((h, i) => { const q = HUB_AT[i]; if (I.onScreen(q[0], q[1]) || I.onScreen(q[0] + 3, q[1] + 3)) add(q[0] + q[1] + 3.2, () => B.bighub(I, q[0], q[1], now, h)); });
-    if (!opts.map) for (let gy = 0; gy < MAP; gy += 1) for (let gx = 0; gx < MAP; gx += 1) { const r = S.hash(gx * 7 + 1, gy * 3 + 2); if (r > 0.03 || !I.onScreen(gx, gy) || paved(gx, gy) || rd.has(key(gx, gy)) || (Math.abs(gx - C[0]) < 25 && Math.abs(gy - C[1]) < 23)) continue; if (os.some(o => Math.abs(o.at[0] - gx) < 3 && Math.abs(o.at[1] - gy) < 3)) continue; add(gx + gy + 0.5, () => B.oak(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
+    if (!opts.map) for (let gy = 0; gy < MAP; gy += 1) for (let gx = 0; gx < MAP; gx += 1) { const r = S.hash(gx * 7 + 1, gy * 3 + 2); if (r > 0.03 || !I.onScreen(gx, gy) || paved(gx, gy) || asphalt(gx, gy) || rd.has(key(gx, gy)) || inside(gx, gy) || (Math.abs(gx - C[0]) < 16 && gy > C[1] + 22)) continue; if (os.some(o => Math.abs(o.at[0] - gx) < 3 && Math.abs(o.at[1] - gy) < 3)) continue; add(gx + gy + 0.5, () => B.oak(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
     os.forEach(o => { if (!I.onScreen(o.at[0], o.at[1])) return; add(o.at[0] + o.at[1] + 1.2, () => B.plot(I, o.at[0], o.at[1], o, now)); if (!opts.map) late(() => I.label(o.at[0] + 0.6, o.at[1] + 2.9, o.name || 'Open slot', o.built ? o.built + ' built' : o.mine ? 'start here' : 'pick it and build', o.mine ? 10 : 8)); });
-    agents.concat(visitors).forEach(a => add(a.at[0] + a.at[1] + 0.05, () => a.bike && a.moving ? B.bike(I, a.at[0], a.at[1], a.colour, now / 1000) : I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + (a.i || 0) : 3 + (a.i || 0), false)));
-    late(() => { I.label(HALL[0] + 3, HALL[1] + 4.6, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4, LAKE[1] + 9.2, 'The lake', '', 8); I.label(PADDOCK[0] + 4, PADDOCK[1] + 6, 'The paddock', '', 8); I.label(C[0], C[1] + FENCE.y1 + 2.4, 'NextWork Ranch', 'the south gate', 9); });
+    agents.forEach(a => add(a.at[0] + a.at[1] + 0.05, () => I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)));
+    visitors.forEach(a => { const atCar = !a.bike && (a.step === 0 || a.step === a.st.plan.length - 1) && !a.moving; if (atCar) return; add(a.at[0] + a.at[1] + 0.05, () => a.bike && a.moving && a.step <= 1 ? B.bike(I, a.at[0], a.at[1], a.colour, now / 1000) : I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)); });
+    late(() => { I.label(HALL[0] + 3, HALL[1] + 4.6, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4.5, LAKE[1] + 8.2, 'The lake', '', 8); I.label(PADDOCK[0] + 4, PADDOCK[1] + 6, 'The paddock', '', 8); I.label(C[0] + 8, C[1] + 32.6, 'Parking', '', 8); I.label(RACK[0] + 1.5, RACK[1] + 1.9, 'Bike racks', '', 8); I.label(C[0] + 0.5, C[1] + 45, 'The entry road', 'from town', 8); });
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
     return { owners: os, hubs: HUB_AT, staff: STAFF };
   }
@@ -841,12 +884,15 @@
     const os = owners(state); const pi = os.findIndex(o => g[0] >= o.at[0] - 0.6 && g[0] <= o.at[0] + 1.8 && g[1] >= o.at[1] - 0.6 && g[1] <= o.at[1] + 1.8); if (pi >= 0) return { kind: 'plot', owner: os[pi], index: pi };
     if (g[0] >= LAKE[0] && g[0] <= LAKE[0] + LAKE[2] && g[1] >= LAKE[1] && g[1] <= LAKE[1] + LAKE[3]) return { kind: 'lake' };
     if (g[0] >= PADDOCK[0] && g[0] <= PADDOCK[0] + PADDOCK[2] && g[1] >= PADDOCK[1] && g[1] <= PADDOCK[1] + PADDOCK[3]) return { kind: 'paddock' };
+    if (g[0] >= C[0] + LOT.x0 && g[0] <= C[0] + LOT.x1 + 1 && g[1] >= C[1] + LOT.y0 && g[1] <= C[1] + LOT.y1 + 1) return { kind: 'lot' };
+    if (Math.abs(g[0] - RACK[0] - 1.5) < 2.5 && Math.abs(g[1] - RACK[1] - 0.5) < 1.5) return { kind: 'rack' };
+    if (Math.abs(g[0] - ARCH[0] - 0.5) < 3 && Math.abs(g[1] - ARCH[1]) < 1.5) return { kind: 'arch' };
     const ai = agents.findIndex(a => Math.hypot(a.at[0] - g[0], a.at[1] - g[1]) < 1.2); if (ai >= 0) return { kind: 'staff', staff: STAFF[ai] };
     if (lawn(Math.floor(g[0]), Math.floor(g[1]))) return { kind: 'quad' };
     if (!inside(g[0], g[1])) return { kind: 'outside' };
     return { kind: 'grass' };
   }
-  NW.HQ = { MAP, C, PLOTS, MINE, owners, drawHQ, hitHQ, HUB_AT, HALL, CAFE, FENCE };
+  NW.HQ = { MAP, C, PLOTS, MINE, owners, drawHQ, hitHQ, HUB_AT, HALL, CAFE, FENCE, ARCH, LOT };
 })();
 
 /* NextWorld · global: the globe
@@ -997,13 +1043,13 @@
 
     /* ---- 1. NextWork World: the campus ---- */
     const w1 = scene(880, 620, 'NextWork World: NextWork Headquarters in Austin, and the learners’ plots round it. Tap your plot to enter your world. Drag to look, wheel to zoom.');
-    const world = makeIso(w1.cv, 880 / (2 * 0.5), 620 / (2 * 0.5), 0.5); const wc = camTo(HQ.C[0], HQ.C[1] + 1, world.H); world.cam.x = wc.x; world.cam.y = wc.y;
+    const world = makeIso(w1.cv, 880 / (2 * 0.5), 620 / (2 * 0.5), 0.5); const wc = camTo(HQ.C[0], HQ.C[1] + 8, world.H); world.cam.x = wc.x; world.cam.y = wc.y;
     const wbadge = el('div', 'badge', 'NextWork World'); wbadge.appendChild(el('small', null, 'Austin, Texas')); w1.sc.appendChild(wbadge);
     const aimW = (gx, gy) => { const c = camTo(gx, gy, world.H); world.cam.x = c.x; world.cam.y = c.y; };
-    nav(w1.sc, [['Headquarters', () => aimW(HQ.HALL[0] + 3, HQ.HALL[1] + 2)], ['The quad', () => aimW(HQ.C[0], HQ.C[1] + 1)], ['My plot', () => aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1])], ['Whole ranch', () => { world.setScale(0.24); aimW(HQ.C[0], HQ.C[1]); }]]);
+    nav(w1.sc, [['The entry', () => aimW(HQ.ARCH[0], HQ.ARCH[1] + 3)], ['Headquarters', () => aimW(HQ.HALL[0] + 3, HQ.HALL[1] + 2)], ['The quad', () => aimW(HQ.C[0], HQ.C[1] + 1)], ['My plot', () => aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1])], ['Whole ranch', () => { world.setScale(0.2); aimW(HQ.C[0], HQ.C[1] + 4); }]]);
     zoomer(w1.sc, w1.cv, f => world.zoom(f));
     views.world.appendChild(w1.sc); const wsay = sayer(views.world);
-    wsay('NextWork World', 'NextWork Headquarters, Austin, Texas: a fenced ranch campus. The headquarters hall at the top of the quad, the NextWork Cafe, eight hubs with their names on them, the lake, the paddock, and the eight of them in black T-shirts going about their day. The plots outside the fence are learners. Yours is named. Tap it to go home.');
+    wsay('NextWork World', 'NextWork Headquarters, Austin, Texas. You arrive on the entry road from the south, park in the lot or rack your bike, walk in under the archway and up the main avenue to the quad and the headquarters hall. Eight hubs stand either side, the NextWork Cafe on the east, the lake and the paddock in the corners. The plots outside the fence are learners. Yours is named. Tap it to go home.');
     views.world.appendChild(el('div', 'cap', 'Paved paths on campus, dirt roads out through the gates. Tap a hub for its roadmap, a staff member for a word, an open slot to see how a world begins. Drag to look, wheel or +/− to zoom.'));
     drag(w1.cv, world, g => { const h = HQ.hitHQ(state, g);
       if (h.kind === 'hall') { wsay('NextWork Headquarters', ABOUT.tagline + '. ' + ABOUT.mission + ' Austin, Texas.'); return; }
@@ -1016,6 +1062,9 @@
       if (h.kind === 'staff') { wsay(h.staff.name, h.staff.says); return; }
       if (h.kind === 'paddock') { wsay('The paddock', 'They belong to no one. Like the free tier.'); return; }
       if (h.kind === 'lake') { wsay('The lake', 'Ripples.'); return; }
+      if (h.kind === 'arch') { wsay('The entry', 'Under the archway, up the main avenue, past the quad to headquarters. Everyone comes in this way.'); return; }
+      if (h.kind === 'lot') { wsay('Parking', 'Drive in from town, park here, walk in under the arch. The lot and the racks are outside the fence, so campus stays for people on foot.'); return; }
+      if (h.kind === 'rack') { wsay('Bike racks', 'Ride in, rack it, walk in.'); return; }
       if (h.kind === 'outside') { wsay('Outside the fence', 'Open ground between the ranch and the plots.'); return; }
       wsay('The ranch', 'Inside the fence. Everything here has a path to it.'); });
 

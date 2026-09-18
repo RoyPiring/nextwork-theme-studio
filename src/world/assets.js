@@ -263,5 +263,22 @@
     const rb = I.box(gx + 0.5, gy + 0.4, 2, 0.25, 18, '#172033', H + 8, { noShadow: true }); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 9px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; const rs = I.up(I.P(rb.D, rb.C, 0.5), 6); I.ctx.fillText(hub.name.toUpperCase(), rs[0], rs[1] + 3); I.ctx.textAlign = 'left';
     const f = I.p(gx + 2.7, gy + 0.3, H + 8); I.line(f, [f[0], f[1] - 22], '#e6e9ef', 2); const wv = Math.sin(now / 300 + gx) * 2; I.poly([[f[0], f[1] - 22], [f[0] + 13, f[1] - 19 + wv], [f[0], f[1] - 15]], '#ffc531');
   };
+
+  /* ---- the entry: a ranch archway on the fence line, and what sits outside it ---- */
+  B.arch = function (I, gx, gy, text) {
+    /* two posts either side of the road and a beam with the name on it */
+    const H = 52; [gx - 2.2, gx + 2.2].forEach(x => { I.box(x - 0.15, gy - 0.15, 0.3, 0.3, H, '#8a5a3a', 0, { tex: 'siding' }); });
+    const a = I.p(gx - 2.2, gy, H), b = I.p(gx + 2.2, gy, H);
+    I.line([a[0], a[1] - 2], [b[0], b[1] - 2], '#6b3a22', 8); I.line([a[0], a[1] - 2], [b[0], b[1] - 2], '#8a5a3a', 5);
+    const m = I.P(a, b, 0.5); I.roundRect(m[0] - 46, m[1] - 20, 92, 22, 3, '#4a2b17'); I.ctx.strokeStyle = '#ffc531'; I.ctx.lineWidth = 1.5; I.ctx.strokeRect(m[0] - 43, m[1] - 17, 86, 16);
+    I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 9px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(text.toUpperCase(), m[0], m[1] - 6); I.ctx.textAlign = 'left';
+    I.blob(m[0], m[1] - 26, 4, '#ffc531'); I.ctx.fillStyle = '#4a2b17'; I.ctx.font = '800 6px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NW', m[0], m[1] - 24); I.ctx.textAlign = 'left';
+  };
+  B.bikerack = function (I, gx, gy, n) {
+    const a = I.p(gx, gy + 0.5), b = I.p(gx + n * 0.5, gy + 0.5); I.line([a[0], a[1] - 6], [b[0], b[1] - 6], '#8a8f98', 2);
+    for (let i = 0; i <= n; i++) { const q = I.P(a, b, i / n); I.ctx.strokeStyle = '#8a8f98'; I.ctx.lineWidth = 1.5; I.ctx.beginPath(); I.ctx.arc(q[0], q[1] - 4, 4, Math.PI, 0); I.ctx.stroke(); }
+    for (let i = 0; i < n; i++) { if (i % 3 === 2) continue; const q = I.P(a, b, (i + 0.5) / n); I.wheel(q[0] - 3, q[1] + 1, 2.6); I.wheel(q[0] + 3, q[1] + 1, 2.6); I.line([q[0] - 3, q[1] + 1], [q[0] + 1, q[1] - 4], ['#e8552f', '#2f7fd6', '#3fa66b', '#f2b42a'][i % 4], 1.5); I.line([q[0] + 1, q[1] - 4], [q[0] + 3, q[1] + 1], ['#e8552f', '#2f7fd6', '#3fa66b', '#f2b42a'][i % 4], 1.5); }
+  };
+  B.sign = function (I, gx, gy, text, sub) { const q = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(q[0] - 1, q[1] - 22, 2, 22); I.roundRect(q[0] - 22, q[1] - 34, 44, 14, 2, '#172033'); I.ctx.fillStyle = '#fff'; I.ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(text, q[0], q[1] - 27); if (sub) { I.ctx.fillStyle = '#ffc531'; I.ctx.font = '700 5px Nunito, system-ui, sans-serif'; I.ctx.fillText(sub, q[0], q[1] - 21.5); } I.ctx.textAlign = 'left'; };
   NW.B = B; NW.drop = drop;
 })();
