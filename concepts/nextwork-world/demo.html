@@ -1193,7 +1193,7 @@
     const views = {}, tabBtns = {};
     TABS.forEach(([id, name]) => { const b = el('button', null, name); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.view = id; b.addEventListener('click', () => show(id)); tabs.appendChild(b); tabBtns[id] = b; const v = el('section', 'view'); v.hidden = true; views[id] = v; wrap.appendChild(v); });
     let current = 'world';
-    function show(id) { current = id; TABS.forEach(([k]) => { tabBtns[k].setAttribute('aria-selected', String(k === id)); views[k].hidden = k !== id; }); if (id === 'build') paintBuild(); if (id === 'base') paintBoard(); host.remember && host.remember('tab', id); }
+    function show(id) { current = id; TABS.forEach(([k]) => { tabBtns[k].setAttribute('aria-selected', String(k === id)); views[k].hidden = k !== id; }); if (id === 'build') paintBuild(); if (id === 'base') paintBoard(); host.remember && host.remember('tab', id); if (typeof fit === 'function') setTimeout(fit, 0); }
     function scene(w, h, label) { const sc = el('div', 'scene'); const cv = el('canvas'); cv.width = w; cv.height = h; cv.tabIndex = 0; cv.setAttribute('aria-label', label); sc.appendChild(cv); return { sc, cv }; }
     /* zoom: the wheel, and two buttons, on every scene */
     function zoomer(sc, cv, onZoom) { const z = el('div', 'zoom'); const zin = el('button', null, '+'); zin.type = 'button'; zin.setAttribute('aria-label', 'Zoom in'); const zout = el('button', null, '−'); zout.type = 'button'; zout.setAttribute('aria-label', 'Zoom out'); zin.addEventListener('click', () => onZoom(1.25)); zout.addEventListener('click', () => onZoom(0.8)); put(z, zin, zout); sc.appendChild(z); cv.addEventListener('wheel', e => { e.preventDefault(); onZoom(e.deltaY < 0 ? 1.12 : 0.9); }, { passive: false }); }
@@ -1353,7 +1353,10 @@
     const SCENES = [[world, w1, 0.62], [base, b1, 0.62], [avI, a1, 0.34], [site, s1, 0.44], [null, g1, 0.62]];
     const hostEl = root.host || root;   /* the pane or the demo's panel: the room there is, not the content's own height */
     function fit() { const cw = Math.max(240, wrap.clientWidth - 24), ch = hostEl.clientHeight || 0; const chrome = bar.offsetHeight + (devbar.hidden ? 0 : devbar.offsetHeight); const avail = Math.max(300, ch - chrome - 40);
-      SCENES.forEach(([I, sc, share]) => { const h = Math.round(Math.max(220, Math.min(avail * share, cw * 0.9))); if (I) I.resize(cw * 2, h * 2); else if (sc.cv.width !== cw * 2 || sc.cv.height !== h * 2) { sc.cv.width = cw * 2; sc.cv.height = h * 2; } }); }
+      SCENES.forEach(([I, sc, share]) => {
+        /* the scene takes the height the rest of its tab leaves it, with a floor of the old share; a wide pane gets a tall map, not a letterbox */
+        const view = sc.sc.parentElement; let extras = 0; if (view && !view.hidden) Array.prototype.forEach.call(view.children, c => { if (c !== sc.sc && !c.hidden && !c.classList.contains('board') && !c.classList.contains('list') && c.tagName !== 'H3') extras += c.offsetHeight + 10; });
+        const h = Math.round(Math.max(220, Math.min(Math.max(avail - extras - 20, avail * share), cw * 1.1))); if (I) I.resize(cw * 2, h * 2); else if (sc.cv.width !== cw * 2 || sc.cv.height !== h * 2) { sc.cv.width = cw * 2; sc.cv.height = h * 2; } }); }
     if (window.ResizeObserver) { const ro = new ResizeObserver(fit); ro.observe(wrap); if (hostEl !== wrap && hostEl.nodeType === 1) ro.observe(hostEl); } fit();
 
     /* ---- mode, dev controls ---- */
