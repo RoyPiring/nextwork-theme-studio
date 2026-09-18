@@ -12,13 +12,16 @@ of it ships in a build.
   buttons show the same account at week 1, month 3 and year 1; *Simulate*
   finishes the next project and drops its building in.
 - **Build** — the project surface. One construction site for the project you
-  are in, rising as steps are ticked, with the time invested.
+  are in. Pick what the project builds - a house, a car, a data centre - and
+  how: *agile*, where every step delivers something whole (tent, shed, cabin,
+  cottage, house), or *waterfall*, where pieces arrive in order and nothing is
+  usable until the last one. Each step is a bubble worth XP.
 - **Notes** — the loop, what each tag builds, the growth tiers, what the
   extension can actually read from the page, and the open questions.
 
-The art is a dozen 16×16 sprites written as text in the file and drawn to a
-canvas, so the demo needs no image files — the same constraint the extension
-lives under. The two fonts come from Google Fonts and would be inlined in a
+The art is isometric and drawn in code from primitives — boxes, roofs, domes,
+wheels, blobs for trees — with one light from the top-left and shadows to the
+front. No image files, which is the constraint the extension lives under. The two fonts come from Google Fonts and would be inlined in a
 real build.
 
 This branch is deliberately not merged into `main`.

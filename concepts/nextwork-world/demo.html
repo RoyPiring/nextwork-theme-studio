@@ -1,70 +1,70 @@
 <title>NextWork World</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap">
 <style>
-  /* ---- one committed visual world: a GBA-era handheld, painted explicitly ---- */
+  /* ---- one committed look: a modern mobile builder, painted explicitly ---- */
   :root {
-    --ink: #1e1f2b;
-    --ink-2: #2b2d3d;
-    --ink-3: #3a3d52;
-    --cream: #f3e7c9;
-    --cream-2: #e6d7b0;
-    --gold: #f5c542;
-    --gold-2: #c9971f;
-    --xp: #4aa3ff;
-    --credit: #7ee081;
-    --danger: #ff7a6b;
-    --text: #f3e7c9;
-    --text-dim: #b9ae92;
+    --bg: #0e1424;
+    --panel: #172033;
+    --panel-2: #1f2a42;
+    --glass: rgba(255,255,255,.06);
+    --glass-line: rgba(255,255,255,.12);
+    --text: #f2f5fb;
+    --text-dim: #9aa6c0;
+    --gold: #ffc531;
+    --gold-2: #ff9d1c;
+    --gold-ink: #4a2b00;
+    --xp: #4fc3ff;
+    --xp-2: #2c8fe8;
+    --gem: #7cf0a4;
+    --ok: #47d16c;
+    --warn: #ff7a59;
     --site-bg: #f6f5f2;
     --site-ink: #2a2a2a;
     --site-line: #e2dfd8;
-    --pixel: 'Press Start 2P', 'Courier New', monospace;
-    --dialog: 'VT323', 'Courier New', monospace;
+    --display: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
+    --body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
   }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #0f1018; color: var(--text);
-    font-family: var(--dialog); font-size: 20px; line-height: 1.25;
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--body); font-size: 14px; line-height: 1.45;
     padding-block: 18px; padding-inline: 16px; box-sizing: border-box;
   }
   * { box-sizing: border-box; }
   button { font: inherit; cursor: pointer; }
   button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
-  /* ---- the frame: a browser tab with the site on the left and the panel on the right ---- */
+  /* ---- the frame ---- */
   .browser {
-    max-width: 1180px; margin: 0 auto; border-radius: 10px; overflow: hidden;
-    border: 1px solid #2a2c3a; background: #1a1b26;
-    box-shadow: 0 30px 80px rgba(0,0,0,.55);
+    max-width: 1200px; margin: 0 auto; border-radius: 14px; overflow: hidden;
+    border: 1px solid #263149; background: #131a2b;
+    box-shadow: 0 40px 100px rgba(0,0,0,.6);
   }
   .chrome {
-    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
-    background: #232536; border-bottom: 1px solid #2f3245;
-    font-family: system-ui, sans-serif; font-size: 12px; color: #9a9db3;
+    display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+    background: #1a2236; border-bottom: 1px solid #263149;
+    font-size: 12px; color: #8f9bb8;
   }
   .chrome .dots { display: flex; gap: 6px; }
-  .chrome .dots i { width: 11px; height: 11px; border-radius: 50%; background: #3c3f55; display: block; }
-  .chrome .url { flex: 1; background: #1a1b26; border-radius: 6px; padding: 5px 10px; color: #c4c7dc; }
-  .chrome .tag { font-family: var(--pixel); font-size: 8px; color: var(--gold); letter-spacing: .04em; }
+  .chrome .dots i { width: 11px; height: 11px; border-radius: 50%; background: #34405c; display: block; }
+  .chrome .url { flex: 1; background: #111828; border-radius: 8px; padding: 6px 11px; color: #c4cde0; }
+  .chrome .tag { font-family: var(--display); font-weight: 700; font-size: 12px; color: var(--gold); letter-spacing: .02em; }
 
-  .stage { display: grid; grid-template-columns: 1fr 420px; min-height: 720px; }
-  @media (max-width: 900px) {
+  .stage { display: grid; grid-template-columns: 1fr 440px; min-height: 760px; }
+  @media (max-width: 920px) {
     .stage { grid-template-columns: 1fr; }
     .site { display: none; }
   }
 
-  /* ---- stand-in for the nextwork.ai project page, dimmed ---- */
+  /* ---- stand-in for the project page ---- */
   .site {
     background: var(--site-bg); color: var(--site-ink); padding: 28px 34px;
-    font-family: system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.55;
-    position: relative;
+    font-size: 14px; line-height: 1.55; position: relative;
   }
-  .site::after {
-    content: ''; position: absolute; inset: 0; background: rgba(15,16,24,.42); pointer-events: none;
-  }
+  .site::after { content: ''; position: absolute; inset: 0; background: rgba(14,20,36,.5); pointer-events: none; }
   .site h1 { font-size: 24px; margin: 0 0 6px; font-weight: 700; letter-spacing: -.01em; }
   .site .crumb { font-size: 12px; color: #7a7a7a; margin-bottom: 18px; }
-  .site .pill { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #e8f0ff; color: #2b56b8; margin-right: 6px; font-weight: 600; }
+  .site .pill { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #e8f0ff; color: #2b56b8; margin-right: 6px; font-weight: 700; }
   .site .block { height: 12px; border-radius: 4px; background: var(--site-line); margin: 10px 0; }
   .site .block.w60 { width: 60%; } .site .block.w80 { width: 80%; } .site .block.w40 { width: 40%; }
   .site .card { border: 1px solid var(--site-line); border-radius: 10px; padding: 16px; margin: 18px 0; background: #fff; }
@@ -75,132 +75,162 @@
   .site pre { background: #1f2430; color: #d6deeb; border-radius: 8px; padding: 12px 14px; font-size: 12px; overflow-x: auto; }
 
   /* ---- the panel ---- */
-  .panel {
-    background: var(--ink); border-left: 4px solid #0b0c12; display: flex; flex-direction: column;
-    min-width: 0;
-  }
+  .panel { background: var(--panel); display: flex; flex-direction: column; min-width: 0; border-left: 1px solid #263149; }
   .panel-bar {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px 8px;
-    background: var(--ink-2); border-bottom: 3px solid #0b0c12;
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px;
+    background: linear-gradient(180deg, #223052, #182339); border-bottom: 1px solid var(--glass-line);
   }
-  .panel-bar .logo {
-    font-family: var(--pixel); font-size: 10px; color: var(--gold); line-height: 1.6;
-    text-shadow: 2px 2px 0 #000;
-  }
-  .panel-bar .logo small { display: block; font-size: 7px; color: var(--text-dim); text-shadow: none; }
-  .tabs { display: flex; gap: 4px; margin-left: auto; }
+  .brand { font-family: var(--display); font-weight: 800; font-size: 19px; line-height: 1; color: #fff; letter-spacing: -.01em; }
+  .brand span { color: var(--gold); }
+  .brand small { display: block; font-family: var(--body); font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; letter-spacing: .02em; }
+  .tabs { display: flex; gap: 4px; margin-left: auto; background: rgba(0,0,0,.25); border-radius: 12px; padding: 3px; }
   .tabs button {
-    font-family: var(--pixel); font-size: 8px; padding: 8px 9px; border: 2px solid #0b0c12;
-    background: var(--ink-3); color: var(--text-dim); border-radius: 4px;
-    box-shadow: inset 0 -3px 0 #0b0c12;
+    font-family: var(--display); font-weight: 700; font-size: 12px; padding: 7px 11px; border: 0; border-radius: 9px;
+    background: transparent; color: var(--text-dim);
   }
-  .tabs button[aria-selected="true"] { background: var(--cream); color: var(--ink); box-shadow: inset 0 -3px 0 var(--cream-2); }
+  .tabs button[aria-selected="true"] { background: #fff; color: #172033; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
 
-  .view { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .view { padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 12px; }
   .view[hidden] { display: none; }
 
   /* HUD */
-  .hud { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; }
-  .hud .who { font-family: var(--pixel); font-size: 9px; line-height: 1.7; color: var(--cream); text-shadow: 2px 2px 0 #000; }
-  .hud .who small { display: block; font-size: 7px; color: var(--gold); }
-  .hud .coins { font-family: var(--pixel); font-size: 9px; color: var(--credit); text-align: right; text-shadow: 2px 2px 0 #000; white-space: nowrap; }
-  .hud .coins small { display: block; font-size: 7px; color: var(--text-dim); margin-top: 6px; }
-  .bar { grid-column: 1 / -1; height: 14px; border: 2px solid #0b0c12; background: #0b0c12; position: relative; }
-  .bar > i { display: block; height: 100%; background: var(--xp); width: 0; transition: width .5s steps(12); }
-  .bar > b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--pixel); font-size: 7px; color: #fff; text-shadow: 1px 1px 0 #000; font-weight: normal; }
-  @media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+  .hud { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; }
+  .ring { position: relative; width: 52px; height: 52px; }
+  .ring svg { width: 52px; height: 52px; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .ring .track { stroke: rgba(255,255,255,.12); }
+  .ring .fill { stroke: var(--xp); transition: stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1); }
+  .ring b { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--display); font-weight: 800; font-size: 16px; line-height: 1; }
+  .ring b small { font-size: 8px; font-weight: 700; color: var(--text-dim); letter-spacing: .08em; }
+  .who { min-width: 0; }
+  .who .name { font-family: var(--display); font-weight: 800; font-size: 17px; line-height: 1.1; }
+  .who .track { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+  .who .xpbar { height: 8px; border-radius: 6px; background: rgba(0,0,0,.35); margin-top: 6px; overflow: hidden; }
+  .who .xpbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--xp-2), var(--xp)); border-radius: 6px; transition: width .6s cubic-bezier(.2,.8,.2,1); }
+  .who .xptext { font-size: 11px; color: var(--text-dim); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .wallet { display: flex; flex-direction: column; gap: 5px; }
+  .wallet div { display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,.3); border: 1px solid var(--glass-line); border-radius: 999px; padding: 3px 10px 3px 4px; font-family: var(--display); font-weight: 800; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .wallet i { width: 18px; height: 18px; border-radius: 50%; display: inline-block; flex: none; }
+  .wallet .coin i { background: radial-gradient(circle at 35% 30%, #fff1a8, var(--gold) 45%, var(--gold-2)); box-shadow: inset 0 -2px 0 rgba(0,0,0,.25); }
+  .wallet .gem i { background: linear-gradient(135deg, #b8ffd0, var(--gem) 50%, #1fb765); border-radius: 4px; transform: rotate(45deg) scale(.8); }
+  @media (prefers-reduced-motion: reduce) { .ring .fill, .who .xpbar i { transition: none; } }
 
-  /* canvas world */
-  .world-wrap { position: relative; border: 3px solid #0b0c12; background: #0b0c12; line-height: 0; }
-  canvas.px { width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
-  .tier {
-    position: absolute; left: 8px; top: 8px; font-family: var(--pixel); font-size: 7px; color: var(--cream);
-    background: rgba(30,31,43,.85); padding: 6px 8px; border: 2px solid #0b0c12;
+  /* the scene */
+  .scene { position: relative; border-radius: 14px; overflow: hidden; background: #8fd0ff; box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.15); line-height: 0; }
+  canvas.iso { width: 100%; height: auto; display: block; }
+  .badge {
+    position: absolute; left: 10px; top: 10px; font-family: var(--display); font-weight: 800; font-size: 12px; color: #fff;
+    background: rgba(16,24,44,.72); backdrop-filter: blur(6px); padding: 6px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18);
+    letter-spacing: .02em;
   }
+  .badge small { font-weight: 700; color: var(--text-dim); margin-left: 6px; }
   .toast {
-    position: absolute; right: 8px; top: 8px; font-family: var(--pixel); font-size: 8px; color: var(--gold);
-    background: rgba(30,31,43,.92); padding: 8px 10px; border: 2px solid var(--gold); line-height: 1.7;
-    opacity: 0; transform: translateY(-6px); transition: opacity .25s, transform .25s; pointer-events: none;
+    position: absolute; right: 10px; top: 10px; font-family: var(--display); font-weight: 800; font-size: 13px; color: var(--gold-ink);
+    background: linear-gradient(180deg, #ffe27a, var(--gold)); padding: 8px 12px; border-radius: 12px; line-height: 1.25;
+    box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.15);
+    opacity: 0; transform: translateY(-8px) scale(.96); transition: opacity .25s, transform .25s; pointer-events: none;
   }
   .toast.on { opacity: 1; transform: none; }
 
-  /* dialog box, pokémon style */
-  .dialog {
-    background: var(--cream); color: var(--ink); border: 3px solid #0b0c12; padding: 10px 12px;
-    box-shadow: inset 0 0 0 2px var(--cream), inset 0 0 0 4px var(--ink);
-    font-size: 21px; line-height: 1.2; min-height: 58px;
+  .speech {
+    background: #fff; color: #172033; border-radius: 14px; padding: 11px 13px; position: relative;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35); font-size: 14px; line-height: 1.4; min-height: 60px;
   }
-  .dialog b { font-family: var(--pixel); font-size: 9px; display: block; margin-bottom: 6px; color: #7a3c1d; }
-  .dialog .list { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
-  .dialog .list span { display: flex; justify-content: space-between; gap: 10px; }
-  .dialog .list em { font-style: normal; color: #2b56b8; }
+  .speech::before { content: ''; position: absolute; left: 26px; top: -8px; border: 8px solid transparent; border-top: 0; border-bottom-color: #fff; }
+  .speech b { font-family: var(--display); font-weight: 800; font-size: 14px; display: block; margin-bottom: 2px; color: #0f5fc6; }
+  .speech .list { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+  .speech .list span { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+  .speech .list em { font-style: normal; color: #1a8f43; font-weight: 700; }
 
   .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
   .btn {
-    font-family: var(--pixel); font-size: 7.5px; padding: 10px 6px; border: 2px solid #0b0c12; border-radius: 3px;
-    background: var(--ink-3); color: var(--cream); box-shadow: inset 0 -3px 0 #0b0c12; line-height: 1.5;
+    font-family: var(--display); font-weight: 700; font-size: 13px; padding: 9px 8px; border: 0; border-radius: 11px;
+    background: var(--panel-2); color: var(--text); box-shadow: inset 0 -3px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.06);
   }
-  .btn:hover { background: #4a4e6a; }
-  .btn[aria-pressed="true"] { background: var(--cream); color: var(--ink); box-shadow: inset 0 -3px 0 var(--cream-2); }
-  .btn.go { background: var(--gold); color: var(--ink); box-shadow: inset 0 -3px 0 var(--gold-2); grid-column: 1 / -1; font-size: 8.5px; padding: 12px; }
-  .btn.go:hover { background: #ffd35a; }
-  .btn:disabled { opacity: .45; cursor: default; }
+  .btn:hover { background: #283555; }
+  .btn[aria-pressed="true"] { background: #fff; color: #172033; box-shadow: inset 0 -3px 0 rgba(0,0,0,.12); }
+  .btn.go { grid-column: 1 / -1; font-size: 15px; padding: 12px; color: var(--gold-ink);
+    background: linear-gradient(180deg, #ffe27a 0%, var(--gold) 55%, var(--gold-2) 100%); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18), 0 6px 16px rgba(255,180,0,.25); }
+  .btn.go:hover { filter: brightness(1.05); }
+  .btn:disabled { opacity: .45; cursor: default; filter: none; }
 
-  .caption { font-size: 17px; color: var(--text-dim); line-height: 1.25; }
-  .caption b { color: var(--cream); font-weight: normal; }
+  .caption { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+  .caption b { color: var(--text); font-weight: 700; }
 
   /* build view */
-  .project { display: flex; flex-direction: column; gap: 4px; }
-  .project .name { font-family: var(--pixel); font-size: 8px; line-height: 1.7; color: var(--cream); text-shadow: 2px 2px 0 #000; }
-  .project .meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 17px; color: var(--text-dim); }
-  .project .meta em { font-style: normal; color: var(--gold); }
-  .steps { display: flex; flex-direction: column; gap: 3px; }
-  .steps div { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: var(--ink-2); border: 2px solid #0b0c12; font-size: 18px; }
-  .steps div i { width: 12px; height: 12px; border: 2px solid var(--text-dim); flex: none; background: var(--ink); }
-  .steps div.done i { background: var(--credit); border-color: var(--credit); }
-  .steps div.done { color: var(--text-dim); text-decoration: line-through; }
-  .steps div.now { border-color: var(--gold); }
+  .project .name { font-family: var(--display); font-weight: 800; font-size: 16px; line-height: 1.15; }
+  .project .meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
+  .project .meta em { font-style: normal; color: var(--gold); font-weight: 700; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .seg.three { grid-template-columns: 1fr 1fr 1fr; }
+  .seg .btn { font-size: 12.5px; padding: 8px 6px; }
+  .seg .btn small { display: block; font-family: var(--body); font-weight: 600; font-size: 10.5px; opacity: .75; margin-top: 1px; }
+
+  .bubbles { display: flex; flex-direction: column; gap: 0; position: relative; }
+  .bubble { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 6px 4px; position: relative; }
+  .bubble + .bubble::before { content: ''; position: absolute; left: 20px; top: -8px; width: 2px; height: 16px; background: var(--glass-line); }
+  .bubble i {
+    width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--panel-2); border: 2px solid var(--glass-line); font-family: var(--display); font-weight: 800; font-size: 12px; color: var(--text-dim);
+  }
+  .bubble.done i { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .bubble.done + .bubble::before { background: var(--ok); }
+  .bubble.now i { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 4px rgba(255,197,49,.18); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(255,197,49,.15); } 50% { box-shadow: 0 0 0 7px rgba(255,197,49,.05); } }
+  @media (prefers-reduced-motion: reduce) { .bubble.now i { animation: none; } }
+  .bubble .t { min-width: 0; }
+  .bubble .t b { display: block; font-weight: 700; font-size: 13px; }
+  .bubble .t small { display: block; font-size: 11.5px; color: var(--text-dim); }
+  .bubble.done .t b { color: var(--text-dim); text-decoration: line-through; }
+  .bubble .xp { font-family: var(--display); font-weight: 800; font-size: 12px; color: var(--xp); white-space: nowrap; }
+  .bubble.done .xp { color: var(--ok); }
+
   .clock { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .clock div { background: var(--ink-2); border: 2px solid #0b0c12; padding: 8px 10px; }
-  .clock small { display: block; font-family: var(--pixel); font-size: 6.5px; color: var(--text-dim); margin-bottom: 6px; }
-  .clock strong { font-family: var(--pixel); font-size: 12px; color: var(--cream); font-weight: normal; font-variant-numeric: tabular-nums; }
+  .clock div { background: rgba(0,0,0,.25); border: 1px solid var(--glass-line); border-radius: 11px; padding: 8px 11px; }
+  .clock small { display: block; font-size: 10.5px; font-weight: 700; color: var(--text-dim); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+  .clock strong { font-family: var(--display); font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; }
   .reward {
-    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-    background: rgba(11,12,18,.86); font-family: var(--pixel); text-align: center; line-height: 1.9; padding: 12px;
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    background: radial-gradient(ellipse at center, rgba(16,24,44,.55), rgba(16,24,44,.9)); font-family: var(--display); text-align: center; padding: 12px; line-height: 1.3;
   }
   .reward[hidden] { display: none; }
-  .reward .big { font-size: 12px; color: var(--gold); text-shadow: 3px 3px 0 #000; }
-  .reward .xp { font-size: 9px; color: var(--xp); }
-  .reward .cr { font-size: 9px; color: var(--credit); }
-  .reward .bp { font-size: 7px; color: var(--cream); margin-top: 4px; }
+  .reward .big { font-size: 24px; font-weight: 800; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.4); }
+  .reward .row { display: flex; gap: 8px; margin-top: 6px; }
+  .reward .row span { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 999px; padding: 5px 12px; font-weight: 800; font-size: 13px; }
+  .reward .row .x { color: var(--xp); } .reward .row .c { color: var(--gold); } .reward .row .g { color: var(--gem); }
+  .reward .bp { font-size: 12px; color: var(--text-dim); margin-top: 8px; font-family: var(--body); font-weight: 600; }
+  .reward .bp b { color: #fff; }
 
-  /* notes view */
-  .notes { font-size: 19px; line-height: 1.3; }
-  .notes h2 { font-family: var(--pixel); font-size: 9px; color: var(--gold); margin: 14px 0 8px; line-height: 1.7; text-shadow: 2px 2px 0 #000; }
+  /* notes */
+  .notes { font-size: 13.5px; line-height: 1.5; }
+  .notes h2 { font-family: var(--display); font-weight: 800; font-size: 15px; color: var(--gold); margin: 16px 0 6px; }
   .notes h2:first-child { margin-top: 0; }
   .notes p { margin: 0 0 8px; }
   .notes ul { margin: 0 0 8px; padding-left: 18px; }
   .notes li { margin-bottom: 3px; }
-  .notes table { border-collapse: collapse; width: 100%; font-size: 18px; margin: 6px 0 10px; }
-  .notes th, .notes td { text-align: left; padding: 4px 6px; border-bottom: 2px solid var(--ink-3); vertical-align: top; }
-  .notes th { font-family: var(--pixel); font-size: 6.5px; color: var(--text-dim); letter-spacing: .04em; }
+  .notes table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 6px 0 10px; }
+  .notes th, .notes td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--glass-line); vertical-align: top; }
+  .notes th { font-size: 10.5px; color: var(--text-dim); letter-spacing: .06em; text-transform: uppercase; }
   .notes .loop { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 6px; align-items: center; margin: 8px 0 12px; }
-  .notes .loop div { background: var(--ink-2); border: 2px solid #0b0c12; padding: 8px; text-align: center; font-family: var(--pixel); font-size: 7px; line-height: 1.7; color: var(--cream); }
-  .notes .loop span { color: var(--gold); font-family: var(--pixel); font-size: 10px; }
-  .notes .q { background: var(--ink-2); border-left: 4px solid var(--gold); padding: 8px 10px; margin: 6px 0; }
+  .notes .loop div { background: var(--panel-2); border: 1px solid var(--glass-line); border-radius: 11px; padding: 9px 6px; text-align: center; font-family: var(--display); font-weight: 800; font-size: 12px; line-height: 1.25; }
+  .notes .loop span { color: var(--gold); font-family: var(--display); font-weight: 800; font-size: 16px; }
+  .notes .q { background: var(--panel-2); border-left: 3px solid var(--gold); border-radius: 0 10px 10px 0; padding: 8px 11px; margin: 6px 0; }
   .tiers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 6px 0 10px; }
-  .tiers div { background: var(--ink-2); border: 2px solid #0b0c12; padding: 6px 4px; text-align: center; font-family: var(--pixel); font-size: 6px; line-height: 1.8; color: var(--text-dim); }
-  .tiers div b { display: block; color: var(--cream); font-weight: normal; font-size: 7px; }
-  .tiers div.on { border-color: var(--gold); color: var(--cream); }
-
-  .foot { max-width: 1180px; margin: 12px auto 0; font-size: 17px; color: #8a8ea8; text-align: center; }
+  .tiers div { background: var(--panel-2); border: 1px solid var(--glass-line); border-radius: 10px; padding: 7px 4px; text-align: center; font-size: 11px; color: var(--text-dim); }
+  .tiers div b { display: block; color: var(--text); font-family: var(--display); font-weight: 800; font-size: 12px; }
+  .tiers div.on { border-color: var(--gold); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 10px; }
+  .two div { background: var(--panel-2); border: 1px solid var(--glass-line); border-radius: 11px; padding: 9px 11px; }
+  .two b { font-family: var(--display); font-weight: 800; font-size: 13px; display: block; margin-bottom: 3px; }
+  .two ol { margin: 0; padding-left: 16px; font-size: 12.5px; color: var(--text-dim); }
+  .foot { max-width: 1200px; margin: 12px auto 0; font-size: 12px; color: #6f7b98; text-align: center; }
 </style>
 
 <div class="browser">
   <div class="chrome">
     <div class="dots"><i></i><i></i><i></i></div>
     <div class="url">nextwork.ai/projects/build-a-typed-crossplane-v2-api</div>
-    <div class="tag">NEXTWORK WORLD · CONCEPT DEMO</div>
+    <div class="tag">NextWork World · concept</div>
   </div>
   <div class="stage">
     <div class="site" aria-hidden="true">
@@ -208,10 +238,7 @@
       <h1>Build a Typed Crossplane v2 API</h1>
       <span class="pill">Kubernetes</span><span class="pill">Crossplane</span><span class="pill">Intermediate</span>
       <div class="block w80" style="margin-top:18px"></div><div class="block w60"></div><div class="block w40"></div>
-      <div class="card">
-        <h3>30 Second Summary</h3>
-        <div class="block w80"></div><div class="block"></div><div class="block w60"></div>
-      </div>
+      <div class="card"><h3>30 Second Summary</h3><div class="block w80"></div><div class="block"></div><div class="block w60"></div></div>
       <div class="card">
         <h3>Steps</h3>
         <div class="step"><i class="done"></i>Start the control plane</div>
@@ -229,117 +256,145 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
 
     <div class="panel">
       <div class="panel-bar">
-        <div class="logo">NEXTWORK<br>WORLD<small>your projects, as a place</small></div>
+        <div class="brand">NextWork <span>World</span><small>your projects, as a place</small></div>
         <div class="tabs" role="tablist">
-          <button role="tab" id="tab-world" aria-selected="true" data-view="world">WORLD</button>
-          <button role="tab" id="tab-build" aria-selected="false" data-view="build">BUILD</button>
-          <button role="tab" id="tab-notes" aria-selected="false" data-view="notes">NOTES</button>
+          <button role="tab" id="tab-world" aria-selected="true" data-view="world">World</button>
+          <button role="tab" id="tab-build" aria-selected="false" data-view="build">Build</button>
+          <button role="tab" id="tab-notes" aria-selected="false" data-view="notes">Notes</button>
         </div>
       </div>
 
       <!-- ================= WORLD ================= -->
       <section class="view" id="view-world">
         <div class="hud">
-          <div class="who" id="who">ROY · LV 1<small>CLOUD ENGINEER TRACK</small></div>
-          <div class="coins" id="coins">◆ 0<small>CREDITS</small></div>
-          <div class="bar" aria-label="Experience"><i id="xpfill"></i><b id="xptext">0 / 300 XP</b></div>
+          <div class="ring" aria-label="Level">
+            <svg viewBox="0 0 52 52"><circle class="track" cx="26" cy="26" r="22"/><circle class="fill" id="ringfill" cx="26" cy="26" r="22" stroke-dasharray="138.2" stroke-dashoffset="138.2"/></svg>
+            <b><span id="lv">1</span><small>LEVEL</small></b>
+          </div>
+          <div class="who">
+            <div class="name">Roy's World</div>
+            <div class="track">Cloud Engineer track</div>
+            <div class="xpbar"><i id="xpfill"></i></div>
+            <div class="xptext" id="xptext">0 / 300 XP</div>
+          </div>
+          <div class="wallet">
+            <div class="coin"><i></i><span id="coins">0</span></div>
+            <div class="gem"><i></i><span id="gems">0</span></div>
+          </div>
         </div>
-        <div class="world-wrap">
-          <canvas class="px" id="world" width="384" height="320" tabindex="0" aria-label="Your world. Click a building to see the projects that built it."></canvas>
-          <div class="tier" id="tier">CAMP</div>
+        <div class="scene">
+          <canvas class="iso" id="world" width="880" height="600" tabindex="0" aria-label="Your world. Click a building to see the projects that built it."></canvas>
+          <div class="badge" id="tier">Village<small>4 projects</small></div>
           <div class="toast" id="toast"></div>
         </div>
-        <div class="dialog" id="say"><b>VILLAGE</b>Four projects in. Every one you finish builds something here — click a building to see what made it.</div>
+        <div class="speech" id="say"><b>Village</b>Four projects in. Every project you finish builds something here — tap a building to see what made it.</div>
         <div class="controls">
-          <button class="btn" data-time="1" aria-pressed="true">WEEK 1</button>
-          <button class="btn" data-time="4" aria-pressed="false">MONTH 3</button>
-          <button class="btn" data-time="8" aria-pressed="false">YEAR 1</button>
-          <button class="btn go" id="finish">▶ SIMULATE: FINISH NEXT PROJECT</button>
+          <button class="btn" data-time="1" aria-pressed="false">Week 1</button>
+          <button class="btn" data-time="4" aria-pressed="true">Month 3</button>
+          <button class="btn" data-time="8" aria-pressed="false">Year 1</button>
+          <button class="btn go" id="finish">Simulate: finish next project</button>
         </div>
-        <div class="caption">Timeline buttons show the same account at three points. <b>Simulate</b> completes the next project the way the site would report it, and drops its building in.</div>
+        <div class="caption">The timeline shows the same account at three points. <b>Simulate</b> completes the next project the way the site would report it, and its building drops in.</div>
       </section>
 
       <!-- ================= BUILD ================= -->
       <section class="view" id="view-build" hidden>
         <div class="project">
-          <div class="name">BUILD A TYPED CROSSPLANE V2 API</div>
-          <div class="meta"><span>Kubernetes</span><span>·</span><span>builds a <em>Container Yard</em></span><span>·</span><span><em>+140 XP</em> on completion</span></div>
+          <div class="name">Build a Typed Crossplane v2 API</div>
+          <div class="meta"><span>Kubernetes</span><span>·</span><span>7 steps</span><span>·</span><span><em>+140 XP</em> and a blueprint on completion</span></div>
         </div>
-        <div class="world-wrap">
-          <canvas class="px" id="site" width="384" height="176" aria-label="The construction site for this project"></canvas>
-          <div class="tier" id="sitetier">FOUNDATION</div>
+        <div class="seg three" role="group" aria-label="What this project builds">
+          <button class="btn" data-template="house" aria-pressed="true">House<small>7 pieces</small></button>
+          <button class="btn" data-template="car" aria-pressed="false">Car<small>7 pieces</small></button>
+          <button class="btn" data-template="datacentre" aria-pressed="false">Data centre<small>7 pieces</small></button>
+        </div>
+        <div class="seg" role="group" aria-label="How it is built">
+          <button class="btn" data-mode="agile" aria-pressed="true">Agile<small>something whole every step</small></button>
+          <button class="btn" data-mode="waterfall" aria-pressed="false">Waterfall<small>pieces in order, done at the end</small></button>
+        </div>
+        <div class="scene">
+          <canvas class="iso" id="site" width="880" height="440" aria-label="The construction site for this project"></canvas>
+          <div class="badge" id="sitetier">Cabin<small>3 of 7</small></div>
           <div class="reward" id="reward" hidden>
-            <div class="big">PROJECT COMPLETE</div>
-            <div class="xp">+140 XP</div>
-            <div class="cr">◆ +60 CREDITS</div>
-            <div class="bp">BLUEPRINT UNLOCKED<br>CONTAINER YARD · TIER 2</div>
+            <div class="big">Project complete</div>
+            <div class="row"><span class="x">+140 XP</span><span class="c">+60 coins</span><span class="g">+1 gem</span></div>
+            <div class="bp">Blueprint unlocked — <b id="bpname">House · tier 2</b></div>
           </div>
         </div>
         <div class="clock">
-          <div><small>TIME INVESTED</small><strong id="clock">0:47:12</strong></div>
-          <div><small>THIS SESSION</small><strong id="session">0:12:40</strong></div>
+          <div><small>Time invested</small><strong id="clock">0:47:12</strong></div>
+          <div><small>This session</small><strong id="session">0:12:40</strong></div>
         </div>
-        <div class="steps" id="steps"></div>
-        <button class="btn go" id="step">✓ COMPLETE STEP 4 OF 7</button>
-        <div class="caption">The site rises as you tick steps off on the page. <b>Walking away costs nothing</b> — the clock pauses when the tab does, and the site waits exactly where you left it.</div>
+        <div class="bubbles" id="bubbles"></div>
+        <button class="btn go" id="step">Complete step 4 of 7</button>
+        <div class="caption">Each step is a bubble, each bubble is worth XP, and each one adds a piece. <b>Walking away costs nothing</b> — the clock pauses when the tab does, and the site waits where you left it.</div>
       </section>
 
       <!-- ================= NOTES ================= -->
       <section class="view notes" id="view-notes" hidden>
-        <h2>THE LOOP</h2>
+        <h2>The loop</h2>
         <div class="loop">
-          <div>FINISH A<br>PROJECT</div><span>→</span>
-          <div>XP +<br>CREDITS</div><span>→</span>
-          <div>BUILDINGS +<br>BLUEPRINTS</div>
+          <div>Finish a step</div><span>→</span>
+          <div>XP + coins</div><span>→</span>
+          <div>A piece is built</div>
         </div>
-        <p>One loop, and it never asks for anything the site does not already know. Finishing a project is the only input. XP levels the role you chose; credits buy what the blueprints unlock; the tag on the project decides what gets built.</p>
+        <p>One loop, and it never asks for anything the site does not already know. Ticking a step is the only input. Every step is a bubble with XP on it; every bubble adds a piece to what the project is building; the finished thing goes into your world.</p>
 
-        <h2>WHAT A TAG BUILDS</h2>
+        <h2>Two ways to build the same thing</h2>
+        <p>The pieces are the same. The order is the difference, and it is the difference between two ways of working that every engineer will meet.</p>
+        <div class="two">
+          <div><b>Waterfall</b><ol><li>Foundation</li><li>Frame</li><li>Walls</li><li>Roof</li><li>Windows</li><li>Door</li><li>Garden</li></ol></div>
+          <div><b>Agile</b><ol><li>Tent</li><li>Shed</li><li>Cabin</li><li>Cottage</li><li>House</li><li>+ garden</li><li>+ garage</li></ol></div>
+        </div>
+        <p>In waterfall nothing is usable until the last piece. In agile you can live in it after step one, and every step you can live in it a little better. A car goes skateboard → scooter → bicycle → motorbike → car. A data centre goes one server → a rack → a row → a room → a hall. Same XP either way; a very different feeling while you are in the middle of it — which is exactly what the two methods feel like on a real team.</p>
+
+        <h2>What a tag builds</h2>
         <table>
-          <tr><th>PROJECT TAG</th><th>BUILDING</th><th>GROWS INTO</th></tr>
-          <tr><td>Cloud / AWS</td><td>Data Centre</td><td>Region → Availability Zone</td></tr>
-          <tr><td>Kubernetes</td><td>Container Yard</td><td>Port → Orchestrator Tower</td></tr>
-          <tr><td>Networking</td><td>Signal Tower</td><td>Roads and bridges between districts</td></tr>
+          <tr><th>Project tag</th><th>Building</th><th>Grows into</th></tr>
+          <tr><td>Cloud / AWS</td><td>Data centre</td><td>Region → availability zone</td></tr>
+          <tr><td>Kubernetes</td><td>Container yard</td><td>Port → orchestrator tower</td></tr>
+          <tr><td>Networking</td><td>Signal tower</td><td>Roads and bridges between districts</td></tr>
           <tr><td>Security</td><td>Gatehouse</td><td>Walls around the district it guards</td></tr>
           <tr><td>AI / ML</td><td>Observatory</td><td>Research quarter</td></tr>
           <tr><td>DevOps / CI</td><td>Workshop</td><td>Factory row</td></tr>
           <tr><td>Databases</td><td>Warehouse</td><td>Archive district</td></tr>
-          <tr><td>Anything else</td><td>House</td><td>More people, more credits</td></tr>
+          <tr><td>Anything else</td><td>House</td><td>More people, more coins</td></tr>
         </table>
-        <p>Your role track is what you said you wanted to be. A cloud engineer's city is data centres and towers; a software engineer's is workshops and a library. Same rules, different skyline — the world ends up looking like the person.</p>
+        <p>Your role track is what you said you wanted to be. A cloud engineer's city is data centres and towers; a software engineer's is workshops and a library. Same rules, different skyline.</p>
 
-        <h2>HOW A WORLD GROWS</h2>
+        <h2>How a world grows</h2>
         <div class="tiers">
-          <div class="on"><b>CAMP</b>1 project</div>
-          <div><b>VILLAGE</b>3</div>
-          <div><b>TOWN</b>6</div>
-          <div><b>CITY</b>12</div>
-          <div><b>METRO</b>25</div>
+          <div><b>Camp</b>1 project</div>
+          <div class="on"><b>Village</b>3</div>
+          <div><b>Town</b>6</div>
+          <div><b>City</b>12</div>
+          <div><b>Metro</b>25</div>
         </div>
         <p>Borrowed from Anno: the tier is not a score, it is what the place <em>is</em>. A camp has a tent and a fire. A village has a road. A town has districts by tag. A city has a skyline that says what you do for a living.</p>
 
-        <h2>THE TWO SURFACES</h2>
+        <h2>Coins and gems</h2>
         <ul>
-          <li><b>World</b> lives on the portfolio page. It is the whole account: every project, every building, the avatar wandering its own roads. This is the thing you screenshot and put in a job application.</li>
-          <li><b>Build</b> lives on a project page. One construction site for the project you are in, rising as steps complete, with the time you have put in. It gives a long project a shape while you are inside it.</li>
+          <li><b>XP</b> levels the role you chose. It only ever goes up.</li>
+          <li><b>Coins</b> come with every step and buy cosmetics: a different roof, a pet, a fountain in the square.</li>
+          <li><b>Gems</b> come one per finished project and unlock blueprints — the next tier of a building type. They are rare on purpose.</li>
         </ul>
 
-        <h2>WHAT THE EXTENSION CAN ACTUALLY READ</h2>
+        <h2>What the extension can actually read</h2>
         <p>Everything here runs inside the existing extension's rules: <b>no network, no account, nothing leaves the machine.</b> The world is built from three things the page already shows:</p>
         <ul>
           <li>The project's <b>tag</b> and <b>title</b> — read from the page heading, the way the theme already reads it.</li>
-          <li>Which <b>steps are ticked</b> — the same checkboxes the page draws.</li>
+          <li>Which <b>steps are ticked</b> — the same checkboxes the page draws. That is what a bubble is.</li>
           <li><b>Time on the page</b> while the tab is in front — the focus timer already measures this.</li>
         </ul>
-        <p>State is stored where the themes are stored, so it survives reloads and never syncs anywhere. The art is drawn from tiny sprites in code — no image files, nothing downloaded.</p>
+        <p>State is stored where the themes are stored, so it survives reloads and never syncs anywhere.</p>
 
-        <h2>STYLE</h2>
-        <p>Top-down, 16px tiles scaled ×2, a Game Boy Advance palette. The Pokémon overworld for the map, MapleStory for the character and the way buildings pop in, Clash of Clans for the plot-and-place layout. 2D on purpose: it draws in a side panel at 60fps on a laptop, and a pixel sprite is a thing one person can make in an afternoon.</p>
+        <h2>Style</h2>
+        <p>Isometric, soft-shaded, one light from the top-left with long shadows to the front. The newer Pokémon overworlds for the ground and trees, Clash of Clans for the way buildings sit on plots and drop in with a puff of dust. Every shape here is drawn in code from primitives — boxes, roofs, domes, wheels — so the demo needs no image files. A real build would want an artist's tileset, but the geometry is what it would be.</p>
 
-        <h2>OPEN QUESTIONS FOR THE TEAM</h2>
-        <div class="q">Does NextWork want completion to be readable from the page, or would they rather hand the extension a small signal? Both work; the second is cleaner.</div>
-        <div class="q">Is the world per-account on their side one day, or does it stay in the browser? Staying in the browser is honest and free; moving it makes it portable.</div>
-        <div class="q">Who draws the second hundred sprites? This demo has a dozen. A city needs a tileset, and that is a designer's week, not an engineer's.</div>
+        <h2>Open questions for the team</h2>
+        <div class="q">Does NextWork want completion read off the page, or would they rather hand the extension a small signal? Both work; the second is cleaner.</div>
+        <div class="q">Does each project declare what it builds and how — house or car, agile or waterfall — or does the tag decide? Declaring it is a teaching opportunity.</div>
+        <div class="q">Is the world per-account on their side one day, or does it stay in the browser? Staying is honest and free; moving it makes it portable.</div>
       </section>
     </div>
   </div>
@@ -349,433 +404,585 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
 <script>
 (function () {
   'use strict';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = id => document.getElementById(id);
 
-  /* ------------------------------------------------------------------ art */
-  /* Sixteen rows of sixteen characters, one character per pixel, drawn once
-   * to an offscreen canvas and blitted from there. A '.' is transparent. */
-  const PAL = {
-    G: '#6abe30', g: '#3f7d2b', h: '#8ad24a',
-    D: '#c8a15b', d: '#a07a3a', P: '#e0c58a', p: '#c9ab6b',
-    W: '#8b5a2b', w: '#5e3a1a', R: '#d9534f', r: '#a33a37',
-    S: '#9aa5ad', s: '#5f6b73', B: '#3b8bd6', b: '#22588f', c: '#7cc4f2',
-    Y: '#f5c542', y: '#c9971f', K: '#1e1f2b', L: '#f3e7c9', O: '#f28c28',
-    C: '#4dd0e1', M: '#c084fc', m: '#7e3fc7', T: '#2e8b57', t: '#1f5e3a',
-    F: '#ffd5b0', H: '#3a2a1a', E: '#e8e8e8', X: '#111318', N: '#ffffff'
-  };
-
-  const SPR = {
-    grass: [
-      'GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGhGGGGGGGG','GGGGGGGGGGGGGGGG',
-      'GGGGGGGGGGGGGgGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG','GGhGGGGGGGGGGGGG',
-      'GGGGGGGGGGGGGGGG','GGGGGGGGGGgGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG',
-      'GGGGGhGGGGGGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGhG','GGGGGGGGGGGGGGGG'],
-    grass2: [
-      'GGGGGGGGGGGGGGGG','GGGgGGGGGGGGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGhGGGGG',
-      'GGGGGGGGGGGGGGGG','GGGGGGGgGGGGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG',
-      'GGGGGGGGGGGGGgGG','GGGGGGGGGGGGGGGG','GGhGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG',
-      'GGGGGGGGGGGGGGGG','GGGGGGGGgGGGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG'],
-    path: [
-      'PPPPPPPPPPPPPPPP','PPPPpPPPPPPPPPPP','PPPPPPPPPPPPpPPP','PPPPPPPPPPPPPPPP',
-      'PPPPPPPPPPPPPPPP','PPPPPPPPpPPPPPPP','PPPPPPPPPPPPPPPP','PPpPPPPPPPPPPPPP',
-      'PPPPPPPPPPPPPPPP','PPPPPPPPPPPPPPpP','PPPPPPPPPPPPPPPP','PPPPPPpPPPPPPPPP',
-      'PPPPPPPPPPPPPPPP','PPPPPPPPPPPPPPPP','PPPpPPPPPPPPPPPP','PPPPPPPPPPPPPPPP'],
-    water: [
-      'BBBBBBBBBBBBBBBB','BBBBBBBBBBBBBBBB','BBcccBBBBBBBBBBB','BBBBBBBBBBBcccBB',
-      'BBBBBBBBBBBBBBBB','BBBBBBBBBBBBBBBB','BBBBBBcccBBBBBBB','BBBBBBBBBBBBBBBB',
-      'BBBBBBBBBBBBBBBB','BcccBBBBBBBBBBBB','BBBBBBBBBBBBcccB','BBBBBBBBBBBBBBBB',
-      'BBBBBBBBBBBBBBBB','BBBBBBBcccBBBBBB','BBBBBBBBBBBBBBBB','BBBBBBBBBBBBBBBB'],
-    shore: [
-      'GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG',
-      'GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG',
-      'GGGGGGGGGGGGGGGG','GGGGGGGGGGGGGGGG','DDDDDDDDDDDDDDDD','DDDDDDDDDDDDDDDD',
-      'ccccccccccccccccc','BBBBBBBBBBBBBBBB','BBBBBBBBBBBBBBBB','BBBBBBBBBBBBBBBB'],
-    tree: [
-      '......tttt......','....tTTTTTTt....','...tTTTTTTTTt...','..tTTTTTTTTTTt..',
-      '..tTTTTTTTTTTt..','.tTTTTTTTTTTTTt.','.tTTTTTTTTTTTTt.','.tTTTTTTTTTTTTt.',
-      '..tTTTTTTTTTTt..','..tTTTTTTTTTTt..','...tTTTTTTTTt...','....ttTTTTtt....',
-      '......tWWt......','......wWWw......','......wWWw......','.....wwwwww.....'],
-    tent: [
-      '................','................','.......YY.......','......YYYY......',
-      '.....YYYYYY.....','....YYYYYYYY....','...YYYYyyYYYY...','..YYYYYyyYYYYY..',
-      '.YYYYYYyyYYYYYY.','YYYYYYYyyYYYYYYY','yyyyyyyKKyyyyyyy','.......KK.......',
-      '...OO..KK.......','..OOOO..........','..wOOw..........','...ww...........'],
-    house: [
-      '................','.......RR.......','......RRRR......','.....RRRRRR.....',
-      '....RRRRRRRR....','...RRRRRRRRRR...','..RRRRRRRRRRRR..','.rrrrrrrrrrrrrr.',
-      '.LLLLLLLLLLLLLL.','.LLBBLLLLLLBBLL.','.LLBBLLWWLLBBLL.','.LLLLLLWWLLLLLL.',
-      '.LLLLLLWWLLLLLL.','.LLLLLLwWLLLLLL.','.LLLLLLWWLLLLLL.','.ssssssssssssss.'],
-    house2: [
-      '.......RR.......','......RRRR......','.....RRRRRR.....','....RRRRRRRR....',
-      '...RRRRRRRRRR...','..RRRRRRRRRRRR..','.rrrrrrrrrrrrrr.','.LLLLLLLLLLLLLL.',
-      '.LLBBLLBBLLBBLL.','.LLBBLLBBLLBBLL.','.LLLLLLLLLLLLLL.','.LLBBLLWWLLBBLL.',
-      '.LLBBLLWWLLBBLL.','.LLLLLLwWLLLLLL.','.LLLLLLWWLLLLLL.','.ssssssssssssss.'],
-    datacentre: [
-      '................','.SSSSSSSSSSSSSS.','.SssssssssssssS.','.SsKKKKKKKKKKsS.',
-      '.SsKCKCKCKCKKsS.','.SsKKKKKKKKKKsS.','.SsKCKKCKKCKKsS.','.SsKKKKKKKKKKsS.',
-      '.SsKCKCKKKCKKsS.','.SsKKKKKKKKKKsS.','.SsKCKKCKCKKKsS.','.SsKKKKKKKKKKsS.',
-      '.SssssssssssssS.','.SSSSSSKKSSSSSS.','.SSSSSSKKSSSSSS.','.ssssssssssssss.'],
-    datacentre2: [
-      '.CCCCCCCCCCCCCC.','.SSSSSSSSSSSSSS.','.SsKKKKssKKKKsS.','.SsKCKKssKCKKsS.',
-      '.SsKKCKssKKCKsS.','.SsKCKKssKCKKsS.','.SsKKKKssKKKKsS.','.SsKCKCssKCKCsS.',
-      '.SsKKKKssKKKKsS.','.SsKCKKssKCKKsS.','.SsKKCKssKKCKsS.','.SsKKKKssKKKKsS.',
-      '.SssssssssssssS.','.SSSSSSKKSSSSSS.','.SSSSSSKKSSSSSS.','.ssssssssssssss.'],
-    containers: [
-      '................','................','................','..BBBBBB.OOOOOO.',
-      '..BbbbbB.OyyyyO.','..BbBBbB.OyOOyO.','..BbbbbB.OyyyyO.','..BBBBBB.OOOOOO.',
-      '.CCCCCC.RRRRRR..','.CccccC.RrrrrR..','.CcCCcC.RrRRrR..','.CccccC.RrrrrR..',
-      '.CCCCCC.RRRRRR..','ssssssssssssssss','ssssssssssssssss','................'],
-    tower: [
-      '.......YY.......','......YKKY......','.......KK.......','.......KK.......',
-      '......sKKs......','......sKKs......','.....sSKKSs.....','.....sSKKSs.....',
-      '....sSSKKSSs....','....sSSKKSSs....','...sSSSKKSSSs...','...sSSSKKSSSs...',
-      '..sSSSSKKSSSSs..','..sSSSSKKSSSSs..','.ssssssssssssss.','.ssssssssssssss.'],
-    gate: [
-      '................','SSSS........SSSS','SsSs........sSsS','SSSSSSSSSSSSSSSS',
-      'SsssssssssssssSS','SsSSSSwwwwSSSSsS','SsSSSwWWWWwSSSsS','SsSSSwWWWWwSSSsS',
-      'SsSSSwWWWWwSSSsS','SsSSSwWWWWwSSSsS','SsSSSwWWWWwSSSsS','SsSSSwWWWWwSSSsS',
-      'SsSSSwWWWWwSSSsS','SsSSSwWWWWwSSSsS','ssssssssssssssss','................'],
-    observatory: [
-      '......mmmm......','....mmMMMMmm....','...mMMMMMMMMm...','..mMMMMNMMMMMm..',
-      '..mMMMMMMMMMMm..','.KKKKKKKKKKKKKK.','.KLLLLLLLLLLLLK.','.KLLLLLLLLLLLLK.',
-      '.KLLLMMLLLLMMLK.','.KLLLMMLLLLMMLK.','.KLLLLLLLLLLLLK.','.KLLLLLKKLLLLLK.',
-      '.KLLLLLKKLLLLLK.','.KLLLLLKKLLLLLK.','.KKKKKKKKKKKKKK.','.ssssssssssssss.'],
-    workshop: [
-      '..ss............','..ss............','..ss............','.SSSSSSSSSSSSSS.',
-      '.SssssssssssssS.','.SsOOOOOOOOOOsS.','.SsOyyyyyyyyOsS.','.SsOOOOOOOOOOsS.',
-      '.SsSSSSSSSSSSsS.','.SsSKKSSSSKKSsS.','.SsSKKSwwSKKSsS.','.SsSSSSwwSSSSsS.',
-      '.SsSSSSwwSSSSsS.','.SsSSSSwwSSSSsS.','.SSSSSSSSSSSSSS.','.ssssssssssssss.'],
-    warehouse: [
-      '................','.wwwwwwwwwwwwww.','.wWWWWWWWWWWWWw.','.wWWWWWWWWWWWWw.',
-      '.wwwwwwwwwwwwww.','.DDDDDDDDDDDDDD.','.DdddddddddddDD.','.DdDDDDDDDDDdDD.',
-      '.DdDKKKKKKKKdDD.','.DdDKKKKKKKKdDD.','.DdDKKKKKKKKdDD.','.DdDKKKKKKKKdDD.',
-      '.DdDKKKKKKKKdDD.','.DdddddddddddDD.','.DDDDDDDDDDDDDD.','.ssssssssssssss.'],
-    scaffold: [
-      '................','.W............W.','.W............W.','.WWWWWWWWWWWWWW.',
-      '.W............W.','.W............W.','.W............W.','.WWWWWWWWWWWWWW.',
-      '.W............W.','.W............W.','.W............W.','.WWWWWWWWWWWWWW.',
-      '.W............W.','.W............W.','.WWWWWWWWWWWWWW.','.ssssssssssssss.'],
-    fire: [
-      '................','................','................','................',
-      '.......O........','......OO........','......OYO.......','.....OYYO.......',
-      '.....OYYOO......','....OYYYYO......','....OYYYYO......','.....OOOO.......',
-      '...ww....ww.....','..wwwwwwwwww....','...wwwwwwww.....','................'],
-    heroDown: [
-      '.....HHHHHH.....','....HHHHHHHH....','....HFFFFFFH....','....HFKFFKFH....',
-      '....HFFFFFFH....','.....FFFFFF.....','......FFFF......','....BBBBBBBB....',
-      '...BBFBBBBFBB...','...BBFBBBBFBB...','...BBFBBBBFBB...','....BBBBBBBB....',
-      '....bbb..bbb....','....bbb..bbb....','....www..www....','....www..www....'],
-    heroDown2: [
-      '.....HHHHHH.....','....HHHHHHHH....','....HFFFFFFH....','....HFKFFKFH....',
-      '....HFFFFFFH....','.....FFFFFF.....','......FFFF......','....BBBBBBBB....',
-      '...BBFBBBBFBB...','...BBFBBBBFBB...','...BBFBBBBFBB...','....BBBBBBBB....',
-      '....bbb..bbb....','...www...bbb....','...www...www....','.........www....'],
-    pet: [
-      '................','................','................','......KK..KK....',
-      '.....KYYKKYYK...','.....KYYYYYYK...','.....KYKYYKYK...','.....KYYYYYYK...',
-      '......KYYYYK....','....KKYYYYYYKK..','....KYYYYYYYYK..','....KYYYYYYYYK..',
-      '.....KKYYYYKK...','......KK..KK....','................','................']
-  };
-
-  const cache = {};
-  function sprite(name) {
-    if (cache[name]) return cache[name];
-    const rows = SPR[name];
-    const c = document.createElement('canvas');
-    c.width = 16; c.height = 16;
-    const x = c.getContext('2d');
-    for (let y = 0; y < 16; y++) {
-      for (let i = 0; i < 16; i++) {
-        const ch = rows[y][i];
-        if (ch === '.' || !PAL[ch]) continue;
-        x.fillStyle = PAL[ch];
-        x.fillRect(i, y, 1, 1);
-      }
-    }
-    cache[name] = c;
-    return c;
+  /* ================================================================ colour */
+  function hex(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  function rgb(c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a == null ? 1 : a) + ')'; }
+  function shade(h, k) {   /* k > 0 lighter, k < 0 darker */
+    const c = hex(h).map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)));
+    return rgb(c);
   }
 
-  /* ------------------------------------------------------------ the data */
-  /* An example account. Eight projects, the way the site would report them. */
+  /* ============================================================ iso engine */
+  /* Logical canvas 440x340 for the world, drawn at 2x. Tiles are 52 wide and
+   * 26 tall. One light from the top-left: tops bright, left faces mid, right
+   * faces dark, shadows falling to the front-right. */
+  const TW = 52, TH = 26;
+
+  function makeIso(canvas, ox, oy) {
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(2, 0, 0, 2, 0, 0);
+    const p = (gx, gy, z) => [ox + (gx - gy) * TW / 2, oy + (gx + gy) * TH / 2 - (z || 0)];
+
+    function poly(pts, fill, stroke) {
+      ctx.beginPath();
+      pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]));
+      ctx.closePath();
+      ctx.fillStyle = fill; ctx.fill();
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+    }
+
+    function tile(gx, gy, fill, stroke) {
+      poly([p(gx, gy), p(gx + 1, gy), p(gx + 1, gy + 1), p(gx, gy + 1)], fill, stroke);
+    }
+
+    /* A cuboid standing on the ground: footprint w x d tiles at (gx, gy),
+     * height h px, lifted by z. Three faces, three shades, plus a soft
+     * shadow on the ground. */
+    function box(gx, gy, w, d, h, colour, z, opts) {
+      opts = opts || {}; z = z || 0;
+      const A = p(gx, gy, z), B = p(gx + w, gy, z), C = p(gx + w, gy + d, z), D = p(gx, gy + d, z);
+      const A2 = [A[0], A[1] - h], B2 = [B[0], B[1] - h], C2 = [C[0], C[1] - h], D2 = [D[0], D[1] - h];
+      if (!opts.noShadow && z === 0) shadow(gx, gy, w, d, h);
+      poly([D, C, C2, D2], shade(colour, -0.05));      /* left face, mid  */
+      poly([C, B, B2, C2], shade(colour, -0.32));      /* right face, dark */
+      poly([A2, B2, C2, D2], shade(colour, opts.topLight == null ? 0.22 : opts.topLight)); /* top */
+      /* a fine edge highlight, which is most of what makes a box read as solid */
+      ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(D2[0], D2[1]); ctx.lineTo(C2[0], C2[1]); ctx.lineTo(B2[0], B2[1]); ctx.stroke();
+      return { A, B, C, D, A2, B2, C2, D2 };
+    }
+
+    function shadow(gx, gy, w, d, h) {
+      const s = Math.min(0.55, 0.18 + h / 90);
+      const A = p(gx + 0.12, gy + 0.12), B = p(gx + w + s, gy + 0.12), C = p(gx + w + s, gy + d + s), D = p(gx + 0.12, gy + d + s);
+      poly([A, B, C, D], 'rgba(20,40,30,.28)');
+    }
+
+    /* A hip roof over a footprint, ridge along the longer axis. */
+    function roof(gx, gy, w, d, base, h, colour, over) {
+      over = over || 0.12;
+      const A = p(gx - over, gy - over, base), B = p(gx + w + over, gy - over, base),
+            C = p(gx + w + over, gy + d + over, base), D = p(gx - over, gy + d + over, base);
+      const cx = (A[0] + C[0]) / 2, cy = (A[1] + C[1]) / 2 - h;
+      let R1, R2;
+      if (w >= d) { R1 = [cx - (w - d) * TW / 4 * 0.6, cy + (w - d) * TH / 4 * 0.6]; R2 = [cx + (w - d) * TW / 4 * 0.6, cy - (w - d) * TH / 4 * 0.6]; }
+      else { R1 = [cx - (d - w) * TW / 4 * 0.6, cy - (d - w) * TH / 4 * 0.6]; R2 = [cx + (d - w) * TW / 4 * 0.6, cy + (d - w) * TH / 4 * 0.6]; }
+      /* back slopes first, then the two the light hits */
+      poly([A, B, R2, R1], shade(colour, 0.18));
+      poly([B, C, R2], shade(colour, -0.28));
+      poly([A, D, R1], shade(colour, 0.05));
+      poly([D, C, R2, R1], shade(colour, -0.06));
+      /* eave line */
+      ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.moveTo(D[0], D[1]); ctx.lineTo(C[0], C[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+    }
+
+    function dome(gx, gy, w, d, base, r, colour) {
+      const c = p(gx + w / 2, gy + d / 2, base);
+      const g = ctx.createRadialGradient(c[0] - r * 0.4, c[1] - r * 0.5, r * 0.1, c[0], c[1], r);
+      g.addColorStop(0, shade(colour, 0.45)); g.addColorStop(1, shade(colour, -0.35));
+      ctx.beginPath(); ctx.ellipse(c[0], c[1], r, r * 0.8, 0, Math.PI, 0); ctx.closePath();
+      ctx.fillStyle = g; ctx.fill();
+    }
+
+    function blob(x, y, r, colour, squash) {
+      const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
+      g.addColorStop(0, shade(colour, 0.35)); g.addColorStop(0.7, colour); g.addColorStop(1, shade(colour, -0.35));
+      ctx.beginPath(); ctx.ellipse(x, y, r, r * (squash || 1), 0, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+    }
+
+    function tree(gx, gy, size) {
+      size = size || 1;
+      const base = p(gx + 0.5, gy + 0.5);
+      ctx.fillStyle = 'rgba(20,40,30,.25)'; ctx.beginPath(); ctx.ellipse(base[0] + 6, base[1] + 3, 14 * size, 6 * size, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#7a4b25'; ctx.fillRect(base[0] - 2.5, base[1] - 14 * size, 5, 14 * size);
+      blob(base[0] + 4, base[1] - 16 * size, 10 * size, '#3c9a4a');
+      blob(base[0] - 5, base[1] - 20 * size, 11 * size, '#46ad53');
+      blob(base[0] + 1, base[1] - 28 * size, 10 * size, '#5cc464');
+    }
+
+    function bush(gx, gy) {
+      const b = p(gx + 0.5, gy + 0.5);
+      blob(b[0] - 5, b[1] - 3, 6, '#4fb85a', 0.8); blob(b[0] + 4, b[1] - 2, 5, '#5cc464', 0.8);
+    }
+
+    function wheel(x, y, r) {
+      ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2); ctx.fillStyle = '#20242b'; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x, y, r * 0.45, r * 0.25, 0, 0, Math.PI * 2); ctx.fillStyle = '#9aa3b0'; ctx.fill();
+    }
+
+    function person(gx, gy, colour, walkT) {
+      const c = p(gx, gy);
+      const bob = Math.sin(walkT * 12) * 1.2;
+      ctx.fillStyle = 'rgba(20,40,30,.28)'; ctx.beginPath(); ctx.ellipse(c[0] + 2, c[1] + 1, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
+      /* legs */
+      ctx.fillStyle = '#2b3a5c';
+      ctx.fillRect(c[0] - 4, c[1] - 9 + bob, 3, 8 + Math.sin(walkT * 12) * 2);
+      ctx.fillRect(c[0] + 1, c[1] - 9 + bob, 3, 8 - Math.sin(walkT * 12) * 2);
+      /* body */
+      ctx.fillStyle = colour; roundRect(c[0] - 6, c[1] - 22 + bob, 12, 14, 4);
+      /* head */
+      blob(c[0], c[1] - 27 + bob, 6, '#ffd6ad');
+      ctx.fillStyle = '#4a2e1a'; ctx.beginPath(); ctx.ellipse(c[0], c[1] - 30 + bob, 6, 3.5, 0, Math.PI, 0); ctx.fill();
+    }
+    function pet(gx, gy, walkT) {
+      const c = p(gx, gy);
+      const bob = Math.abs(Math.sin(walkT * 14)) * 2;
+      ctx.fillStyle = 'rgba(20,40,30,.25)'; ctx.beginPath(); ctx.ellipse(c[0] + 1, c[1] + 1, 5, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+      blob(c[0], c[1] - 6 - bob, 5.5, '#ffb347', 0.85);
+      blob(c[0] + 3, c[1] - 11 - bob, 4, '#ffc46b');
+      ctx.fillStyle = '#20242b'; ctx.fillRect(c[0] + 4, c[1] - 12 - bob, 1.5, 1.5);
+    }
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); ctx.fill();
+    }
+    function puff(gx, gy, t) {          /* dust on landing, t in 0..1 */
+      if (t <= 0 || t >= 1) return;
+      const c = p(gx + 0.5, gy + 0.5);
+      for (let i = 0; i < 6; i++) {
+        const a = i / 6 * Math.PI * 2, r = 6 + t * 18;
+        ctx.beginPath(); ctx.arc(c[0] + Math.cos(a) * r, c[1] - 2 + Math.sin(a) * r * 0.5, 5 * (1 - t) + 1, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(230,220,200,' + (0.7 * (1 - t)) + ')'; ctx.fill();
+      }
+    }
+    function windows(face, n, colour, glow) {
+      /* small lit rectangles along a face: face = [P0, P1] bottom edge and h */
+      const [P0, P1, h, top] = face;
+      for (let i = 0; i < n; i++) {
+        const t = (i + 0.5) / n;
+        const x = P0[0] + (P1[0] - P0[0]) * t, y = P0[1] + (P1[1] - P0[1]) * t - h * 0.55 - (top || 0);
+        ctx.fillStyle = glow ? '#ffe9a6' : colour; ctx.fillRect(x - 2.5, y - 3, 5, 6);
+        if (glow) { ctx.fillStyle = 'rgba(255,230,150,.25)'; ctx.fillRect(x - 4, y - 5, 8, 10); }
+      }
+    }
+
+    return { ctx, p, poly, tile, box, roof, dome, blob, tree, bush, wheel, person, pet, puff, windows, roundRect, shade };
+  }
+
+  /* ============================================================= buildings */
+  /* Each takes the iso helper, a plot, an assembly t in 0..1 and `now`. Parts
+   * drop in from above in order while t rises, each with a puff on landing,
+   * which is the Clash of Clans moment: a thing arriving, not appearing. */
+  function ease(t) { t = Math.max(0, Math.min(1, t)); return 1 - Math.pow(1 - t, 3); }
+  function partDrop(t, i, n) { const k = ease(t * n - i); return { z: (1 - k) * -90, k }; }
+
+  const DRAW = {
+    house(I, gx, gy, t, now, tier) {
+      const n = 4; let d;
+      d = partDrop(t, 0, n); if (d.k > 0) I.box(gx + 0.12, gy + 0.12, 0.76, 0.76, 6, '#cfc6b3', 0, {}); /* slab */
+      d = partDrop(t, 1, n); if (d.k > 0) { const b = I.box(gx + 0.15, gy + 0.15, 0.7, 0.7, tier > 1 ? 40 : 26, '#f3e6cc', -d.z + 6);
+        I.windows([b.D, b.C, tier > 1 ? 40 : 26, 4], 2, '#7fb7e6', true); I.windows([b.C, b.B, tier > 1 ? 40 : 26, 4], tier > 1 ? 2 : 1, '#7fb7e6', true);
+        /* door */ const m = [(b.D[0] + b.C[0]) / 2, (b.D[1] + b.C[1]) / 2]; I.ctx.fillStyle = '#8b4a2b'; I.ctx.fillRect(m[0] - 3, m[1] - 12, 6, 12); }
+      d = partDrop(t, 2, n); if (d.k > 0) I.roof(gx + 0.15, gy + 0.15, 0.7, 0.7, (tier > 1 ? 40 : 26) + 6 - d.z, 16, '#d9563f');
+      d = partDrop(t, 3, n); if (d.k > 0.5) { I.bush(gx + 0.02, gy + 0.85); if (tier > 1) I.bush(gx + 0.85, gy + 0.05); }
+      I.puff(gx, gy, t * n - 3);
+    },
+    datacentre(I, gx, gy, t, now, tier) {
+      const n = 4; let d;
+      d = partDrop(t, 0, n); if (d.k > 0) I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 5, '#b9bec9', 0);
+      d = partDrop(t, 1, n); if (d.k > 0) { const b = I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, tier > 1 ? 44 : 32, '#5e6b85', -d.z + 5);
+        /* LED rows on the left face, blinking */
+        const h = tier > 1 ? 44 : 32;
+        for (let r = 0; r < (tier > 1 ? 4 : 3); r++) for (let c = 0; c < 5; c++) {
+          const u = (c + 0.5) / 5, x = b.D[0] + (b.C[0] - b.D[0]) * u, y = b.D[1] + (b.C[1] - b.D[1]) * u - 8 - r * 9;
+          const on = Math.floor(now / 350 + c * 1.7 + r * 2.3) % 3 !== 0;
+          I.ctx.fillStyle = on ? '#4ff0ff' : '#1e3a4a'; I.ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
+        } }
+      d = partDrop(t, 2, n); if (d.k > 0) { const top = (tier > 1 ? 44 : 32) + 5; I.box(gx + 0.2, gy + 0.2, 0.25, 0.25, 8, '#c9d1dc', top - d.z, { noShadow: true }); I.box(gx + 0.55, gy + 0.2, 0.25, 0.25, 8, '#c9d1dc', top - d.z, { noShadow: true }); }
+      d = partDrop(t, 3, n); if (d.k > 0.5) { const s = I.p(gx + 0.5, gy + 1.02); I.ctx.fillStyle = '#ffffff'; I.roundRect(s[0] - 9, s[1] - 12, 18, 7, 2); }
+      I.puff(gx, gy, t * n - 3);
+    },
+    containers(I, gx, gy, t, now, tier) {
+      const n = 5; let d;
+      const cols = ['#e8552f', '#2f7fd6', '#f2b42a', '#3fa66b', '#8f5fd1'];
+      const spots = [[0.05, 0.05], [0.5, 0.05], [0.05, 0.55], [0.5, 0.55], [0.28, 0.3]];
+      for (let i = 0; i < 5; i++) {
+        if (i === 4 && tier < 2) break;
+        d = partDrop(t, i, n); if (d.k <= 0) continue;
+        I.box(gx + spots[i][0], gy + spots[i][1], 0.42, 0.42, 14, cols[i], i === 4 ? 14 - d.z : -d.z, { noShadow: i === 4 });
+        I.puff(gx + spots[i][0] - 0.3, gy + spots[i][1] - 0.3, t * n - i);
+      }
+      /* a small crane arm over the yard */
+      const c = I.p(gx + 0.95, gy + 0.1, 40); I.ctx.strokeStyle = '#f2b42a'; I.ctx.lineWidth = 2;
+      I.ctx.beginPath(); I.ctx.moveTo(c[0], c[1] + 40); I.ctx.lineTo(c[0], c[1]); I.ctx.lineTo(c[0] - 30, c[1] + 8); I.ctx.stroke();
+    },
+    tower(I, gx, gy, t, now, tier) {
+      const n = 3; let d;
+      d = partDrop(t, 0, n); if (d.k > 0) I.box(gx + 0.25, gy + 0.25, 0.5, 0.5, 8, '#aab3bf', 0);
+      d = partDrop(t, 1, n); if (d.k > 0) I.box(gx + 0.36, gy + 0.36, 0.28, 0.28, tier > 1 ? 66 : 50, '#d8dde5', -d.z + 8);
+      d = partDrop(t, 2, n); if (d.k > 0) { const top = I.p(gx + 0.5, gy + 0.5, (tier > 1 ? 66 : 50) + 8 - d.z);
+        I.ctx.strokeStyle = '#8a95a3'; I.ctx.lineWidth = 2; I.ctx.beginPath(); I.ctx.moveTo(top[0], top[1]); I.ctx.lineTo(top[0], top[1] - 18); I.ctx.stroke();
+        const on = Math.floor(now / 500) % 2 === 0;
+        I.blob(top[0], top[1] - 20, on ? 4 : 2.5, '#ff4d4d');
+        if (on) { I.ctx.fillStyle = 'rgba(255,77,77,.18)'; I.ctx.beginPath(); I.ctx.arc(top[0], top[1] - 20, 10, 0, Math.PI * 2); I.ctx.fill(); } }
+      I.puff(gx, gy, t * n - 2);
+    },
+    gate(I, gx, gy, t, now, tier) {
+      const n = 3; let d;
+      d = partDrop(t, 0, n); if (d.k > 0) I.box(gx + 0.02, gy + 0.35, 0.25, 0.3, 34, '#a8a29a', -d.z);
+      d = partDrop(t, 1, n); if (d.k > 0) I.box(gx + 0.73, gy + 0.35, 0.25, 0.3, 34, '#a8a29a', -d.z);
+      d = partDrop(t, 2, n); if (d.k > 0) { I.box(gx + 0.02, gy + 0.38, 0.96, 0.24, 10, '#c2bcb3', 30 - d.z, { noShadow: true });
+        const m = I.p(gx + 0.5, gy + 0.62); I.ctx.fillStyle = '#5b3a22'; I.roundRect(m[0] - 7, m[1] - 24, 14, 24, 6); }
+      I.puff(gx, gy, t * n - 2);
+    },
+    observatory(I, gx, gy, t, now, tier) {
+      const n = 3; let d;
+      d = partDrop(t, 0, n); if (d.k > 0) I.box(gx + 0.12, gy + 0.12, 0.76, 0.76, 8, '#d6d1c4', 0);
+      d = partDrop(t, 1, n); if (d.k > 0) { const b = I.box(gx + 0.2, gy + 0.2, 0.6, 0.6, 30, '#efe9dc', -d.z + 8); I.windows([b.D, b.C, 30, 2], 2, '#7fb7e6', true); }
+      d = partDrop(t, 2, n); if (d.k > 0) { I.dome(gx + 0.2, gy + 0.2, 0.6, 0.6, 38 - d.z, 17, '#8a63d6');
+        const c = I.p(gx + 0.5, gy + 0.5, 38 - d.z); I.ctx.strokeStyle = '#3b2a63'; I.ctx.lineWidth = 3; I.ctx.beginPath(); I.ctx.moveTo(c[0] + 2, c[1] - 6); I.ctx.lineTo(c[0] + 14, c[1] - 22); I.ctx.stroke(); }
+      I.puff(gx, gy, t * n - 2);
+    },
+    workshop(I, gx, gy, t, now, tier) {
+      const n = 3; let d;
+      d = partDrop(t, 0, n); if (d.k > 0) { const b = I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, 26, '#e3a45b', -d.z); I.windows([b.D, b.C, 26, 2], 3, '#6a4a2a'); }
+      d = partDrop(t, 1, n); if (d.k > 0) I.roof(gx + 0.1, gy + 0.1, 0.8, 0.8, 26 - d.z, 9, '#6b7280', 0.1);
+      d = partDrop(t, 2, n); if (d.k > 0) { I.box(gx + 0.7, gy + 0.2, 0.14, 0.14, 22, '#7d5a3b', 30 - d.z, { noShadow: true });
+        const c = I.p(gx + 0.77, gy + 0.27, 52 - d.z);
+        for (let i = 0; i < 3; i++) { const ph = (now / 1600 + i * 0.33) % 1; I.ctx.fillStyle = 'rgba(230,230,235,' + (0.55 * (1 - ph)) + ')'; I.ctx.beginPath(); I.ctx.arc(c[0] + ph * 10, c[1] - ph * 22, 3 + ph * 5, 0, Math.PI * 2); I.ctx.fill(); } }
+      I.puff(gx, gy, t * n - 2);
+    },
+    warehouse(I, gx, gy, t, now, tier) {
+      const n = 3; let d;
+      d = partDrop(t, 0, n); if (d.k > 0) I.box(gx + 0.05, gy + 0.15, 0.9, 0.7, 24, '#c9a06a', -d.z);
+      d = partDrop(t, 1, n); if (d.k > 0) { I.roof(gx + 0.05, gy + 0.15, 0.9, 0.7, 24 - d.z, 8, '#4b5563', 0.08); }
+      d = partDrop(t, 2, n); if (d.k > 0) { const m = I.p(gx + 0.5, gy + 0.86); I.ctx.fillStyle = '#5b3a22'; I.ctx.fillRect(m[0] - 9, m[1] - 16, 18, 16); I.ctx.fillStyle = 'rgba(255,255,255,.35)'; I.ctx.fillRect(m[0] - 9, m[1] - 16, 18, 2); }
+      I.puff(gx, gy, t * n - 2);
+    },
+    camp(I, gx, gy, t, now) {
+      /* the tent and the fire: where it all started */
+      I.roof(gx + 0.15, gy + 0.2, 0.55, 0.55, 0, 22, '#f2b42a', 0);
+      const f = I.p(gx + 0.85, gy + 0.75);
+      I.ctx.fillStyle = '#6b4a2b'; I.ctx.fillRect(f[0] - 7, f[1] - 3, 14, 3);
+      const fl = 1 + Math.sin(now / 90) * 0.15;
+      I.blob(f[0], f[1] - 8 * fl, 5 * fl, '#ff8a2a', 1.3); I.blob(f[0], f[1] - 9 * fl, 2.5 * fl, '#ffd54a', 1.3);
+      I.ctx.fillStyle = 'rgba(255,170,60,.12)'; I.ctx.beginPath(); I.ctx.arc(f[0], f[1] - 6, 16, 0, Math.PI * 2); I.ctx.fill();
+    }
+  };
+
+  /* =============================================================== the data */
   const PROJECTS = [
-    { title: 'Host a Website on S3',                tag: 'cloud',      xp: 80  },
-    { title: 'Set Up a Kubernetes Cluster',          tag: 'kubernetes', xp: 110 },
-    { title: 'Build a VPC from Scratch',             tag: 'networking', xp: 90  },
-    { title: 'Lock Down an S3 Bucket',               tag: 'security',   xp: 100 },
-    { title: 'Deploy a Model with SageMaker',        tag: 'ai',         xp: 130 },
-    { title: 'CI Pipeline with GitHub Actions',      tag: 'devops',     xp: 100 },
-    { title: 'Query Logs with Athena',               tag: 'database',   xp: 90  },
-    { title: 'Build a Typed Crossplane v2 API',      tag: 'kubernetes', xp: 140 }
+    { title: 'Host a Website on S3',            tag: 'cloud',      xp: 80  },
+    { title: 'Set Up a Kubernetes Cluster',      tag: 'kubernetes', xp: 110 },
+    { title: 'Build a VPC from Scratch',         tag: 'networking', xp: 90  },
+    { title: 'Lock Down an S3 Bucket',           tag: 'security',   xp: 100 },
+    { title: 'Deploy a Model with SageMaker',    tag: 'ai',         xp: 130 },
+    { title: 'CI Pipeline with GitHub Actions',  tag: 'devops',     xp: 100 },
+    { title: 'Query Logs with Athena',           tag: 'database',   xp: 90  },
+    { title: 'Build a Typed Crossplane v2 API',  tag: 'kubernetes', xp: 140 }
   ];
   const BUILDING = {
-    cloud: ['datacentre', 'Data Centre'], kubernetes: ['containers', 'Container Yard'],
-    networking: ['tower', 'Signal Tower'], security: ['gate', 'Gatehouse'],
+    cloud: ['datacentre', 'Data centre'], kubernetes: ['containers', 'Container yard'],
+    networking: ['tower', 'Signal tower'], security: ['gate', 'Gatehouse'],
     ai: ['observatory', 'Observatory'], devops: ['workshop', 'Workshop'],
     database: ['warehouse', 'Warehouse'], other: ['house', 'House']
   };
-  /* Where each building lands, in tiles. Plots are fixed so the world reads
-   * the same way every time: a person recognises their own town. */
-  const PLOTS = [[3,2],[7,2],[2,5],[9,5],[5,7],[8,7],[1,8],[10,2]];
-  const TIERS = [[1,'CAMP'],[3,'VILLAGE'],[6,'TOWN'],[12,'CITY'],[25,'METROPOLIS']];
+  /* Fixed plots on an 8x8 grid, either side of a crossroads at gx=4 / gy=3. */
+  const PLOTS = [[1, 1], [6, 1], [1, 5], [6, 5], [2, 1], [1, 6], [5, 6], [6, 0]];
+  const TIERS = [[1, 'Camp'], [3, 'Village'], [6, 'Town'], [12, 'City'], [25, 'Metropolis']];
   const LEVEL_XP = 300;
+  const state = { done: 4, anim: null };
 
-  /* Opens three months in, so the first look shows a place rather than a
-   * tent - and leaves four projects to simulate. */
-  const state = { done: 4, built: 0, creditsSpent: 0 };
+  /* ================================================================ world */
+  const world = makeIso($('world'), 220, 42);
+  const ROAD = new Set(); for (let g = 0; g < 8; g++) { ROAD.add(g + ',3'); ROAD.add('4,' + g); }
+  const POND = new Set(['0,7', '1,7', '0,6']);
+  const TREES = [[0, 0, 1.1], [7, 0, 0.9], [7, 7, 1.1], [3, 7, 0.9], [7, 4, 0.8], [0, 4, 0.9], [2, 7, 1], [6, 7, 0.8]];
 
-  const $ = id => document.getElementById(id);
+  function tierFor(n) { let out = TIERS[0][1]; TIERS.forEach(t => { if (n >= t[0]) out = t[1]; }); return out; }
 
-  /* ------------------------------------------------------------ the world */
-  const W = $('world'), wx = W.getContext('2d');
-  wx.imageSmoothingEnabled = false;
-  const S = 2, TILE = 16 * S, COLS = 12, ROWS = 10;
-
-  /* A fixed map: grass with a road across the middle, a pond in the corner,
-   * trees where nothing will ever be built. */
-  const ROAD = new Set();
-  for (let c = 0; c < COLS; c++) ROAD.add(c + ',4');
-  for (let r = 0; r < ROWS; r++) ROAD.add('5,' + r);
-  const POND = new Set(['0,0','1,0','0,1']);
-  const SHORE = new Set(['2,0','1,1','2,1','0,2','1,2']);
-  const TREES = [[11,0],[11,1],[0,3],[11,8],[11,9],[0,9],[3,9],[2,9],[10,9]];
-
-  function tierFor(n) {
-    let out = TIERS[0][1];
-    TIERS.forEach(t => { if (n >= t[0]) out = t[1]; });
-    return out;
-  }
-  function blit(ctx, name, tx, ty, s) {
-    s = s || S;
-    ctx.drawImage(sprite(name), Math.round(tx * 16 * s), Math.round(ty * 16 * s), 16 * s, 16 * s);
+  function drawGround(I, cols, rows, road, pond, now) {
+    const ctx = I.ctx;
+    for (let gy = 0; gy < rows; gy++) for (let gx = 0; gx < cols; gx++) {
+      const k = gx + ',' + gy;
+      if (pond && pond.has(k)) {
+        I.tile(gx, gy, '#3ea3e8');
+        /* shimmer */
+        const c = I.p(gx + 0.5, gy + 0.5); ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 1.5;
+        const ph = (now / 900 + gx) % 1; ctx.beginPath(); ctx.moveTo(c[0] - 12 + ph * 6, c[1] - 2); ctx.lineTo(c[0] - 2 + ph * 6, c[1] - 2); ctx.stroke();
+        continue;
+      }
+      if (road && road.has(k)) { I.tile(gx, gy, '#e6d7b3', 'rgba(0,0,0,.06)'); continue; }
+      I.tile(gx, gy, (gx + gy) % 2 ? '#79c853' : '#84d15c');
+    }
+    /* road kerb */
+    if (road) { ctx.strokeStyle = 'rgba(120,90,50,.22)'; ctx.lineWidth = 1;
+      for (let g = 0; g < cols; g++) { const a = I.p(g, 3), b = I.p(g + 1, 3), c = I.p(g, 4), d = I.p(g + 1, 4); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.stroke(); } }
   }
 
-  let hero = { t: 0 };
-  let building = null;          /* { index, until } while a new building is going up */
-  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sky(I, w, h) {
+    const ctx = I.ctx;
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#7fc6ff'); g.addColorStop(0.55, '#bfe4ff'); g.addColorStop(1, '#e6f4ff');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    /* far hills */
+    ctx.fillStyle = 'rgba(120,180,120,.35)';
+    ctx.beginPath(); ctx.moveTo(0, 80); ctx.quadraticCurveTo(90, 40, 200, 70); ctx.quadraticCurveTo(320, 100, 440, 60); ctx.lineTo(440, 140); ctx.lineTo(0, 140); ctx.closePath(); ctx.fill();
+  }
+
+  function vignette(I, w, h) {
+    const ctx = I.ctx;
+    const g = ctx.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, h * 0.85);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(10,20,40,.35)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
 
   function drawWorld(now) {
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const k = c + ',' + r;
-        let name = ((c * 7 + r * 3) % 5 === 0) ? 'grass2' : 'grass';
-        if (ROAD.has(k)) name = 'path';
-        if (SHORE.has(k)) name = 'shore';
-        if (POND.has(k)) name = 'water';
-        blit(wx, name, c, r);
-      }
-    }
-    TREES.forEach(t => blit(wx, 'tree', t[0], t[1]));
-
-    /* The camp: a tent and a fire, always, at the first plot. It is where the
-     * world started, and a city with a campfire in it says so. */
-    blit(wx, 'tent', 3, 2);
-    blit(wx, 'fire', 4, 2);
+    const I = world, ctx = I.ctx;
+    ctx.clearRect(0, 0, 440, 300);
+    sky(I, 440, 300);
+    drawGround(I, 8, 8, ROAD, POND, now);
 
     const done = PROJECTS.slice(0, state.done);
+    /* everything with a depth, sorted back to front */
+    const items = [];
+    TREES.forEach(t => items.push({ d: t[0] + t[1], draw: () => I.tree(t[0], t[1], t[2]) }));
+    items.push({ d: 2.5, draw: () => DRAW.camp(I, 1, 1, 1, now) });
     done.forEach((p, i) => {
-      if (i === 0) return;                   /* the first project is the camp */
-      const plot = PLOTS[i];
-      const b = BUILDING[p.tag] || BUILDING.other;
-      let name = b[0];
-      /* A second of the same kind grows the first: two Kubernetes projects is
-       * a bigger yard, not two yards. Shown here for houses and data centres. */
-      const same = done.slice(0, i).filter(q => (BUILDING[q.tag] || BUILDING.other)[0] === name).length;
-      if (same > 0 && SPR[name + '2']) name = name + '2';
-      if (building && building.index === i && now < building.until) name = 'scaffold';
-      blit(wx, name, plot[0], plot[1]);
+      if (i === 0) return;
+      const plot = PLOTS[i], b = BUILDING[p.tag] || BUILDING.other;
+      const kin = done.slice(0, i).filter(q => (BUILDING[q.tag] || BUILDING.other)[0] === b[0]).length;
+      let t = 1;
+      if (state.anim && state.anim.index === i) t = reduce ? 1 : Math.min(1, (now - state.anim.start) / 1500);
+      items.push({ d: plot[0] + plot[1] + 0.5, draw: () => DRAW[b[0]](I, plot[0], plot[1], t, now, kin + 1) });
     });
+    /* the avatar walks the east-west road, the pet trots behind */
+    const walkT = reduce ? 3 : now / 1000;
+    const span = 7.4, u = reduce ? 0.45 : ((walkT * 0.22) % 2);
+    const gx = 0.3 + (u < 1 ? u : 2 - u) * span, gy = 3.5;
+    items.push({ d: gx + gy, draw: () => I.person(gx, gy, '#2f7fd6', walkT) });
+    const pgx = gx + (u < 1 ? -0.55 : 0.55);
+    items.push({ d: pgx + gy - 0.01, draw: () => I.pet(pgx, gy + 0.1, walkT) });
 
-    /* The avatar walks the road; the pet follows a step behind. */
-    const len = COLS * TILE;
-    const speed = reduce ? 0 : 22;
-    const pos = reduce ? len * 0.35 : ((now / 1000) * speed) % (len * 2);
-    const px = pos < len ? pos : len * 2 - pos;
-    const frame = (Math.floor(now / 220) % 2 === 0) ? 'heroDown' : 'heroDown2';
-    wx.drawImage(sprite(frame), Math.round(px), 4 * TILE - 10, 16 * S, 16 * S);
-    const petX = pos < len ? px - 26 : px + 26;
-    wx.drawImage(sprite('pet'), Math.round(petX), 4 * TILE - 4, 16 * S, 16 * S);
+    items.sort((a, b) => a.d - b.d).forEach(it => it.draw());
+    vignette(I, 440, 300);
+    if (state.anim && now - state.anim.start > 1600) state.anim = null;
   }
 
-  function frame(now) {
-    drawWorld(now);
-    if (!reduce || building) requestAnimationFrame(frame);
-  }
+  function frame(now) { drawWorld(now); drawSite(now); if (!reduce) requestAnimationFrame(frame); }
 
   /* ---- HUD ---- */
   function totalXp() { return PROJECTS.slice(0, state.done).reduce((a, p) => a + p.xp, 0); }
-  function credits() { return Math.round(totalXp() * 0.45) - state.creditsSpent; }
   function paintHud() {
-    const xp = totalXp();
-    const lv = Math.floor(xp / LEVEL_XP) + 1;
-    const into = xp % LEVEL_XP;
-    $('who').innerHTML = 'ROY · LV ' + lv + '<small>CLOUD ENGINEER TRACK</small>';
-    $('coins').innerHTML = '◆ ' + credits() + '<small>CREDITS</small>';
+    const xp = totalXp(), lv = Math.floor(xp / LEVEL_XP) + 1, into = xp % LEVEL_XP;
+    $('lv').textContent = lv;
+    $('ringfill').style.strokeDashoffset = String(138.2 * (1 - into / LEVEL_XP));
     $('xpfill').style.width = (into / LEVEL_XP * 100) + '%';
-    $('xptext').textContent = into + ' / ' + LEVEL_XP + ' XP';
-    $('tier').textContent = tierFor(state.done) + ' · ' + state.done + (state.done === 1 ? ' PROJECT' : ' PROJECTS');
+    $('xptext').textContent = into + ' / ' + LEVEL_XP + ' XP · ' + xp + ' total';
+    $('coins').textContent = Math.round(xp * 0.45);
+    $('gems').textContent = state.done;
+    $('tier').innerHTML = tierFor(state.done) + '<small>' + state.done + (state.done === 1 ? ' project' : ' projects') + '</small>';
     $('finish').disabled = state.done >= PROJECTS.length;
-    if (state.done >= PROJECTS.length) $('finish').textContent = 'EVERY PROJECT IS BUILT';
-    document.querySelectorAll('[data-time]').forEach(b => {
-      b.setAttribute('aria-pressed', String(Number(b.dataset.time) === state.done));
-    });
+    $('finish').textContent = state.done >= PROJECTS.length ? 'Every project is built' : 'Simulate: finish next project';
+    document.querySelectorAll('[data-time]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.time) === state.done)));
   }
-
   function say(title, body, list) {
-    const el = $('say');
-    el.innerHTML = '<b></b>';
-    el.querySelector('b').textContent = title;
-    el.appendChild(document.createTextNode(body));
+    const el = $('say'); el.innerHTML = '<b></b>';
+    el.querySelector('b').textContent = title; el.appendChild(document.createTextNode(body));
     if (list && list.length) {
       const box = document.createElement('div'); box.className = 'list';
-      list.forEach(p => {
-        const row = document.createElement('span');
-        const a = document.createElement('i'); a.textContent = p.title;
-        const b = document.createElement('em'); b.textContent = '+' + p.xp + ' XP';
-        row.appendChild(a); row.appendChild(b); box.appendChild(row);
-      });
+      list.forEach(p => { const row = document.createElement('span'); const a = document.createElement('i'); a.style.fontStyle = 'normal'; a.textContent = p.title;
+        const b = document.createElement('em'); b.textContent = '+' + p.xp + ' XP'; row.appendChild(a); row.appendChild(b); box.appendChild(row); });
       el.appendChild(box);
     }
   }
-
   let toastTimer = null;
-  function toast(text) {
-    const t = $('toast');
-    t.innerHTML = text;
-    t.classList.add('on');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('on'), 2600);
-  }
+  function toast(text) { const t = $('toast'); t.innerHTML = text; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2600); }
 
-  /* Click a building: which projects built it. */
-  W.addEventListener('click', function (e) {
-    const rect = W.getBoundingClientRect();
-    const scale = W.width / rect.width;
-    const tx = Math.floor((e.clientX - rect.left) * scale / TILE);
-    const ty = Math.floor((e.clientY - rect.top) * scale / TILE);
+  $('world').addEventListener('click', function (e) {
+    const rect = this.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * 440 / rect.width, y = (e.clientY - rect.top) * 300 / rect.height;
+    /* screen -> grid, ignoring height: good enough to pick a plot */
+    const gx = Math.floor(((x - 220) / (TW / 2) + (y - 42) / (TH / 2)) / 2), gy = Math.floor(((y - 42) / (TH / 2) - (x - 220) / (TW / 2)) / 2);
     const done = PROJECTS.slice(0, state.done);
-    if (tx === 3 && ty === 2 || tx === 4 && ty === 2) {
-      say('THE CAMP', 'Where it started. Your first project pitched the tent.', [done[0]]);
-      return;
+    if (gx === 1 && gy === 1) { say('The camp', 'Where it started. Your first project pitched the tent.', [done[0]]); return; }
+    for (let i = 1; i < done.length; i++) if (PLOTS[i][0] === gx && PLOTS[i][1] === gy) {
+      const b = BUILDING[done[i].tag] || BUILDING.other, kin = done.filter(q => (BUILDING[q.tag] || BUILDING.other)[0] === b[0]);
+      say(b[1], kin.length === 1 ? 'Built by one project.' : 'Built by ' + kin.length + ' projects on the same tag — the second one grew it.', kin); return;
     }
-    for (let i = 1; i < done.length; i++) {
-      if (PLOTS[i][0] === tx && PLOTS[i][1] === ty) {
-        const b = BUILDING[done[i].tag] || BUILDING.other;
-        const kin = done.filter(q => (BUILDING[q.tag] || BUILDING.other)[0] === b[0]);
-        say(b[1].toUpperCase(), 'Built by ' + (kin.length === 1 ? 'one project.' : kin.length + ' projects on the same tag.'), kin);
-        return;
-      }
-    }
-    say('OPEN LAND', 'Nothing here yet. A project with a new tag would build here.');
+    say('Open land', 'Nothing here yet. A project with a new tag would build here.');
   });
-
-  /* Timeline presets and the simulate button. */
-  document.querySelectorAll('[data-time]').forEach(b => {
-    b.addEventListener('click', function () {
-      state.done = Number(b.dataset.time);
-      building = null;
-      paintHud();
-      say(tierFor(state.done), state.done + ' project' + (state.done === 1 ? '' : 's') + ' in. ' +
-        (state.done === 1 ? 'A tent and a fire.' : state.done < 6 ? 'A road, and a few things along it.' : 'Districts by tag. The skyline says what you do.'));
-      if (reduce) drawWorld(performance.now());
-    });
-  });
-
+  document.querySelectorAll('[data-time]').forEach(b => b.addEventListener('click', function () {
+    state.done = Number(b.dataset.time); state.anim = null; paintHud();
+    say(tierFor(state.done), state.done + ' project' + (state.done === 1 ? '' : 's') + ' in. ' + (state.done === 1 ? 'A tent and a fire.' : state.done < 6 ? 'A road, and a few things along it.' : 'Districts by tag. The skyline says what you do.'));
+    if (reduce) drawWorld(performance.now());
+  }));
   $('finish').addEventListener('click', function () {
     if (state.done >= PROJECTS.length) return;
-    const p = PROJECTS[state.done];
-    state.done++;
+    const p = PROJECTS[state.done]; state.done++;
     const b = BUILDING[p.tag] || BUILDING.other;
-    building = { index: state.done - 1, until: performance.now() + (reduce ? 0 : 1400) };
-    paintHud();
-    toast('+' + p.xp + ' XP<br>◆ +' + Math.round(p.xp * 0.45));
-    say('PROJECT COMPLETE', p.title + ' — a ' + b[1] + ' goes up.', [p]);
-    if (reduce) { drawWorld(performance.now()); setTimeout(() => drawWorld(performance.now()), 50); }
-    else requestAnimationFrame(frame);
+    state.anim = { index: state.done - 1, start: performance.now() };
+    paintHud(); toast('+' + p.xp + ' XP · +' + Math.round(p.xp * 0.45) + ' coins · +1 gem');
+    say('Project complete', p.title + ' — a ' + b[1].toLowerCase() + ' goes up.', [p]);
+    if (reduce) drawWorld(performance.now());
   });
 
-  /* ------------------------------------------------------------ the build */
-  const STEPS = ['Start the control plane', 'Freeze the contract', 'Build the typed API',
-                 'Reconcile the environment', 'Run the staleness check', 'Secret mission: measure drift',
-                 'Clean up your resources'];
-  const SITE_TIER = ['FOUNDATION', 'FOUNDATION', 'FRAME', 'FRAME', 'WALLS', 'WALLS', 'ROOF', 'COMPLETE'];
-  let stepsDone = 3;
-  const SC = $('site'), sx = SC.getContext('2d');
-  sx.imageSmoothingEnabled = false;
+  /* ================================================================ build */
+  const STEPS = ['Start the control plane', 'Freeze the contract', 'Build the typed API', 'Reconcile the environment', 'Run the staleness check', 'Secret mission: measure drift', 'Clean up your resources'];
+  const STEP_XP = [15, 15, 25, 25, 20, 25, 15];
+  /* What each step adds, per template and per method. Waterfall names a
+   * piece; agile names a whole, usable thing. */
+  const TEMPLATES = {
+    house:      { name: 'House',       waterfall: ['Foundation', 'Frame', 'Walls', 'Roof', 'Windows', 'Door', 'Garden'],
+                                       agile:     ['Tent', 'Shed', 'Cabin', 'Cottage', 'House', 'House + garden', 'House + garage'] },
+    car:        { name: 'Car',         waterfall: ['Chassis', 'Wheels', 'Engine', 'Body', 'Glass', 'Paint', 'Badge'],
+                                       agile:     ['Skateboard', 'Scooter', 'Bicycle', 'Motorbike', 'Small car', 'Car', 'Car + spoiler'] },
+    datacentre: { name: 'Data centre', waterfall: ['Slab', 'Cage', 'Racks', 'Cooling', 'Roof', 'Lights', 'Sign'],
+                                       agile:     ['One server', 'A rack', 'A row', 'A room', 'A hall', 'Hall + cooling', 'Campus'] }
+  };
+  const build = { template: 'house', mode: 'agile', done: 3, lastAt: 0 };
 
-  function drawSite() {
-    const s = 2;
-    for (let r = 0; r < 5.5; r++) for (let c = 0; c < 12; c++) blit(sx, ((c + r) % 4 === 0) ? 'grass2' : 'grass', c, r, s);
-    for (let c = 0; c < 12; c++) blit(sx, 'path', c, 4, s);
-    blit(sx, 'tree', 0, 1, s); blit(sx, 'tree', 11, 2, s); blit(sx, 'tree', 1, 3, s);
+  const site = makeIso($('site'), 220, 40);
+  const SG = 2.5, SGY = 2.5;   /* the plot, centred */
 
-    /* The building is revealed from the ground up, one slice of rows per
-     * step, with scaffold standing where it has not yet reached. A site is
-     * a thing that is visibly part-done, which is the whole point of it. */
-    const big = 4;
-    const ox = 4 * 16 * s, oy = 0;
-    const frac = stepsDone / STEPS.length;
-    const rowsShown = Math.round(16 * frac);
-    const fin = sprite('containers'), scaf = sprite('scaffold');
-    if (stepsDone < STEPS.length) {
-      sx.drawImage(scaf, 0, 0, 16, 16 - rowsShown, ox, oy, 16 * big, (16 - rowsShown) * big);
+  /* ---- the templates, drawn by stage. `k` in 0..1 is the drop of the newest piece. */
+  const SITE = {
+    house: {
+      waterfall(I, s, k, now) {
+        if (s >= 1) I.box(SG, SGY, 1.2, 1.2, 6, '#cfc6b3', 0);
+        if (s >= 2) { const z = s === 2 ? (1 - k) * -80 : 0; [[0.05, 0.05], [1.05, 0.05], [0.05, 1.05], [1.05, 1.05]].forEach(o => I.box(SG + o[0], SGY + o[1], 0.1, 0.1, 40, '#b58a5a', 6 - z, { noShadow: true })); }
+        if (s >= 3) { const z = s === 3 ? (1 - k) * -80 : 0; I.box(SG + 0.05, SGY + 0.05, 1.1, 1.1, 40, '#f3e6cc', 6 - z, { noShadow: true }); }
+        if (s >= 4) { const z = s === 4 ? (1 - k) * -80 : 0; I.roof(SG + 0.05, SGY + 0.05, 1.1, 1.1, 46 - z, 24, '#d9563f'); }
+        if (s >= 5) { const b = { D: I.p(SG + 0.05, SGY + 1.15, 6), C: I.p(SG + 1.15, SGY + 1.15, 6), B: I.p(SG + 1.15, SGY + 0.05, 6) }; I.windows([b.D, b.C, 40, 6], 3, '#7fb7e6', true); I.windows([b.C, b.B, 40, 6], 2, '#7fb7e6', true); }
+        if (s >= 6) { const m = I.p(SG + 0.6, SGY + 1.15, 6); I.ctx.fillStyle = '#8b4a2b'; I.roundRect(m[0] - 4, m[1] - 16, 8, 16, 3); }
+        if (s >= 7) { I.bush(SG - 0.35, SGY + 1.3); I.bush(SG + 1.3, SGY - 0.25); I.bush(SG + 0.2, SGY + 1.45); }
+        if (s < 7) I.puff(SG, SGY, k);
+        return ['Nothing yet', 'Foundation', 'Frame up', 'Walls up', 'Roofed', 'Windows in', 'Door on', 'Complete'][s];
+      },
+      agile(I, s, k, now) {
+        const z = (1 - k) * -60;
+        if (s === 1) I.roof(SG + 0.3, SGY + 0.3, 0.6, 0.6, 0 - z, 22, '#f2b42a', 0);
+        if (s === 2) { I.box(SG + 0.3, SGY + 0.3, 0.6, 0.6, 20, '#b58a5a', -z); I.roof(SG + 0.3, SGY + 0.3, 0.6, 0.6, 20 - z, 6, '#6b7280', 0.06); }
+        if (s === 3) { const b = I.box(SG + 0.2, SGY + 0.2, 0.8, 0.8, 26, '#c9a06a', -z); I.windows([b.D, b.C, 26, 0], 1, '#7fb7e6', true); I.roof(SG + 0.2, SGY + 0.2, 0.8, 0.8, 26 - z, 14, '#8b4a2b'); }
+        if (s === 4) { const b = I.box(SG + 0.1, SGY + 0.1, 1, 1, 30, '#f3e6cc', -z); I.windows([b.D, b.C, 30, 0], 2, '#7fb7e6', true); I.roof(SG + 0.1, SGY + 0.1, 1, 1, 30 - z, 18, '#d9563f'); I.box(SG + 0.8, SGY + 0.25, 0.12, 0.12, 16, '#8a5a3a', 40 - z, { noShadow: true }); }
+        if (s >= 5) { const b = I.box(SG + 0.05, SGY + 0.05, 1.1, 1.1, 46, '#f3e6cc', -z); I.windows([b.D, b.C, 46, 12], 3, '#7fb7e6', true); I.windows([b.D, b.C, 46, -10], 3, '#7fb7e6', true); I.windows([b.C, b.B, 46, 6], 2, '#7fb7e6', true);
+          const m = I.p(SG + 0.6, SGY + 1.15); I.ctx.fillStyle = '#8b4a2b'; I.roundRect(m[0] - 4, m[1] - 16, 8, 16, 3); I.roof(SG + 0.05, SGY + 0.05, 1.1, 1.1, 46 - z, 24, '#d9563f'); }
+        if (s >= 6) { I.bush(SG - 0.35, SGY + 1.3); I.bush(SG + 1.3, SGY - 0.25); I.bush(SG + 0.2, SGY + 1.45); }
+        if (s >= 7) { const zz = (1 - k) * -60; I.box(SG + 1.3, SGY + 0.4, 0.6, 0.6, 22, '#d6d1c4', -zz); I.roof(SG + 1.3, SGY + 0.4, 0.6, 0.6, 22 - zz, 6, '#6b7280', 0.06); }
+        I.puff(SG, SGY, k);
+        return ['Empty plot', 'Tent', 'Shed', 'Cabin', 'Cottage', 'House', 'House + garden', 'House + garage'][s];
+      }
+    },
+    car: {
+      waterfall(I, s, k, now) {
+        const z = (1 - k) * -70;
+        const lift = 8;
+        if (s >= 1) I.box(SG + 0.1, SGY + 0.3, 1.3, 0.6, 5, '#4b5563', lift + (s === 1 ? -z : 0), { noShadow: true });
+        if (s >= 2) { const zz = s === 2 ? -z : 0; wheels(I, zz); }
+        if (s >= 3) { const zz = s === 3 ? -z : 0; I.box(SG + 0.2, SGY + 0.4, 0.4, 0.4, 12, '#9aa3b0', lift + 5 + zz, { noShadow: true }); }
+        if (s >= 4) { const zz = s === 4 ? -z : 0; I.box(SG + 0.1, SGY + 0.3, 1.3, 0.6, 14, s >= 6 ? '#e8552f' : '#b8bec8', lift + 5 + zz, { noShadow: true }); I.box(SG + 0.5, SGY + 0.35, 0.6, 0.5, 12, s >= 6 ? '#e8552f' : '#b8bec8', lift + 19 + zz, { noShadow: true }); }
+        if (s >= 5) { const c = I.p(SG + 0.5, SGY + 0.85, lift + 19); I.ctx.fillStyle = '#9ad3ff'; I.ctx.fillRect(c[0] + 2, c[1] - 12, 22, 9); const c2 = I.p(SG + 1.1, SGY + 0.35, lift + 19); I.ctx.fillRect(c2[0] - 22, c2[1] - 12, 20, 9); }
+        if (s >= 7) { const b = I.p(SG + 0.1, SGY + 0.6, lift + 12); I.blob(b[0] + 2, b[1] - 2, 3, '#ffd54a'); }
+        I.puff(SG, SGY, k);
+        return ['Nothing yet', 'Chassis', 'On wheels', 'Engine in', 'Body on', 'Glass in', 'Painted', 'Complete'][s];
+      },
+      agile(I, s, k, now) {
+        const z = (1 - k) * -60, lift = 4;
+        if (s === 1) { I.box(SG + 0.35, SGY + 0.45, 0.7, 0.25, 3, '#8b4a2b', lift - z, { noShadow: true }); smallWheels(I, 0.35, 0.45, 0.7, 0.25, -z, 3); }
+        if (s === 2) { I.box(SG + 0.35, SGY + 0.45, 0.7, 0.25, 3, '#2f7fd6', lift - z, { noShadow: true }); smallWheels(I, 0.35, 0.45, 0.7, 0.25, -z, 3); I.box(SG + 0.38, SGY + 0.52, 0.06, 0.06, 34, '#9aa3b0', lift + 3 - z, { noShadow: true }); I.box(SG + 0.3, SGY + 0.45, 0.22, 0.06, 3, '#20242b', lift + 37 - z, { noShadow: true }); }
+        if (s === 3) { const a = I.p(SG + 0.35, SGY + 0.6, lift - z), b = I.p(SG + 1.05, SGY + 0.6, lift - z); I.wheel(a[0], a[1], 9); I.wheel(b[0], b[1], 9); I.ctx.strokeStyle = '#e8552f'; I.ctx.lineWidth = 3; I.ctx.beginPath(); I.ctx.moveTo(a[0], a[1] - 2); I.ctx.lineTo(a[0] + 14, a[1] - 18); I.ctx.lineTo(b[0] - 6, a[1] - 18); I.ctx.lineTo(b[0], b[1] - 2); I.ctx.moveTo(a[0] + 14, a[1] - 18); I.ctx.lineTo(a[0] + 22, a[1] - 4); I.ctx.stroke(); }
+        if (s === 4) { const a = I.p(SG + 0.35, SGY + 0.6, lift - z), b = I.p(SG + 1.05, SGY + 0.6, lift - z); I.wheel(a[0], a[1], 10); I.wheel(b[0], b[1], 10); I.box(SG + 0.5, SGY + 0.45, 0.45, 0.3, 12, '#20242b', lift + 6 - z, { noShadow: true }); I.box(SG + 0.55, SGY + 0.5, 0.3, 0.2, 6, '#e8552f', lift + 18 - z, { noShadow: true }); }
+        if (s === 5) { I.box(SG + 0.3, SGY + 0.35, 0.9, 0.5, 12, '#3fa66b', lift + 6 - z, { noShadow: true }); I.box(SG + 0.5, SGY + 0.4, 0.5, 0.4, 10, '#3fa66b', lift + 18 - z, { noShadow: true }); smallWheels(I, 0.3, 0.35, 0.9, 0.5, -z, 6); glass(I, 0.5, 0.4, 0.5, 0.4, lift + 18 - z); }
+        if (s >= 6) { const zz = s === 6 ? -z : 0; I.box(SG + 0.1, SGY + 0.3, 1.3, 0.6, 14, '#e8552f', lift + 6 + zz, { noShadow: true }); I.box(SG + 0.5, SGY + 0.35, 0.6, 0.5, 12, '#e8552f', lift + 20 + zz, { noShadow: true }); smallWheels(I, 0.1, 0.3, 1.3, 0.6, zz, 8); glass(I, 0.5, 0.35, 0.6, 0.5, lift + 20 + zz); const b = I.p(SG + 0.1, SGY + 0.6, lift + 14); I.blob(b[0] + 2, b[1] - 2, 3, '#ffd54a'); }
+        if (s >= 7) { I.box(SG + 1.2, SGY + 0.32, 0.12, 0.56, 6, '#20242b', lift + 30 - z, { noShadow: true }); }
+        I.puff(SG, SGY, k);
+        return ['Empty lot', 'Skateboard', 'Scooter', 'Bicycle', 'Motorbike', 'Small car', 'Car', 'Car + spoiler'][s];
+      }
+    },
+    datacentre: {
+      waterfall(I, s, k, now) {
+        const z = (1 - k) * -80;
+        if (s >= 1) I.box(SG, SGY, 1.3, 1.3, 5, '#b9bec9', 0);
+        if (s >= 2) { const zz = s === 2 ? -z : 0; [[0.05, 0.05], [1.15, 0.05], [0.05, 1.15], [1.15, 1.15]].forEach(o => I.box(SG + o[0], SGY + o[1], 0.1, 0.1, 44, '#8a95a3', 5 + zz, { noShadow: true })); }
+        if (s >= 3) { const zz = s === 3 ? -z : 0; for (let i = 0; i < 4; i++) I.box(SG + 0.2 + i * 0.25, SGY + 0.4, 0.18, 0.5, 30, '#3d4a63', 5 + zz, { noShadow: true }); }
+        if (s >= 4) { const zz = s === 4 ? -z : 0; I.box(SG + 0.15, SGY + 1.0, 1.0, 0.2, 14, '#c9d1dc', 5 + zz, { noShadow: true }); }
+        if (s >= 5) { const zz = s === 5 ? -z : 0; const b = I.box(SG + 0.05, SGY + 0.05, 1.2, 1.2, 44, '#5e6b85', 5 + zz, { noShadow: true }); if (s >= 6) leds(I, b, 44, now); }
+        if (s >= 7) { const p = I.p(SG + 0.65, SGY + 1.28, 5); I.ctx.fillStyle = '#fff'; I.roundRect(p[0] - 12, p[1] - 16, 24, 9, 2); I.ctx.fillStyle = '#2f7fd6'; I.ctx.fillRect(p[0] - 9, p[1] - 13, 18, 3); }
+        if (s < 7) I.puff(SG, SGY, k);
+        return ['Nothing yet', 'Slab', 'Cage up', 'Racks in', 'Cooling in', 'Roofed', 'Lights on', 'Complete'][s];
+      },
+      agile(I, s, k, now) {
+        const z = (1 - k) * -60;
+        if (s === 1) I.box(SG + 0.5, SGY + 0.5, 0.3, 0.2, 6, '#3d4a63', -z);
+        if (s === 2) { const b = I.box(SG + 0.5, SGY + 0.45, 0.3, 0.3, 30, '#3d4a63', -z); leds(I, b, 30, now, 2); }
+        if (s === 3) for (let i = 0; i < 4; i++) { const b = I.box(SG + 0.15 + i * 0.28, SGY + 0.45, 0.22, 0.3, 30, '#3d4a63', -z, { noShadow: i > 0 }); leds(I, b, 30, now, 2); }
+        if (s === 4) { const b = I.box(SG + 0.15, SGY + 0.2, 1.0, 0.9, 34, '#5e6b85', -z); leds(I, b, 34, now, 3); }
+        if (s >= 5) { const zz = s === 5 ? -z : 0; const b = I.box(SG + 0.05, SGY + 0.05, 1.2, 1.2, 44, '#5e6b85', zz); leds(I, b, 44, now, 4); }
+        if (s >= 6) { const zz = s === 6 ? -z : 0; I.box(SG + 0.2, SGY + 0.2, 0.3, 0.3, 10, '#c9d1dc', 44 + zz, { noShadow: true }); I.box(SG + 0.75, SGY + 0.2, 0.3, 0.3, 10, '#c9d1dc', 44 + zz, { noShadow: true }); }
+        if (s >= 7) { const b = I.box(SG - 0.9, SGY + 0.3, 0.7, 0.7, 30, '#5e6b85', -z); leds(I, b, 30, now, 3); }
+        I.puff(SG, SGY, k);
+        return ['Empty plot', 'One server', 'A rack', 'A row', 'A room', 'A hall', 'Hall + cooling', 'Campus'][s];
+      }
     }
-    if (rowsShown > 0) {
-      sx.drawImage(fin, 0, 16 - rowsShown, 16, rowsShown, ox, oy + (16 - rowsShown) * big, 16 * big, rowsShown * big);
+  };
+  function wheels(I, zz) { [[0.25, 0.32], [1.2, 0.32], [0.25, 0.9], [1.2, 0.9]].forEach(o => { const c = site.p(SG + o[0], SGY + o[1], 6 + zz); I.wheel(c[0], c[1], 7); }); }
+  function smallWheels(I, gx, gy, w, d, zz, r) { [[0.12, 0.05], [w - 0.12, 0.05], [0.12, d - 0.05], [w - 0.12, d - 0.05]].forEach(o => { const c = site.p(SG + gx + o[0], SGY + gy + o[1], 2 + zz); I.wheel(c[0], c[1], r); }); }
+  function glass(I, gx, gy, w, d, base) { const c = site.p(SG + gx + 0.05, SGY + gy + d, base), e = site.p(SG + gx + w, SGY + gy + d, base); I.ctx.fillStyle = '#9ad3ff'; I.ctx.beginPath(); I.ctx.moveTo(c[0] + 3, c[1] - 3); I.ctx.lineTo(e[0] - 3, e[1] - 3); I.ctx.lineTo(e[0] - 3, e[1] - 9); I.ctx.lineTo(c[0] + 3, c[1] - 9); I.ctx.closePath(); I.ctx.fill(); }
+  function leds(I, b, h, now, rows) {
+    rows = rows || 3;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < 6; c++) {
+      const u = (c + 0.5) / 6, x = b.D[0] + (b.C[0] - b.D[0]) * u, y = b.D[1] + (b.C[1] - b.D[1]) * u - 7 - r * 9;
+      if (y < b.D2[1] + 4) continue;
+      const on = Math.floor(now / 350 + c * 1.7 + r * 2.3) % 3 !== 0;
+      I.ctx.fillStyle = on ? '#4ff0ff' : '#1e3a4a'; I.ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
     }
-    /* the builder */
-    sx.drawImage(sprite('heroDown'), 2 * 16 * s, 4 * 16 * s - 12, 32, 32);
   }
 
-  function paintSteps() {
-    const host = $('steps');
-    host.innerHTML = '';
+  function drawSite(now) {
+    const I = site, ctx = I.ctx;
+    ctx.clearRect(0, 0, 440, 220);
+    const g = ctx.createLinearGradient(0, 0, 0, 220); g.addColorStop(0, '#8fd0ff'); g.addColorStop(1, '#e6f4ff'); ctx.fillStyle = g; ctx.fillRect(0, 0, 440, 220);
+    drawGround(I, 6, 6, null, null, now);
+    /* the plot outline */
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5;
+    I.poly([I.p(SG - 0.2, SGY - 0.2), I.p(SG + 1.5, SGY - 0.2), I.p(SG + 1.5, SGY + 1.5), I.p(SG - 0.2, SGY + 1.5)], 'rgba(255,255,255,.08)', 'rgba(255,255,255,.7)'); ctx.setLineDash([]);
+    I.tree(0, 1, 1); I.tree(5, 0, 0.9); I.tree(0, 5, 1.1); I.tree(5, 5, 0.9);
+    const k = reduce ? 1 : Math.min(1, (now - build.lastAt) / 900);
+    const label = SITE[build.template][build.mode](I, build.done, ease(k), now);
+    /* the builder, standing by */
+    I.person(1.6, 4.2, '#e8552f', now / 1000 * 0.4);
+    $('sitetier').innerHTML = label + '<small>' + build.done + ' of 7</small>';
+    vignette(I, 440, 220);
+  }
+
+  function paintBubbles() {
+    const host = $('bubbles'); host.innerHTML = '';
+    const pieces = TEMPLATES[build.template][build.mode];
     STEPS.forEach((t, i) => {
       const d = document.createElement('div');
-      if (i < stepsDone) d.className = 'done';
-      else if (i === stepsDone) d.className = 'now';
-      const box = document.createElement('i');
-      d.appendChild(box);
-      d.appendChild(document.createTextNode((i + 1) + '. ' + t));
-      host.appendChild(d);
+      d.className = 'bubble' + (i < build.done ? ' done' : i === build.done ? ' now' : '');
+      const ic = document.createElement('i'); ic.textContent = i < build.done ? '✓' : String(i + 1);
+      const tx = document.createElement('div'); tx.className = 't';
+      const b = document.createElement('b'); b.textContent = t;
+      const s = document.createElement('small'); s.textContent = (build.mode === 'agile' ? 'delivers: ' : 'adds: ') + pieces[i];
+      tx.appendChild(b); tx.appendChild(s);
+      const xp = document.createElement('span'); xp.className = 'xp'; xp.textContent = '+' + STEP_XP[i] + ' XP';
+      d.appendChild(ic); d.appendChild(tx); d.appendChild(xp); host.appendChild(d);
     });
-    $('sitetier').textContent = SITE_TIER[stepsDone] + ' · ' + stepsDone + '/' + STEPS.length;
     const btn = $('step');
-    if (stepsDone >= STEPS.length) {
-      btn.textContent = 'ALL STEPS COMPLETE';
-      btn.disabled = true;
-      $('reward').hidden = false;
-    } else {
-      btn.textContent = '✓ COMPLETE STEP ' + (stepsDone + 1) + ' OF 7';
-      btn.disabled = false;
-      $('reward').hidden = true;
-    }
-    drawSite();
+    btn.disabled = build.done >= STEPS.length;
+    btn.textContent = build.done >= STEPS.length ? 'All steps complete' : 'Complete step ' + (build.done + 1) + ' of 7  ·  +' + STEP_XP[build.done] + ' XP';
+    $('reward').hidden = build.done < STEPS.length;
+    $('bpname').textContent = TEMPLATES[build.template].name + ' · tier 2';
+    document.querySelectorAll('[data-template]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.template === build.template)));
+    document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === build.mode)));
+    if (reduce) drawSite(performance.now());
   }
-  $('step').addEventListener('click', function () {
-    if (stepsDone >= STEPS.length) return;
-    stepsDone++;
-    paintSteps();
-  });
+  $('step').addEventListener('click', function () { if (build.done >= STEPS.length) return; build.done++; build.lastAt = performance.now(); paintBubbles(); });
+  document.querySelectorAll('[data-template]').forEach(b => b.addEventListener('click', () => { build.template = b.dataset.template; build.lastAt = performance.now(); paintBubbles(); }));
+  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { build.mode = b.dataset.mode; build.lastAt = performance.now(); paintBubbles(); }));
 
-  /* the clocks: invested time keeps counting while this tab is in front */
   let invested = 47 * 60 + 12, session = 12 * 60 + 40;
-  function hms(n) {
-    const h = Math.floor(n / 3600), m = Math.floor(n % 3600 / 60), s = n % 60;
-    return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-  }
-  function tick() {
-    if (!document.hidden && stepsDone < STEPS.length) { invested++; session++; }
-    $('clock').textContent = hms(invested);
-    $('session').textContent = hms(session);
-  }
+  function hms(n) { const h = Math.floor(n / 3600), m = Math.floor(n % 3600 / 60), s = n % 60; return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'); }
+  function tick() { if (!document.hidden && build.done < STEPS.length) { invested++; session++; } $('clock').textContent = hms(invested); $('session').textContent = hms(session); }
   setInterval(tick, 1000);
 
-  /* ------------------------------------------------------------ the tabs */
+  /* ================================================================= tabs */
   function show(view) {
-    ['world', 'build', 'notes'].forEach(v => {
-      $('tab-' + v).setAttribute('aria-selected', String(v === view));
-      $('view-' + v).hidden = v !== view;
-    });
+    ['world', 'build', 'notes'].forEach(v => { $('tab-' + v).setAttribute('aria-selected', String(v === view)); $('view-' + v).hidden = v !== view; });
     try { localStorage.setItem('nww-tab', view); } catch (e) { /* fine */ }
   }
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => show(b.dataset.view)));
@@ -783,10 +990,8 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   try { opening = localStorage.getItem('nww-tab') || 'world'; } catch (e) { /* fine */ }
   show(['world', 'build', 'notes'].includes(opening) ? opening : 'world');
 
-  /* ------------------------------------------------------------ go */
-  paintHud();
-  paintSteps();
-  tick();
-  if (reduce) drawWorld(performance.now()); else requestAnimationFrame(frame);
+  paintHud(); paintBubbles(); tick();
+  build.lastAt = -5000;
+  if (reduce) { drawWorld(performance.now()); drawSite(performance.now()); } else requestAnimationFrame(frame);
 })();
 </script>
