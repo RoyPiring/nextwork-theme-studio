@@ -10,18 +10,45 @@ Your NextWork projects, as land. A concept for a pane inside the extension.
 
 ## The five tabs
 
-1. **NextWork World** - the NextWork ranch in the middle: the tower with the
-   cafe at its foot, eight hubs for the roadmaps, a lake, a paddock, the
-   eight staff in black T-shirts. Learners' plots on the ring round it,
-   joined by worn footpaths. Tap your plot to go home.
-2. **NextWork** - what NextWork is, in its own words.
-3. **My World** - your land. A tent, a board and one oak until the first
-   project; then a cabin, then spreads, windmills, fences, the creek and
-   your learn lists over it. Tap or use the arrow keys to walk.
-4. **My Build** - the project going up, four stages tied to its steps, the
-   catalogue and your library.
-5. **NextWork Global** - the map, and where people are building, once
-   NextWork publishes a count.
+1. **NextWorld** - NextWork Headquarters, Austin: the campus, the hubs, the
+   staff, the ranch, and the learners' plots outside the fence. Under it,
+   this week's contract and who is building (sample names until NextWork
+   publishes counts). Tap your plot to go home.
+2. **Avatar** - you: pineapple, person, robot or cat, and the shop. Dashed
+   options cost sparks.
+3. **My World** - your land, on one of nine terrains you choose once. Every
+   era has a site plan; the era's first projects build its infrastructure,
+   every other project is a home. People move in, farm, trim the trees and
+   walk the dog on a forty-second day. Tap the shield for the dashboard.
+4. **My Build** - the project going up, step by step, the exact building
+   revealed as the steps are ticked, a lesson under each step, the nails.
+5. **Globe** - the world, and your rank in it.
+
+## The economy: three things, three rules
+
+- **Power** is a battery. A step ticked adds 8%; a project fills it. It
+  holds for a day, then loses 15% a real day down to an ember (10%). The
+  lights, the mill, the fields and the fire follow it.
+- **Citizens** move in one per step while the power is at least half, up to
+  what the homes can hold (each home by what it took to build), and leave
+  one a day once the place has stood idle five days. Citizens are the
+  number on the leaderboard.
+- **Sparks** are the currency: one a step, ten a project, twenty-five for the
+  week's contract. Spent in the avatar shop; never lost.
+
+Every week (from Monday) the town posts a contract: the era's next piece of
+infrastructure, for one project or seven steps. Kept, it pays sparks, five
+citizens, and room for two more, for good. A portfolio read from nextwork.ai
+is pegged out, not built: the crew raises one list building a real day while
+the power holds. Everything comes from the page: a step ticked, a project
+finished.
+
+## Pip
+
+The pineapple under every scene says one next thing: pick your land, pick a
+project, open it, step done, built, unlocked, power is low, still here. On a
+project page itself a pineapple pill shows the project, the step, a spark
+each, a lesson, and a way back to the land.
 
 ## In the extension
 
