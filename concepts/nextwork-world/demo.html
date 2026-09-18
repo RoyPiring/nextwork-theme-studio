@@ -626,6 +626,88 @@
   Object.assign(NW, { SERIES, PROJECTS, CATALOGUE_XP, xpFor, KIND_NAME, ICON, kindFor, HUBS, ABOUT, TIERS, levelOf, tierOf, nextTier, START_HERE, SAMPLE_LISTS, SAMPLE_DONE });
 })();
 
+/* NextWorld · plans: the site plan for every era
+ * Seven settlement plans on the 68×68 grid, drawn up the way a planner
+ * would: the founding fire at (30,34) stays the centre through every era;
+ * each plan lays its own roads, water, zones, civic buildings, lot rows
+ * and landscape, and the whole plan changes when the place crosses a
+ * threshold. Coordinates are tiles, x east, y south. */
+'use strict';
+(function () {
+  const R = (x0, y0, x1, y1, paved) => ({ from: [x0, y0], to: [x1, y1], paved: !!paved });
+  const row = (y, x0, x1, road) => ({ y, x0, x1, step: 3, road });
+  const C = (kind, x, y) => ({ kind, at: [x, y] });
+  /* the west-bank grid the city, metropolis, capital and kingdom share */
+  const GRID_ROWS = [22, 28, 38, 44, 50], GRID_COLS = [7, 14, 21, 27, 34, 41];
+  const grid = (rows, cols, x1, y1, paved) => rows.map(y => R(7, y, x1, y, paved)).concat(cols.map(x => R(x, 22, x, y1, paved)));
+  const metroRoads = (y1) => [R(7, 33, 44, 33, true), R(45, 33, 46, 33, true), R(47, 33, 57, 33, true)]
+    .concat([22, 28, 38, 44, 50, 56].concat(y1 > 56 ? [62] : []).map(y => R(7, y, 42, y, true)))
+    .concat([7, 14, 21, 26, 27, 34, 35, 41, 42].map(x => R(x, 22, x, y1, true)));
+  const capitalRoads = () => [R(7, 33, 44, 33, true), R(45, 33, 46, 33, true), R(47, 33, 57, 33, true), R(7, 22, 42, 22, true), R(7, 28, 42, 28, true), R(7, 38, 27, 38, true), R(34, 38, 42, 38, true), R(7, 44, 27, 44, true), R(34, 44, 42, 44, true), R(7, 50, 42, 50, true), R(7, 56, 42, 56, true), R(7, 62, 42, 62, true), R(7, 22, 7, 62, true), R(14, 22, 14, 62, true), R(21, 22, 21, 62, true), R(26, 22, 26, 50, true), R(27, 22, 27, 50, true), R(27, 56, 27, 62, true), R(34, 22, 34, 50, true), R(35, 22, 35, 50, true), R(34, 56, 34, 62, true), R(41, 22, 41, 62, true), R(42, 22, 42, 62, true)];
+  const cityLots = [row(32, 28, 28, 'south'), row(32, 33, 33, 'south'), row(29, 28, 33, 'north'), row(32, 22, 26, 'south'), row(32, 35, 40, 'south'), row(29, 22, 26, 'north'), row(34, 22, 26, 'north'), row(37, 22, 26, 'south'), row(27, 22, 26, 'south'), row(27, 28, 33, 'south'), row(27, 35, 40, 'south'), row(39, 35, 40, 'north'), row(23, 22, 26, 'north'), row(23, 28, 33, 'north'), row(23, 35, 40, 'north'), row(43, 22, 26, 'south'), row(43, 28, 33, 'south'), row(43, 35, 40, 'south'), row(45, 22, 26, 'north'), row(45, 28, 33, 'north'), row(45, 35, 40, 'north'), row(49, 22, 26, 'south'), row(49, 28, 33, 'south'), row(49, 35, 40, 'south'), row(32, 15, 20, 'south'), row(29, 15, 20, 'north'), row(34, 15, 20, 'north'), row(37, 15, 20, 'south'), row(27, 15, 20, 'south'), row(23, 15, 20, 'north'), row(39, 15, 20, 'north'), row(43, 15, 20, 'south'), row(45, 15, 20, 'north'), row(49, 15, 20, 'south')];
+  const metroLots = [row(32, 28, 28, 'south'), row(32, 33, 33, 'south'), row(29, 28, 33, 'north'), row(32, 22, 25, 'south'), row(32, 36, 40, 'south'), row(29, 22, 25, 'north'), row(34, 22, 25, 'north'), row(37, 22, 25, 'south'), row(27, 22, 25, 'south'), row(27, 28, 33, 'south'), row(27, 36, 40, 'south'), row(39, 39, 40, 'north'), row(39, 25, 25, 'north'), row(23, 22, 25, 'north'), row(23, 28, 33, 'north'), row(23, 36, 40, 'north'), row(43, 22, 25, 'south'), row(43, 28, 33, 'south'), row(43, 36, 40, 'south'), row(45, 22, 25, 'north'), row(45, 28, 33, 'north'), row(49, 22, 25, 'south'), row(49, 28, 33, 'south'), row(49, 36, 40, 'south'), row(51, 22, 25, 'north'), row(51, 28, 33, 'north'), row(51, 36, 40, 'north'), row(55, 22, 25, 'south'), row(55, 28, 33, 'south'), row(55, 36, 40, 'south'), row(57, 22, 25, 'north'), row(57, 28, 33, 'north'), row(57, 36, 40, 'north'), row(21, 22, 25, 'south'), row(21, 36, 40, 'south'), row(21, 15, 20, 'south'), row(21, 8, 13, 'south'), row(27, 15, 20, 'south'), row(29, 15, 20, 'north'), row(32, 15, 20, 'south'), row(34, 15, 20, 'north'), row(37, 15, 20, 'south'), row(39, 15, 20, 'north'), row(43, 15, 20, 'south'), row(45, 15, 20, 'north'), row(49, 15, 20, 'south'), row(51, 15, 20, 'north'), row(55, 15, 20, 'south'), row(57, 15, 20, 'north'), row(27, 8, 13, 'south'), row(51, 8, 13, 'north'), row(55, 8, 13, 'south')];
+  const capitalLots = [row(32, 28, 28, 'south'), row(32, 33, 33, 'south'), row(29, 28, 33, 'north'), row(32, 22, 25, 'south'), row(32, 36, 40, 'south'), row(29, 22, 25, 'north'), row(34, 22, 25, 'north'), row(37, 22, 25, 'south'), row(37, 36, 36, 'south'), row(27, 22, 25, 'south'), row(27, 28, 33, 'south'), row(27, 36, 40, 'south'), row(39, 39, 40, 'north'), row(39, 25, 25, 'north'), row(23, 22, 25, 'north'), row(23, 28, 33, 'north'), row(23, 36, 40, 'north'), row(43, 22, 25, 'south'), row(43, 36, 40, 'south'), row(45, 22, 25, 'north'), row(49, 22, 25, 'south'), row(49, 36, 40, 'south'), row(55, 22, 25, 'south'), row(55, 36, 40, 'south'), row(57, 22, 26, 'north'), row(57, 28, 33, 'north'), row(57, 35, 40, 'north'), row(61, 22, 26, 'south'), row(61, 28, 33, 'south'), row(61, 35, 40, 'south'), row(21, 22, 25, 'south'), row(21, 36, 40, 'south'), row(21, 15, 20, 'south'), row(21, 8, 13, 'south'), row(27, 15, 20, 'south'), row(29, 15, 20, 'north'), row(32, 15, 20, 'south'), row(34, 15, 20, 'north'), row(37, 15, 20, 'south'), row(39, 15, 20, 'north'), row(43, 15, 20, 'south'), row(45, 15, 20, 'north'), row(49, 15, 20, 'south'), row(51, 15, 20, 'north'), row(55, 15, 20, 'south'), row(57, 15, 20, 'north'), row(61, 15, 20, 'south'), row(27, 8, 13, 'south'), row(51, 8, 13, 'north'), row(55, 8, 13, 'south'), row(61, 8, 13, 'south')];
+  const metroCivic = [C('cityhall', 28, 39), C('station', 30, 20), { kind: 'rail', from: [0, 19], to: [40, 19] }, C('hospital', 36, 34), C('library', 36, 36), C('firestation', 38, 36), C('datacentre', 36, 39), C('school', 36, 29), C('store', 39, 29), C('community', 25, 36), C('park', 22, 39), C('stadium', 36, 45), C('university', 15, 23), C('solar', 8, 57), C('workshop', 12, 57), C('watertower', 13, 57), C('windmill', 13, 32), C('barn', 8, 45), C('coop', 11, 45), { kind: 'paddock', rect: [8, 46, 6, 3] }];
+  const capitalCivic = [C('capitol', 28, 52), C('cityhall', 35, 51), C('library', 26, 51), C('park', 22, 51), C('station', 30, 20), { kind: 'rail', from: [0, 19], to: [40, 19] }, C('hospital', 36, 34), C('firestation', 38, 36), C('datacentre', 36, 39), C('school', 36, 29), C('store', 39, 29), C('community', 25, 36), C('park', 22, 39), C('stadium', 36, 45), C('university', 15, 23), C('solar', 8, 57), C('workshop', 12, 57), C('watertower', 13, 57), C('windmill', 13, 32), C('barn', 8, 45), C('coop', 11, 45), { kind: 'paddock', rect: [8, 46, 6, 3] }];
+  const FARMS = [[8, 23, 6, 3], [8, 29, 5, 4], [8, 34, 6, 4], [8, 39, 6, 5]];
+  const water = (width, bridges, channelled, promenade, lake) => ({ creekX: 45, width, bridges: bridges || [], channelled: !!channelled, promenade: promenade || null, lake: lake || null });
+
+  const PLANS = [
+    { id: 'campground', name: 'Campground', word: 'a campground', threshold: 0,
+      story: 'A lone tent on the rise above the creek: a fire in front of the door, a notice board beside it, and one trodden footpath along the ridge toward the water.',
+      home: [30, 31], clearing: { cx: 30, cy: 34, rx: 8, ry: 5 }, water: water(1),
+      roads: [R(27, 33, 39, 33)], zones: [], civic: [C('campfire', 30, 34), C('board', 32, 34)],
+      lots: [row(32, 33, 39, 'south'), row(34, 34, 37, 'north'), row(32, 27, 27, 'south')],
+      landscape: { fields: [], treeline: 'dense', lamps: 'none' } },
+    { id: 'fort', name: 'Fort', word: 'a fort', threshold: 5,
+      story: 'A palisade goes up round the camp on the same ground: the cabin faces the fire across the main lane, a working yard of mill, tank and workshop lines the north wall, and the lane runs out through the gates east to the creek and west to the first two fields.',
+      home: [30, 31], clearing: { cx: 30, cy: 34, rx: 15, ry: 9 }, water: water(1),
+      roads: [R(17, 33, 44, 33), R(23, 29, 38, 29), R(23, 37, 38, 37), R(23, 29, 23, 37), R(38, 29, 38, 37)], zones: [],
+      civic: [{ kind: 'stockade', rect: [22, 27, 18, 13] }, C('campfire', 30, 34), C('pump', 32, 34), C('windmill', 25, 28), C('tank', 28, 28), C('workshop', 34, 28)],
+      lots: [row(32, 33, 37, 'south'), row(32, 24, 28, 'south'), row(34, 33, 37, 'north'), row(34, 24, 28, 'north'), row(30, 24, 27, 'north'), row(30, 33, 37, 'north'), row(36, 24, 37, 'south'), row(38, 24, 37, 'north')],
+      landscape: { fields: [[16, 28, 5, 4], [16, 35, 5, 4]], treeline: 'dense', lamps: 'none' } },
+    { id: 'town', name: 'Town', word: 'a town', threshold: 15,
+      story: 'The palisade comes down. A paved main street runs from the west farms to the creek landing; the fire ground is laid out as a square with a well; the town hall closes its south side; school, store and hall take the east block; side streets make a small grid; a ranch corner sits south-west.',
+      home: [30, 31], clearing: { cx: 30, cy: 34, rx: 25, ry: 12 }, water: water(1),
+      roads: [R(6, 33, 44, 33, true), R(14, 28, 41, 28), R(14, 38, 41, 38), R(14, 28, 14, 38), R(20, 28, 20, 38), R(28, 33, 28, 38, true), R(34, 28, 34, 38, true), R(41, 28, 41, 38)],
+      zones: [{ kind: 'square', rect: [29, 34, 5, 4] }],
+      civic: [C('pump', 29, 34), C('townhall', 30, 39), C('school', 35, 34), C('store', 38, 34), C('community', 35, 37), C('windmill', 13, 32), C('tank', 42, 32), C('workshop', 42, 34), C('barn', 21, 39), C('coop', 24, 39), { kind: 'paddock', rect: [21, 40, 7, 3] }],
+      lots: [row(32, 33, 40, 'south'), row(32, 21, 28, 'south'), row(34, 21, 27, 'north'), row(29, 21, 27, 'north'), row(29, 35, 40, 'north'), row(37, 21, 27, 'south'), row(39, 33, 39, 'north'), row(27, 21, 39, 'south'), row(32, 15, 19, 'south'), row(34, 15, 19, 'north'), row(29, 15, 19, 'north'), row(37, 15, 19, 'south'), row(27, 15, 19, 'south'), row(39, 15, 19, 'north')],
+      landscape: { fields: [[6, 29, 7, 4], [6, 35, 7, 4]], treeline: 'thin', lamps: 'main' } },
+    { id: 'city', name: 'City', word: 'a city', threshold: 35,
+      story: 'The creek is channelled to two tiles and bridged at main street. The square is paved as a plaza with the long city hall across its south side; six streets each way lay out districts from the farm blocks to the river; hospital, library and fire station take the east block, a park anchors the west, the ranch moves out to the farm blocks.',
+      home: [30, 31], clearing: { cx: 30, cy: 34, rx: 28, ry: 18 }, water: water(2, [{ y: 33, x0: 45, x1: 46 }], true),
+      roads: [R(7, 33, 44, 33, true), R(45, 33, 46, 33, true), R(47, 33, 57, 33, true)].concat(grid(GRID_ROWS, GRID_COLS, 41, 50, true)),
+      zones: [{ kind: 'plaza', rect: [28, 34, 6, 4] }],
+      civic: [C('cityhall', 28, 39), C('hospital', 35, 34), C('library', 35, 36), C('firestation', 38, 36), C('school', 35, 29), C('store', 38, 29), C('community', 26, 36), C('datacentre', 42, 34), C('tank', 42, 32), C('workshop', 42, 30), C('windmill', 13, 32), C('park', 22, 39), C('barn', 8, 45), C('coop', 11, 45), { kind: 'paddock', rect: [8, 46, 6, 3] }],
+      lots: cityLots, landscape: { fields: [[8, 23, 6, 5], [8, 29, 5, 4], [8, 34, 6, 4], [8, 39, 6, 5]], treeline: 'thin', lamps: 'main' } },
+    { id: 'metropolis', name: 'Metropolis', word: 'a metropolis', threshold: 60,
+      story: 'Two-tile avenues are cut either side of the plaza, a riverside street and a paved promenade run the length of the channel, a rail line comes in from the west to a station north of the home, a university fills the north-west block and a stadium the south-east, the grid takes one more street south, solar, works and water tower go to the south edge, and every street is lit.',
+      home: [30, 31], clearing: { cx: 30, cy: 34, rx: 30, ry: 26 }, water: water(2, [{ y: 33, x0: 45, x1: 46 }], true, { x0: 43, x1: 44, y0: 20, y1: 58 }),
+      roads: metroRoads(56), zones: [{ kind: 'plaza', rect: [28, 34, 6, 4] }], civic: metroCivic, lots: metroLots,
+      landscape: { fields: FARMS, treeline: 'thin', lamps: 'all' } },
+    { id: 'capital', name: 'Capital', word: 'the capital', threshold: 90,
+      story: 'The plaza becomes the capitol lawn and a mall runs south on the axis of the home to the capitol, standing in its own margin between the capitol street and the south street. The cross streets stop at the mall; the old city hall is rebuilt on the capitol’s east flank with a library and park on the west; the grid takes one more street south; the whole west bank is lit.',
+      home: [30, 31], clearing: { cx: 30, cy: 34, rx: 30, ry: 30 }, water: water(2, [{ y: 33, x0: 45, x1: 46 }], true, { x0: 43, x1: 44, y0: 20, y1: 62 }),
+      roads: capitalRoads(), zones: [{ kind: 'park', rect: [28, 34, 6, 16] }], civic: capitalCivic, lots: capitalLots,
+      landscape: { fields: FARMS, treeline: 'thin', lamps: 'all' } },
+    { id: 'kingdom', name: 'Kingdom', word: 'a kingdom', threshold: 120,
+      story: 'The capital holds on the west bank; the river is crossed a second time at the capitol street; the creek opens into a lake in the north; and a second city rises on the east bank round a royal square, the palace facing the main-street bridge with its own hall beside the square, both tied through to the east trunk.',
+      home: [30, 31], clearing: { cx: 34, cy: 34, rx: 34, ry: 30 }, water: water(2, [{ y: 33, x0: 45, x1: 46 }, { y: 50, x0: 45, x1: 46 }], true, { x0: 43, x1: 44, y0: 20, y1: 62 }, { rect: [42, 8, 8, 6] }),
+      roads: capitalRoads().concat([R(43, 50, 44, 50, true), R(45, 50, 46, 50, true), R(47, 50, 57, 50, true)]),
+      zones: [{ kind: 'park', rect: [28, 34, 6, 16] }, { kind: 'square', rect: [52, 34, 4, 3] }],
+      civic: [C('palace', 50, 30), C('townhall2', 50, 34)].concat(capitalCivic), lots: capitalLots,
+      landscape: { fields: FARMS, treeline: 'thin', lamps: 'all' } }
+  ];
+  /* every plan's roads and lots as tile sets, worked out once */
+  const key = (x, y) => x + ',' + y;
+  PLANS.forEach(p => {
+    const set = new Set(), paved = new Set(); p.roads.forEach(r => { let [x, y] = r.from; const put = () => { set.add(key(x, y)); if (r.paved) paved.add(key(x, y)); }; put(); while (x !== r.to[0]) { x += x < r.to[0] ? 1 : -1; put(); } while (y !== r.to[1]) { y += y < r.to[1] ? 1 : -1; put(); } });
+    p.roadSet = set; p.pavedSet = paved; p.lotList = []; p.lots.forEach(r => { for (let x = r.x0; x <= r.x1; x += r.step) p.lotList.push([x, r.y]); });
+  });
+  NW.PLANS = PLANS;
+})();
+
 /* NextWorld · state: what you have built, and where it goes
  * Pure: no DOM, no storage. The host (demo page or extension pane) hands in
  * a saved object and gets back the same shape to save. Everything the map
@@ -670,51 +752,54 @@
   function applyProjectReading(s, r) { if (!r || !r.title) return s; if (r.total > 0 && r.done >= r.total) finish(s, r.title); else s.steps[r.title] = { done: r.done | 0, total: r.total | 0 }; s.readAt = r.at || Date.now(); return s; }
   function applyPortfolioReading(s, r) { if (!r || !Array.isArray(r.lists)) return s; s.lists = r.lists.map(l => ({ name: l.name, total: l.count | 0, done: l.count | 0, blurb: l.blurb || '', kind: kindFor(l.name) })); if (r.name) s.name = r.name; s.readAt = r.at || Date.now(); return s; }
 
-  /* ---- the land: rows ----
-   * One project at a time, and the land fills in one lot at a time. A
-   * trunk road runs north-south through the ranch house; lanes branch off
-   * it every four rows; lots line each lane on both sides. Lot n is the
-   * n-th nearest the house, so the first cabin is on the porch's doorstep
-   * and the ninetieth is out by the fence. You can move any building to
-   * any empty lot. Learn lists get the same rows east of the creek. */
-  const LAND = 68, HOME = [15, 33];
+  /* ---- the land: a plan per era ----
+   * The plan for the era you are in (src/world/plans.js) lays the roads,
+   * the water, the civic buildings and the lot rows on the west bank. Your
+   * projects settle into its lots in the order they were built, so when the
+   * era changes the whole place re-lays itself and everything moves into
+   * the new plan. Learn lists take rows on the east bank, over the bridge. */
+  const LAND = 68;
   const hash = (x, y) => { let h = (Math.floor(x * 1000) * 374761393 + Math.floor(y * 1000) * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967296; };
   function noise(x, y) { const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return lerp(lerp(hash(x0, y0), hash(x0 + 1, y0), u), lerp(hash(x0, y0 + 1), hash(x0 + 1, y0 + 1), u), v); }
   const height = (gx, gy) => noise(gx / 9, gy / 9) * 0.65 + noise(gx / 3.5, gy / 3.5) * 0.35;
-  const creekX = gy => 33 + Math.sin(gy / 7.5) * 2.2 + Math.sin(gy / 3.3 + 1) * 0.9;
-  const inCreek = (gx, gy) => Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 1.5;
-  const onBank = (gx, gy) => !inCreek(gx, gy) && Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 2.6;
-  const CROSSINGS = [35];
-  const EAST_TRUNK = 48, CONNECT = 35;
-  const LANES = []; for (let k = 0; k < 7; k++) { LANES.push(HOME[1] - 5 - k * 4); LANES.push(HOME[1] + 6 + k * 4); }
-  /* the civic district: south of the house, both sides of the trunk; and its twin across the creek */
-  const CIVIC = (x, y, side) => side === 'west' ? (x >= 4 && x <= 25 && y >= HOME[1] + 1 && y <= HOME[1] + 24) : (x >= 44 && x <= 56 && y >= 35 && y <= 44);
-  function lotsOf(side) { /* every lot on one side of the creek, nearest the house first */ const out = []; const x0 = side === 'west' ? 3 : 38, x1 = side === 'west' ? 27 : 64, trunk = side === 'west' ? HOME[0] : EAST_TRUNK; LANES.forEach(lane => { for (let x = x0; x <= x1; x += 3) { if (Math.abs(x - trunk) < 2) continue; if (!CIVIC(x, lane - 2, side)) out.push([x, lane - 2]); if (!CIVIC(x, lane + 1, side)) out.push([x, lane + 1]); } }); const home = side === 'west' ? HOME : [EAST_TRUNK, CONNECT]; out.sort((a, b) => (Math.abs(a[0] - home[0]) * 0.8 + Math.abs(a[1] - home[1])) - (Math.abs(b[0] - home[0]) * 0.8 + Math.abs(b[1] - home[1]))); return out; }
-  const WEST_LOTS = lotsOf('west'), EAST_LOTS = lotsOf('east');
-  const laneOf = q => LANES.find(l => q[1] === l - 2 || q[1] === l + 1);
+  const score = s => s.done.length + s.lists.reduce((a, l) => a + (l.done | 0), 0);
+  const planOf = s => { const n = score(s); let p = NW.PLANS[0]; NW.PLANS.forEach(x => { if (n >= x.threshold) p = x; }); return p; };
+  const nextPlan = s => NW.PLANS.find(x => x.threshold > score(s)) || null;
+  const homeOf = s => planOf(s).home;
+  const HOME = [30, 31];   /* the founding ground; every plan keeps the home here */
+  /* the water: a creek that meanders until it is channelled, then a straight two-tile river */
+  const creekX = (gy, plan) => { const w = plan ? plan.water : NW.PLANS[0].water; return w.channelled ? w.creekX + (w.width - 1) / 2 : w.creekX + Math.sin(gy / 7.5) * 1.6 + Math.sin(gy / 3.3 + 1) * 0.7; };
+  const inWater = (gx, gy, plan) => { const w = plan.water; if (w.lake && gx >= w.lake.rect[0] && gx < w.lake.rect[0] + w.lake.rect[2] && gy >= w.lake.rect[1] && gy < w.lake.rect[1] + w.lake.rect[3]) return true; return Math.abs(gx + 0.5 - creekX(gy + 0.5, plan)) < w.width / 2 + 0.55; };
+  const onBank = (gx, gy, plan) => !inWater(gx, gy, plan) && Math.abs(gx + 0.5 - creekX(gy + 0.5, plan)) < plan.water.width / 2 + 1.6;
+  const EAST_TRUNK = 58, CONNECT = 33;
+  const LANES = []; for (let k = 0; k < 8; k++) { LANES.push(21 + k * 4 + (k >= 3 ? 4 : 0)); }   /* 21 25 29 37 41 45 49 53: the east city sits in the gap */
+  const EAST_LOTS = (() => { const out = []; LANES.forEach(l => { for (let x = 49; x <= 66; x += 3) { if (Math.abs(x - EAST_TRUNK) < 2) continue; if (x <= 57 && l - 2 >= 28 && l + 1 <= 40) continue; out.push([x, l - 2]); out.push([x, l + 1]); } }); out.sort((a, b) => (Math.abs(a[0] - EAST_TRUNK) * 0.8 + Math.abs(a[1] - CONNECT)) - (Math.abs(b[0] - EAST_TRUNK) * 0.8 + Math.abs(b[1] - CONNECT))); return out; })();
   const key = (x, y) => x + ',' + y;
   function layout(s) {
-    const buildings = [], taken = new Set(); const at = q => taken.add(key(q[0], q[1]));
-    Object.keys(s.sites).forEach(t => at(s.sites[t]));
-    let wi = 0; const nextWest = () => { while (wi < WEST_LOTS.length && taken.has(key(WEST_LOTS[wi][0], WEST_LOTS[wi][1]))) wi++; return WEST_LOTS[wi++] || WEST_LOTS[WEST_LOTS.length - 1]; };
-    s.done.forEach((title, i) => { const sr = SERIES.find(x => x.projects.some(pr => pr[0] === title)); if (!sr) return; const pr = sr.projects.find(x => x[0] === title); const pi = sr.projects.indexOf(pr); const q = s.sites[title] || nextWest(); at(q); buildings.push({ series: sr, kind: sr.kind, title, part: pi + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard), tier: tierIn(s, sr), order: i + 1, gx: q[0], gy: q[1] }); });
+    const plan = planOf(s), buildings = [], taken = new Set(); const at = q => taken.add(key(q[0], q[1]));
+    const lotOk = q => plan.lotList.some(l => l[0] === q[0] && l[1] === q[1]);
+    Object.keys(s.sites).forEach(t => { if (lotOk(s.sites[t])) at(s.sites[t]); });
+    let wi = 0; const nextLot = () => { while (wi < plan.lotList.length && taken.has(key(plan.lotList[wi][0], plan.lotList[wi][1]))) wi++; return plan.lotList[wi++] || plan.lotList[plan.lotList.length - 1]; };
+    s.done.forEach((title, i) => { const sr = SERIES.find(x => x.projects.some(pr => pr[0] === title)); if (!sr) return; const pr = sr.projects.find(x => x[0] === title); const pi = sr.projects.indexOf(pr); const q = (s.sites[title] && lotOk(s.sites[title])) ? s.sites[title] : nextLot(); at(q); buildings.push({ series: sr, kind: sr.kind, title, part: pi + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard), tier: tierIn(s, sr), order: i + 1, gx: q[0], gy: q[1] }); });
     let ei = 0; s.lists.forEach(ll => { for (let k = 0; k < ll.total; k++) { const q = EAST_LOTS[ei++] || EAST_LOTS[EAST_LOTS.length - 1]; buildings.push({ list: ll, kind: ll.kind, title: ll.name, part: k + 1, of: ll.total, xp: 0, tier: k < ll.done ? 2 : 0, gx: q[0], gy: q[1] }); } });
-    const next = nextWest();
-    return { buildings, next, paths: roads(buildings, s), lanes: LANES, west: WEST_LOTS, east: EAST_LOTS };
+    const next = nextLot();
+    return { plan, buildings, next, paths: roads(plan, buildings, s), west: plan.lotList, east: EAST_LOTS };
   }
-  /* the roads: the trunk, the connector over the creek, and every lane that has a lot in use (or the next lot) */
-  function roads(buildings, s) {
-    const set = new Set(); const lay = (x, y) => set.add(key(x, y));
+  /* the roads: the plan's, plus the east bank's when there are lists (and a way over the water to reach it) */
+  function roads(plan, buildings, s) {
+    const set = new Set(plan.roadSet); const lay = (x, y) => set.add(key(x, y));
     const line = (a, b) => { let [x, y] = a; lay(x, y); while (x !== b[0]) { x += x < b[0] ? 1 : -1; lay(x, y); } while (y !== b[1]) { y += y < b[1] ? 1 : -1; lay(x, y); } };
-    line([HOME[0], LAND - 1], [HOME[0], 2]);
-    const used = new Set(); buildings.forEach(b => { if (b.gx > creekX(b.gy)) used.add('e' + laneOf([b.gx, b.gy])); else used.add('w' + laneOf([b.gx, b.gy])); });
-    const nx = WEST_LOTS.find(q => !buildings.some(b => b.gx === q[0] && b.gy === q[1])); if (nx) used.add('w' + laneOf(nx));
-    LANES.forEach(l => { if (used.has('w' + l)) line([3, l], [27, l]); if (used.has('e' + l)) line([38, l], [64, l]); });
-    if (s.lists.length) { line([HOME[0], CONNECT], [EAST_TRUNK, CONNECT]); line([EAST_TRUNK, LAND - 3], [EAST_TRUNK, 2]); }
+    if (s.lists.length) {
+      if (!plan.water.bridges.length) { const end = plan.roads[0].to; line(end, [EAST_TRUNK, CONNECT]); }   /* a plank bridge and a track, until the city builds a proper one */
+      else line([57, CONNECT], [EAST_TRUNK, CONNECT]);
+      line([EAST_TRUNK, 4], [EAST_TRUNK, 64]);
+      const used = new Set(); buildings.forEach(b => { if (b.list) used.add(LANES.find(l => b.gy === l - 2 || b.gy === l + 1)); });
+      LANES.forEach(l => { if (used.has(l)) line([49, l], [66, l]); });
+    }
     return set;
   }
   const lotFree = (s, q) => !Object.keys(s.sites).some(t => s.sites[t][0] === q[0] && s.sites[t][1] === q[1]) && !layout(s).buildings.some(b => b.gx === q[0] && b.gy === q[1]);
-  const nearestLot = (s, g) => { let best = null, bd = 1e9; WEST_LOTS.forEach(q => { const d = Math.hypot(q[0] + 0.5 - g[0], q[1] + 0.5 - g[1]); if (d < bd && lotFree(s, q)) { bd = d; best = q; } }); return bd < 3 ? best : null; };
+  const nearestLot = (s, g) => { let best = null, bd = 1e9; planOf(s).lotList.forEach(q => { const d = Math.hypot(q[0] + 0.5 - g[0], q[1] + 0.5 - g[1]); if (d < bd && lotFree(s, q)) { bd = d; best = q; } }); return bd < 3 ? best : null; };
   /* the way from one tile to another along the roads, or null */
   function route(set, from, to) {
     const start = key(from[0], from[1]), goal = key(to[0], to[1]); if (!set.has(start) || !set.has(goal)) return null;
@@ -727,47 +812,25 @@
   const hourOf = s => (s.mode === 'dev' && typeof s.hour === 'number') ? s.hour : (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   const nightOf = h => h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0;
   const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
-  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, LAND, HOME, WEST_LOTS, EAST_LOTS, LANES, CROSSINGS, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, inCreek, onBank };
+  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
 })();
 
 /* NextWorld · eras: how a plot becomes a country
- * A campground earns its next era by projects built. Each era brings the
- * civic buildings a place that size needs, the way a city builder does:
- * a town needs a town hall and a school; a city needs a hospital, a
- * library and a data centre; a capital gets its capitol. Civic buildings
- * are not projects: they arrive because the place has grown into them.
- * The land is a choice too, scenery only. */
+ * The plans in plans.js are the eras. A place earns the next plan by the
+ * projects built on it, and the whole plan changes: roads re-laid, the
+ * water channelled, the civic buildings the place now needs. The land
+ * itself is a choice, scenery only. */
 'use strict';
 (function () {
   const S = NW.State;
-  /* the civic district: south of the house, either side of the trunk road */
-  const H = S.HOME;
-  const ERAS = [
-    { n: 0, name: 'Campground', word: 'a campground', needs: 'the bare necessities: a fire, water, a board to plan on',
-      civic: [['campfire', H[0] + 1.6, H[1] + 2.3], ['pump', H[0] - 2.4, H[1] + 2.6]] },
-    { n: 5, name: 'Fort', word: 'a fort', needs: 'a cabin, a stockade, a windmill, water, a workshop',
-      civic: [['workshop', H[0] - 6, H[1] + 4]] },
-    { n: 15, name: 'Town', word: 'a town', needs: 'a town hall, a schoolhouse, a general store, a community hall; the main street paved',
-      civic: [['townhall', H[0] - 4, H[1] + 4], ['school', H[0] + 3, H[1] + 4], ['store', H[0] - 5, H[1] + 8], ['community', H[0] + 3, H[1] + 8]] },
-    { n: 35, name: 'City', word: 'a city', needs: 'a city hall, a hospital, a library, a data centre, a fire station, a park; every lane paved and lit',
-      civic: [['cityhall', H[0] - 6, H[1] + 4], ['hospital', H[0] + 3, H[1] + 12], ['library', H[0] - 5, H[1] + 12], ['datacentre', H[0] - 9, H[1] + 8], ['firestation', H[0] + 7, H[1] + 8], ['park', H[0] - 2, H[1] + 11]] },
-    { n: 60, name: 'Metropolis', word: 'a metropolis', needs: 'a university, a stadium, a station, a solar farm, a water tower',
-      civic: [['university', H[0] - 10, H[1] + 16], ['stadium', H[0] - 1, H[1] + 16], ['station', H[0] + 6, H[1] + 16], ['solar', H[0] + 6, H[1] + 12], ['watertower', H[0] + 8, H[1] + 4.5]] },
-    { n: 90, name: 'Capital', word: 'the capital', needs: 'the capitol, with its dome and its plaza',
-      civic: [['capitol', H[0] - 4, H[1] + 20]] },
-    { n: 130, name: 'Kingdom', word: 'a kingdom', needs: 'the river widens; a second city across it, with a palace',
-      civic: [['palace', 46, 37], ['townhall2', 51, 41]] }
-  ];
-  /* what counts: every project built, yours and the catalogue's */
-  const score = s => s.done.length + s.lists.reduce((a, l) => a + (l.done | 0), 0);
+  const ERAS = NW.PLANS.map(p => ({ n: p.threshold, name: p.name, word: p.word, needs: p.story, plan: p }));
+  const score = S.score;
   const eraOf = s => { const n = score(s); let e = ERAS[0]; ERAS.forEach(x => { if (n >= x.n) e = x; }); return e; };
   const nextEra = s => ERAS.find(x => x.n > score(s)) || null;
-  const civicOf = s => { const n = score(s), out = []; ERAS.forEach(e => { if (n >= e.n) e.civic.forEach(c => out.push({ kind: c[0], gx: c[1], gy: c[2], era: e.name })); }); /* later halls replace earlier ones on the same ground */ return out.filter(c => !(c.kind === 'townhall' && n >= 35)); };
-  const level = s => ERAS.indexOf(eraOf(s));   /* 0..6, for paving, lamps, the river */
-  /* the land: a choice, scenery only */
+  const level = s => ERAS.indexOf(eraOf(s));
   const BIOMES = { hill: { name: 'Hill Country', grass: ['#7fb35a', '#b9b162'], stone: '#d9d2b8', tree: 'oak', water: '#3ea3e8', sand: '#d9c9a0' }, desert: { name: 'Desert', grass: ['#d8b97a', '#e2c58a'], stone: '#e9d7a8', tree: 'cactus', water: '#4fb3f0', sand: '#efe0b8' }, forest: { name: 'Forest', grass: ['#4f8f3f', '#6aa64f'], stone: '#a8a89a', tree: 'pine', water: '#2f7fb8', sand: '#c8b98a' }, coast: { name: 'Coast', grass: ['#8fc76a', '#a9d287'], stone: '#e9e2d0', tree: 'palm', water: '#3fbfe8', sand: '#f2e6c4' } };
   const biomeOf = s => BIOMES[s.biome] || BIOMES.hill;
-  NW.Eras = { ERAS, BIOMES, score, eraOf, nextEra, civicOf, level, biomeOf };
+  NW.Eras = { ERAS, BIOMES, score, eraOf, nextEra, level, biomeOf };
 })();
 
 /* NextWorld · land: your world, drawn
@@ -777,7 +840,6 @@
 (function () {
   const { B, clamp, lerp, ease, rgb, reduce, TIERS, tierOf, KIND_NAME } = NW;
   const S = NW.State, { LAND, HOME } = S;
-  const laneOfLot = q => S.LANES.find(l => q[1] === l - 2 || q[1] === l + 1);
 
   /* the ground, in whichever land you chose: two grass tones by height, stone on the high ground */
   let biome = NW.Eras.BIOMES.hill;
@@ -787,7 +849,7 @@
   /* you: always on a road. Tap somewhere and you take the roads there;
    * hold an arrow key and you walk, but only where there is road. */
   const onRoad = (roads, gx, gy) => roads.has(Math.floor(gx) + ',' + Math.floor(gy));
-  function makeMe(state) { const m = state.me && typeof state.me.gx === 'number' ? state.me : { gx: HOME[0] + 0.5, gy: HOME[1] + 2.5 }; return { gx: m.gx, gy: m.gy, route: null, target: null, moving: false, keys: {}, follow: true }; }
+  function makeMe(state) { const m = state.me && typeof state.me.gx === 'number' ? state.me : { gx: HOME[0] + 1.5, gy: HOME[1] + 2.5 }; return { gx: m.gx, gy: m.gy, route: null, target: null, moving: false, keys: {}, follow: true }; }
   function goTo(me, roads, q) {
     const start = S.nearestRoad(roads, [me.gx, me.gy]), end = S.nearestRoad(roads, q); if (!start || !end) return false;
     const r = S.route(roads, start, end); if (!r) return false;
@@ -818,42 +880,58 @@
   }
 
   function drawLand(I, state, me, now, opts) {
-    const ctx = I.ctx, L = S.layout(state); opts = opts || {}; biome = NW.Eras.biomeOf(state);
-    const lvl = NW.Eras.level(state), era = NW.Eras.eraOf(state), river = lvl >= 6;   /* a kingdom has a river, not a creek */
-    const wet = (gx, gy) => S.inCreek(gx, gy) || (river && S.onBank(gx, gy));
-    const pavedRoad = (gx, gy) => lvl >= 3 || (lvl >= 2 && gx === HOME[0]);   /* a town paves its main street; a city paves every lane */
+    const ctx = I.ctx, L = S.layout(state), plan = L.plan, W = plan.water; opts = opts || {}; biome = NW.Eras.biomeOf(state);
+    const road = (x, y) => L.paths.has(x + ',' + y), paved = (x, y) => plan.pavedSet.has(x + ',' + y) || (x >= S.EAST_TRUNK - 1 && road(x, y) && plan.pavedSet.size > 0);
+    const inRect = (x, y, r) => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3];
+    const zone = (x, y) => { for (const z of plan.zones) if (inRect(x, y, z.rect)) return z.kind; return null; };
+    const field = (x, y) => plan.landscape.fields.some(f => inRect(x, y, f));
+    const prom = (x, y) => W.promenade && x >= W.promenade.x0 && x <= W.promenade.x1 && y >= W.promenade.y0 && y <= W.promenade.y1;
+    const managed = (x, y) => { const c = plan.clearing; const dx = (x - c.cx) / c.rx, dy = (y - c.cy) / c.ry; return dx * dx + dy * dy < 1; };
+    const rail = plan.civic.find(c => c.kind === 'rail');
+    /* ---- the ground ---- */
     for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) {
-      if (!I.onScreen(gx, gy)) continue; const road = L.paths.has(gx + ',' + gy);
-      if (wet(gx, gy) && !road) { I.tile(gx, gy, (Math.floor(now / 600) + gx + gy) % 5 === 0 ? NW.shade(biome.water, 0.25) : biome.water); continue; }
-      if (S.onBank(gx, gy) && !road) { I.tile(gx, gy, biome.sand); continue; }
-      if (road) { if (wet(gx, gy)) I.tile(gx, gy, '#a88c5f', '#6b4a2b'); else if (pavedRoad(gx, gy)) I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.08)'); else I.tile(gx, gy, '#c8a877', 'rgba(110,75,30,.35)'); continue; }
-      I.tile(gx, gy, groundColour(gx, gy));
+      if (!I.onScreen(gx, gy)) continue; const r = road(gx, gy);
+      if (S.inWater(gx, gy, plan) && !r) { I.tile(gx, gy, (Math.floor(now / 600) + gx + gy) % 5 === 0 ? NW.shade(biome.water, 0.25) : biome.water); continue; }
+      if (r) { if (S.inWater(gx, gy, plan)) I.tile(gx, gy, '#a88c5f', '#6b4a2b'); else if (paved(gx, gy)) I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.08)'); else I.tile(gx, gy, '#c8a877', 'rgba(110,75,30,.35)'); continue; }
+      if (W.channelled && S.onBank(gx, gy, plan)) { I.tile(gx, gy, prom(gx, gy) ? '#e3dccb' : '#b8b4a8', 'rgba(0,0,0,.12)'); continue; }   /* embankment */
+      if (S.onBank(gx, gy, plan)) { I.tile(gx, gy, biome.sand); continue; }
+      const z = zone(gx, gy); if (z === 'plaza' || z === 'square') { I.tile(gx, gy, (gx + gy) % 2 ? '#e9e2d0' : '#dfd7c3', 'rgba(0,0,0,.05)'); continue; } if (z === 'park') { I.tile(gx, gy, (gx + gy) % 2 ? '#7fc55a' : '#86cc60'); continue; }
+      if (field(gx, gy)) { I.tile(gx, gy, gy % 2 ? '#a8783f' : '#c8a06a', 'rgba(90,50,10,.35)'); continue; }
+      I.tile(gx, gy, managed(gx, gy) ? groundColour(gx, gy) : NW.shade(groundColour(gx, gy), -0.08));
     }
+    if (rail && !opts.map) { ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 1.2; for (let x = rail.from[0]; x <= rail.to[0]; x += 0.5) { const a = I.p(x, rail.from[1] + 0.15), b = I.p(x, rail.from[1] + 0.85); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); } [0.3, 0.7].forEach(o => { const a = I.p(rail.from[0], rail.from[1] + o), b = I.p(rail.to[0] + 1, rail.to[1] + o); ctx.strokeStyle = '#9aa3b0'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }); }
     const items = []; const add = (d, fn) => items.push({ d, fn });
-    if (!opts.map) for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { const r = S.hash(gx * 3, gy * 5); if (r > 0.045 || !I.onScreen(gx, gy) || S.inCreek(gx, gy) || S.onBank(gx, gy) || L.paths.has(gx + ',' + gy)) continue; if (L.buildings.some(b => Math.abs(b.gx - gx) < 1.8 && Math.abs(b.gy - gy) < 1.8) || (Math.abs(gx - HOME[0]) < 3 && Math.abs(gy - HOME[1]) < 3) || (L.next && Math.abs(L.next[0] - gx) < 2 && Math.abs(L.next[1] - gy) < 2)) continue; add(gx + gy + 0.5, r < 0.006 ? () => B.hay(I, gx, gy) : () => treeOf(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
-    /* city walks: lamps along every paved road */
-    if (!opts.map && lvl >= 2) L.paths.forEach(k => { const [x, y] = k.split(',').map(Number); if (!pavedRoad(x, y) || !I.onScreen(x, y) || wet(x, y)) return; if ((x + y * 3) % 7 === 0) add(x + y + 0.35, () => I.lamp(x + 0.15, y + 0.15)); });
-    /* the house: a tent at the campground, the cabin from the fort on, growing with the eras */
-    const word = S.houseWord(state);
+    /* bridges: rails either side of the deck */
+    if (!opts.map) L.paths.forEach(k => { const [x, y] = k.split(',').map(Number); if (!S.inWater(x, y, plan) || !I.onScreen(x, y)) return; add(x + y + 0.4, () => { const a = I.p(x, y), b = I.p(x + 1, y), c = I.p(x, y + 1), d = I.p(x + 1, y + 1); I.line(I.up(a, 6), I.up(b, 6), '#8a6a3f', 1.5); I.line(I.up(c, 6), I.up(d, 6), '#8a6a3f', 1.5); }); });
+    /* the wild: trees where the plan leaves the land alone, thinner as the place grows */
+    if (!opts.map) { const dens = plan.landscape.treeline === 'dense' ? 0.06 : plan.landscape.treeline === 'thin' ? 0.025 : 0; for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { const r = S.hash(gx * 3, gy * 5); const d = managed(gx, gy) ? 0.006 : dens; if (r > d || !I.onScreen(gx, gy) || S.inWater(gx, gy, plan) || S.onBank(gx, gy, plan) || road(gx, gy) || zone(gx, gy) || field(gx, gy) || (rail && gy === rail.from[1] && gx <= rail.to[0])) continue; if (L.buildings.some(b => Math.abs(b.gx - gx) < 1.6 && Math.abs(b.gy - gy) < 1.6) || (Math.abs(gx - HOME[0]) < 3 && Math.abs(gy - HOME[1]) < 3) || (L.next && Math.abs(L.next[0] - gx) < 2 && Math.abs(L.next[1] - gy) < 2)) continue; if (plan.civic.some(c => c.rect ? inRect(gx, gy, [c.rect[0] - 1, c.rect[1] - 1, c.rect[2] + 2, c.rect[3] + 2]) : c.at && Math.abs(c.at[0] - gx) < 4 && Math.abs(c.at[1] - gy) < 3)) continue; add(gx + gy + 0.5, r < 0.004 && managed(gx, gy) ? () => B.hay(I, gx, gy) : () => treeOf(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); } }
+    /* lamps: the main street once there is one, every street in a metropolis */
+    if (!opts.map && plan.landscape.lamps !== 'none') L.paths.forEach(k => { const [x, y] = k.split(',').map(Number); if (!paved(x, y) || !I.onScreen(x, y) || S.inWater(x, y, plan)) return; if (plan.landscape.lamps === 'main' && y !== 33) return; if ((x + y * 3) % 7 === 0) add(x + y + 0.35, () => I.lamp(x + 0.15, y + 0.15)); });
+    /* the home: a tent at the campground, the cabin from the fort on, growing with the eras */
+    const lvl = NW.Eras.level(state), era = NW.Eras.eraOf(state);
     if (I.onScreen(HOME[0], HOME[1])) {
-      if (lvl === 0) { add(HOME[0] + HOME[1] + 1, () => { const t = I.p(HOME[0] + 0.5, HOME[1] + 0.5); I.poly([[t[0] - 16, t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#e9e4d6'); I.poly([[t[0], t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#cfc7aa'); I.poly([[t[0] - 4, t[1]], [t[0] + 4, t[1]], [t[0], t[1] - 12]], '#6b4a2b'); }); }
-      else { const t = lvl >= 5 ? 5 : lvl >= 4 ? 4 : lvl >= 3 ? 3 : 2; add(HOME[0] + HOME[1] + 2.2, () => B.homestead(I, HOME[0] - 0.7, HOME[1] - 1.2, now, t)); add(HOME[0] + HOME[1] + 0.2, () => B.windmill(I, HOME[0] + 1.6, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] + 0.9, () => B.tank(I, HOME[0] + 2.3, HOME[1] - 1.6)); if (lvl >= 2) { add(HOME[0] + HOME[1] - 1, () => B.coop(I, HOME[0] - 3.2, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] - 0.5, () => B.cow(I, HOME[0] - 2.4 + Math.sin(now / 9000) * 0.6, HOME[1] + 0.2, now / 1000)); } }
-      if (lvl === 1 && !opts.map) add(HOME[0] + HOME[1] - 2, () => { /* the fort: a stockade round the cabin */ I.fence(HOME[0] - 4, HOME[1] - 3.5, HOME[0] + 4.2, HOME[1] - 3.5, 12); I.fence(HOME[0] - 4, HOME[1] - 3.5, HOME[0] - 4, HOME[1] + 3, 10); I.fence(HOME[0] + 4.2, HOME[1] - 3.5, HOME[0] + 4.2, HOME[1] + 3, 10); });
-      /* what the era brought */
-      NW.Eras.civicOf(state).forEach(c => { const d = B.CIV[c.kind]; if (!d || !(I.onScreen(c.gx, c.gy) || I.onScreen(c.gx + 3, c.gy + 3))) return; add(c.gx + c.gy + 2.2, () => d(I, c.gx, c.gy, now)); });
-      add(HOME[0] + HOME[1] + 3.6, () => B.board(I, HOME[0] - 1.6, HOME[1] + 1.8));
-      if (!opts.map && opts.land) add(9999, () => I.label(HOME[0] + 0.5, HOME[1] - 3.2, opts.land, era.name, 11));
+      if (lvl === 0) { add(HOME[0] + HOME[1] + 1.5, () => { const t = I.p(HOME[0] + 1, HOME[1] + 1); I.poly([[t[0] - 16, t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#e9e4d6'); I.poly([[t[0], t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#cfc7aa'); I.poly([[t[0] - 4, t[1]], [t[0] + 4, t[1]], [t[0], t[1] - 12]], '#6b4a2b'); }); }
+      else { const t = lvl >= 5 ? 5 : lvl >= 3 ? 4 : lvl >= 2 ? 3 : 2; add(HOME[0] + 1 + HOME[1] + 1.2, () => B.homestead(I, HOME[0] + 0.1, HOME[1] - 0.2, now, t)); }
+      if (!opts.map && opts.land) add(9999, () => I.label(HOME[0] + 1, HOME[1] - 2.4, opts.land, era.name, 11));
     }
-    /* the next lot, pegged out; and every free lot on a lane in use while you are choosing */
+    /* what the plan brought: every civic piece on its ground */
+    plan.civic.forEach(c => {
+      if (c.kind === 'rail') return;
+      if (c.kind === 'stockade') { if (!opts.map) add(c.rect[0] + c.rect[1] - 0.5, () => { const [x, y, w, h] = c.rect; I.fence(x, y, x + w, y, w * 2); I.fence(x, y, x, y + h, h * 2); I.fence(x + w, y, x + w, y + h, h * 2); I.fence(x, y + h, x + 16, y + h, 32); I.fence(x + 18 - 0.8, y + h, x + w, y + h, 2); }); return; }
+      if (c.kind === 'paddock') { add(c.rect[0] + c.rect[1] - 0.5, () => B.paddock(I, c.rect[0], c.rect[1], c.rect[2], c.rect[3])); [[1, 1.2], [4, 2]].forEach((o, i) => { const q = [c.rect[0] + o[0] + Math.sin(now / 9000 + i) * 0.8, c.rect[1] + o[1] + Math.cos(now / 11000 + i) * 0.5]; add(q[0] + q[1] + 0.2, () => (i ? B.cow : B.horse)(I, q[0], q[1], i ? now / 1000 : '#8a5a3a', now / 1000)); }); return; }
+      if (!c.at) return; const d = c.kind === 'board' ? (I2, x, y) => B.board(I2, x, y) : c.kind === 'windmill' ? (I2, x, y, n) => B.windmill(I2, x, y, n) : c.kind === 'tank' ? (I2, x, y) => B.tank(I2, x, y) : c.kind === 'barn' ? (I2, x, y, n) => B.barn(I2, x, y, 1, n, 2) : c.kind === 'coop' ? (I2, x, y, n) => B.coop(I2, x, y, n) : B.CIV[c.kind];
+      if (!d || !(I.onScreen(c.at[0], c.at[1]) || I.onScreen(c.at[0] + 3, c.at[1] + 3))) return; const big = ['cityhall', 'capitol', 'palace', 'university', 'stadium'].includes(c.kind); add(c.at[0] + c.at[1] + (big ? 4 : 1.2), () => d(I, c.at[0], c.at[1], now)); });
+    /* the next lot, pegged out; every free lot while you are choosing */
     if (!opts.map && L.next && !opts.site) add(L.next[0] + L.next[1] + 0.4, () => { const q = I.p(L.next[0] + 0.5, L.next[1] + 0.5); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.ellipse(q[0], q[1], 14, 7, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); [[-0.3, -0.3], [1.3, -0.3], [-0.3, 1.3], [1.3, 1.3]].forEach(o => { const c = I.p(L.next[0] + o[0], L.next[1] + o[1]); ctx.fillStyle = '#8b5a2b'; ctx.fillRect(c[0] - 1, c[1] - 7, 2, 7); ctx.fillStyle = '#e8552f'; ctx.fillRect(c[0] - 2.5, c[1] - 9, 5, 2.5); }); });
-    if (opts.placing) L.west.forEach(q => { if (!I.onScreen(q[0], q[1]) || !L.paths.has(q[0] + ',' + laneOfLot(q)) || !S.lotFree(state, q)) return; add(q[0] + q[1] + 0.3, () => { const c = I.p(q[0] + 0.5, q[1] + 0.5); ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.ellipse(c[0], c[1], 13, 6.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]); }); });
-    /* the way out: the trunk runs to the south edge, and the signpost says where it goes */
-    if (!opts.map) add(HOME[0] + LAND - 4 + 0.5, () => B.sign(I, HOME[0] + 1, LAND - 4, 'TO NEXTWORLD', 'NextWork HQ, Austin'));
+    if (opts.placing) L.west.forEach(q => { if (!I.onScreen(q[0], q[1]) || !S.lotFree(state, q)) return; add(q[0] + q[1] + 0.3, () => { const c = I.p(q[0] + 0.5, q[1] + 0.5); ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.ellipse(c[0], c[1], 13, 6.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]); }); });
+    /* the way out: the main road's west end, and the signpost that says where it goes */
+    const exit = plan.roads[0].from; if (!opts.map) add(exit[0] + exit[1] + 0.6, () => B.sign(I, exit[0] - 1, exit[1] - 1, 'TO NEXTWORLD', 'NextWork HQ, Austin'));
+    /* the buildings */
     L.buildings.forEach(b => { if (!I.onScreen(b.gx, b.gy)) return;
       if (b.tier === 0) { add(b.gx + b.gy + 0.5, () => { const q = I.p(b.gx + 0.5, b.gy + 0.5); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(q[0] - 1, q[1] - 10, 2, 10); I.ctx.strokeStyle = 'rgba(255,255,255,.6)'; I.ctx.setLineDash([2, 3]); I.ctx.strokeRect(q[0] - 10, q[1] - 5, 20, 10); I.ctx.setLineDash([]); }); return; }
       let k = 1; if (opts.anim && opts.anim.title === b.title) k = reduce ? 1 : clamp((now - opts.anim.start) / 1600, 0, 1);
       add(b.gx + b.gy + 0.5, () => B[b.kind](I, b.gx, b.gy, k, now, b.tier)); if (!opts.map && b.order && !opts.quiet) add(b.gx + b.gy + 0.51, () => { const q = I.p(b.gx + 0.15, b.gy + 0.15, 2); I.roundRect(q[0] - 7, q[1] - 6, 14, 9, 3, 'rgba(16,24,44,.75)'); ctx.fillStyle = '#ffe9a6'; ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(String(b.order), q[0], q[1] + 1); ctx.textAlign = 'left'; }); });
-    if (opts.placing) add(9998, () => { const q = I.p(HOME[0] + 0.5, HOME[1] + 4.5); ctx.font = '800 12px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.75)'; ctx.strokeText('Where do you want this? Tap the ground.', q[0], q[1]); ctx.fillStyle = '#ffe9a6'; ctx.fillText('Where do you want this? Tap the ground.', q[0], q[1]); ctx.textAlign = 'left'; });
+    if (opts.placing) add(9998, () => { const q = I.p(HOME[0] + 1, HOME[1] + 4.5); ctx.font = '800 12px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.75)'; ctx.strokeText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.fillStyle = '#ffe9a6'; ctx.fillText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.textAlign = 'left'; });
     if (opts.site) { const st = opts.site; add(st.gx + st.gy + 0.5, () => { opts.stage = drawSite(I, st, opts.stepsDone, opts.stepsTotal, opts.k == null ? 1 : opts.k, now); }); }
     if (!opts.map && me) { add(me.gx + me.gy, () => B.avatar(I, me.gx, me.gy, state.avatar, now / 1000, me.moving)); if (me.target) { const q = I.p(me.target[0], me.target[1]); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(q[0], q[1], 9, 4.5, 0, 0, Math.PI * 2); ctx.stroke(); } }
     (opts.fx || []).forEach(f => { const t = (now - f.start) / f.life; if (t >= 1 || t < 0) return;
@@ -866,7 +944,7 @@
   function sky(I, n) { n = n || 0; const g = I.ctx.createLinearGradient(0, 0, 0, I.H || 620); const mix = (a, b) => { const A = NW.hex(a), B2 = NW.hex(b); return NW.rgb(A.map((v, i) => Math.round(v + (B2[i] - v) * n))); }; g.addColorStop(0, mix('#9ccdf5', '#0b1730')); g.addColorStop(1, mix('#dfeefb', '#16325a')); I.ctx.fillStyle = g; I.ctx.fillRect(0, 0, I.W || 880, I.H || 620); }
   const hit = (L, g) => L.buildings.find(b => b.tier > 0 && Math.abs(b.gx + 0.5 - g[0]) < 0.75 && Math.abs(b.gy + 0.5 - g[1]) < 0.75);
   const tierName = (state) => { const x = S.xpOf(state); return tierOf(x)[1]; };
-  NW.Land = { groundColour, treeOf, onRoad, laneOfLot, makeMe, goTo, stepMe, siteFor, drawSite, drawLand, sky, hit, tierName, TIERS, KIND_NAME };
+  NW.Land = { groundColour, treeOf, onRoad, makeMe, goTo, stepMe, siteFor, drawSite, drawLand, sky, hit, tierName, TIERS, KIND_NAME };
 })();
 
 /* NextWorld · HQ: the NextWork World map
@@ -1240,7 +1318,7 @@
     const b1 = scene(880, 620, 'Your land. Tap where you want to go and you take the roads there; arrow keys walk too. Tap a building for its project. Drag to look, wheel to zoom.');
     const base = makeIso(b1.cv, 440, 310); Object.assign(base.cam, camTo(me.gx, me.gy, 310));
     const hud = el('button', 'hud'); hud.type = 'button'; hud.title = 'Where you are and what to do next'; const shield = el('div', 'shield', '1'); const who = el('div', 'who'); const whoB = el('b', null, S.landName(state)); const whoS = el('small', null, ''); put(who, whoB, whoS); put(hud, shield, who); b1.sc.appendChild(hud);
-    nav(b1.sc, [['Home', () => { Land.goTo(me, lastL.paths, [S.HOME[0] + 0.5, S.HOME[1] + 2.5]); me.follow = true; }], ['World', () => show('world')], ['Build', () => show('build')]]);
+    nav(b1.sc, [['Home', () => { Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; }], ['World', () => show('world')], ['Build', () => show('build')]]);
     zoomer(b1.sc, b1.cv, f => base.zoom(f));
     const btoast = toast(b1.sc); views.base.appendChild(b1.sc);
     /* the dashboard panel: tap the shield */
@@ -1266,9 +1344,9 @@
     function showCard(b) { card.hidden = false; cIc.textContent = ICON[b.kind]; cB.textContent = b.series ? b.title : b.list.name; cS.textContent = b.series ? b.series.name + ' · part ' + b.part + ' of ' + b.of + ' · ' + KIND_NAME[b.kind] : 'Learn list · project ' + b.part + ' of ' + b.of + ' · ' + KIND_NAME[b.kind]; const nxt = b.series ? b.series.projects.find(pr => !state.done.includes(pr[0])) : null; cNext.disabled = !nxt; cNext.textContent = nxt ? 'Next: ' + nxt[0] : b.series ? 'Series complete' : 'Yours'; cNext.onclick = () => { if (nxt) { state.building = nxt[0]; save(); host.openProject(nxt[0], b.series); } }; cOpen.onclick = () => host.openProject(b.series ? b.title : b.list.name, b.series); Land.goTo(me, lastL.paths, [b.gx + 0.5, b.gy + 1.4]); me.follow = true; bsay(b.series ? b.title : b.list.name, (b.series ? 'Tier ' + b.tier + ' ' : '') + KIND_NAME[b.kind].toLowerCase() + ' on the ' + (b.series ? b.series.name : b.list.name) + ' spread.'); }
     drag(b1.cv, base, g => { const L = lastL;
       if (placing) { const q = S.nearestLot(state, g); if (!q) { bsay('Not there', 'Pick an empty lot on a lane. They are outlined.'); return; } state.sites[placing] = q; state.building = placing; if (state.mode === 'dev' && !state.steps[placing]) state.steps[placing] = { done: 0, total: 7 }; const t = placing; placing = null; save(); lastL = S.layout(state); btoast('Site pegged out'); bsay('Pegged out', t + ' goes here. Open the project and it goes up as you tick the steps.'); paintBoard(); paintBuild(); show('build'); return; }
-      if (Math.abs(g[0] - S.HOME[0] - 1.5) < 1.6 && Math.abs(g[1] - (S.LAND - 4) - 0.5) < 1.6) { show('world'); aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1]); return; }
+      { const ex = L.plan.roads[0].from; if (Math.abs(g[0] - ex[0] + 0.5) < 1.6 && Math.abs(g[1] - ex[1] + 0.5) < 1.6) { show('world'); aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1]); return; } }
       const hit = Land.hit(L, g); if (hit) { showCard(hit); return; } card.hidden = true;
-      if (Math.abs(g[0] - S.HOME[0]) < 1.6 && Math.abs(g[1] - S.HOME[1]) < 1.6) { const w = S.houseWord(state), n = S.nextHouseWord(state); bsay(S.landName(state) + ' · ' + E.eraOf(state).name, E.nextEra(state) ? (E.nextEra(state).n - E.score(state)) + ' more and it is ' + E.nextEra(state).word + '.' : 'A kingdom.'); Land.goTo(me, L.paths, [S.HOME[0] + 0.5, S.HOME[1] + 2.5]); me.follow = true; return; }
+      if (Math.abs(g[0] - S.HOME[0] - 1) < 1.8 && Math.abs(g[1] - S.HOME[1] - 1) < 1.8) { const w = S.houseWord(state), n = S.nextHouseWord(state); bsay(S.landName(state) + ' · ' + E.eraOf(state).name, E.nextEra(state) ? (E.nextEra(state).n - E.score(state)) + ' more and it is ' + E.nextEra(state).word + '.' : 'A kingdom.'); Land.goTo(me, L.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; return; }
       if (g[0] >= 0 && g[1] >= 0 && g[0] < S.LAND && g[1] < S.LAND) { if (Land.goTo(me, L.paths, g)) { me.follow = true; bsay('On my way', Land.onRoad(L.paths, g[0], g[1]) ? 'By road.' : 'By road, to the nearest bit of it.'); } else bsay('No road there', 'Roads reach everything that is built.'); } }, () => { me.follow = false; });
     b1.cv.addEventListener('keydown', e => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) { me.keys[e.key] = true; e.preventDefault(); } });
     b1.cv.addEventListener('keyup', e => { delete me.keys[e.key]; }); b1.cv.addEventListener('blur', () => { me.keys = {}; });

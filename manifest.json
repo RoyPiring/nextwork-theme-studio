@@ -28,6 +28,7 @@
         "src/world/engine.js",
         "src/world/assets.js",
         "src/world/data.js",
+        "src/world/plans.js",
         "src/world/state.js",
         "src/world/eras.js",
         "src/world/land.js",
