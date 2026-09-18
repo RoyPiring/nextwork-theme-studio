@@ -7,10 +7,13 @@ of it ships in a build.
 
 `demo.html` is self-contained. Open it in a browser. It shows:
 
-- **World** — the portfolio surface. An example account with eight projects,
-  each tag building a different kind of building on a fixed plot. Timeline
-  buttons show the same account at week 1, month 3 and year 1; *Simulate*
-  finishes the next project and drops its building in.
+- **World** — the portfolio surface, as an open world. Your land starts as
+  dust and greens around what you build. Growth is cumulative by XP, never by
+  time: Plot, Homestead, Hamlet, Village, Town, City, Metropolis, with
+  builders arriving at 500 and 1,500 XP. Drag to look around; NextWork HQ is
+  the hub town up the road, and other learners' land is either side with a
+  nameplate. *Simulate* finishes a project and hands you the component it
+  built, and you choose the plot it goes on.
 - **Build** — the project surface. One construction site for the project you
   are in. Pick what the project builds - a house, a car, a data centre - and
   how: *agile*, where every step delivers something whole (tent, shed, cabin,
