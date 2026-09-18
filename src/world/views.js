@@ -82,14 +82,15 @@
     /* ---- 1. NextWork World ---- */
     const WS = 0.5, W1 = 880 / (2 * WS), H1 = 620 / (2 * WS);
     const w1 = scene(880, 620, 'NextWork World: the NextWork ranch in the middle, learners’ plots round it. Tap your plot to enter your world.');
-    const world = makeIso(w1.cv, W1, H1, WS); const wc = camTo(HQ.C[0], HQ.C[1] + 2, H1); world.cam.x = wc.x; world.cam.y = wc.y;
-    const wbadge = el('div', 'badge', 'NextWork World'); wbadge.appendChild(el('small', null, 'the ranch and everyone round it')); w1.sc.appendChild(wbadge);
-    const wnav = el('div', 'nav'); [['The ranch', HQ.C[0], HQ.C[1] + 2], ['My plot', HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1]], ['The hubs', HQ.HUB_AT[0][0], HQ.HUB_AT[0][1] + 6]].forEach(([t, gx, gy]) => { const b = el('button', null, t); b.type = 'button'; b.addEventListener('click', () => { const c = camTo(gx, gy, H1); world.cam.x = c.x; world.cam.y = c.y; }); wnav.appendChild(b); }); w1.sc.appendChild(wnav);
+    const world = makeIso(w1.cv, W1, H1, WS); const wc = camTo(HQ.C[0], HQ.C[1] + 1, H1); world.cam.x = wc.x; world.cam.y = wc.y;
+    const wbadge = el('div', 'badge', 'NextWork World'); wbadge.appendChild(el('small', null, 'the campus in Houston, and everyone round it')); w1.sc.appendChild(wbadge);
+    const wnav = el('div', 'nav'); [['The quad', HQ.C[0], HQ.C[1] + 1], ['The hall', HQ.HALL[0] + 3, HQ.HALL[1] + 1], ['My plot', HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1]], ['The lake', HQ.C[0] + 18, HQ.C[1] + 13]].forEach(([t, gx, gy]) => { const b = el('button', null, t); b.type = 'button'; b.addEventListener('click', () => { const c = camTo(gx, gy, H1); world.cam.x = c.x; world.cam.y = c.y; }); wnav.appendChild(b); }); w1.sc.appendChild(wnav);
     views.world.appendChild(w1.sc); const wsay = sayer(views.world);
-    wsay('NextWork World', 'The ranch in the middle is NextWork: the tower, the cafe under it, eight hubs for the roadmaps, the lake, the paddock, and the eight of them in black T-shirts. The plots round the outside are learners. Yours has the flag. Tap it to go home.');
-    views.world.appendChild(el('div', 'cap', 'No roads, only the paths people have worn. Tap a hub for its roadmap, a staff member for a word, an open slot to see how a world begins.'));
+    wsay('NextWork World', 'The campus in the middle is NextWork, in Houston: the hall at the top of the quad, the cafe and its terrace, eight hub buildings for the roadmaps, the lake, the paddock, and the eight of them in black T-shirts. The plots round the outside are learners. Yours has the flag. Tap it to go home.');
+    views.world.appendChild(el('div', 'cap', 'Paved paths on campus, worn ones everywhere else. Tap the hall for NextWork, a hub for its roadmap, a staff member for a word, an open slot to see how a world begins.'));
     drag(w1.cv, world, W1, H1, g => { const h = HQ.hitHQ(state, g);
-      if (h.kind === 'tower') { show('hq'); return; }
+      if (h.kind === 'hall') { show('hq'); return; }
+      if (h.kind === 'quad') { wsay('The quad', 'The lawn in the middle of campus. Benches round it, and somebody on most of them with a laptop open.'); return; }
       if (h.kind === 'cafe') { wsay('The cafe', 'Where people ask questions. In the real thing, the chat is on every project page.'); return; }
       if (h.kind === 'hub') { const n = SERIES.filter(sr => sr.kind === h.hub.kind).reduce((a, sr) => a + S.doneIn(state, sr), 0); wsay(h.hub.name + ' hub', h.hub.sub + '. You have built ' + n + ' here. Every ' + KIND_NAME[h.hub.kind].toLowerCase() + ' on your land came from this hub.'); return; }
       if (h.kind === 'plot' && h.owner.mine) { show('base'); return; }
@@ -98,7 +99,7 @@
       if (h.kind === 'staff') { wsay(h.staff.name, h.staff.says); return; }
       if (h.kind === 'paddock') { wsay('The paddock', 'They belong to no one. Like the free tier.'); return; }
       if (h.kind === 'lake') { wsay('The lake', 'Ripples.'); return; }
-      wsay('Grass', 'Nothing here. Which is the point of a ranch.'); });
+      wsay('Grass', 'Open ground between campus and the plots.'); });
 
     /* ---- 2. NextWork ---- */
     const about = el('div', 'about view'); about.className = 'about'; views.hq.appendChild(about);
@@ -107,7 +108,7 @@
     about.appendChild(el('h3', null, 'Roadmaps, as hubs'));
     const rl = el('div', 'list'); ABOUT.roadmaps.forEach(r => { const row = el('div', 'row'); const n = el('div', 'n'); put(n, el('b', null, r[0]), el('small', null, r[1] + ' projects')); const v = el('div', 'v', String(r[1])); put(row, el('i', null, '🗺️'), n, v); rl.appendChild(row); }); about.appendChild(rl);
     const links = el('p'); ABOUT.links.forEach((l, i) => { if (i) links.appendChild(document.createTextNode(' · ')); const a = el('a', null, l[0]); a.href = 'https:' + '//' + l[1]; a.target = '_blank'; a.rel = 'noopener'; links.appendChild(a); }); about.appendChild(links);
-    about.appendChild(el('div', 'cap', 'In NextWork’s own words, read from nextwork.ai and the NextWork story. The tower on the map is this page.'));
+    about.appendChild(el('div', 'cap', 'In NextWork’s own words, read from nextwork.ai and the NextWork story. The hall on the map is this page.'));
 
     /* ---- 3. My World ---- */
     const me = Land.makeMe(state); let anim = null; const fx = [];
@@ -172,11 +173,16 @@
     }
     stepBtn.addEventListener('click', () => { if (!current_site) return; const st = stepsOf(current_site.title); if (st.done >= st.total) return; state.steps[current_site.title] = { done: st.done + 1, total: st.total }; bs.lastAt = performance.now(); save(); if (st.done + 1 >= st.total) { const t = current_site.title, sr = current_site.series; setTimeout(() => finish(t, sr), 900); } paintBuild(); });
 
-    /* ---- 5. NextWork Global ---- */
-    const GS = 0.24, W5 = 880 / (2 * GS), H5 = 620 / (2 * GS); const g1 = scene(880, 620, 'NextWork Global: the map, and where learners are building.'); const glob = makeIso(g1.cv, W5, H5, GS); const gc = camTo(G.W / 2, G.H / 2, H5); glob.cam.x = gc.x; glob.cam.y = gc.y;
+    /* ---- 5. NextWork Global: the globe ---- */
+    const g1 = scene(880, 620, 'NextWork Global: the globe, with NextWork in Houston and learners as plots of land. Drag to spin it.'); const gctx = g1.cv.getContext('2d');
+    const gview = { yaw: -95, pitch: 25, spin: true }; let ghits = [];
     const gbadge = el('div', 'badge', 'NextWork Global'); const gsmall = el('small'); gbadge.appendChild(gsmall); g1.sc.appendChild(gbadge); views.global.appendChild(g1.sc);
-    const gsay = sayer(views.global); gsay('NextWork Global', 'Where people are building. Same land, whole world.'); views.global.appendChild(el('div', 'cap', 'Same land, whole world. Each dot is how many are building there. The extension cannot know this on its own; it needs a count NextWork publishes, so production says so until then.'));
-    drag(g1.cv, glob, W5, H5, g => { const d = G.SAMPLE.find(x => Math.hypot(x[1] - g[0], x[2] - g[1]) < 1.6); if (d && state.mode === 'dev') gsay(d[0], d[3] + ' learners building. Sample numbers: the real count needs NextWork to publish it.'); else gsay('Open water', 'Drag to look around.'); });
+    const gnav = el('div', 'nav'); [['Houston', -95, 30], ['Europe', 15, 50], ['Africa', 20, 5], ['Asia', 90, 30], ['Spin', null]].forEach(([t, yaw, pitch]) => { const b = el('button', null, t); b.type = 'button'; b.addEventListener('click', () => { if (yaw == null) { gview.spin = !gview.spin; return; } gview.yaw = yaw; gview.pitch = pitch; gview.spin = false; }); gnav.appendChild(b); }); g1.sc.appendChild(gnav);
+    const gsay = sayer(views.global); gsay('NextWork Global', 'The whole globe. NextWork is in Houston; every learner is a plot of land somewhere on it.'); views.global.appendChild(el('div', 'cap', 'Drag to spin. Each plot is how many are building there. The extension cannot know this on its own; it needs a count NextWork publishes, so production says so until then.'));
+    let gdrag = null;
+    g1.cv.addEventListener('pointerdown', e => { gdrag = { x: e.clientX, y: e.clientY, yaw: gview.yaw, pitch: gview.pitch, moved: false }; g1.cv.setPointerCapture(e.pointerId); });
+    g1.cv.addEventListener('pointermove', e => { if (!gdrag) return; const dx = e.clientX - gdrag.x, dy = e.clientY - gdrag.y; if (Math.hypot(dx, dy) > 4) { gdrag.moved = true; gview.spin = false; } if (gdrag.moved) { const r = g1.cv.getBoundingClientRect(); gview.yaw = gdrag.yaw + dx / r.width * 240; gview.pitch = clamp(gdrag.pitch + dy / r.height * 160, -80, 80); } });
+    g1.cv.addEventListener('pointerup', e => { const was = gdrag; gdrag = null; if (!was || was.moved) return; const r = g1.cv.getBoundingClientRect(); const x = (e.clientX - r.left) * 880 / r.width, y = (e.clientY - r.top) * 620 / r.height; const hit = ghits.find(h => Math.hypot(h.x - x, h.y - y) < h.r + 4); if (!hit) { gsay('Open water', 'Drag to spin the globe.'); return; } if (hit.hq) { gsay('NextWork · Houston', 'Home of the campus. Tap the hall on the world map for what NextWork is.'); return; } gsay(hit.d[0], hit.d[3] + ' learners building. Sample numbers: the real count needs NextWork to publish it.'); });
 
     /* ---- mode, dev controls ---- */
     function paintMode() { mode.textContent = state.mode === 'dev' ? 'Dev · simulate and reset' : 'Production · real data only'; mode.dataset.on = state.mode; devbar.hidden = state.mode !== 'dev'; }
@@ -193,7 +199,7 @@
       if (current === 'world') { world.ctx.setTransform(1, 0, 0, 1, 0, 0); Land.sky({ ctx: world.ctx, W: 880, H: 620 }); world.reset(); HQ.drawHQ(world, state, now, {}); }
       else if (current === 'base') { Land.stepMe(me, () => bsay('The creek', 'Cross at a bridge.')); if (me.follow) { const c = camTo(me.gx, me.gy, 310); base.cam.x = lerp(base.cam.x, c.x, reduce ? 1 : 0.08); base.cam.y = lerp(base.cam.y, c.y, reduce ? 1 : 0.08); } Land.sky(base); Land.drawLand(base, state, me, now, { anim, fx }); const w = S.houseWord(state); shield.textContent = String(NW.TIERS.indexOf(NW.tierOf(S.xpOf(state))) + 1); whoS.textContent = w[1] + ' · ' + state.done.length + ' built · ' + state.lists.length + ' lists'; whoB.textContent = state.name; if (anim && now - anim.start > 1700) anim = null; while (fx.length && now - fx[0].start > fx[0].life) fx.shift(); if (!reduce && (me.moving || me.target)) { state.me = { gx: me.gx, gy: me.gy }; } }
       else if (current === 'build') { Land.sky(site); const st = current_site ? stepsOf(current_site.title) : { done: 0, total: 0 }; const o = { site: current_site, stepsDone: st.done, stepsTotal: st.total, k: reduce ? 1 : clamp((now - bs.lastAt) / 900, 0, 1), anim }; Land.drawLand(site, state, null, now, o); sbadge.textContent = o.stage ? o.stage + ' · ' + st.done + ' of ' + st.total : ''; }
-      else if (current === 'global') { glob.ctx.setTransform(1, 0, 0, 1, 0, 0); const g = glob.ctx.createLinearGradient(0, 0, 0, 620); g.addColorStop(0, '#1d5f9a'); g.addColorStop(1, '#2f8fd6'); glob.ctx.fillStyle = g; glob.ctx.fillRect(0, 0, 880, 620); glob.reset(); G.drawGlobal(glob, state, now); gsmall.textContent = state.mode === 'dev' ? 'sample counts' : 'population appears when NextWork publishes it'; }
+      else if (current === 'global') { if (gview.spin && !reduce) gview.yaw += 0.08; ghits = G.drawGlobe(gctx, 880, 620, state, now, gview); gsmall.textContent = state.mode === 'dev' ? 'sample plots' : 'plots appear when NextWork publishes a count'; }
       if (!reduce) requestAnimationFrame(frame);
     }
     paintMode(); paintDev(); paintBuild(); paintBoard();

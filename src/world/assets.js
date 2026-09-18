@@ -131,18 +131,33 @@
     I.puff(gx, gy, k * n - 2);
   };
 
-  /* ---- NextWork HQ: the tower with the cafe at its foot, and a hub ---- */
-  B.tower_hq = function (I, gx, gy, now) {
-    I.box(gx - 0.5, gy - 0.5, 3, 3, 5, '#cfd5df', 0, { top: 0.1, tex: 'stone' });
-    const b = I.box(gx + 0.2, gy + 0.2, 1.6, 1.6, 170, '#2f5f9f', 5, { tex: 'glass', top: 0.12 });
-    I.box(gx + 0.45, gy + 0.45, 1.1, 1.1, 16, '#3b6fb5', 175, { tex: 'glass', noShadow: true, top: 0.2 }); I.flatRoof(gx + 0.65, gy + 0.65, 0.7, 0.7, 191, '#dfe5ee');
-    const s = I.up(I.P(b.D, b.C, 0.5), 140); I.roundRect(s[0] - 28, s[1] - 8, 56, 15, 3, '#ffffff'); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 10px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NEXTWORK', s[0], s[1] + 3); I.ctx.textAlign = 'left';
-    /* the cafe: a low warm room across the front, tables outside */
-    const c = I.box(gx - 0.1, gy + 1.85, 2.2, 0.7, 20, '#f1e7d2', 0, { tex: 'siding', noShadow: true }); const a = I.P(c.D, c.C, 0.1), d2 = I.P(c.D, c.C, 0.9); I.poly([a, d2, I.up(d2, 15), I.up(a, 15)], '#ffe9a6'); for (let u = 0.2; u < 0.9; u += 0.2) I.line(I.P(a, d2, u), I.up(I.P(a, d2, u), 15), '#d9b24c', 1);
-    I.poly([I.p(gx - 0.2, gy + 1.8, 22), I.p(gx + 2.2, gy + 1.8, 22), I.p(gx + 2.2, gy + 2.75, 16), I.p(gx - 0.2, gy + 2.75, 16)], '#c9503c'); for (let u = 0; u <= 1; u += 0.125) I.line(I.p(gx - 0.2 + u * 2.4, gy + 1.8, 22), I.p(gx - 0.2 + u * 2.4, gy + 2.75, 16), u % 0.25 ? '#f4f1e8' : '#c9503c', 3);
-    const sg = I.p(gx + 1, gy + 2.75, 20); I.roundRect(sg[0] - 14, sg[1] - 5, 28, 9, 2, '#4a2b17'); I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 6px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('CAFE', sg[0], sg[1] + 2); I.ctx.textAlign = 'left';
-    [[-0.5, 2.9], [0.6, 3.1], [1.7, 2.9]].forEach(o => B.table(I, gx + o[0], gy + o[1]));
-    const f = I.p(gx + 1, gy + 1, 196); I.line(f, [f[0], f[1] - 26], '#e6e9ef', 2); const wv = Math.sin(now / 300) * 2; I.poly([[f[0], f[1] - 26], [f[0] + 16, f[1] - 22 + wv], [f[0], f[1] - 17]], '#ffc531');
+  /* ---- NextWork Hall and the cafe: a campus, not a tower ---- */
+  B.hall = function (I, gx, gy, now) {
+    /* six tiles wide, two storeys of warm brick, a colonnade along the front,
+     * a cupola with a clock, and the flag */
+    I.box(gx - 0.4, gy - 0.4, 6.8, 3.4, 4, '#d6d1c4', 0, { top: 0.1, tex: 'stone' });
+    const H = 58, b = I.box(gx, gy, 6, 2.4, H, '#b8553f', 4, { tex: 'brick' });
+    for (let u = 0.06; u < 0.95; u += 0.12) { I.win(b.D, b.C, u, 12, 0.07, 16, (Math.floor(u * 100) % 3) !== 0); I.win(b.D, b.C, u, 36, 0.07, 16, (Math.floor(u * 100) % 4) !== 0); }
+    I.win(b.C, b.B, 0.15, 12, 0.25, 16, true); I.win(b.C, b.B, 0.6, 12, 0.25, 16, false); I.win(b.C, b.B, 0.15, 36, 0.25, 16, true); I.win(b.C, b.B, 0.6, 36, 0.25, 16, true);
+    const a = I.P(b.D, b.C, 0.44), c = I.P(b.D, b.C, 0.56); I.poly([a, c, I.up(c, 30), I.up(a, 30)], '#efe9dc'); I.ctx.fillStyle = '#4a2b17'; I.ctx.beginPath(); const m = I.P(a, c, 0.5); I.ctx.moveTo(m[0] - 7, m[1]); I.ctx.lineTo(m[0] - 7, m[1] - 22); I.ctx.arc(m[0], m[1] - 22, 7, Math.PI, 0); I.ctx.lineTo(m[0] + 7, m[1]); I.ctx.closePath(); I.ctx.fill();
+    [0.02, 0.18, 0.34, 0.66, 0.82, 0.98].forEach(u => I.box(gx + u * 5.9, gy + 2.5, 0.08, 0.08, H, '#efe9dc', 4, { noShadow: true }));
+    I.poly([I.p(gx - 0.15, gy + 2.45, H + 4), I.p(gx + 6.15, gy + 2.45, H + 4), I.p(gx + 6.15, gy + 2.75, H + 1), I.p(gx - 0.15, gy + 2.75, H + 1)], '#efe9dc');
+    I.roof(gx, gy, 6, 2.4, H + 4, 22, '#4b5563', 0.1);
+    const cup = I.box(gx + 2.6, gy + 0.8, 0.8, 0.8, 22, '#efe9dc', H + 26, { noShadow: true }); I.roof(gx + 2.6, gy + 0.8, 0.8, 0.8, H + 48, 12, '#3b7dd8', 0.1);
+    const f = I.up(I.P(cup.D, cup.C, 0.5), 11); I.ctx.fillStyle = '#fff'; I.ctx.beginPath(); I.ctx.arc(f[0], f[1], 4, 0, Math.PI * 2); I.ctx.fill(); const t = now / 60000; I.line(f, [f[0] + Math.cos(t) * 2.5, f[1] + Math.sin(t) * 2.5], '#172033', 1); I.line(f, [f[0], f[1] - 3], '#172033', 1);
+    const s = I.up(I.P(b.D, b.C, 0.5), 50); I.roundRect(s[0] - 30, s[1] - 7, 60, 13, 2, '#4a2b17'); I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 8px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NEXTWORK', s[0], s[1] + 3); I.ctx.textAlign = 'left';
+    const fl = I.p(gx + 5.5, gy + 0.3, H + 26); I.line(fl, [fl[0], fl[1] - 26], '#e6e9ef', 2); const wv = Math.sin(now / 300) * 2; I.poly([[fl[0], fl[1] - 26], [fl[0] + 16, fl[1] - 22 + wv], [fl[0], fl[1] - 17]], '#ffc531');
+  };
+  B.cafe = function (I, gx, gy, now) {
+    /* a low warm room with a striped awning and the sign; the terrace with
+     * tables is laid out by the campus, not here */
+    I.box(gx - 0.3, gy - 0.3, 3.6, 2.6, 4, '#d6d1c4', 0, { top: 0.1 });
+    const c = I.box(gx, gy, 3, 1.4, 22, '#f1e7d2', 4, { tex: 'siding', noShadow: true });
+    const a = I.P(c.D, c.C, 0.08), d2 = I.P(c.D, c.C, 0.92); I.poly([a, d2, I.up(d2, 16), I.up(a, 16)], '#ffe9a6'); for (let u = 0.2; u < 0.95; u += 0.2) I.line(I.P(a, d2, u), I.up(I.P(a, d2, u), 16), '#d9b24c', 1);
+    I.door(c.C, c.B, 0.35, 0.3, 20, '#6b3a22');
+    I.poly([I.p(gx - 0.2, gy + 1.35, 26), I.p(gx + 3.2, gy + 1.35, 26), I.p(gx + 3.2, gy + 2.1, 19), I.p(gx - 0.2, gy + 2.1, 19)], '#c9503c'); for (let u = 0; u <= 1; u += 0.1) I.line(I.p(gx - 0.2 + u * 3.4, gy + 1.35, 26), I.p(gx - 0.2 + u * 3.4, gy + 2.1, 19), Math.round(u * 10) % 2 ? '#f4f1e8' : '#c9503c', 3);
+    I.flatRoof(gx, gy, 3, 1.4, 26, '#8a5a3a'); I.chimney(gx + 2.6, gy + 0.2, 30, '#b3ada3'); const sm = I.p(gx + 2.66, gy + 0.26, 48); I.smoke(sm[0], sm[1], now);
+    const sg = I.p(gx + 1.5, gy + 2.1, 24); I.roundRect(sg[0] - 14, sg[1] - 5, 28, 9, 2, '#4a2b17'); I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 6px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('CAFE', sg[0], sg[1] + 2); I.ctx.textAlign = 'left';
   };
   B.table = function (I, gx, gy) { const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] + 1, 8, 3.5, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 1, b[1] - 10, 2, 10); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 10, 7, 3, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#e9e4d6'; I.ctx.fill(); I.ctx.fillRect(b[0] - 1, b[1] - 26, 2, 16); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 26, 11, 4, 0, Math.PI, 0); I.ctx.fillStyle = '#c9503c'; I.ctx.fill(); };
   B.hub = function (I, gx, gy, now, hub) {
