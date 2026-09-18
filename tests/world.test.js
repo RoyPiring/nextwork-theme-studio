@@ -111,6 +111,9 @@ test('the portfolio reader finds learn lists by their "N projects · Learnlist" 
 test('the world settings default to off, and the content script draws nothing without it', () => {
   const engine = fs.readFileSync(path.join(__dirname, '..', 'src', 'theme-engine.js'), 'utf8');
   assert.match(engine, /world: \{ enabled: false, mode: 'prod'/);
+  assert.match(engine, /full: false/);
+  const pane = fs.readFileSync(path.join(__dirname, '..', 'src', 'world', 'pane.js'), 'utf8');
+  assert.ok(pane.includes('(document.body || document.documentElement).appendChild(el)'), 'the pane attaches to the body');
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'manifest.json'), 'utf8'));
   const js = manifest.content_scripts[0].js;
   assert.ok(js.indexOf('src/world/pane.js') < js.indexOf('src/content.js'), 'the world loads before the content script that calls it');

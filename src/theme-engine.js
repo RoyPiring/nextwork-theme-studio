@@ -391,7 +391,7 @@
     /* NextWorld: your projects as land. Off until it is asked for. `read` is
      * only ever what the extension saw on your own pages; `state` is what the
      * world shows, which in dev mode may also hold what you simulated. */
-    world: { enabled: false, mode: 'prod', x: null, y: null, w: 470, h: 640, collapsed: false, tab: '', state: null, read: null },
+    world: { enabled: false, mode: 'prod', x: null, y: null, w: 470, h: null, full: false, collapsed: false, tab: '', state: null, read: null },
     /* Focus timer. Time is stored as timestamps, never as a running counter, so
      * it stays correct across popup closes, page loads and browser restarts:
      * elapsed = accumulatedMs + (running ? now - startedAt : 0). */

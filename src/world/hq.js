@@ -23,22 +23,27 @@
   const QUAD = { x0: -6, y0: -4, x1: 6, y1: 6 };
   const FENCE = { x0: -30, y0: -27, x1: 30, y1: 22 };
   const SOUTH_GATE = at(0, 22), NORTH_GATE = at(0, -27), ARCH = at(0, 22.5);
-  const HALL = at(-3, -12), HALL_DOOR = at(0, -9);
+  const HALL = at(-3, -17), HALL_DEPTH = 7.4, HALL_DOOR = at(0, -9);
   const CAFE = at(8, -3), CAFE_DOOR = at(9, 0), TERRACE = { x0: 7, y0: 1, x1: 11, y1: 4 };
   const TABLES = [[7.4, 1.4], [9.4, 1.4], [11.4, 1.4], [7.4, 3.4], [9.4, 3.4], [11.4, 3.4]].map(o => at(o[0], o[1]));
   /* two colonnades of hubs, west and east, each fronting its own avenue */
-  const WEST_AVE = -12, EAST_AVE = 12;
-  const HUB_AT = [at(-18, -19), at(-18, -9), at(-18, 1), at(-18, 11), at(15, -19), at(15, -9), at(15, 1), at(15, 11)];
+  const WEST_AVE = -14, EAST_AVE = 14;
+  const HUB_AT = [at(-20, -19), at(-20, -9), at(-20, 1), at(-20, 11), at(17, -19), at(17, -9), at(17, 1), at(17, 11)];
+  /* what the next way of learning needs, and is not built yet: sites on the outer lanes */
+  const SOON = [['Research Center', -28, -6], ['Planetarium', -28, 2], ['Climate Lab', -28, 10], ['Ocean Institute', -28, 18], ['Space Center', 25, -16], ['Medical Research', 25, -8], ['Energy Lab', 25, 0], ['Library of Everything', 25, 8]].map(x => [x[0], at(x[1], x[2])]);
+  const OUTER_W = -24, OUTER_E = 23;
   const HUB_DOOR = HUB_AT.map(h => [h[0] + 1, h[1] + 3]);
-  const LAKE = at(21, -26).concat([8, 7]); const JETTY = at(24, -18);
+  const LAKE = at(21, -27).concat([8, 7]); const JETTY = at(20, -23);
   /* the ranch corner: horses, cows, chickens, and the barn */
-  const PADDOCK = at(-29, -26).concat([10, 6]); const BARN = at(-19.6, -26.2); const PASTURE = at(-29, -18).concat([10, 6]); const COOPS = [at(-29, -9), at(-26, -9), at(-23, -9)]; const RANCH_GATE = at(-19, -8);
+  const PADDOCK = at(-29, -26).concat([10, 6]); const BARN = at(-19.6, -26.2); const PASTURE = at(-29, -18).concat([10, 6]); const COOPS = [at(-29, -9), at(-26, -9), at(-23, -9)]; const RANCH_GATE = at(-24, -9);
   /* the back: a road behind headquarters from the Cloud side to the System Design side, and the two halls where people compete */
   const BACK = -22, HACK = at(-14, -26), GAMES = at(2, -26), HACK_DOOR = at(-11, -23), GAMES_DOOR = at(5, -23);
   /* the lodge: a row of cabins for learners staying a while */
   const LODGE = [16, 18.5, 21, 23.5, 26].map(x => at(x, 17)); const LODGE_LANE = 16;
   const BENCHES = [[-5, -4.1], [-2, -4.1], [2, -4.1], [5, -4.1], [-5, 6.2], [-2, 6.2], [2, 6.2], [5, 6.2], [-6.2, -1], [-6.2, 3], [6.2, -1], [6.2, 3], [-1.6, 10], [1.6, 10], [-1.6, 15], [1.6, 15]].map(o => at(o[0], o[1]));
-  const SITTERS = ['#2f7fd6', STAFF_TEE, '#e8552f', null, '#3fa66b', null, STAFF_TEE, '#8f5fd1', null, '#f2b42a', '#2f7fd6', null, '#3fa66b', null, null, '#e8552f'];
+  const SITTERS = ['#2f7fd6', null, null, null, null, STAFF_TEE, null, null, '#8f5fd1', null, null, null, null, null, '#e8552f', null];
+  const PAIRS = [[at(-3, -1.5), '#3fa66b', '#f2b42a'], [at(3.5, 3.2), STAFF_TEE, '#2f7fd6'], [at(-2, 4.2), '#e8552f', '#8f5fd1'], [at(10.5, -0.5), STAFF_TEE, '#3fa66b']];
+  const DINERS = [['#2f7fd6', '#e8552f'], null, ['#3fa66b', STAFF_TEE], ['#f2b42a', null], null, ['#8f5fd1', '#2f7fd6']];
   /* outside the fence: the entry road, the lot and the racks */
   const LOT = { x0: 3, y0: 25, x1: 13, y1: 31 }; const LOT_IN = at(2, 28);
   const SPACES = []; for (let i = 0; i < 8; i++) SPACES.push(at(4 + (i % 4) * 2.3, i < 4 ? 26 : 30));
@@ -62,8 +67,9 @@
   for (let dy = TERRACE.y0; dy <= TERRACE.y1; dy++) for (let dx = TERRACE.x0; dx <= TERRACE.x1; dx++) lay(C[0] + dx, C[1] + dy); line(at(9, 1), CAFE_DOOR);
   HUB_DOOR.forEach((d, i) => line([i < 4 ? C[0] + WEST_AVE : C[0] + EAST_AVE, d[1]], d));
   line(at(WEST_AVE, BACK), at(EAST_AVE, BACK)); line(HACK_DOOR, at(-11, BACK)); line(GAMES_DOOR, at(5, BACK)); line(at(0, -9), NORTH_GATE);
-  line(at(EAST_AVE, BACK), at(19, BACK)); line(at(19, BACK), at(19, -18)); line(at(19, -18), JETTY);
-  line(at(WEST_AVE, -8), RANCH_GATE); line(at(EAST_AVE, LODGE_LANE), at(27, LODGE_LANE)); LODGE.forEach(l => line([Math.round(l[0]), C[1] + LODGE_LANE], [Math.round(l[0]), l[1] + 1]));
+  line(at(EAST_AVE, BACK), at(19, BACK)); line(at(19, BACK), JETTY);
+  line(at(OUTER_W, -8), at(OUTER_W, 20)); line(at(WEST_AVE, -3), at(OUTER_W, -3)); line(at(WEST_AVE, 7), at(OUTER_W, 7)); line(at(OUTER_E, -18), at(OUTER_E, 12)); line(at(EAST_AVE, -3), at(OUTER_E, -3)); line(at(EAST_AVE, 7), at(OUTER_E, 7)); SOON.forEach(x => line([x[1][0] + 1, x[1][1] + 3], [x[1][0] + 1 < C[0] ? C[0] + OUTER_W : C[0] + OUTER_E, x[1][1] + 3]));
+  line(at(OUTER_W, -8), RANCH_GATE); line(at(EAST_AVE, LODGE_LANE), at(27, LODGE_LANE)); LODGE.forEach(l => line([Math.round(l[0]), C[1] + LODGE_LANE], [Math.round(l[0]), l[1] + 1]));
   /* outside: the entry road and the lot are asphalt, the lane to the racks is paved */
   line(SOUTH_GATE, at(0, MAP - C[1] - 1), ASPHALT); line(at(-1, 23), at(-1, MAP - C[1] - 1), ASPHALT); line(at(1, 23), at(1, MAP - C[1] - 1), ASPHALT);
   for (let dy = LOT.y0; dy <= LOT.y1; dy++) for (let dx = LOT.x0; dx <= LOT.x1; dx++) ASPHALT.add(key(C[0] + dx, C[1] + dy)); line(LOT_IN, at(LOT.x0, 28), ASPHALT);
@@ -134,9 +140,11 @@
     add(HACK[0] + 3 + HACK[1] + 3, () => B.hallwide(I, HACK[0], HACK[1], now, 'NextWork Hackathon', '#2f5f9f', '#dfe5ee'));
     add(GAMES[0] + 3 + GAMES[1] + 3, () => B.hallwide(I, GAMES[0], GAMES[1], now, 'NextWork Games', '#c9503c', '#4b5563'));
     LODGE.forEach((l, i) => add(l[0] + l[1] + 0.5, () => B.lodge(I, l[0], l[1], 1, now, i % 2)));
-    add(HALL[0] + 3 + HALL[1] + 2.4, () => B.hall(I, HALL[0], HALL[1], now));
+    add(HALL[0] + 3 + HALL[1] + HALL_DEPTH, () => B.hall(I, HALL[0], HALL[1], now, HALL_DEPTH));
     add(CAFE[0] + 1.5 + CAFE[1] + 1.6, () => B.cafe(I, CAFE[0], CAFE[1], now));
-    TABLES.forEach(t => add(t[0] + t[1] + 0.3, () => B.table(I, t[0], t[1])));
+    TABLES.forEach((t, i) => add(t[0] + t[1] + 0.3, () => B.table(I, t[0], t[1], DINERS[i], now)));
+    PAIRS.forEach(pr => add(pr[0][0] + pr[0][1] + 0.1, () => B.pair(I, pr[0][0], pr[0][1], pr[1], pr[2], now / 1000)));
+    SOON.forEach(x => add(x[1][0] + x[1][1] + 3.4, () => B.site(I, x[1][0], x[1][1], now, x[0])));
     BENCHES.forEach((b, i) => add(b[0] + b[1] + 0.3, () => B.bench(I, b[0], b[1], SITTERS[i], now)));
     [[-2, -4.2], [2, -4.2], [-2, 6.3], [2, 6.3], [-2.2, 10], [2.2, 10], [-2.2, 15], [2.2, 15], [-2.2, 19], [2.2, 19], [-1.5, -7.5], [1.5, -7.5]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.2, () => I.lamp(q[0] + 0.5, q[1] + 0.5)); });
     [[-4, -2], [4, -2], [-4, 4], [4, 4], [-9, -2], [-9, 4], [9, 5], [-4, 12], [4, 12], [-4, 17], [4, 17]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.5, () => B.oak(I, q[0], q[1], 1.05)); });
@@ -146,13 +154,14 @@
     os.forEach(o => { if (!I.onScreen(o.at[0], o.at[1])) return; add(o.at[0] + o.at[1] + 1.2, () => B.plot(I, o.at[0], o.at[1], o, now)); if (!opts.map) late(() => I.label(o.at[0] + 0.6, o.at[1] + 2.9, o.name || 'Open slot', o.built ? o.built + ' built' : o.mine ? 'start here' : 'pick it and build', o.mine ? 10 : 8)); });
     agents.forEach(a => add(a.at[0] + a.at[1] + 0.05, () => I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)));
     visitors.forEach(a => { const atCar = !a.bike && (a.step === 0 || a.step === a.st.plan.length - 1) && !a.moving; if (atCar) return; add(a.at[0] + a.at[1] + 0.05, () => a.bike && a.moving && a.step <= 1 ? B.bike(I, a.at[0], a.at[1], a.colour, now / 1000) : I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)); });
-    late(() => { I.label(HALL[0] + 3, HALL[1] + 4.6, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4, LAKE[1] + 8.4, 'The lake', '', 8); I.label(PADDOCK[0] + 5, PADDOCK[1] + 7, 'The paddock', 'horses', 8); I.label(PASTURE[0] + 5, PASTURE[1] + 7, 'The pasture', 'cows', 8); I.label(COOPS[1][0] + 0.5, COOPS[1][1] + 2.6, 'The coops', 'chickens', 8); I.label(HACK[0] + 3, HACK[1] + 4.4, 'NextWork Hackathon', 'where people compete', 9); I.label(GAMES[0] + 3, GAMES[1] + 4.4, 'NextWork Games', 'where people compete', 9); I.label(LODGE[2][0] + 0.5, LODGE[2][1] + 2.7, 'NextWork Lodge', 'a place to stay', 9); I.label(C[0] + 8, C[1] + 32.6, 'Parking', '', 8); I.label(RACK[0] + 1.5, RACK[1] + 1.9, 'Bike racks', '', 8); I.label(C[0] + 0.5, C[1] + 45, 'The entry road', 'from town', 8); });
+    late(() => { I.label(HALL[0] + 3, HALL[1] + HALL_DEPTH + 2.2, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4, LAKE[1] + 8.4, 'The lake', '', 8); I.label(PADDOCK[0] + 5, PADDOCK[1] + 7, 'The paddock', 'horses', 8); I.label(PASTURE[0] + 5, PASTURE[1] + 7, 'The pasture', 'cows', 8); I.label(COOPS[1][0] + 0.5, COOPS[1][1] + 2.6, 'The coops', 'chickens', 8); I.label(HACK[0] + 3, HACK[1] + 4.4, 'NextWork Hackathon', 'where people compete', 9); I.label(GAMES[0] + 3, GAMES[1] + 4.4, 'NextWork Games', 'where people compete', 9); I.label(LODGE[2][0] + 0.5, LODGE[2][1] + 2.7, 'NextWork Lodge', 'a place to stay', 9); I.label(C[0] + 8, C[1] + 32.6, 'Parking', '', 8); I.label(RACK[0] + 1.5, RACK[1] + 1.9, 'Bike racks', '', 8); I.label(C[0] + 0.5, C[1] + 45, 'The entry road', 'from town', 8); });
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
     I.nightfall(I.night);
     return { owners: os, hubs: HUB_AT, staff: STAFF };
   }
   function hitHQ(state, g) {
-    if (g[0] >= HALL[0] - 0.3 && g[0] <= HALL[0] + 6.3 && g[1] >= HALL[1] - 0.3 && g[1] <= HALL[1] + 2.9) return { kind: 'hall' };
+    if (g[0] >= HALL[0] - 0.3 && g[0] <= HALL[0] + 6.3 && g[1] >= HALL[1] - 0.3 && g[1] <= HALL[1] + HALL_DEPTH + 0.5) return { kind: 'hall' };
+    const si = SOON.findIndex(x => g[0] >= x[1][0] - 0.3 && g[0] <= x[1][0] + 3.3 && g[1] >= x[1][1] - 0.3 && g[1] <= x[1][1] + 3.5); if (si >= 0) return { kind: 'soon', name: SOON[si][0] };
     if (g[0] >= CAFE[0] - 0.5 && g[0] <= CAFE[0] + 4.5 && g[1] >= CAFE[1] - 0.5 && g[1] <= CAFE[1] + 6.5) return { kind: 'cafe' };
     const hi = HUB_AT.findIndex(h => g[0] >= h[0] - 0.5 && g[0] <= h[0] + 3.5 && g[1] >= h[1] - 0.5 && g[1] <= h[1] + 3.5); if (hi >= 0) return { kind: 'hub', hub: HUBS[hi] };
     const os = owners(state); const pi = os.findIndex(o => g[0] >= o.at[0] - 0.6 && g[0] <= o.at[0] + 1.8 && g[1] >= o.at[1] - 0.6 && g[1] <= o.at[1] + 1.8); if (pi >= 0) return { kind: 'plot', owner: os[pi], index: pi };

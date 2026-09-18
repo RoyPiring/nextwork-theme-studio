@@ -132,18 +132,19 @@
   };
 
   /* ---- NextWork Hall and the cafe: a campus, not a tower ---- */
-  B.hall = function (I, gx, gy, now) {
-    /* six tiles wide, two storeys of warm brick, a colonnade along the front,
-     * a cupola with a clock, and the flag */
-    I.box(gx - 0.4, gy - 0.4, 6.8, 3.4, 4, '#d6d1c4', 0, { top: 0.1, tex: 'stone' });
-    const H = 58, b = I.box(gx, gy, 6, 2.4, H, '#b8553f', 4, { tex: 'brick' });
+  B.hall = function (I, gx, gy, now, depth) {
+    /* six tiles wide and, since it is headquarters, long: two storeys of warm
+     * brick, a colonnade along the front, a cupola with a clock, and the flag */
+    const D = depth || 2.4;
+    I.box(gx - 0.4, gy - 0.4, 6.8, D + 1, 4, '#d6d1c4', 0, { top: 0.1, tex: 'stone' });
+    const H = 58, b = I.box(gx, gy, 6, D, H, '#b8553f', 4, { tex: 'brick' });
     for (let u = 0.06; u < 0.95; u += 0.12) { I.win(b.D, b.C, u, 12, 0.07, 16, (Math.floor(u * 100) % 3) !== 0); I.win(b.D, b.C, u, 36, 0.07, 16, (Math.floor(u * 100) % 4) !== 0); }
-    I.win(b.C, b.B, 0.15, 12, 0.25, 16, true); I.win(b.C, b.B, 0.6, 12, 0.25, 16, false); I.win(b.C, b.B, 0.15, 36, 0.25, 16, true); I.win(b.C, b.B, 0.6, 36, 0.25, 16, true);
+    for (let u = 0.06; u < 0.95; u += 0.5 / D) { I.win(b.C, b.B, u, 12, 0.18 / D, 16, (Math.floor(u * 100) % 2) === 0); I.win(b.C, b.B, u, 36, 0.18 / D, 16, (Math.floor(u * 100) % 3) !== 0); }
     const a = I.P(b.D, b.C, 0.44), c = I.P(b.D, b.C, 0.56); I.poly([a, c, I.up(c, 30), I.up(a, 30)], '#efe9dc'); I.ctx.fillStyle = '#4a2b17'; I.ctx.beginPath(); const m = I.P(a, c, 0.5); I.ctx.moveTo(m[0] - 7, m[1]); I.ctx.lineTo(m[0] - 7, m[1] - 22); I.ctx.arc(m[0], m[1] - 22, 7, Math.PI, 0); I.ctx.lineTo(m[0] + 7, m[1]); I.ctx.closePath(); I.ctx.fill();
-    [0.02, 0.18, 0.34, 0.66, 0.82, 0.98].forEach(u => I.box(gx + u * 5.9, gy + 2.5, 0.08, 0.08, H, '#efe9dc', 4, { noShadow: true }));
-    I.poly([I.p(gx - 0.15, gy + 2.45, H + 4), I.p(gx + 6.15, gy + 2.45, H + 4), I.p(gx + 6.15, gy + 2.75, H + 1), I.p(gx - 0.15, gy + 2.75, H + 1)], '#efe9dc');
-    I.roof(gx, gy, 6, 2.4, H + 4, 22, '#4b5563', 0.1);
-    const cup = I.box(gx + 2.6, gy + 0.8, 0.8, 0.8, 22, '#efe9dc', H + 26, { noShadow: true }); I.roof(gx + 2.6, gy + 0.8, 0.8, 0.8, H + 48, 12, '#3b7dd8', 0.1);
+    [0.02, 0.18, 0.34, 0.66, 0.82, 0.98].forEach(u => I.box(gx + u * 5.9, gy + D + 0.1, 0.08, 0.08, H, '#efe9dc', 4, { noShadow: true }));
+    I.poly([I.p(gx - 0.15, gy + D + 0.05, H + 4), I.p(gx + 6.15, gy + D + 0.05, H + 4), I.p(gx + 6.15, gy + D + 0.35, H + 1), I.p(gx - 0.15, gy + D + 0.35, H + 1)], '#efe9dc');
+    I.roof(gx, gy, 6, D, H + 4, 22, '#4b5563', 0.1);
+    const cup = I.box(gx + 2.6, gy + D * 0.35, 0.8, 0.8, 22, '#efe9dc', H + 26, { noShadow: true }); I.roof(gx + 2.6, gy + D * 0.35, 0.8, 0.8, H + 48, 12, '#3b7dd8', 0.1);
     const f = I.up(I.P(cup.D, cup.C, 0.5), 11); I.ctx.fillStyle = '#fff'; I.ctx.beginPath(); I.ctx.arc(f[0], f[1], 4, 0, Math.PI * 2); I.ctx.fill(); const t = now / 60000; I.line(f, [f[0] + Math.cos(t) * 2.5, f[1] + Math.sin(t) * 2.5], '#172033', 1); I.line(f, [f[0], f[1] - 3], '#172033', 1);
     const s = I.up(I.P(b.D, b.C, 0.5), 50); I.roundRect(s[0] - 30, s[1] - 7, 60, 13, 2, '#4a2b17'); I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 8px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NEXTWORK', s[0], s[1] + 3); I.ctx.textAlign = 'left';
     const fl = I.p(gx + 5.5, gy + 0.3, H + 26); I.line(fl, [fl[0], fl[1] - 26], '#e6e9ef', 2); const wv = Math.sin(now / 300) * 2; I.poly([[fl[0], fl[1] - 26], [fl[0] + 16, fl[1] - 22 + wv], [fl[0], fl[1] - 17]], '#ffc531');
@@ -159,7 +160,25 @@
     I.flatRoof(gx, gy, 3, 1.4, 26, '#8a5a3a'); I.chimney(gx + 2.6, gy + 0.2, 30, '#b3ada3'); const sm = I.p(gx + 2.66, gy + 0.26, 48); I.smoke(sm[0], sm[1], now);
     const sg = I.p(gx + 1.5, gy + 2.1, 24); I.roundRect(sg[0] - 14, sg[1] - 5, 28, 9, 2, '#4a2b17'); I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 6px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('CAFE', sg[0], sg[1] + 2); I.ctx.textAlign = 'left';
   };
-  B.table = function (I, gx, gy) { const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] + 1, 8, 3.5, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 1, b[1] - 10, 2, 10); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 10, 7, 3, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#e9e4d6'; I.ctx.fill(); I.ctx.fillRect(b[0] - 1, b[1] - 26, 2, 16); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 26, 11, 4, 0, Math.PI, 0); I.ctx.fillStyle = '#c9503c'; I.ctx.fill(); };
+  B.table = function (I, gx, gy, diners, now) {
+    const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] + 1, 9, 4, 0, 0, Math.PI * 2); I.ctx.fill();
+    const seat = (x, colour, side) => { /* someone at the table, eating: on a chair, elbows in, a plate in front */ I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(x - 3, b[1] - 6, 6, 1.5); I.ctx.fillRect(x - 2.5, b[1] - 4.5, 1.5, 4.5); I.ctx.fillRect(x + 1, b[1] - 4.5, 1.5, 4.5); I.roundRect(x - 3.2, b[1] - 14, 6.4, 8, 2.4, colour); I.blob(x, b[1] - 17, 3.1, '#ffd6ad'); I.ctx.fillStyle = '#4a2e1a'; I.ctx.beginPath(); I.ctx.ellipse(x, b[1] - 18.4, 3.1, 1.8, 0, Math.PI, 0); I.ctx.fill(); const nod = Math.sin((now || 0) / 700 + x) > 0.6 ? 1 : 0; I.ctx.fillStyle = colour; I.ctx.fillRect(x - 5 * side, b[1] - 11 + nod, 2, 3); };
+    if (diners && diners[0]) seat(b[0] - 9, diners[0], 1); if (diners && diners[1]) seat(b[0] + 9, diners[1], -1);
+    I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 1, b[1] - 10, 2, 10); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 10, 7, 3, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#e9e4d6'; I.ctx.fill();
+    if (diners) { [[-3.5, -11], [3.5, -10]].forEach(o => { I.ctx.beginPath(); I.ctx.ellipse(b[0] + o[0], b[1] + o[1], 2.4, 1.1, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#fff'; I.ctx.fill(); I.ctx.beginPath(); I.ctx.ellipse(b[0] + o[0], b[1] + o[1], 1.3, 0.6, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#d9563f'; I.ctx.fill(); }); I.ctx.fillStyle = '#f4f1e8'; I.ctx.fillRect(b[0] - 0.8, b[1] - 13.5, 1.6, 3); }
+    I.ctx.fillStyle = '#e9e4d6'; I.ctx.fillRect(b[0] - 1, b[1] - 26, 2, 16); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 26, 11, 4, 0, Math.PI, 0); I.ctx.fillStyle = '#c9503c'; I.ctx.fill();
+  };
+  B.pair = function (I, gx, gy, a, b, t) { /* two people talking: facing each other, one of them gesturing */ I.person(gx, gy, a, 3, false); I.person(gx + 0.45, gy - 0.35, b, 3, false); const q = I.p(gx + 0.45, gy - 0.35); const g = Math.sin(t * 3) > 0 ? 2 : 0; I.ctx.fillStyle = b; I.ctx.fillRect(q[0] - 6, q[1] - 12 - g, 3, 2); };
+  B.site = function (I, gx, gy, now, name) {
+    /* coming soon: a fenced lot, the slab poured, a frame going up, a crane, and the board saying what it will be */
+    I.box(gx - 0.2, gy - 0.2, 3.4, 3.4, 3, '#c9c2b0', 0, { top: 0.1 });
+    I.fence(gx - 0.3, gy - 0.3, gx + 3.3, gy - 0.3, 7); I.fence(gx - 0.3, gy - 0.3, gx - 0.3, gy + 3.3, 7); I.fence(gx + 3.3, gy - 0.3, gx + 3.3, gy + 3.3, 7);
+    [[0.3, 0.3], [2.5, 0.3], [0.3, 2.5], [2.5, 2.5], [1.4, 1.4]].forEach(o => I.box(gx + o[0], gy + o[1], 0.16, 0.16, 40, '#b58a5a', 3, { noShadow: true }));
+    I.box(gx + 0.3, gy + 0.3, 2.36, 0.12, 4, '#b58a5a', 43, { noShadow: true }); I.box(gx + 0.3, gy + 2.5, 2.36, 0.12, 4, '#b58a5a', 43, { noShadow: true });
+    const c1 = I.p(gx + 3.1, gy + 3.1), H = 78; I.line(c1, I.up(c1, H), '#f2b42a', 3); const arm = I.up(c1, H); const sw = Math.sin(now / 4000) * 0.4; const tip = [arm[0] - 40 * Math.cos(sw), arm[1] - 14 - 18 * Math.sin(sw)]; I.line(arm, tip, '#f2b42a', 3); I.line([arm[0] + 12, arm[1] - 6], [arm[0], arm[1] - 14], '#f2b42a', 2); I.line(tip, [tip[0], tip[1] + 24], '#3b4252', 1); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(tip[0] - 3, tip[1] + 24, 6, 3);
+    const s = I.p(gx + 1.5, gy + 3.35, 4); I.roundRect(s[0] - 30, s[1] - 26, 60, 22, 2, '#172033'); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 7.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(name.toUpperCase(), s[0], s[1] - 15); I.ctx.fillStyle = '#fff'; I.ctx.font = '700 6px Nunito, system-ui, sans-serif'; I.ctx.fillText('COMING SOON', s[0], s[1] - 7); I.ctx.textAlign = 'left'; I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(s[0] - 26, s[1] - 4, 2, 5); I.ctx.fillRect(s[0] + 24, s[1] - 4, 2, 5);
+    I.box(gx + 3.0, gy + 0.2, 0.3, 0.3, 8, '#e8552f', 0, { noShadow: true }); I.box(gx + 3.0, gy + 0.7, 0.3, 0.3, 12, '#2f7fd6', 0, { noShadow: true });
+  };
   B.hub = function (I, gx, gy, now, hub) {
     I.box(gx - 0.3, gy - 0.3, 2.2, 2.2, 4, '#d6d1c4', 0, { top: 0.1 });
     B[hub.kind](I, gx + 0.3, gy + 0.3, 1, now, 3);
@@ -169,7 +188,7 @@
   B.bench = function (I, gx, gy, who, now) {
     const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 2, b[1] + 1, 10, 4, 0, 0, Math.PI * 2); I.ctx.fill();
     I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(b[0] - 9, b[1] - 8, 18, 3); I.ctx.fillRect(b[0] - 9, b[1] - 13, 18, 2.5); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 8, b[1] - 5, 2, 5); I.ctx.fillRect(b[0] + 6, b[1] - 5, 2, 5);
-    if (who) { /* someone sitting: thighs along the seat, shins down, laptop on the knees */ const t = now / 1000; I.ctx.fillStyle = '#2b3a5c'; I.ctx.fillRect(b[0] - 3, b[1] - 9, 6, 3); I.ctx.fillRect(b[0] - 3, b[1] - 7, 2, 6); I.ctx.fillRect(b[0] + 1, b[1] - 7, 2, 6); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 3.5, b[1] - 1.5, 3, 1.5); I.ctx.fillRect(b[0] + 0.5, b[1] - 1.5, 3, 1.5); I.roundRect(b[0] - 3.5, b[1] - 17, 7, 8.5, 2.5, who); I.blob(b[0], b[1] - 20, 3.4, '#ffd6ad'); I.ctx.fillStyle = '#4a2e1a'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 21.5, 3.4, 2, 0, Math.PI, 0); I.ctx.fill(); I.roundRect(b[0] - 4.5, b[1] - 10.5, 9, 1.5, 0.5, '#9aa3b0'); I.poly([[b[0] - 4.5, b[1] - 10.5], [b[0] + 4.5, b[1] - 10.5], [b[0] + 4.5, b[1] - 16.5], [b[0] - 4.5, b[1] - 16.5]], '#dfe5ee'); I.ctx.fillStyle = Math.sin(t * 7) > 0 ? '#4ff0ff' : '#9ad3ff'; I.ctx.fillRect(b[0] - 3.5, b[1] - 15.5, 7, 4); I.ctx.fillStyle = who; I.ctx.fillRect(b[0] - 5.5, b[1] - 13, 2, 3.5); I.ctx.fillRect(b[0] + 3.5, b[1] - 13, 2, 3.5); }
+    if (who) { /* someone sitting: thighs along the seat, shins down, laptop on the knees */ const t = now / 1000; I.ctx.fillStyle = '#2b3a5c'; I.ctx.fillRect(b[0] - 3, b[1] - 9, 6, 3); I.ctx.fillRect(b[0] - 3, b[1] - 7, 2, 6); I.ctx.fillRect(b[0] + 1, b[1] - 7, 2, 6); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 3.5, b[1] - 1.5, 3, 1.5); I.ctx.fillRect(b[0] + 0.5, b[1] - 1.5, 3, 1.5); I.roundRect(b[0] - 3.5, b[1] - 17, 7, 8.5, 2.5, who); I.blob(b[0], b[1] - 20, 3.4, '#ffd6ad'); I.ctx.fillStyle = '#4a2e1a'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 21.5, 3.4, 2, 0, Math.PI, 0); I.ctx.fill(); I.roundRect(b[0] - 4.5, b[1] - 10.5, 9, 1.5, 0.5, '#9aa3b0'); I.poly([[b[0] - 4.5, b[1] - 10.5], [b[0] + 4.5, b[1] - 10.5], [b[0] + 4.5, b[1] - 16.5], [b[0] - 4.5, b[1] - 16.5]], '#dfe5ee'); I.ctx.fillStyle = '#9ad3ff'; I.ctx.fillRect(b[0] - 3.5, b[1] - 15.5, 7, 4); I.ctx.fillStyle = '#e6f1fb'; I.ctx.fillRect(b[0] - 2.5, b[1] - 14.5, 3 + Math.floor((t * 2) % 3), 0.8); I.ctx.fillStyle = who; I.ctx.fillRect(b[0] - 5.5, b[1] - 13, 2, 3.5); I.ctx.fillRect(b[0] + 3.5, b[1] - 13, 2, 3.5); I.lights.push({ x: b[0], y: b[1] - 14, r: 10, c: '154,211,255', k: 0.5 }); }
   };
   B.horse = function (I, gx, gy, colour, walkT) {
     const c = I.p(gx, gy); const bob = Math.sin(walkT * 9) * 0.6;

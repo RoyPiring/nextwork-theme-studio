@@ -35,6 +35,8 @@
     for (const sr of SERIES) { const pr = sr.projects.find(x => !s.done.includes(x[0])); if (pr) return { title: pr[0], series: sr, xp: xpFor(pr[1], sr.hard) }; }
     return null;
   }
+  /* after the ninety: the lists, one project at a time */
+  function nextListProject(s) { return s.lists.find(l => l.done < l.total) || null; }
   function finish(s, title) { if (!s.done.includes(title)) s.done.push(title); delete s.steps[title]; if (s.building === title) s.building = ''; return s; }
   /* a reading off a nextwork.ai page: which project, which steps are ticked */
   function applyProjectReading(s, r) { if (!r || !r.title) return s; if (r.total > 0 && r.done >= r.total) finish(s, r.title); else s.steps[r.title] = { done: r.done | 0, total: r.total | 0 }; s.readAt = r.at || Date.now(); return s; }
@@ -95,5 +97,5 @@
   const hourOf = s => (s.mode === 'dev' && typeof s.hour === 'number') ? s.hour : (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   const nightOf = h => h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0;
   const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
-  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, LAND, HOME, WEST_LOTS, EAST_LOTS, LANES, CROSSINGS, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, inCreek, onBank };
+  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, LAND, HOME, WEST_LOTS, EAST_LOTS, LANES, CROSSINGS, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, inCreek, onBank };
 })();

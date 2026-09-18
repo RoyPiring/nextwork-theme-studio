@@ -137,7 +137,7 @@
     function truck(gx, gy, load, z) { z = z || 0; shadow(gx + 0.1, gy + 0.3, 0.75, 0.32, 4); box(gx + 0.1, gy + 0.32, 0.75, 0.3, 5, '#5f6b73', 4 + z, { noShadow: true }); const cab = box(gx + 0.12, gy + 0.33, 0.24, 0.28, 13, '#e8552f', 9 + z, { noShadow: true }); faceTex(cab.D, cab.C, 13, 'glass', '#2f4f7f'); if (load) box(gx + 0.42, gy + 0.36, 0.38, 0.22, 9, load, 9 + z, { noShadow: true, tex: 'ribbed' }); [[0.2, 0.34], [0.5, 0.34], [0.78, 0.34], [0.2, 0.6], [0.5, 0.6], [0.78, 0.6]].forEach(o => { const q = p(gx + o[0], gy + o[1], 2 + z); wheel(q[0], q[1], 3); }); }
     function label(gx, gy, text, sub, size) { const q = p(gx, gy), k = 1 / S; ctx.font = '800 ' + (size || 11) * k + 'px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3 * k; ctx.strokeStyle = 'rgba(16,24,44,.75)'; ctx.strokeText(text, q[0], q[1]); ctx.fillStyle = '#fff'; ctx.fillText(text, q[0], q[1]); if (sub) { ctx.font = '700 ' + 8 * k + 'px Nunito, sans-serif'; ctx.strokeText(sub, q[0], q[1] + 10 * k); ctx.fillStyle = '#ffe9a6'; ctx.fillText(sub, q[0], q[1] + 10 * k); } ctx.textAlign = 'left'; }
     /* after dark: the scene under a blue wash, then every light glowing through it */
-    function nightfall(n) { if (!(n > 0)) { lights.length = 0; return; } const sx = -cam.x - W, sy = -cam.y - H; ctx.fillStyle = 'rgba(8,16,48,' + (0.58 * n) + ')'; ctx.fillRect(sx, sy, W * 3, H * 3); ctx.save(); ctx.globalCompositeOperation = 'lighter'; lights.forEach(l => { const g = ctx.createRadialGradient(l.x, l.y, 1, l.x, l.y, l.r); g.addColorStop(0, 'rgba(' + l.c + ',' + (0.55 * n * l.k) + ')'); g.addColorStop(1, 'rgba(' + l.c + ',0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2); ctx.fill(); }); ctx.restore(); lights.length = 0; }
+    function nightfall(n) { if (!(n > 0)) { lights.length = 0; return; } ctx.fillStyle = 'rgba(6,10,40,' + (0.72 * n) + ')'; ctx.fillRect(-2, -2, W + 4, H + 4); ctx.fillStyle = 'rgba(30,40,90,' + (0.18 * n) + ')'; ctx.fillRect(-2, -2, W + 4, H + 4); ctx.save(); ctx.globalCompositeOperation = 'lighter'; lights.forEach(l => { const g = ctx.createRadialGradient(l.x, l.y, 1, l.x, l.y, l.r); g.addColorStop(0, 'rgba(' + l.c + ',' + (0.55 * n * l.k) + ')'); g.addColorStop(1, 'rgba(' + l.c + ',0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2); ctx.fill(); }); ctx.restore(); lights.length = 0; }
     const reset = () => ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
     const out = { ctx, cam, W, H, S, PW, PH, night: 0, lights, nightfall, reset, setScale, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, blob, roundRect, shadow, label };
     return out;
@@ -281,18 +281,19 @@
   };
 
   /* ---- NextWork Hall and the cafe: a campus, not a tower ---- */
-  B.hall = function (I, gx, gy, now) {
-    /* six tiles wide, two storeys of warm brick, a colonnade along the front,
-     * a cupola with a clock, and the flag */
-    I.box(gx - 0.4, gy - 0.4, 6.8, 3.4, 4, '#d6d1c4', 0, { top: 0.1, tex: 'stone' });
-    const H = 58, b = I.box(gx, gy, 6, 2.4, H, '#b8553f', 4, { tex: 'brick' });
+  B.hall = function (I, gx, gy, now, depth) {
+    /* six tiles wide and, since it is headquarters, long: two storeys of warm
+     * brick, a colonnade along the front, a cupola with a clock, and the flag */
+    const D = depth || 2.4;
+    I.box(gx - 0.4, gy - 0.4, 6.8, D + 1, 4, '#d6d1c4', 0, { top: 0.1, tex: 'stone' });
+    const H = 58, b = I.box(gx, gy, 6, D, H, '#b8553f', 4, { tex: 'brick' });
     for (let u = 0.06; u < 0.95; u += 0.12) { I.win(b.D, b.C, u, 12, 0.07, 16, (Math.floor(u * 100) % 3) !== 0); I.win(b.D, b.C, u, 36, 0.07, 16, (Math.floor(u * 100) % 4) !== 0); }
-    I.win(b.C, b.B, 0.15, 12, 0.25, 16, true); I.win(b.C, b.B, 0.6, 12, 0.25, 16, false); I.win(b.C, b.B, 0.15, 36, 0.25, 16, true); I.win(b.C, b.B, 0.6, 36, 0.25, 16, true);
+    for (let u = 0.06; u < 0.95; u += 0.5 / D) { I.win(b.C, b.B, u, 12, 0.18 / D, 16, (Math.floor(u * 100) % 2) === 0); I.win(b.C, b.B, u, 36, 0.18 / D, 16, (Math.floor(u * 100) % 3) !== 0); }
     const a = I.P(b.D, b.C, 0.44), c = I.P(b.D, b.C, 0.56); I.poly([a, c, I.up(c, 30), I.up(a, 30)], '#efe9dc'); I.ctx.fillStyle = '#4a2b17'; I.ctx.beginPath(); const m = I.P(a, c, 0.5); I.ctx.moveTo(m[0] - 7, m[1]); I.ctx.lineTo(m[0] - 7, m[1] - 22); I.ctx.arc(m[0], m[1] - 22, 7, Math.PI, 0); I.ctx.lineTo(m[0] + 7, m[1]); I.ctx.closePath(); I.ctx.fill();
-    [0.02, 0.18, 0.34, 0.66, 0.82, 0.98].forEach(u => I.box(gx + u * 5.9, gy + 2.5, 0.08, 0.08, H, '#efe9dc', 4, { noShadow: true }));
-    I.poly([I.p(gx - 0.15, gy + 2.45, H + 4), I.p(gx + 6.15, gy + 2.45, H + 4), I.p(gx + 6.15, gy + 2.75, H + 1), I.p(gx - 0.15, gy + 2.75, H + 1)], '#efe9dc');
-    I.roof(gx, gy, 6, 2.4, H + 4, 22, '#4b5563', 0.1);
-    const cup = I.box(gx + 2.6, gy + 0.8, 0.8, 0.8, 22, '#efe9dc', H + 26, { noShadow: true }); I.roof(gx + 2.6, gy + 0.8, 0.8, 0.8, H + 48, 12, '#3b7dd8', 0.1);
+    [0.02, 0.18, 0.34, 0.66, 0.82, 0.98].forEach(u => I.box(gx + u * 5.9, gy + D + 0.1, 0.08, 0.08, H, '#efe9dc', 4, { noShadow: true }));
+    I.poly([I.p(gx - 0.15, gy + D + 0.05, H + 4), I.p(gx + 6.15, gy + D + 0.05, H + 4), I.p(gx + 6.15, gy + D + 0.35, H + 1), I.p(gx - 0.15, gy + D + 0.35, H + 1)], '#efe9dc');
+    I.roof(gx, gy, 6, D, H + 4, 22, '#4b5563', 0.1);
+    const cup = I.box(gx + 2.6, gy + D * 0.35, 0.8, 0.8, 22, '#efe9dc', H + 26, { noShadow: true }); I.roof(gx + 2.6, gy + D * 0.35, 0.8, 0.8, H + 48, 12, '#3b7dd8', 0.1);
     const f = I.up(I.P(cup.D, cup.C, 0.5), 11); I.ctx.fillStyle = '#fff'; I.ctx.beginPath(); I.ctx.arc(f[0], f[1], 4, 0, Math.PI * 2); I.ctx.fill(); const t = now / 60000; I.line(f, [f[0] + Math.cos(t) * 2.5, f[1] + Math.sin(t) * 2.5], '#172033', 1); I.line(f, [f[0], f[1] - 3], '#172033', 1);
     const s = I.up(I.P(b.D, b.C, 0.5), 50); I.roundRect(s[0] - 30, s[1] - 7, 60, 13, 2, '#4a2b17'); I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 8px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NEXTWORK', s[0], s[1] + 3); I.ctx.textAlign = 'left';
     const fl = I.p(gx + 5.5, gy + 0.3, H + 26); I.line(fl, [fl[0], fl[1] - 26], '#e6e9ef', 2); const wv = Math.sin(now / 300) * 2; I.poly([[fl[0], fl[1] - 26], [fl[0] + 16, fl[1] - 22 + wv], [fl[0], fl[1] - 17]], '#ffc531');
@@ -308,7 +309,25 @@
     I.flatRoof(gx, gy, 3, 1.4, 26, '#8a5a3a'); I.chimney(gx + 2.6, gy + 0.2, 30, '#b3ada3'); const sm = I.p(gx + 2.66, gy + 0.26, 48); I.smoke(sm[0], sm[1], now);
     const sg = I.p(gx + 1.5, gy + 2.1, 24); I.roundRect(sg[0] - 14, sg[1] - 5, 28, 9, 2, '#4a2b17'); I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 6px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('CAFE', sg[0], sg[1] + 2); I.ctx.textAlign = 'left';
   };
-  B.table = function (I, gx, gy) { const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] + 1, 8, 3.5, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 1, b[1] - 10, 2, 10); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 10, 7, 3, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#e9e4d6'; I.ctx.fill(); I.ctx.fillRect(b[0] - 1, b[1] - 26, 2, 16); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 26, 11, 4, 0, Math.PI, 0); I.ctx.fillStyle = '#c9503c'; I.ctx.fill(); };
+  B.table = function (I, gx, gy, diners, now) {
+    const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] + 1, 9, 4, 0, 0, Math.PI * 2); I.ctx.fill();
+    const seat = (x, colour, side) => { /* someone at the table, eating: on a chair, elbows in, a plate in front */ I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(x - 3, b[1] - 6, 6, 1.5); I.ctx.fillRect(x - 2.5, b[1] - 4.5, 1.5, 4.5); I.ctx.fillRect(x + 1, b[1] - 4.5, 1.5, 4.5); I.roundRect(x - 3.2, b[1] - 14, 6.4, 8, 2.4, colour); I.blob(x, b[1] - 17, 3.1, '#ffd6ad'); I.ctx.fillStyle = '#4a2e1a'; I.ctx.beginPath(); I.ctx.ellipse(x, b[1] - 18.4, 3.1, 1.8, 0, Math.PI, 0); I.ctx.fill(); const nod = Math.sin((now || 0) / 700 + x) > 0.6 ? 1 : 0; I.ctx.fillStyle = colour; I.ctx.fillRect(x - 5 * side, b[1] - 11 + nod, 2, 3); };
+    if (diners && diners[0]) seat(b[0] - 9, diners[0], 1); if (diners && diners[1]) seat(b[0] + 9, diners[1], -1);
+    I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 1, b[1] - 10, 2, 10); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 10, 7, 3, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#e9e4d6'; I.ctx.fill();
+    if (diners) { [[-3.5, -11], [3.5, -10]].forEach(o => { I.ctx.beginPath(); I.ctx.ellipse(b[0] + o[0], b[1] + o[1], 2.4, 1.1, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#fff'; I.ctx.fill(); I.ctx.beginPath(); I.ctx.ellipse(b[0] + o[0], b[1] + o[1], 1.3, 0.6, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#d9563f'; I.ctx.fill(); }); I.ctx.fillStyle = '#f4f1e8'; I.ctx.fillRect(b[0] - 0.8, b[1] - 13.5, 1.6, 3); }
+    I.ctx.fillStyle = '#e9e4d6'; I.ctx.fillRect(b[0] - 1, b[1] - 26, 2, 16); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 26, 11, 4, 0, Math.PI, 0); I.ctx.fillStyle = '#c9503c'; I.ctx.fill();
+  };
+  B.pair = function (I, gx, gy, a, b, t) { /* two people talking: facing each other, one of them gesturing */ I.person(gx, gy, a, 3, false); I.person(gx + 0.45, gy - 0.35, b, 3, false); const q = I.p(gx + 0.45, gy - 0.35); const g = Math.sin(t * 3) > 0 ? 2 : 0; I.ctx.fillStyle = b; I.ctx.fillRect(q[0] - 6, q[1] - 12 - g, 3, 2); };
+  B.site = function (I, gx, gy, now, name) {
+    /* coming soon: a fenced lot, the slab poured, a frame going up, a crane, and the board saying what it will be */
+    I.box(gx - 0.2, gy - 0.2, 3.4, 3.4, 3, '#c9c2b0', 0, { top: 0.1 });
+    I.fence(gx - 0.3, gy - 0.3, gx + 3.3, gy - 0.3, 7); I.fence(gx - 0.3, gy - 0.3, gx - 0.3, gy + 3.3, 7); I.fence(gx + 3.3, gy - 0.3, gx + 3.3, gy + 3.3, 7);
+    [[0.3, 0.3], [2.5, 0.3], [0.3, 2.5], [2.5, 2.5], [1.4, 1.4]].forEach(o => I.box(gx + o[0], gy + o[1], 0.16, 0.16, 40, '#b58a5a', 3, { noShadow: true }));
+    I.box(gx + 0.3, gy + 0.3, 2.36, 0.12, 4, '#b58a5a', 43, { noShadow: true }); I.box(gx + 0.3, gy + 2.5, 2.36, 0.12, 4, '#b58a5a', 43, { noShadow: true });
+    const c1 = I.p(gx + 3.1, gy + 3.1), H = 78; I.line(c1, I.up(c1, H), '#f2b42a', 3); const arm = I.up(c1, H); const sw = Math.sin(now / 4000) * 0.4; const tip = [arm[0] - 40 * Math.cos(sw), arm[1] - 14 - 18 * Math.sin(sw)]; I.line(arm, tip, '#f2b42a', 3); I.line([arm[0] + 12, arm[1] - 6], [arm[0], arm[1] - 14], '#f2b42a', 2); I.line(tip, [tip[0], tip[1] + 24], '#3b4252', 1); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(tip[0] - 3, tip[1] + 24, 6, 3);
+    const s = I.p(gx + 1.5, gy + 3.35, 4); I.roundRect(s[0] - 30, s[1] - 26, 60, 22, 2, '#172033'); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 7.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(name.toUpperCase(), s[0], s[1] - 15); I.ctx.fillStyle = '#fff'; I.ctx.font = '700 6px Nunito, system-ui, sans-serif'; I.ctx.fillText('COMING SOON', s[0], s[1] - 7); I.ctx.textAlign = 'left'; I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(s[0] - 26, s[1] - 4, 2, 5); I.ctx.fillRect(s[0] + 24, s[1] - 4, 2, 5);
+    I.box(gx + 3.0, gy + 0.2, 0.3, 0.3, 8, '#e8552f', 0, { noShadow: true }); I.box(gx + 3.0, gy + 0.7, 0.3, 0.3, 12, '#2f7fd6', 0, { noShadow: true });
+  };
   B.hub = function (I, gx, gy, now, hub) {
     I.box(gx - 0.3, gy - 0.3, 2.2, 2.2, 4, '#d6d1c4', 0, { top: 0.1 });
     B[hub.kind](I, gx + 0.3, gy + 0.3, 1, now, 3);
@@ -318,7 +337,7 @@
   B.bench = function (I, gx, gy, who, now) {
     const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 2, b[1] + 1, 10, 4, 0, 0, Math.PI * 2); I.ctx.fill();
     I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(b[0] - 9, b[1] - 8, 18, 3); I.ctx.fillRect(b[0] - 9, b[1] - 13, 18, 2.5); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 8, b[1] - 5, 2, 5); I.ctx.fillRect(b[0] + 6, b[1] - 5, 2, 5);
-    if (who) { /* someone sitting: thighs along the seat, shins down, laptop on the knees */ const t = now / 1000; I.ctx.fillStyle = '#2b3a5c'; I.ctx.fillRect(b[0] - 3, b[1] - 9, 6, 3); I.ctx.fillRect(b[0] - 3, b[1] - 7, 2, 6); I.ctx.fillRect(b[0] + 1, b[1] - 7, 2, 6); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 3.5, b[1] - 1.5, 3, 1.5); I.ctx.fillRect(b[0] + 0.5, b[1] - 1.5, 3, 1.5); I.roundRect(b[0] - 3.5, b[1] - 17, 7, 8.5, 2.5, who); I.blob(b[0], b[1] - 20, 3.4, '#ffd6ad'); I.ctx.fillStyle = '#4a2e1a'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 21.5, 3.4, 2, 0, Math.PI, 0); I.ctx.fill(); I.roundRect(b[0] - 4.5, b[1] - 10.5, 9, 1.5, 0.5, '#9aa3b0'); I.poly([[b[0] - 4.5, b[1] - 10.5], [b[0] + 4.5, b[1] - 10.5], [b[0] + 4.5, b[1] - 16.5], [b[0] - 4.5, b[1] - 16.5]], '#dfe5ee'); I.ctx.fillStyle = Math.sin(t * 7) > 0 ? '#4ff0ff' : '#9ad3ff'; I.ctx.fillRect(b[0] - 3.5, b[1] - 15.5, 7, 4); I.ctx.fillStyle = who; I.ctx.fillRect(b[0] - 5.5, b[1] - 13, 2, 3.5); I.ctx.fillRect(b[0] + 3.5, b[1] - 13, 2, 3.5); }
+    if (who) { /* someone sitting: thighs along the seat, shins down, laptop on the knees */ const t = now / 1000; I.ctx.fillStyle = '#2b3a5c'; I.ctx.fillRect(b[0] - 3, b[1] - 9, 6, 3); I.ctx.fillRect(b[0] - 3, b[1] - 7, 2, 6); I.ctx.fillRect(b[0] + 1, b[1] - 7, 2, 6); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 3.5, b[1] - 1.5, 3, 1.5); I.ctx.fillRect(b[0] + 0.5, b[1] - 1.5, 3, 1.5); I.roundRect(b[0] - 3.5, b[1] - 17, 7, 8.5, 2.5, who); I.blob(b[0], b[1] - 20, 3.4, '#ffd6ad'); I.ctx.fillStyle = '#4a2e1a'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 21.5, 3.4, 2, 0, Math.PI, 0); I.ctx.fill(); I.roundRect(b[0] - 4.5, b[1] - 10.5, 9, 1.5, 0.5, '#9aa3b0'); I.poly([[b[0] - 4.5, b[1] - 10.5], [b[0] + 4.5, b[1] - 10.5], [b[0] + 4.5, b[1] - 16.5], [b[0] - 4.5, b[1] - 16.5]], '#dfe5ee'); I.ctx.fillStyle = '#9ad3ff'; I.ctx.fillRect(b[0] - 3.5, b[1] - 15.5, 7, 4); I.ctx.fillStyle = '#e6f1fb'; I.ctx.fillRect(b[0] - 2.5, b[1] - 14.5, 3 + Math.floor((t * 2) % 3), 0.8); I.ctx.fillStyle = who; I.ctx.fillRect(b[0] - 5.5, b[1] - 13, 2, 3.5); I.ctx.fillRect(b[0] + 3.5, b[1] - 13, 2, 3.5); I.lights.push({ x: b[0], y: b[1] - 14, r: 10, c: '154,211,255', k: 0.5 }); }
   };
   B.horse = function (I, gx, gy, colour, walkT) {
     const c = I.p(gx, gy); const bob = Math.sin(walkT * 9) * 0.6;
@@ -568,7 +587,8 @@
     ['Quantitative Finance', 1, 'Learning the field by building it end to end.'],
     ['Computational Neuroscience', 1, 'Learning the field by building it end to end.'],
     ['Kinesiology & Human Movement', 1, 'Learning the field by building it end to end.'],
-    ['Biology of Aging & Geroscience', 1, 'Learning the field by building it end to end.']
+    ['Biology of Aging & Geroscience', 1, 'Learning the field by building it end to end.'],
+    ['Other projects', 20, 'Everything else you authored, outside a list.']
   ].map(l => ({ name: l[0], total: l[1], done: l[1], blurb: l[2], kind: kindFor(l[0]) }));
   const SAMPLE_DONE = ['Set Up An AWS Account', 'Join the Cloud Beginner Challenge!', 'Host a Website on Amazon S3', 'Cloud Security with AWS IAM', 'Build a Virtual Private Cloud', 'VPC Traffic Flow and Security', 'Creating a Private Subnet', 'Aurora Database with EC2', 'Launch a Kubernetes Cluster', 'Set Up a Web App in the Cloud', 'Connect a GitHub Repo with AWS', 'Explore Claude.ai, Code, and Cowork', 'Claude Code Skills Basics', 'Welcome to the Lex Chatbot series!'];
 
@@ -612,6 +632,8 @@
     for (const sr of SERIES) { const pr = sr.projects.find(x => !s.done.includes(x[0])); if (pr) return { title: pr[0], series: sr, xp: xpFor(pr[1], sr.hard) }; }
     return null;
   }
+  /* after the ninety: the lists, one project at a time */
+  function nextListProject(s) { return s.lists.find(l => l.done < l.total) || null; }
   function finish(s, title) { if (!s.done.includes(title)) s.done.push(title); delete s.steps[title]; if (s.building === title) s.building = ''; return s; }
   /* a reading off a nextwork.ai page: which project, which steps are ticked */
   function applyProjectReading(s, r) { if (!r || !r.title) return s; if (r.total > 0 && r.done >= r.total) finish(s, r.title); else s.steps[r.title] = { done: r.done | 0, total: r.total | 0 }; s.readAt = r.at || Date.now(); return s; }
@@ -672,7 +694,7 @@
   const hourOf = s => (s.mode === 'dev' && typeof s.hour === 'number') ? s.hour : (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   const nightOf = h => h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0;
   const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
-  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, LAND, HOME, WEST_LOTS, EAST_LOTS, LANES, CROSSINGS, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, inCreek, onBank };
+  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, LAND, HOME, WEST_LOTS, EAST_LOTS, LANES, CROSSINGS, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, inCreek, onBank };
 })();
 
 /* NextWorld · land: your world, drawn
@@ -788,22 +810,27 @@
   const QUAD = { x0: -6, y0: -4, x1: 6, y1: 6 };
   const FENCE = { x0: -30, y0: -27, x1: 30, y1: 22 };
   const SOUTH_GATE = at(0, 22), NORTH_GATE = at(0, -27), ARCH = at(0, 22.5);
-  const HALL = at(-3, -12), HALL_DOOR = at(0, -9);
+  const HALL = at(-3, -17), HALL_DEPTH = 7.4, HALL_DOOR = at(0, -9);
   const CAFE = at(8, -3), CAFE_DOOR = at(9, 0), TERRACE = { x0: 7, y0: 1, x1: 11, y1: 4 };
   const TABLES = [[7.4, 1.4], [9.4, 1.4], [11.4, 1.4], [7.4, 3.4], [9.4, 3.4], [11.4, 3.4]].map(o => at(o[0], o[1]));
   /* two colonnades of hubs, west and east, each fronting its own avenue */
-  const WEST_AVE = -12, EAST_AVE = 12;
-  const HUB_AT = [at(-18, -19), at(-18, -9), at(-18, 1), at(-18, 11), at(15, -19), at(15, -9), at(15, 1), at(15, 11)];
+  const WEST_AVE = -14, EAST_AVE = 14;
+  const HUB_AT = [at(-20, -19), at(-20, -9), at(-20, 1), at(-20, 11), at(17, -19), at(17, -9), at(17, 1), at(17, 11)];
+  /* what the next way of learning needs, and is not built yet: sites on the outer lanes */
+  const SOON = [['Research Center', -28, -6], ['Planetarium', -28, 2], ['Climate Lab', -28, 10], ['Ocean Institute', -28, 18], ['Space Center', 25, -16], ['Medical Research', 25, -8], ['Energy Lab', 25, 0], ['Library of Everything', 25, 8]].map(x => [x[0], at(x[1], x[2])]);
+  const OUTER_W = -24, OUTER_E = 23;
   const HUB_DOOR = HUB_AT.map(h => [h[0] + 1, h[1] + 3]);
-  const LAKE = at(21, -26).concat([8, 7]); const JETTY = at(24, -18);
+  const LAKE = at(21, -27).concat([8, 7]); const JETTY = at(20, -23);
   /* the ranch corner: horses, cows, chickens, and the barn */
-  const PADDOCK = at(-29, -26).concat([10, 6]); const BARN = at(-19.6, -26.2); const PASTURE = at(-29, -18).concat([10, 6]); const COOPS = [at(-29, -9), at(-26, -9), at(-23, -9)]; const RANCH_GATE = at(-19, -8);
+  const PADDOCK = at(-29, -26).concat([10, 6]); const BARN = at(-19.6, -26.2); const PASTURE = at(-29, -18).concat([10, 6]); const COOPS = [at(-29, -9), at(-26, -9), at(-23, -9)]; const RANCH_GATE = at(-24, -9);
   /* the back: a road behind headquarters from the Cloud side to the System Design side, and the two halls where people compete */
   const BACK = -22, HACK = at(-14, -26), GAMES = at(2, -26), HACK_DOOR = at(-11, -23), GAMES_DOOR = at(5, -23);
   /* the lodge: a row of cabins for learners staying a while */
   const LODGE = [16, 18.5, 21, 23.5, 26].map(x => at(x, 17)); const LODGE_LANE = 16;
   const BENCHES = [[-5, -4.1], [-2, -4.1], [2, -4.1], [5, -4.1], [-5, 6.2], [-2, 6.2], [2, 6.2], [5, 6.2], [-6.2, -1], [-6.2, 3], [6.2, -1], [6.2, 3], [-1.6, 10], [1.6, 10], [-1.6, 15], [1.6, 15]].map(o => at(o[0], o[1]));
-  const SITTERS = ['#2f7fd6', STAFF_TEE, '#e8552f', null, '#3fa66b', null, STAFF_TEE, '#8f5fd1', null, '#f2b42a', '#2f7fd6', null, '#3fa66b', null, null, '#e8552f'];
+  const SITTERS = ['#2f7fd6', null, null, null, null, STAFF_TEE, null, null, '#8f5fd1', null, null, null, null, null, '#e8552f', null];
+  const PAIRS = [[at(-3, -1.5), '#3fa66b', '#f2b42a'], [at(3.5, 3.2), STAFF_TEE, '#2f7fd6'], [at(-2, 4.2), '#e8552f', '#8f5fd1'], [at(10.5, -0.5), STAFF_TEE, '#3fa66b']];
+  const DINERS = [['#2f7fd6', '#e8552f'], null, ['#3fa66b', STAFF_TEE], ['#f2b42a', null], null, ['#8f5fd1', '#2f7fd6']];
   /* outside the fence: the entry road, the lot and the racks */
   const LOT = { x0: 3, y0: 25, x1: 13, y1: 31 }; const LOT_IN = at(2, 28);
   const SPACES = []; for (let i = 0; i < 8; i++) SPACES.push(at(4 + (i % 4) * 2.3, i < 4 ? 26 : 30));
@@ -827,8 +854,9 @@
   for (let dy = TERRACE.y0; dy <= TERRACE.y1; dy++) for (let dx = TERRACE.x0; dx <= TERRACE.x1; dx++) lay(C[0] + dx, C[1] + dy); line(at(9, 1), CAFE_DOOR);
   HUB_DOOR.forEach((d, i) => line([i < 4 ? C[0] + WEST_AVE : C[0] + EAST_AVE, d[1]], d));
   line(at(WEST_AVE, BACK), at(EAST_AVE, BACK)); line(HACK_DOOR, at(-11, BACK)); line(GAMES_DOOR, at(5, BACK)); line(at(0, -9), NORTH_GATE);
-  line(at(EAST_AVE, BACK), at(19, BACK)); line(at(19, BACK), at(19, -18)); line(at(19, -18), JETTY);
-  line(at(WEST_AVE, -8), RANCH_GATE); line(at(EAST_AVE, LODGE_LANE), at(27, LODGE_LANE)); LODGE.forEach(l => line([Math.round(l[0]), C[1] + LODGE_LANE], [Math.round(l[0]), l[1] + 1]));
+  line(at(EAST_AVE, BACK), at(19, BACK)); line(at(19, BACK), JETTY);
+  line(at(OUTER_W, -8), at(OUTER_W, 20)); line(at(WEST_AVE, -3), at(OUTER_W, -3)); line(at(WEST_AVE, 7), at(OUTER_W, 7)); line(at(OUTER_E, -18), at(OUTER_E, 12)); line(at(EAST_AVE, -3), at(OUTER_E, -3)); line(at(EAST_AVE, 7), at(OUTER_E, 7)); SOON.forEach(x => line([x[1][0] + 1, x[1][1] + 3], [x[1][0] + 1 < C[0] ? C[0] + OUTER_W : C[0] + OUTER_E, x[1][1] + 3]));
+  line(at(OUTER_W, -8), RANCH_GATE); line(at(EAST_AVE, LODGE_LANE), at(27, LODGE_LANE)); LODGE.forEach(l => line([Math.round(l[0]), C[1] + LODGE_LANE], [Math.round(l[0]), l[1] + 1]));
   /* outside: the entry road and the lot are asphalt, the lane to the racks is paved */
   line(SOUTH_GATE, at(0, MAP - C[1] - 1), ASPHALT); line(at(-1, 23), at(-1, MAP - C[1] - 1), ASPHALT); line(at(1, 23), at(1, MAP - C[1] - 1), ASPHALT);
   for (let dy = LOT.y0; dy <= LOT.y1; dy++) for (let dx = LOT.x0; dx <= LOT.x1; dx++) ASPHALT.add(key(C[0] + dx, C[1] + dy)); line(LOT_IN, at(LOT.x0, 28), ASPHALT);
@@ -899,9 +927,11 @@
     add(HACK[0] + 3 + HACK[1] + 3, () => B.hallwide(I, HACK[0], HACK[1], now, 'NextWork Hackathon', '#2f5f9f', '#dfe5ee'));
     add(GAMES[0] + 3 + GAMES[1] + 3, () => B.hallwide(I, GAMES[0], GAMES[1], now, 'NextWork Games', '#c9503c', '#4b5563'));
     LODGE.forEach((l, i) => add(l[0] + l[1] + 0.5, () => B.lodge(I, l[0], l[1], 1, now, i % 2)));
-    add(HALL[0] + 3 + HALL[1] + 2.4, () => B.hall(I, HALL[0], HALL[1], now));
+    add(HALL[0] + 3 + HALL[1] + HALL_DEPTH, () => B.hall(I, HALL[0], HALL[1], now, HALL_DEPTH));
     add(CAFE[0] + 1.5 + CAFE[1] + 1.6, () => B.cafe(I, CAFE[0], CAFE[1], now));
-    TABLES.forEach(t => add(t[0] + t[1] + 0.3, () => B.table(I, t[0], t[1])));
+    TABLES.forEach((t, i) => add(t[0] + t[1] + 0.3, () => B.table(I, t[0], t[1], DINERS[i], now)));
+    PAIRS.forEach(pr => add(pr[0][0] + pr[0][1] + 0.1, () => B.pair(I, pr[0][0], pr[0][1], pr[1], pr[2], now / 1000)));
+    SOON.forEach(x => add(x[1][0] + x[1][1] + 3.4, () => B.site(I, x[1][0], x[1][1], now, x[0])));
     BENCHES.forEach((b, i) => add(b[0] + b[1] + 0.3, () => B.bench(I, b[0], b[1], SITTERS[i], now)));
     [[-2, -4.2], [2, -4.2], [-2, 6.3], [2, 6.3], [-2.2, 10], [2.2, 10], [-2.2, 15], [2.2, 15], [-2.2, 19], [2.2, 19], [-1.5, -7.5], [1.5, -7.5]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.2, () => I.lamp(q[0] + 0.5, q[1] + 0.5)); });
     [[-4, -2], [4, -2], [-4, 4], [4, 4], [-9, -2], [-9, 4], [9, 5], [-4, 12], [4, 12], [-4, 17], [4, 17]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.5, () => B.oak(I, q[0], q[1], 1.05)); });
@@ -911,13 +941,14 @@
     os.forEach(o => { if (!I.onScreen(o.at[0], o.at[1])) return; add(o.at[0] + o.at[1] + 1.2, () => B.plot(I, o.at[0], o.at[1], o, now)); if (!opts.map) late(() => I.label(o.at[0] + 0.6, o.at[1] + 2.9, o.name || 'Open slot', o.built ? o.built + ' built' : o.mine ? 'start here' : 'pick it and build', o.mine ? 10 : 8)); });
     agents.forEach(a => add(a.at[0] + a.at[1] + 0.05, () => I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)));
     visitors.forEach(a => { const atCar = !a.bike && (a.step === 0 || a.step === a.st.plan.length - 1) && !a.moving; if (atCar) return; add(a.at[0] + a.at[1] + 0.05, () => a.bike && a.moving && a.step <= 1 ? B.bike(I, a.at[0], a.at[1], a.colour, now / 1000) : I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)); });
-    late(() => { I.label(HALL[0] + 3, HALL[1] + 4.6, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4, LAKE[1] + 8.4, 'The lake', '', 8); I.label(PADDOCK[0] + 5, PADDOCK[1] + 7, 'The paddock', 'horses', 8); I.label(PASTURE[0] + 5, PASTURE[1] + 7, 'The pasture', 'cows', 8); I.label(COOPS[1][0] + 0.5, COOPS[1][1] + 2.6, 'The coops', 'chickens', 8); I.label(HACK[0] + 3, HACK[1] + 4.4, 'NextWork Hackathon', 'where people compete', 9); I.label(GAMES[0] + 3, GAMES[1] + 4.4, 'NextWork Games', 'where people compete', 9); I.label(LODGE[2][0] + 0.5, LODGE[2][1] + 2.7, 'NextWork Lodge', 'a place to stay', 9); I.label(C[0] + 8, C[1] + 32.6, 'Parking', '', 8); I.label(RACK[0] + 1.5, RACK[1] + 1.9, 'Bike racks', '', 8); I.label(C[0] + 0.5, C[1] + 45, 'The entry road', 'from town', 8); });
+    late(() => { I.label(HALL[0] + 3, HALL[1] + HALL_DEPTH + 2.2, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4, LAKE[1] + 8.4, 'The lake', '', 8); I.label(PADDOCK[0] + 5, PADDOCK[1] + 7, 'The paddock', 'horses', 8); I.label(PASTURE[0] + 5, PASTURE[1] + 7, 'The pasture', 'cows', 8); I.label(COOPS[1][0] + 0.5, COOPS[1][1] + 2.6, 'The coops', 'chickens', 8); I.label(HACK[0] + 3, HACK[1] + 4.4, 'NextWork Hackathon', 'where people compete', 9); I.label(GAMES[0] + 3, GAMES[1] + 4.4, 'NextWork Games', 'where people compete', 9); I.label(LODGE[2][0] + 0.5, LODGE[2][1] + 2.7, 'NextWork Lodge', 'a place to stay', 9); I.label(C[0] + 8, C[1] + 32.6, 'Parking', '', 8); I.label(RACK[0] + 1.5, RACK[1] + 1.9, 'Bike racks', '', 8); I.label(C[0] + 0.5, C[1] + 45, 'The entry road', 'from town', 8); });
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
     I.nightfall(I.night);
     return { owners: os, hubs: HUB_AT, staff: STAFF };
   }
   function hitHQ(state, g) {
-    if (g[0] >= HALL[0] - 0.3 && g[0] <= HALL[0] + 6.3 && g[1] >= HALL[1] - 0.3 && g[1] <= HALL[1] + 2.9) return { kind: 'hall' };
+    if (g[0] >= HALL[0] - 0.3 && g[0] <= HALL[0] + 6.3 && g[1] >= HALL[1] - 0.3 && g[1] <= HALL[1] + HALL_DEPTH + 0.5) return { kind: 'hall' };
+    const si = SOON.findIndex(x => g[0] >= x[1][0] - 0.3 && g[0] <= x[1][0] + 3.3 && g[1] >= x[1][1] - 0.3 && g[1] <= x[1][1] + 3.5); if (si >= 0) return { kind: 'soon', name: SOON[si][0] };
     if (g[0] >= CAFE[0] - 0.5 && g[0] <= CAFE[0] + 4.5 && g[1] >= CAFE[1] - 0.5 && g[1] <= CAFE[1] + 6.5) return { kind: 'cafe' };
     const hi = HUB_AT.findIndex(h => g[0] >= h[0] - 0.5 && g[0] <= h[0] + 3.5 && g[1] >= h[1] - 0.5 && g[1] <= h[1] + 3.5); if (hi >= 0) return { kind: 'hub', hub: HUBS[hi] };
     const os = owners(state); const pi = os.findIndex(o => g[0] >= o.at[0] - 0.6 && g[0] <= o.at[0] + 1.8 && g[1] >= o.at[1] - 0.6 && g[1] <= o.at[1] + 1.8); if (pi >= 0) return { kind: 'plot', owner: os[pi], index: pi };
@@ -1109,6 +1140,7 @@
       if (h.kind === 'arch') { wsay('The entry', 'Under the archway, up the main avenue, past the quad to headquarters. Everyone comes in this way.'); return; }
       if (h.kind === 'lot') { wsay('Parking', 'Drive in from town, park here, walk in under the arch. The lot and the racks are outside the fence, so campus stays for people on foot.'); return; }
       if (h.kind === 'rack') { wsay('Bike racks', 'Ride in, rack it, walk in.'); return; }
+      if (h.kind === 'soon') { wsay(h.name, 'Coming soon. What the new way of learning needs next: the sites are pegged, the frames are up, the cranes are turning.'); return; }
       if (h.kind === 'hack') { wsay('NextWork Hackathon', 'Where people compete: a weekend, a brief, a build, a demo. Behind headquarters on the back road.'); return; }
       if (h.kind === 'games') { wsay('NextWork Games', 'Where people compete for fun: challenges, leaderboards, bragging rights.'); return; }
       if (h.kind === 'lodge') { wsay('NextWork Lodge', 'For learners who come to Austin to stay a while. A cabin, a porch light, the campus out the door.'); return; }
@@ -1195,7 +1227,7 @@
     function paintBuild() {
       const w = S.houseWord(state), nw = S.nextHouseWord(state);
       tWb.textContent = w[1] + ' · ' + state.done.length + ' built'; tWs.textContent = nw ? (nw[0] - state.done.length) + ' more to ' + nw[1].toLowerCase() : 'The whole valley'; tWi.style.width = (nw ? (state.done.length - w[0]) / (nw[0] - w[0]) * 100 : 100) + '%';
-      tDb.textContent = state.done.length + ' / 90'; const lt = state.lists.reduce((a, l) => a + l.total, 0); tLb.textContent = state.lists.length + (state.lists.length === 1 ? ' list' : ' lists'); tLs.textContent = lt + ' projects of your own';
+      tDb.textContent = state.done.length + ' / 90'; const lt = state.lists.reduce((a, l) => a + l.total, 0), ld = state.lists.reduce((a, l) => a + l.done, 0); tLb.textContent = ld + ' / ' + lt; tLs.textContent = 'of your own, across ' + state.lists.length + (state.lists.length === 1 ? ' list' : ' lists');
       const nx = S.nextProject(state); current_site = nx ? Land.siteFor(state) : null; const placed = !!current_site; const st = current_site ? stepsOf(current_site.title) : { done: 0, total: 0 };
       pName.textContent = nx ? nx.title : 'Every project is built'; pSub.textContent = nx ? nx.series.name + ' · part ' + (S.doneIn(state, nx.series) + 1) + ' of ' + nx.series.projects.length + ' · becomes a ' + KIND_NAME[nx.series.kind].toLowerCase() + (placed ? '' : ' · not placed yet') : '';
       progI.style.width = (st.total ? st.done / st.total * 100 : 0) + '%'; progT.textContent = st.total ? st.done + ' of ' + st.total + ' steps · ' + (state.craft[nx && nx.title] || 0) + ' nails' : 'No steps yet';
@@ -1214,7 +1246,7 @@
       SERIES.forEach(sr => { const d = S.doneIn(state, sr), n = sr.projects.length; const row = el('div', 'row' + (d === n ? ' full' : d ? ' going' : '')); const nn = el('div', 'n'); const barx = el('div', 'barx'); const bi = el('i'); bi.style.width = (d / n * 100) + '%'; barx.appendChild(bi); put(nn, el('b', null, sr.name), el('small', null, KIND_NAME[sr.kind] + (d ? ' · tier ' + S.tierIn(state, sr) : ' · not started')), barx); const v = el('div', 'v', d + ' / ' + n); put(row, el('i', null, ICON[sr.kind]), nn, v); const nxt = sr.projects.find(pr => !state.done.includes(pr[0])); if (nxt) { const b = el('button', null, (d ? 'Next: ' : 'Start: ') + nxt[0]); b.type = 'button'; b.addEventListener('click', () => { state.building = nxt[0]; save(); paintBuild(); paintBoard(); }); row.appendChild(b); } catList.appendChild(row); });
       while (libList.firstChild) libList.removeChild(libList.firstChild);
       if (!state.lists.length) libList.appendChild(el('div', 'cap', state.mode === 'dev' ? 'No learn lists in this seed.' : 'Open your portfolio on nextwork.ai and your learn lists appear here, each as a spread over the creek.'));
-      state.lists.forEach(l => { const row = el('div', 'row full'); const nn = el('div', 'n'); put(nn, el('b', null, l.name), el('small', null, l.blurb || KIND_NAME[l.kind] + ' spread')); const v = el('div', 'v', String(l.total)); v.appendChild(el('small', null, KIND_NAME[l.kind].toLowerCase() + ' spread')); put(row, el('i', null, '🌉'), nn, v); libList.appendChild(row); });
+      state.lists.forEach(l => { const row = el('div', 'row' + (l.done >= l.total ? ' full' : l.done ? ' going' : '')); const nn = el('div', 'n'); put(nn, el('b', null, l.name), el('small', null, l.blurb || KIND_NAME[l.kind] + ' row')); const v = el('div', 'v', l.done + ' / ' + l.total); v.appendChild(el('small', null, KIND_NAME[l.kind].toLowerCase() + 's')); put(row, el('i', null, '🌉'), nn, v); libList.appendChild(row); });
     }
     stepBtn.addEventListener('click', tickStep);
 
@@ -1234,8 +1266,10 @@
     function paintMode() { mode.textContent = state.mode === 'dev' ? 'Dev · simulate and reset' : 'Production · real data only'; mode.dataset.on = state.mode; devbar.hidden = state.mode !== 'dev'; }
     mode.addEventListener('click', () => { state.mode = state.mode === 'dev' ? 'prod' : 'dev'; if (state.mode === 'prod' && host.production) { const p = S.normalise(host.production()); state.done = p.done; state.lists = p.lists; state.steps = p.steps; state.name = p.name; } save(); lastL = S.layout(state); paintMode(); paintDev(); paintBuild(); paintBoard(); });
     function paintDev() { while (devbar.firstChild) devbar.removeChild(devbar.firstChild); devbar.appendChild(el('span', null, 'One at a time'));
-      const nx = S.nextProject(state); const f = el('button', null, nx ? 'Build the next: ' + nx.title : 'Nothing left'); f.type = 'button'; f.disabled = !nx; f.addEventListener('click', () => nx && finish(nx.title, nx.series)); devbar.appendChild(f);
-      const u = el('button', null, 'Undo the last'); u.type = 'button'; u.disabled = !state.done.length; u.addEventListener('click', () => { const t = state.done.pop(); delete state.sites[t]; save(); lastL = S.layout(state); paintBuild(); paintBoard(); paintDev(); bsay('Undone', t + ' is back on the path.'); }); devbar.appendChild(u);
+      const nx = S.nextProject(state), nl = nx ? null : S.nextListProject(state); const f = el('button', null, nx ? 'Build the next: ' + nx.title : nl ? 'Build the next: ' + nl.name + ' ' + (nl.done + 1) + ' of ' + nl.total : 'Every project is built'); f.type = 'button'; f.disabled = !nx && !nl; f.addEventListener('click', () => { if (nx) finish(nx.title, nx.series); else if (nl) { nl.done++; save(); lastL = S.layout(state); btoast('Built: ' + nl.name + ' ' + nl.done + ' of ' + nl.total); paintBuild(); paintDev(); } }); devbar.appendChild(f);
+      const port = el('button', null, 'Load my portfolio: 219, one at a time'); port.type = 'button'; port.addEventListener('click', () => { const m = state.mode; S.seed(state, 0, 'Roy'); state.mode = m; state.land = 'Pineapple Kingdom'; state.lists = NW.SAMPLE_LISTS.map(l => Object.assign({}, l, { done: 0 })); save(); lastL = S.layout(state); whoB.textContent = S.landName(state); paintBuild(); paintBoard(); paintDev(); bsay('Your portfolio, pegged out', '90 in the catalogue, 129 of your own across 24 lists. Build the next, one at a time, until it is all there.'); }); devbar.appendChild(port);
+      const all = el('button', null, 'Finish it all'); all.type = 'button'; all.addEventListener('click', () => { state.done = NW.PROJECTS.map(p => p.title); state.lists.forEach(l => { l.done = l.total; }); state.building = ''; save(); lastL = S.layout(state); paintBuild(); paintBoard(); paintDev(); bsay('All of it', state.done.length + ' from the catalogue and ' + state.lists.reduce((a, l) => a + l.total, 0) + ' of your own. The whole valley.'); }); devbar.appendChild(all);
+      const u = el('button', null, 'Undo the last'); u.type = 'button'; u.disabled = !state.done.length && !state.lists.some(l => l.done); u.addEventListener('click', () => { const ll = state.lists.slice().reverse().find(l => l.done > 0); let t = ''; if (ll && !S.nextProject(state)) { ll.done--; t = ll.name; } else { t = state.done.pop(); delete state.sites[t]; } save(); lastL = S.layout(state); paintBuild(); paintBoard(); paintDev(); bsay('Undone', t + ' is back on the path.'); }); devbar.appendChild(u);
       const r = el('button', null, 'Reset'); r.type = 'button'; r.addEventListener('click', () => { const m = state.mode, a = state.avatar, nm = state.name, ld = state.land; Object.assign(state, S.fresh()); state.mode = m; state.avatar = a; state.name = nm; state.land = ld; save(); lastL = S.layout(state); whoB.textContent = S.landName(state); paintBuild(); paintBoard(); paintDev(); bsay('Reset', 'A tent, a board, and one oak.'); }); devbar.appendChild(r);
       devbar.appendChild(el('span', null, 'Clock'));
       [['Live', null], ['Day', 12], ['Dusk', 19], ['Night', 23]].forEach(([t, h]) => { const b = el('button', null, t); b.type = 'button'; b.setAttribute('aria-pressed', String((h == null && typeof state.hour !== 'number') || state.hour === h)); b.addEventListener('click', () => { if (h == null) delete state.hour; else state.hour = h; save(); paintDev(); }); devbar.appendChild(b); }); }

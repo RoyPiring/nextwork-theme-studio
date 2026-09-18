@@ -107,7 +107,8 @@
     ['Quantitative Finance', 1, 'Learning the field by building it end to end.'],
     ['Computational Neuroscience', 1, 'Learning the field by building it end to end.'],
     ['Kinesiology & Human Movement', 1, 'Learning the field by building it end to end.'],
-    ['Biology of Aging & Geroscience', 1, 'Learning the field by building it end to end.']
+    ['Biology of Aging & Geroscience', 1, 'Learning the field by building it end to end.'],
+    ['Other projects', 20, 'Everything else you authored, outside a list.']
   ].map(l => ({ name: l[0], total: l[1], done: l[1], blurb: l[2], kind: kindFor(l[0]) }));
   const SAMPLE_DONE = ['Set Up An AWS Account', 'Join the Cloud Beginner Challenge!', 'Host a Website on Amazon S3', 'Cloud Security with AWS IAM', 'Build a Virtual Private Cloud', 'VPC Traffic Flow and Security', 'Creating a Private Subnet', 'Aurora Database with EC2', 'Launch a Kubernetes Cluster', 'Set Up a Web App in the Cloud', 'Connect a GitHub Repo with AWS', 'Explore Claude.ai, Code, and Cowork', 'Claude Code Skills Basics', 'Welcome to the Lex Chatbot series!'];
 
