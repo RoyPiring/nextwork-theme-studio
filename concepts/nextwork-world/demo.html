@@ -477,6 +477,35 @@
     I.flatRoof(gx, gy, 6, 3, H + 4, roofColour); const s = I.up(I.P(b.D, b.C, 0.5), H - 4); const w = Math.hypot(b.C[0] - b.D[0], b.C[1] - b.D[1]) * 0.9; I.roundRect(s[0] - w / 2, s[1] - 9, w, 18, 3, '#172033'); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 10.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(name.toUpperCase(), s[0], s[1] + 4); I.ctx.textAlign = 'left'; I.lights.push({ x: s[0], y: s[1], r: w * 0.5, c: '255,197,49', k: 0.5 });
     [[0.5, 0.4], [5.3, 0.4]].forEach(o => { const f = I.p(gx + o[0], gy + o[1], H + 8); I.line(f, [f[0], f[1] - 20], '#e6e9ef', 2); const wv = Math.sin(now / 300 + o[0]) * 2; I.poly([[f[0], f[1] - 20], [f[0] + 12, f[1] - 17 + wv], [f[0], f[1] - 13]], '#ffc531'); });
   };
+
+  /* ---- civic: what an era brings ---- */
+  const CIV = {};
+  CIV.campfire = function (I, gx, gy, now) { const b = I.p(gx + 0.5, gy + 0.5); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; I.ctx.fillStyle = '#8a8f98'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + Math.cos(a) * 6, b[1] + Math.sin(a) * 3, 2.2, 1.4, 0, 0, Math.PI * 2); I.ctx.fill(); } I.line([b[0] - 4, b[1] + 1], [b[0] + 4, b[1] - 2], '#5a3a1e', 2); I.line([b[0] - 4, b[1] - 2], [b[0] + 4, b[1] + 1], '#5a3a1e', 2); const fl = 1 + Math.sin(now / 90) * 0.25; I.blob(b[0], b[1] - 4 * fl, 3.2 * fl, '#ff8a2a', 1.4); I.blob(b[0], b[1] - 5 * fl, 1.6 * fl, '#ffd54a', 1.4); I.lights.push({ x: b[0], y: b[1] - 4, r: 30, c: '255,150,60', k: 1 }); };
+  CIV.pump = function (I, gx, gy) { const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] + 1, 5, 2, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#c9c2b0'; I.ctx.fillRect(b[0] - 4, b[1] - 3, 8, 3); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 1.2, b[1] - 12, 2.4, 9); I.ctx.fillRect(b[0] - 1, b[1] - 8, 6, 1.5); I.line([b[0] - 1, b[1] - 12], [b[0] - 6, b[1] - 15], '#3b4252', 2); I.ctx.fillStyle = '#9aa3b0'; I.ctx.fillRect(b[0] + 2, b[1] - 6, 4, 4); };
+  CIV.workshop = (I, gx, gy, now) => B.workshop(I, gx, gy, 1, now, 2);
+  CIV.townhall = function (I, gx, gy, now) { B.cityhall(I, gx, gy, 1, now, 3); I.label(gx + 1, gy + 2.6, 'Town Hall', '', 8); };
+  CIV.school = function (I, gx, gy, now) { const b = I.box(gx, gy, 2, 1.2, 30, '#f3e6cc', 0, { tex: 'siding' }); for (let u = 0.08; u < 0.95; u += 0.22) I.win(b.D, b.C, u, 10, 0.14, 13, true); I.door(b.C, b.B, 0.35, 0.3, 20, '#8b4a2b'); I.roof(gx, gy, 2, 1.2, 30, 16, '#c9503c'); const bell = I.box(gx + 0.85, gy + 0.4, 0.3, 0.3, 12, '#f3e6cc', 44, { noShadow: true }); I.roof(gx + 0.85, gy + 0.4, 0.3, 0.3, 56, 6, '#c9503c'); const q = I.up(I.P(bell.D, bell.C, 0.5), 5); I.blob(q[0], q[1], 1.6, '#c9971f'); const f = I.p(gx + 2.1, gy + 1.3); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(f[0] - 1, f[1] - 30, 2, 30); I.poly([[f[0] + 1, f[1] - 30], [f[0] + 12, f[1] - 27 + Math.sin(now / 300) * 2], [f[0] + 1, f[1] - 23]], '#ffc531'); I.label(gx + 1, gy + 1.9, 'Schoolhouse', '', 8); };
+  CIV.store = function (I, gx, gy, now) { const b = I.box(gx, gy, 1.6, 1, 28, '#c9a06a', 0, { tex: 'siding' }); const a = I.P(b.D, b.C, 0.1), c = I.P(b.D, b.C, 0.9); I.poly([a, c, I.up(c, 14), I.up(a, 14)], '#dff1ff'); I.poly([I.p(gx - 0.05, gy + 0.95, 20), I.p(gx + 1.65, gy + 0.95, 20), I.p(gx + 1.65, gy + 1.35, 15), I.p(gx - 0.05, gy + 1.35, 15)], '#3fa66b'); for (let u = 0; u <= 1; u += 0.125) I.line(I.p(gx - 0.05 + u * 1.7, gy + 0.95, 20), I.p(gx - 0.05 + u * 1.7, gy + 1.35, 15), Math.round(u * 8) % 2 ? '#f4f1e8' : '#3fa66b', 3); I.flatRoof(gx, gy, 1.6, 1, 28, '#8a5a3a'); const s = I.up(I.P(b.D, b.C, 0.5), 22); I.roundRect(s[0] - 14, s[1] - 5, 28, 9, 2, '#4a2b17'); I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 6px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('GENERAL STORE', s[0], s[1] + 2); I.ctx.textAlign = 'left'; I.box(gx + 1.7, gy + 0.2, 0.25, 0.25, 6, '#d9b24c', 0, { noShadow: true }); };
+  CIV.community = function (I, gx, gy, now) { B.library(I, gx, gy, 1, now, 2); I.label(gx + 0.5, gy + 1.7, 'Community Hall', '', 8); };
+  CIV.cityhall = function (I, gx, gy, now) { B.hall(I, gx, gy, now, 2.4); I.label(gx + 3, gy + 3.6, 'City Hall', '', 9); };
+  CIV.hospital = function (I, gx, gy, now) { B.clinic(I, gx, gy, 1, now, 3); B.clinic(I, gx + 1.1, gy, 1, now, 3); I.label(gx + 1.1, gy + 1.7, 'Hospital', '', 8); };
+  CIV.library = function (I, gx, gy, now) { B.library(I, gx, gy, 1, now, 3); I.label(gx + 0.5, gy + 1.7, 'Library', '', 8); };
+  CIV.datacentre = function (I, gx, gy, now) { B.datacentre(I, gx, gy, 1, now, 3); I.label(gx + 0.6, gy + 1.7, 'Data Centre', 'what keeps the city running', 8); };
+  CIV.firestation = function (I, gx, gy, now) { const b = I.box(gx, gy, 1.6, 1.2, 30, '#c9503c', 0, { tex: 'brick' }); [0.12, 0.55].forEach(u => { const a = I.P(b.D, b.C, u), c = I.P(b.D, b.C, u + 0.33); I.poly([a, c, I.up(c, 22), I.up(a, 22)], '#6b7280'); for (let v = 4; v < 22; v += 4) I.line(I.up(a, v), I.up(c, v), '#4b5563', 1); }); I.flatRoof(gx, gy, 1.6, 1.2, 30, '#4b5563'); const t = I.box(gx + 1.2, gy + 0.2, 0.3, 0.3, 26, '#c9503c', 30, { noShadow: true, tex: 'brick' }); const q = I.up(I.P(t.D, t.C, 0.5), 20); I.blob(q[0], q[1], 2, Math.floor(now / 400) % 2 ? '#ff4d4d' : '#ffb3b3'); I.label(gx + 0.8, gy + 1.9, 'Fire Station', '', 8); };
+  CIV.park = function (I, gx, gy, now) { for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) I.tile(gx + x, gy + y, (x + y) % 2 ? '#7fc55a' : '#86cc60'); B.fountain(I, gx + 1, gy + 1, 1, now); I.tree(gx, gy, 0.9); I.tree(gx + 2, gy + 2, 0.9); B.bench(I, gx + 2, gy + 0.2, '#2f7fd6', now); B.bench(I, gx + 0.2, gy + 2, null, now); I.lamp(gx + 1.5, gy + 2.8); };
+  CIV.university = function (I, gx, gy, now) { B.hallwide(I, gx, gy, now, 'University', '#b8553f', '#4b5563'); };
+  CIV.stadium = function (I, gx, gy, now) { const c = I.p(gx + 2, gy + 1.5); I.ctx.fillStyle = 'rgba(20,40,30,.25)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 4, c[1] + 4, 52, 26, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#9aa3b0'; I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1] - 14, 50, 25, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#6f737b'; I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1], 50, 25, 0, 0, Math.PI); I.ctx.fill(); I.ctx.fillStyle = '#9aa3b0'; I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1] - 14, 50, 25, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#5cc464'; I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1] - 14, 34, 16, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.strokeStyle = '#fff'; I.ctx.lineWidth = 1; I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1] - 14, 34, 16, 0, 0, Math.PI * 2); I.ctx.stroke(); I.line([c[0], c[1] - 30], [c[0], c[1] + 2], '#fff', 1); [[-44, -14], [44, -14], [0, -38], [0, 10]].forEach(o => { I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(c[0] + o[0] - 1, c[1] + o[1] - 34, 2, 34); I.ctx.fillStyle = '#ffe9a6'; I.ctx.fillRect(c[0] + o[0] - 4, c[1] + o[1] - 38, 8, 4); I.lights.push({ x: c[0] + o[0], y: c[1] + o[1] - 36, r: 40, c: '255,240,200', k: 0.8 }); }); I.label(gx + 2, gy + 3.6, 'Stadium', '', 9); };
+  CIV.station = function (I, gx, gy, now) { const b = I.box(gx, gy, 2.4, 1, 26, '#e9e2d0', 0, { tex: 'stone' }); for (let u = 0.1; u < 0.95; u += 0.2) I.win(b.D, b.C, u, 8, 0.12, 14, true); I.roof(gx, gy, 2.4, 1, 26, 12, '#4b5563', 0.1); I.poly([I.p(gx - 0.2, gy + 1.05), I.p(gx + 2.6, gy + 1.05), I.p(gx + 2.6, gy + 1.5), I.p(gx - 0.2, gy + 1.5)], '#8c8f98'); for (let u = 0; u < 2.8; u += 0.25) I.line(I.p(gx - 0.2 + u, gy + 1.1), I.p(gx - 0.2 + u, gy + 1.45), '#5a3a1e', 1.5); I.line(I.p(gx - 0.2, gy + 1.2), I.p(gx + 2.6, gy + 1.2), '#c9c2b0', 1); I.line(I.p(gx - 0.2, gy + 1.35), I.p(gx + 2.6, gy + 1.35), '#c9c2b0', 1); const t = (now / 9000) % 1; I.truck(gx - 0.5 + t * 3, gy + 0.95, '#3b7dd8'); I.label(gx + 1.2, gy + 2, 'Station', '', 8); };
+  CIV.solar = function (I, gx, gy, now) { for (let y = 0; y < 2; y++) for (let x = 0; x < 3; x++) { const q = I.p(gx + x + 0.5, gy + y + 0.5); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(q[0] - 1, q[1] - 6, 2, 6); I.poly([[q[0] - 11, q[1] - 6], [q[0] + 11, q[1] - 12], [q[0] + 11, q[1] - 20], [q[0] - 11, q[1] - 14]], '#1f4f8f'); I.ctx.strokeStyle = 'rgba(255,255,255,.35)'; I.ctx.lineWidth = 0.8; for (let k = 0.25; k < 1; k += 0.25) I.line([q[0] - 11 + 22 * k, q[1] - 6 - 6 * k], [q[0] - 11 + 22 * k, q[1] - 14 - 6 * k], 'rgba(255,255,255,.35)', 0.8); } I.label(gx + 1.5, gy + 2.6, 'Solar Farm', '', 8); };
+  CIV.watertower = function (I, gx, gy) { const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.22)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 3, b[1] + 2, 10, 4, 0, 0, Math.PI * 2); I.ctx.fill(); [[-6, 0], [6, 0], [0, -4], [0, 4]].forEach(o => I.line([b[0] + o[0], b[1] + o[1] * 0.5], [b[0] + o[0] * 0.5, b[1] - 40], '#8a8f98', 1.5)); I.ctx.fillStyle = '#9aa3b0'; I.ctx.fillRect(b[0] - 8, b[1] - 56, 16, 16); I.ctx.fillStyle = '#7b848f'; I.ctx.fillRect(b[0], b[1] - 56, 8, 16); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 56, 8, 3.5, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#b8c0cc'; I.ctx.fill(); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NW', b[0] - 3, b[1] - 46); I.ctx.textAlign = 'left'; };
+  CIV.capitol = function (I, gx, gy, now) { I.box(gx - 0.5, gy - 0.5, 7, 3.5, 4, '#e9e2d0', 0, { top: 0.12, tex: 'stone' }); const H = 44, b = I.box(gx, gy, 6, 2.4, H, '#f4f1e8', 4, { tex: 'stone' }); for (let u = 0.05; u < 0.95; u += 0.1) I.win(b.D, b.C, u, 12, 0.06, 18, (Math.floor(u * 100) % 2) === 0); [0.06, 0.2, 0.34, 0.66, 0.8, 0.94].forEach(u => I.box(gx + u * 5.9, gy + 2.5, 0.09, 0.09, H, '#f4f1e8', 4, { noShadow: true })); I.poly([I.p(gx - 0.15, gy + 2.45, H + 4), I.p(gx + 6.15, gy + 2.45, H + 4), I.p(gx + 6.15, gy + 2.85, H), I.p(gx - 0.15, gy + 2.85, H)], '#e9e2d0'); I.flatRoof(gx, gy, 6, 2.4, H + 4, '#e9e2d0'); const d = I.box(gx + 2.2, gy + 0.6, 1.6, 1.2, 14, '#f4f1e8', H + 8, { noShadow: true, tex: 'stone' }); const c = I.P(d.A2, d.C2, 0.5); const g = I.ctx.createRadialGradient(c[0] - 8, c[1] - 14, 2, c[0], c[1], 26); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#c9c2b0'); I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1], 24, 20, 0, Math.PI, 0); I.ctx.closePath(); I.ctx.fillStyle = g; I.ctx.fill(); I.ctx.fillStyle = '#c9971f'; I.ctx.fillRect(c[0] - 1, c[1] - 30, 2, 12); I.blob(c[0], c[1] - 31, 2.5, '#ffc531'); I.lights.push({ x: c[0], y: c[1] - 8, r: 50, c: '255,240,200', k: 0.8 }); I.label(gx + 3, gy + 3.9, 'The Capitol', '', 10); };
+  CIV.palace = function (I, gx, gy, now) { B.hallwide(I, gx, gy, now, 'The Palace', '#e9e2d0', '#c9971f'); I.label(gx + 3, gy + 4.4, 'The Palace', 'across the river', 9); };
+  CIV.townhall2 = function (I, gx, gy, now) { B.cityhall(I, gx, gy, 1, now, 3); I.label(gx + 1, gy + 2.6, 'Second City Hall', '', 8); };
+  /* trees for the other lands */
+  B.cactus = function (I, gx, gy, size) { size = size || 1; const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 3, b[1] + 1, 6 * size, 2.5 * size, 0, 0, Math.PI * 2); I.ctx.fill(); I.roundRect(b[0] - 3 * size, b[1] - 26 * size, 6 * size, 26 * size, 3 * size, '#3f8f4a'); I.roundRect(b[0] - 10 * size, b[1] - 20 * size, 5 * size, 10 * size, 2.5 * size, '#3f8f4a'); I.roundRect(b[0] - 10 * size, b[1] - 20 * size, 8 * size, 4 * size, 2 * size, '#3f8f4a'); I.roundRect(b[0] + 5 * size, b[1] - 16 * size, 5 * size, 8 * size, 2.5 * size, '#3f8f4a'); I.roundRect(b[0] + 2 * size, b[1] - 16 * size, 8 * size, 4 * size, 2 * size, '#3f8f4a'); I.ctx.strokeStyle = 'rgba(255,255,255,.35)'; I.ctx.lineWidth = 0.8; for (let v = 4; v < 24; v += 4) I.line([b[0] - 1, b[1] - v * size], [b[0] + 1, b[1] - v * size], 'rgba(0,0,0,.2)', 0.8); };
+  B.pine = function (I, gx, gy, size) { size = size || 1; const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.25)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 5, b[1] + 2, 10 * size, 4 * size, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#5a3a1e'; I.ctx.fillRect(b[0] - 2, b[1] - 12 * size, 4, 12 * size); [[0, 12, 14], [1, 22, 11], [2, 31, 8]].forEach(t => { I.poly([[b[0] - t[2] * size, b[1] - t[1] * size + 8 * size], [b[0] + t[2] * size, b[1] - t[1] * size + 8 * size], [b[0], b[1] - t[1] * size - 6 * size]], ['#2f6b3a', '#3a7f46', '#4a9452'][t[0]]); }); };
+  B.palm = function (I, gx, gy, size) { size = size || 1; const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.22)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 6, b[1] + 2, 12 * size, 4 * size, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.strokeStyle = '#8a6a3f'; I.ctx.lineWidth = 3.5 * size; I.ctx.beginPath(); I.ctx.moveTo(b[0], b[1]); I.ctx.quadraticCurveTo(b[0] + 4 * size, b[1] - 18 * size, b[0] + 2 * size, b[1] - 34 * size); I.ctx.stroke(); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; I.ctx.strokeStyle = i % 2 ? '#3fa66b' : '#5cc464'; I.ctx.lineWidth = 2.5 * size; I.ctx.beginPath(); I.ctx.moveTo(b[0] + 2 * size, b[1] - 34 * size); I.ctx.quadraticCurveTo(b[0] + 2 * size + Math.cos(a) * 12 * size, b[1] - 40 * size + Math.sin(a) * 4 * size, b[0] + 2 * size + Math.cos(a) * 16 * size, b[1] - 30 * size + Math.abs(Math.sin(a)) * 6 * size); I.ctx.stroke(); } I.blob(b[0] + 2 * size, b[1] - 33 * size, 2 * size, '#8a5a3a'); };
+  B.CIV = CIV;
   NW.B = B; NW.drop = drop;
 })();
 
@@ -608,10 +637,10 @@
   const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
 
   const AVATAR = { body: 'pineapple', shirt: '#2f7fd6', hat: 'none', skin: '#ffd6ad', hair: '#4a2e1a' };
-  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
+  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: 'hill', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
   function normalise(saved) {
     const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
-    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || '');
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['hill', 'desert', 'forest', 'coast'].includes(s.biome) ? s.biome : 'hill';
     s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA; s.avatar = Object.assign({}, AVATAR, s.avatar && typeof s.avatar === 'object' ? s.avatar : {});
     s.lists = s.lists.map(l => ({ name: String(l.name || ''), total: +l.total || 0, done: +l.done || +l.total || 0, blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }));
     return s;
@@ -619,7 +648,7 @@
   /* dev seeds: how the land looks at 0, 5, 50 and 90 projects */
   function seed(s, n, name) {
     s.done = PROJECTS.slice(0, Math.max(0, Math.min(90, n))).map(p => p.title);
-    s.lists = n > 0 ? SAMPLE_LISTS.map(l => Object.assign({}, l)) : []; s.name = name || 'Roy'; s.land = n > 0 ? 'Pineapple Kingdom' : ''; s.steps = {}; s.building = ''; s.sites = {}; s.craft = {}; s.me = null; return s;
+    s.lists = n > 0 ? SAMPLE_LISTS.map(l => Object.assign({}, l, { done: 0 })) : [];   /* pegged out, not built: one at a time */ s.name = name || 'Roy'; s.land = n > 0 ? 'Pineapple Kingdom' : ''; s.steps = {}; s.building = ''; s.sites = {}; s.craft = {}; s.me = null; return s;
   }
   const doneSet = s => new Set(s.done);
   const doneIn = (s, sr) => sr.projects.filter(pr => s.done.includes(pr[0])).length;
@@ -658,7 +687,9 @@
   const CROSSINGS = [35];
   const EAST_TRUNK = 48, CONNECT = 35;
   const LANES = []; for (let k = 0; k < 7; k++) { LANES.push(HOME[1] - 5 - k * 4); LANES.push(HOME[1] + 6 + k * 4); }
-  function lotsOf(side) { /* every lot on one side of the creek, nearest the house first */ const out = []; const x0 = side === 'west' ? 3 : 38, x1 = side === 'west' ? 27 : 64, trunk = side === 'west' ? HOME[0] : EAST_TRUNK; LANES.forEach(lane => { for (let x = x0; x <= x1; x += 3) { if (Math.abs(x - trunk) < 2) continue; out.push([x, lane - 2]); out.push([x, lane + 1]); } }); const home = side === 'west' ? HOME : [EAST_TRUNK, CONNECT]; out.sort((a, b) => (Math.abs(a[0] - home[0]) * 0.8 + Math.abs(a[1] - home[1])) - (Math.abs(b[0] - home[0]) * 0.8 + Math.abs(b[1] - home[1]))); return out; }
+  /* the civic district: south of the house, both sides of the trunk; and its twin across the creek */
+  const CIVIC = (x, y, side) => side === 'west' ? (x >= 4 && x <= 25 && y >= HOME[1] + 1 && y <= HOME[1] + 24) : (x >= 44 && x <= 56 && y >= 35 && y <= 44);
+  function lotsOf(side) { /* every lot on one side of the creek, nearest the house first */ const out = []; const x0 = side === 'west' ? 3 : 38, x1 = side === 'west' ? 27 : 64, trunk = side === 'west' ? HOME[0] : EAST_TRUNK; LANES.forEach(lane => { for (let x = x0; x <= x1; x += 3) { if (Math.abs(x - trunk) < 2) continue; if (!CIVIC(x, lane - 2, side)) out.push([x, lane - 2]); if (!CIVIC(x, lane + 1, side)) out.push([x, lane + 1]); } }); const home = side === 'west' ? HOME : [EAST_TRUNK, CONNECT]; out.sort((a, b) => (Math.abs(a[0] - home[0]) * 0.8 + Math.abs(a[1] - home[1])) - (Math.abs(b[0] - home[0]) * 0.8 + Math.abs(b[1] - home[1]))); return out; }
   const WEST_LOTS = lotsOf('west'), EAST_LOTS = lotsOf('east');
   const laneOf = q => LANES.find(l => q[1] === l - 2 || q[1] === l + 1);
   const key = (x, y) => x + ',' + y;
@@ -699,6 +730,46 @@
   NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, LAND, HOME, WEST_LOTS, EAST_LOTS, LANES, CROSSINGS, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, inCreek, onBank };
 })();
 
+/* NextWorld · eras: how a plot becomes a country
+ * A campground earns its next era by projects built. Each era brings the
+ * civic buildings a place that size needs, the way a city builder does:
+ * a town needs a town hall and a school; a city needs a hospital, a
+ * library and a data centre; a capital gets its capitol. Civic buildings
+ * are not projects: they arrive because the place has grown into them.
+ * The land is a choice too, scenery only. */
+'use strict';
+(function () {
+  const S = NW.State;
+  /* the civic district: south of the house, either side of the trunk road */
+  const H = S.HOME;
+  const ERAS = [
+    { n: 0, name: 'Campground', word: 'a campground', needs: 'the bare necessities: a fire, water, a board to plan on',
+      civic: [['campfire', H[0] + 1.6, H[1] + 2.3], ['pump', H[0] - 2.4, H[1] + 2.6]] },
+    { n: 5, name: 'Fort', word: 'a fort', needs: 'a cabin, a stockade, a windmill, water, a workshop',
+      civic: [['workshop', H[0] - 6, H[1] + 4]] },
+    { n: 15, name: 'Town', word: 'a town', needs: 'a town hall, a schoolhouse, a general store, a community hall; the main street paved',
+      civic: [['townhall', H[0] - 4, H[1] + 4], ['school', H[0] + 3, H[1] + 4], ['store', H[0] - 5, H[1] + 8], ['community', H[0] + 3, H[1] + 8]] },
+    { n: 35, name: 'City', word: 'a city', needs: 'a city hall, a hospital, a library, a data centre, a fire station, a park; every lane paved and lit',
+      civic: [['cityhall', H[0] - 6, H[1] + 4], ['hospital', H[0] + 3, H[1] + 12], ['library', H[0] - 5, H[1] + 12], ['datacentre', H[0] - 9, H[1] + 8], ['firestation', H[0] + 7, H[1] + 8], ['park', H[0] - 2, H[1] + 11]] },
+    { n: 60, name: 'Metropolis', word: 'a metropolis', needs: 'a university, a stadium, a station, a solar farm, a water tower',
+      civic: [['university', H[0] - 10, H[1] + 16], ['stadium', H[0] - 1, H[1] + 16], ['station', H[0] + 6, H[1] + 16], ['solar', H[0] + 6, H[1] + 12], ['watertower', H[0] + 8, H[1] + 4.5]] },
+    { n: 90, name: 'Capital', word: 'the capital', needs: 'the capitol, with its dome and its plaza',
+      civic: [['capitol', H[0] - 4, H[1] + 20]] },
+    { n: 130, name: 'Kingdom', word: 'a kingdom', needs: 'the river widens; a second city across it, with a palace',
+      civic: [['palace', 46, 37], ['townhall2', 51, 41]] }
+  ];
+  /* what counts: every project built, yours and the catalogue's */
+  const score = s => s.done.length + s.lists.reduce((a, l) => a + (l.done | 0), 0);
+  const eraOf = s => { const n = score(s); let e = ERAS[0]; ERAS.forEach(x => { if (n >= x.n) e = x; }); return e; };
+  const nextEra = s => ERAS.find(x => x.n > score(s)) || null;
+  const civicOf = s => { const n = score(s), out = []; ERAS.forEach(e => { if (n >= e.n) e.civic.forEach(c => out.push({ kind: c[0], gx: c[1], gy: c[2], era: e.name })); }); /* later halls replace earlier ones on the same ground */ return out.filter(c => !(c.kind === 'townhall' && n >= 35)); };
+  const level = s => ERAS.indexOf(eraOf(s));   /* 0..6, for paving, lamps, the river */
+  /* the land: a choice, scenery only */
+  const BIOMES = { hill: { name: 'Hill Country', grass: ['#7fb35a', '#b9b162'], stone: '#d9d2b8', tree: 'oak', water: '#3ea3e8', sand: '#d9c9a0' }, desert: { name: 'Desert', grass: ['#d8b97a', '#e2c58a'], stone: '#e9d7a8', tree: 'cactus', water: '#4fb3f0', sand: '#efe0b8' }, forest: { name: 'Forest', grass: ['#4f8f3f', '#6aa64f'], stone: '#a8a89a', tree: 'pine', water: '#2f7fb8', sand: '#c8b98a' }, coast: { name: 'Coast', grass: ['#8fc76a', '#a9d287'], stone: '#e9e2d0', tree: 'palm', water: '#3fbfe8', sand: '#f2e6c4' } };
+  const biomeOf = s => BIOMES[s.biome] || BIOMES.hill;
+  NW.Eras = { ERAS, BIOMES, score, eraOf, nextEra, civicOf, level, biomeOf };
+})();
+
 /* NextWorld · land: your world, drawn
  * Hill Country. Grass that dries on the high ground, a creek, worn paths
  * that appear where you have walked, and one figure on it: you. */
@@ -708,7 +779,10 @@
   const S = NW.State, { LAND, HOME } = S;
   const laneOfLot = q => S.LANES.find(l => q[1] === l - 2 || q[1] === l + 1);
 
-  const groundColour = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? '#d9d2b8' : '#cfc7aa'; const dry = clamp((h - 0.25) * 2.2, 0, 1); return rgb([lerp(0x7f, 0xb9, dry), lerp(0xb3, 0xb1, dry), lerp(0x5a, 0x62, dry)].map(Math.round)); };
+  /* the ground, in whichever land you chose: two grass tones by height, stone on the high ground */
+  let biome = NW.Eras.BIOMES.hill;
+  const groundColour = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? biome.stone : NW.shade(biome.stone, -0.06); const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(biome.grass[0]), b = NW.hex(biome.grass[1]); return rgb(a.map((v, i) => Math.round(lerp(v, b[i], dry)))); };
+  const treeOf = (I, gx, gy, size) => { const t = biome.tree; if (t === 'cactus') B.cactus(I, gx, gy, size); else if (t === 'pine') B.pine(I, gx, gy, size); else if (t === 'palm') B.palm(I, gx, gy, size); else B.oak(I, gx, gy, size); };
 
   /* you: always on a road. Tap somewhere and you take the roads there;
    * hold an arrow key and you walk, but only where there is road. */
@@ -744,23 +818,31 @@
   }
 
   function drawLand(I, state, me, now, opts) {
-    const ctx = I.ctx, L = S.layout(state); opts = opts || {};
+    const ctx = I.ctx, L = S.layout(state); opts = opts || {}; biome = NW.Eras.biomeOf(state);
+    const lvl = NW.Eras.level(state), era = NW.Eras.eraOf(state), river = lvl >= 6;   /* a kingdom has a river, not a creek */
+    const wet = (gx, gy) => S.inCreek(gx, gy) || (river && S.onBank(gx, gy));
+    const pavedRoad = (gx, gy) => lvl >= 3 || (lvl >= 2 && gx === HOME[0]);   /* a town paves its main street; a city paves every lane */
     for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) {
-      if (!I.onScreen(gx, gy)) continue;
-      if (S.inCreek(gx, gy) && !L.paths.has(gx + ',' + gy)) { I.tile(gx, gy, (Math.floor(now / 600) + gx + gy) % 5 === 0 ? '#5cc0f5' : '#3ea3e8'); continue; }
-      if (S.onBank(gx, gy) && !L.paths.has(gx + ',' + gy)) { I.tile(gx, gy, '#d9c9a0'); continue; }
-      if (L.paths.has(gx + ',' + gy)) { I.tile(gx, gy, S.inCreek(gx, gy) ? '#a88c5f' : '#c8a877', S.inCreek(gx, gy) ? '#6b4a2b' : 'rgba(110,75,30,.35)'); continue; }
+      if (!I.onScreen(gx, gy)) continue; const road = L.paths.has(gx + ',' + gy);
+      if (wet(gx, gy) && !road) { I.tile(gx, gy, (Math.floor(now / 600) + gx + gy) % 5 === 0 ? NW.shade(biome.water, 0.25) : biome.water); continue; }
+      if (S.onBank(gx, gy) && !road) { I.tile(gx, gy, biome.sand); continue; }
+      if (road) { if (wet(gx, gy)) I.tile(gx, gy, '#a88c5f', '#6b4a2b'); else if (pavedRoad(gx, gy)) I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.08)'); else I.tile(gx, gy, '#c8a877', 'rgba(110,75,30,.35)'); continue; }
       I.tile(gx, gy, groundColour(gx, gy));
     }
     const items = []; const add = (d, fn) => items.push({ d, fn });
-    if (!opts.map) for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { const r = S.hash(gx * 3, gy * 5); if (r > 0.045 || !I.onScreen(gx, gy) || S.inCreek(gx, gy) || S.onBank(gx, gy) || L.paths.has(gx + ',' + gy)) continue; if (L.buildings.some(b => Math.abs(b.gx - gx) < 1.8 && Math.abs(b.gy - gy) < 1.8) || (Math.abs(gx - HOME[0]) < 3 && Math.abs(gy - HOME[1]) < 3) || (L.next && Math.abs(L.next[0] - gx) < 2 && Math.abs(L.next[1] - gy) < 2)) continue; add(gx + gy + 0.5, r < 0.006 ? () => B.hay(I, gx, gy) : () => B.oak(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
-    /* the ranch house, or a tent until the first project */
+    if (!opts.map) for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { const r = S.hash(gx * 3, gy * 5); if (r > 0.045 || !I.onScreen(gx, gy) || S.inCreek(gx, gy) || S.onBank(gx, gy) || L.paths.has(gx + ',' + gy)) continue; if (L.buildings.some(b => Math.abs(b.gx - gx) < 1.8 && Math.abs(b.gy - gy) < 1.8) || (Math.abs(gx - HOME[0]) < 3 && Math.abs(gy - HOME[1]) < 3) || (L.next && Math.abs(L.next[0] - gx) < 2 && Math.abs(L.next[1] - gy) < 2)) continue; add(gx + gy + 0.5, r < 0.006 ? () => B.hay(I, gx, gy) : () => treeOf(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
+    /* city walks: lamps along every paved road */
+    if (!opts.map && lvl >= 2) L.paths.forEach(k => { const [x, y] = k.split(',').map(Number); if (!pavedRoad(x, y) || !I.onScreen(x, y) || wet(x, y)) return; if ((x + y * 3) % 7 === 0) add(x + y + 0.35, () => I.lamp(x + 0.15, y + 0.15)); });
+    /* the house: a tent at the campground, the cabin from the fort on, growing with the eras */
     const word = S.houseWord(state);
     if (I.onScreen(HOME[0], HOME[1])) {
-      if (state.done.length === 0) { add(HOME[0] + HOME[1] + 1, () => { const t = I.p(HOME[0] + 0.5, HOME[1] + 0.5); I.poly([[t[0] - 16, t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#e9e4d6'); I.poly([[t[0], t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#cfc7aa'); I.poly([[t[0] - 4, t[1]], [t[0] + 4, t[1]], [t[0], t[1] - 12]], '#6b4a2b'); }); }
-      else { const t = word[0] >= 60 ? 5 : word[0] >= 35 ? 4 : word[0] >= 15 ? 3 : 2; add(HOME[0] + HOME[1] + 2.2, () => B.homestead(I, HOME[0] - 0.7, HOME[1] - 1.2, now, t)); if (word[0] >= 5) { add(HOME[0] + HOME[1] + 0.2, () => B.windmill(I, HOME[0] + 1.6, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] + 0.9, () => B.tank(I, HOME[0] + 2.3, HOME[1] - 1.6)); } if (word[0] >= 15) { add(HOME[0] + HOME[1] - 1, () => B.coop(I, HOME[0] - 3.2, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] - 0.5, () => B.cow(I, HOME[0] - 2.4 + Math.sin(now / 9000) * 0.6, HOME[1] + 0.2, now / 1000)); } }
+      if (lvl === 0) { add(HOME[0] + HOME[1] + 1, () => { const t = I.p(HOME[0] + 0.5, HOME[1] + 0.5); I.poly([[t[0] - 16, t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#e9e4d6'); I.poly([[t[0], t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#cfc7aa'); I.poly([[t[0] - 4, t[1]], [t[0] + 4, t[1]], [t[0], t[1] - 12]], '#6b4a2b'); }); }
+      else { const t = lvl >= 5 ? 5 : lvl >= 4 ? 4 : lvl >= 3 ? 3 : 2; add(HOME[0] + HOME[1] + 2.2, () => B.homestead(I, HOME[0] - 0.7, HOME[1] - 1.2, now, t)); add(HOME[0] + HOME[1] + 0.2, () => B.windmill(I, HOME[0] + 1.6, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] + 0.9, () => B.tank(I, HOME[0] + 2.3, HOME[1] - 1.6)); if (lvl >= 2) { add(HOME[0] + HOME[1] - 1, () => B.coop(I, HOME[0] - 3.2, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] - 0.5, () => B.cow(I, HOME[0] - 2.4 + Math.sin(now / 9000) * 0.6, HOME[1] + 0.2, now / 1000)); } }
+      if (lvl === 1 && !opts.map) add(HOME[0] + HOME[1] - 2, () => { /* the fort: a stockade round the cabin */ I.fence(HOME[0] - 4, HOME[1] - 3.5, HOME[0] + 4.2, HOME[1] - 3.5, 12); I.fence(HOME[0] - 4, HOME[1] - 3.5, HOME[0] - 4, HOME[1] + 3, 10); I.fence(HOME[0] + 4.2, HOME[1] - 3.5, HOME[0] + 4.2, HOME[1] + 3, 10); });
+      /* what the era brought */
+      NW.Eras.civicOf(state).forEach(c => { const d = B.CIV[c.kind]; if (!d || !(I.onScreen(c.gx, c.gy) || I.onScreen(c.gx + 3, c.gy + 3))) return; add(c.gx + c.gy + 2.2, () => d(I, c.gx, c.gy, now)); });
       add(HOME[0] + HOME[1] + 3.6, () => B.board(I, HOME[0] - 1.6, HOME[1] + 1.8));
-      if (!opts.map && opts.land) add(9999, () => I.label(HOME[0] + 0.5, HOME[1] - 3.2, opts.land, word[1], 11));
+      if (!opts.map && opts.land) add(9999, () => I.label(HOME[0] + 0.5, HOME[1] - 3.2, opts.land, era.name, 11));
     }
     /* the next lot, pegged out; and every free lot on a lane in use while you are choosing */
     if (!opts.map && L.next && !opts.site) add(L.next[0] + L.next[1] + 0.4, () => { const q = I.p(L.next[0] + 0.5, L.next[1] + 0.5); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.ellipse(q[0], q[1], 14, 7, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); [[-0.3, -0.3], [1.3, -0.3], [-0.3, 1.3], [1.3, 1.3]].forEach(o => { const c = I.p(L.next[0] + o[0], L.next[1] + o[1]); ctx.fillStyle = '#8b5a2b'; ctx.fillRect(c[0] - 1, c[1] - 7, 2, 7); ctx.fillStyle = '#e8552f'; ctx.fillRect(c[0] - 2.5, c[1] - 9, 5, 2.5); }); });
@@ -784,7 +866,7 @@
   function sky(I, n) { n = n || 0; const g = I.ctx.createLinearGradient(0, 0, 0, I.H || 620); const mix = (a, b) => { const A = NW.hex(a), B2 = NW.hex(b); return NW.rgb(A.map((v, i) => Math.round(v + (B2[i] - v) * n))); }; g.addColorStop(0, mix('#9ccdf5', '#0b1730')); g.addColorStop(1, mix('#dfeefb', '#16325a')); I.ctx.fillStyle = g; I.ctx.fillRect(0, 0, I.W || 880, I.H || 620); }
   const hit = (L, g) => L.buildings.find(b => b.tier > 0 && Math.abs(b.gx + 0.5 - g[0]) < 0.75 && Math.abs(b.gy + 0.5 - g[1]) < 0.75);
   const tierName = (state) => { const x = S.xpOf(state); return tierOf(x)[1]; };
-  NW.Land = { groundColour, onRoad, laneOfLot, makeMe, goTo, stepMe, siteFor, drawSite, drawLand, sky, hit, tierName, TIERS, KIND_NAME };
+  NW.Land = { groundColour, treeOf, onRoad, laneOfLot, makeMe, goTo, stepMe, siteFor, drawSite, drawLand, sky, hit, tierName, TIERS, KIND_NAME };
 })();
 
 /* NextWorld · HQ: the NextWork World map
@@ -1028,7 +1110,7 @@
 'use strict';
 (function () {
   const { makeIso, B, clamp, lerp, reduce, SERIES, START_HERE, ABOUT, KIND_NAME, ICON, TW, TH } = NW;
-  const S = NW.State, Land = NW.Land, HQ = NW.HQ, G = NW.Global;
+  const S = NW.State, Land = NW.Land, HQ = NW.HQ, G = NW.Global, E = NW.Eras;
   const TABS = [['world', 'NextWorld'], ['avatar', 'Avatar'], ['base', 'My World'], ['build', 'My Build'], ['global', 'Globe']];
 
   const CSS = `
@@ -1073,6 +1155,7 @@
     .card { background: #fff; color: #172033; border-radius: 12px; padding: 10px 12px; display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,.4); } .card[hidden] { display: none; }
     .card .ic { width: 40px; height: 40px; border-radius: 10px; background: #eef2f8; display: flex; align-items: center; justify-content: center; font-size: 20px; } .card b { font: 800 13.5px/1.15 "Baloo 2", system-ui, sans-serif; display: block; } .card small { font-size: 12px; color: #5b6478; display: block; }
     .card .acts { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .card .acts button { font: 800 11.5px/1 "Baloo 2", system-ui, sans-serif; padding: 8px 4px; border: 0; border-radius: 10px; background: #eef2f8; color: #172033; } .card .acts button.up { background: linear-gradient(180deg, #8fe3a4, #47d16c); color: #0b3d1b; } .card .acts button:disabled { opacity: .45; }
+    .devtoggle { font: 700 11px/1 "Baloo 2", system-ui, sans-serif; margin: 6px 12px 0; padding: 5px 10px; border: 1px solid rgba(143,227,164,.4); border-radius: 999px; background: transparent; color: #8fe3a4; align-self: flex-start; } .devtoggle[hidden] { display: none; }
     .devbar { display: flex; gap: 5px; flex-wrap: wrap; padding: 8px 12px; background: rgba(143,227,164,.1); border-bottom: 1px solid rgba(143,227,164,.3); } .devbar[hidden] { display: none; } .devbar span { font: 700 11px/2 "Baloo 2", system-ui, sans-serif; color: #8fe3a4; margin-right: 4px; }
     .about p { margin: 0; font-size: 13.5px; line-height: 1.5; } .about .tag { font: 800 22px/1.1 "Baloo 2", system-ui, sans-serif; color: #fff; } .about .mission { font-size: 15px; color: var(--gold); font-weight: 700; }
     .about a { color: var(--xp); font-weight: 700; text-decoration: none; } .about a:hover { text-decoration: underline; }
@@ -1105,7 +1188,8 @@
     const bar = el('div', 'bar'); const brand = el('div', 'brand', 'Next'); brand.appendChild(el('span', null, 'World'));
     const mode = el('button', 'mode'); mode.type = 'button'; const tabs = el('div', 'tabs'); tabs.setAttribute('role', 'tablist');
     put(bar, brand, mode, tabs); wrap.appendChild(bar);
-    const devbar = el('div', 'devbar'); devbar.hidden = true; wrap.appendChild(devbar);
+    const devbar = el('div', 'devbar'); devbar.hidden = true; wrap.appendChild(devbar); let devOpen = false;
+    const devToggle = el('button', 'devtoggle', 'Dev tools ▾'); devToggle.type = 'button'; devToggle.hidden = true; devToggle.addEventListener('click', () => { devOpen = !devOpen; devbar.hidden = !devOpen; devToggle.textContent = devOpen ? 'Dev tools ▴' : 'Dev tools ▾'; setTimeout(fit, 0); }); wrap.insertBefore(devToggle, devbar);
     const views = {}, tabBtns = {};
     TABS.forEach(([id, name]) => { const b = el('button', null, name); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.view = id; b.addEventListener('click', () => show(id)); tabs.appendChild(b); tabBtns[id] = b; const v = el('section', 'view'); v.hidden = true; views[id] = v; wrap.appendChild(v); });
     let current = 'world';
@@ -1161,10 +1245,10 @@
     const btoast = toast(b1.sc); views.base.appendChild(b1.sc);
     /* the dashboard panel: tap the shield */
     const dash = el('div', 'dash'); dash.hidden = true; const dashT = el('h3'); const dashList = el('div', 'list'); const dashClose = el('button', 'btn', 'Close'); dashClose.type = 'button'; dashClose.addEventListener('click', () => { dash.hidden = true; }); put(dash, dashT, dashList, dashClose); b1.sc.appendChild(dash);
-    function paintDash() { const w = S.houseWord(state), nw = S.nextHouseWord(state), nx = S.nextProject(state); dashT.textContent = S.landName(state) + ' · ' + w[1].toLowerCase() + ' · ' + state.done.length + ' built'; while (dashList.firstChild) dashList.removeChild(dashList.firstChild);
+    function paintDash() { const era = E.eraOf(state), ne = E.nextEra(state), nx = S.nextProject(state); dashT.textContent = S.landName(state) + ' · ' + era.word + ' · ' + E.score(state) + ' built'; while (dashList.firstChild) dashList.removeChild(dashList.firstChild);
       const step = (n, t, sub, fn) => { const row = el('div', 'row' + (fn ? ' going' : '')); const nn = el('div', 'n'); put(nn, el('b', null, t), el('small', null, sub)); put(row, el('i', null, String(n)), nn, el('div', 'v', '')); if (fn) { const b = el('button', null, 'Go'); b.type = 'button'; b.addEventListener('click', fn); row.appendChild(b); } dashList.appendChild(row); };
       if (nx) { step(1, 'Next: ' + nx.title, 'Its lot is pegged out. Open the project and tick the steps; it goes up as you go. Move it if you like.', () => { dash.hidden = true; show('build'); }); }
-      step(2, 'Walk the roads', 'Tap anywhere and you take the roads there. Arrow keys walk too.'); step(3, nw ? (nw[0] - state.done.length) + ' more to a ' + nw[1].toLowerCase() : 'The whole valley', 'The ranch house grows with what you finish.'); if (state.lists.length) step(4, state.lists.length + ' learn lists over the creek', 'Your own projects, each list a spread of its own.'); }
+      step(2, 'This is ' + era.word, 'It came with ' + era.needs + '.'); step(3, ne ? (ne.n - E.score(state)) + ' more and it is ' + ne.word : 'A kingdom. The whole thing.', ne ? 'That brings ' + ne.needs + '.' : 'Every era, earned.'); step(4, 'Walk the roads', 'Tap anywhere and you take the roads there. Arrow keys walk too.'); if (state.lists.length) step(5, state.lists.length + ' learn lists over the ' + (E.level(state) >= 6 ? 'river' : 'creek'), 'Your own projects, in rows of their own.'); }
     hud.addEventListener('click', () => { if (placing) { placing = null; bsay('Kept the pegged lot', 'It goes where the pegs are.'); return; } paintDash(); dash.hidden = !dash.hidden; });
     const card = el('div', 'card'); card.hidden = true; const cIc = el('div', 'ic'); const cT = el('div'); const cB = el('b'); const cS = el('small'); put(cT, cB, cS); const acts = el('div', 'acts'); const cOpen = el('button', null, 'Open project'); cOpen.type = 'button'; const cNext = el('button', 'up', 'Next part'); cNext.type = 'button'; put(acts, cOpen, cNext); put(card, cIc, cT, acts); views.base.appendChild(card);
     const bsay = sayer(views.base); const board = el('div', 'board'); views.base.appendChild(board);
@@ -1184,7 +1268,7 @@
       if (placing) { const q = S.nearestLot(state, g); if (!q) { bsay('Not there', 'Pick an empty lot on a lane. They are outlined.'); return; } state.sites[placing] = q; state.building = placing; if (state.mode === 'dev' && !state.steps[placing]) state.steps[placing] = { done: 0, total: 7 }; const t = placing; placing = null; save(); lastL = S.layout(state); btoast('Site pegged out'); bsay('Pegged out', t + ' goes here. Open the project and it goes up as you tick the steps.'); paintBoard(); paintBuild(); show('build'); return; }
       if (Math.abs(g[0] - S.HOME[0] - 1.5) < 1.6 && Math.abs(g[1] - (S.LAND - 4) - 0.5) < 1.6) { show('world'); aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1]); return; }
       const hit = Land.hit(L, g); if (hit) { showCard(hit); return; } card.hidden = true;
-      if (Math.abs(g[0] - S.HOME[0]) < 1.6 && Math.abs(g[1] - S.HOME[1]) < 1.6) { const w = S.houseWord(state), n = S.nextHouseWord(state); bsay('The ' + w[1].toLowerCase() + ' · ' + S.landName(state), n ? (n[0] - state.done.length) + ' more and it is a ' + n[1].toLowerCase() + '.' : 'The whole valley.'); Land.goTo(me, L.paths, [S.HOME[0] + 0.5, S.HOME[1] + 2.5]); me.follow = true; return; }
+      if (Math.abs(g[0] - S.HOME[0]) < 1.6 && Math.abs(g[1] - S.HOME[1]) < 1.6) { const w = S.houseWord(state), n = S.nextHouseWord(state); bsay(S.landName(state) + ' · ' + E.eraOf(state).name, E.nextEra(state) ? (E.nextEra(state).n - E.score(state)) + ' more and it is ' + E.nextEra(state).word + '.' : 'A kingdom.'); Land.goTo(me, L.paths, [S.HOME[0] + 0.5, S.HOME[1] + 2.5]); me.follow = true; return; }
       if (g[0] >= 0 && g[1] >= 0 && g[0] < S.LAND && g[1] < S.LAND) { if (Land.goTo(me, L.paths, g)) { me.follow = true; bsay('On my way', Land.onRoad(L.paths, g[0], g[1]) ? 'By road.' : 'By road, to the nearest bit of it.'); } else bsay('No road there', 'Roads reach everything that is built.'); } }, () => { me.follow = false; });
     b1.cv.addEventListener('keydown', e => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) { me.keys[e.key] = true; e.preventDefault(); } });
     b1.cv.addEventListener('keyup', e => { delete me.keys[e.key]; }); b1.cv.addEventListener('blur', () => { me.keys = {}; });
@@ -1198,13 +1282,14 @@
     field('Name', 'nww-name', state.name, v => { state.name = v || 'You'; save(); whoB.textContent = S.landName(state); });
     field('Your land', 'nww-land', state.land, v => { state.land = v; save(); whoB.textContent = S.landName(state); });
     function choices(label, k, list, swatch) { const g = el('div', 'grp'); g.appendChild(el('span', null, label)); const paint = () => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === av[k]))); list.forEach(([v, t]) => { const b = el('button', swatch ? 'sw' : null, swatch ? '' : t); b.type = 'button'; b.dataset.v = v; if (swatch) { b.style.background = v; b.title = t; b.setAttribute('aria-label', t); } b.addEventListener('click', () => { av[k] = v; save(); paint(); }); g.appendChild(b); }); paint(); opts.appendChild(g); }
+    const landRow = el('div', 'grp'); landRow.appendChild(el('span', null, 'Land')); Object.keys(E.BIOMES).forEach(k => { const b = el('button', null, E.BIOMES[k].name); b.type = 'button'; b.dataset.v = k; b.setAttribute('aria-pressed', String(state.biome === k)); b.addEventListener('click', () => { state.biome = k; save(); landRow.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === k))); }); landRow.appendChild(b); }); opts.appendChild(landRow);
     choices('Body', 'body', [['pineapple', 'Pineapple'], ['person', 'Person']]);
     choices('Shirt', 'shirt', [['#2f7fd6', 'Blue'], ['#e8552f', 'Red'], ['#3fa66b', 'Green'], ['#f2b42a', 'Gold'], ['#8f5fd1', 'Purple'], ['#1c1f26', 'Black'], ['#f4f1e8', 'White']], true);
     choices('Hat', 'hat', [['none', 'None'], ['cowboy', 'Cowboy'], ['cap', 'Cap'], ['hard', 'Hard hat'], ['beanie', 'Beanie']]);
     choices('Hat colour', 'hatColour', [['#8a5a3a', 'Tan'], ['#1c1f26', 'Black'], ['#ffc531', 'Yellow'], ['#e8552f', 'Red'], ['#2f7fd6', 'Blue']], true);
     choices('Skin', 'skin', [['#ffd6ad', 'Light'], ['#e8b48a', 'Medium'], ['#b87a4b', 'Tan'], ['#7a4b2a', 'Deep'], ['#4a2e1a', 'Dark']], true);
     choices('Hair', 'hair', [['#4a2e1a', 'Brown'], ['#1c1f26', 'Black'], ['#d9b24c', 'Blond'], ['#b03a2e', 'Red'], ['#9aa3b0', 'Grey']], true);
-    views.avatar.appendChild(el('div', 'cap', 'The pineapple is the house avatar. Whatever you build here walks your land, on the roads. Your land’s name is on the world map and over your ranch house.'));
+    views.avatar.appendChild(el('div', 'cap', 'The pineapple is the house avatar. Whatever you build here walks your land, on the roads. The land is scenery only: Hill Country, desert, forest or coast, it grows the same way.'));
 
     /* ---- 4. My Build ---- */
     const bt = el('div', 'tiles'); const tWhere = el('div', 'tile wide'); const tWb = el('b'); const tWs = el('span'); const tWbar = el('div', 'barx'); const tWi = el('i'); tWbar.appendChild(tWi); put(tWhere, el('small', null, 'Where you are'), tWb, tWs, tWbar);
@@ -1227,8 +1312,8 @@
     function stepsOf(title) { const st = state.steps[title]; return st ? { done: st.done, total: st.total } : { done: 0, total: 7 }; }
     function tickStep() { if (!current_site) return; const st = stepsOf(current_site.title); if (st.done >= st.total) return; state.steps[current_site.title] = { done: st.done + 1, total: st.total }; bs.lastAt = performance.now(); save(); if (st.done + 1 >= st.total) { const t = current_site.title, sr = current_site.series; setTimeout(() => finish(t, sr), 900); } paintBuild(); }
     function paintBuild() {
-      const w = S.houseWord(state), nw = S.nextHouseWord(state);
-      tWb.textContent = w[1] + ' · ' + state.done.length + ' built'; tWs.textContent = nw ? (nw[0] - state.done.length) + ' more to ' + nw[1].toLowerCase() : 'The whole valley'; tWi.style.width = (nw ? (state.done.length - w[0]) / (nw[0] - w[0]) * 100 : 100) + '%';
+      const era = E.eraOf(state), ne = E.nextEra(state), sc = E.score(state);
+      tWb.textContent = era.name + ' · ' + sc + ' built'; tWs.textContent = ne ? (ne.n - sc) + ' more to ' + ne.word + ': ' + ne.needs : 'A kingdom, with everything'; tWi.style.width = (ne ? (sc - era.n) / (ne.n - era.n) * 100 : 100) + '%';
       tDb.textContent = state.done.length + ' / 90'; const lt = state.lists.reduce((a, l) => a + l.total, 0), ld = state.lists.reduce((a, l) => a + l.done, 0); tLb.textContent = ld + ' / ' + lt; tLs.textContent = 'of your own, across ' + state.lists.length + (state.lists.length === 1 ? ' list' : ' lists');
       const nx = S.nextProject(state); current_site = nx ? Land.siteFor(state) : null; const placed = !!current_site; const st = current_site ? stepsOf(current_site.title) : { done: 0, total: 0 };
       pName.textContent = nx ? nx.title : 'Every project is built'; pSub.textContent = nx ? nx.series.name + ' · part ' + (S.doneIn(state, nx.series) + 1) + ' of ' + nx.series.projects.length + ' · becomes a ' + KIND_NAME[nx.series.kind].toLowerCase() + (placed ? '' : ' · not placed yet') : '';
@@ -1272,7 +1357,7 @@
     if (window.ResizeObserver) { const ro = new ResizeObserver(fit); ro.observe(wrap); if (hostEl !== wrap && hostEl.nodeType === 1) ro.observe(hostEl); } fit();
 
     /* ---- mode, dev controls ---- */
-    function paintMode() { setTimeout(fit, 0); mode.textContent = state.mode === 'dev' ? 'Dev · simulate and reset' : 'Production · real data only'; mode.dataset.on = state.mode; devbar.hidden = state.mode !== 'dev'; }
+    function paintMode() { setTimeout(fit, 0); mode.textContent = state.mode === 'dev' ? 'Dev · simulate and reset' : 'Production · real data only'; mode.dataset.on = state.mode; devToggle.hidden = state.mode !== 'dev'; devbar.hidden = state.mode !== 'dev' || !devOpen; }
     mode.addEventListener('click', () => { state.mode = state.mode === 'dev' ? 'prod' : 'dev'; if (state.mode === 'prod' && host.production) { const p = S.normalise(host.production()); state.done = p.done; state.lists = p.lists; state.steps = p.steps; state.name = p.name; } save(); lastL = S.layout(state); paintMode(); paintDev(); paintBuild(); paintBoard(); });
     function paintDev() { while (devbar.firstChild) devbar.removeChild(devbar.firstChild); devbar.appendChild(el('span', null, 'One at a time'));
       const nx = S.nextProject(state), nl = nx ? null : S.nextListProject(state); const f = el('button', null, nx ? 'Build the next: ' + nx.title : nl ? 'Build the next: ' + nl.name + ' ' + (nl.done + 1) + ' of ' + nl.total : 'Every project is built'); f.type = 'button'; f.disabled = !nx && !nl; f.addEventListener('click', () => { if (nx) finish(nx.title, nx.series); else if (nl) { nl.done++; save(); lastL = S.layout(state); btoast('Built: ' + nl.name + ' ' + nl.done + ' of ' + nl.total); paintBuild(); paintDev(); } }); devbar.appendChild(f);
@@ -1290,7 +1375,7 @@
       const night = S.nightOf(S.hourOf(state));
       if (current === 'world') { world.ctx.setTransform(1, 0, 0, 1, 0, 0); Land.sky({ ctx: world.ctx, W: world.PW, H: world.PH }, night); world.reset(); world.night = night; HQ.drawHQ(world, state, now, {}); }
       else if (current === 'avatar') { Land.sky(avI, night); avI.night = night; for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) avI.tile(x, y, y === 2 ? '#c8a877' : Land.groundColour(x + 30, y + 30), y === 2 ? 'rgba(110,75,30,.35)' : null); B.oak(avI, 4, 0, 0.9); B.hay(avI, 0, 4); avI.lamp(4.5, 2.5); const t = (now / 2600) % 1; B.avatar(avI, 0.5 + t * 4, 2.5, av, now / 1000, true); avI.nightfall(night); }
-      else if (current === 'base') { Land.stepMe(me, lastL.paths); if (me.follow) { const c = camTo(me.gx, me.gy, base.H); base.cam.x = lerp(base.cam.x, c.x, reduce ? 1 : 0.08); base.cam.y = lerp(base.cam.y, c.y, reduce ? 1 : 0.08); } Land.sky(base, night); base.night = night; Land.drawLand(base, state, me, now, { anim, fx, placing, land: S.landName(state) }); const w = S.houseWord(state); shield.textContent = String(NW.TIERS.indexOf(NW.tierOf(S.xpOf(state))) + 1); whoS.textContent = w[1] + ' · ' + state.done.length + ' built · ' + state.lists.length + ' lists'; if (anim && now - anim.start > 1700) anim = null; while (fx.length && now - fx[0].start > fx[0].life) fx.shift(); if (!reduce && me.moving) { state.me = { gx: me.gx, gy: me.gy }; } lastL = S.layout(state); }
+      else if (current === 'base') { Land.stepMe(me, lastL.paths); if (me.follow) { const c = camTo(me.gx, me.gy, base.H); base.cam.x = lerp(base.cam.x, c.x, reduce ? 1 : 0.08); base.cam.y = lerp(base.cam.y, c.y, reduce ? 1 : 0.08); } Land.sky(base, night); base.night = night; Land.drawLand(base, state, me, now, { anim, fx, placing, land: S.landName(state) }); const era = E.eraOf(state); shield.textContent = String(E.level(state) + 1); whoS.textContent = era.name + ' · ' + E.score(state) + ' built'; if (anim && now - anim.start > 1700) anim = null; while (fx.length && now - fx[0].start > fx[0].life) fx.shift(); if (!reduce && me.moving) { state.me = { gx: me.gx, gy: me.gy }; } lastL = S.layout(state); }
       else if (current === 'build') { Land.sky(site, night); site.night = night; const st = current_site ? stepsOf(current_site.title) : { done: 0, total: 0 }; const o = { site: current_site, stepsDone: st.done, stepsTotal: st.total, k: reduce ? 1 : clamp((now - bs.lastAt) / 900, 0, 1), anim }; Land.drawLand(site, state, null, now, o); sbadge.textContent = o.stage ? o.stage + ' · ' + st.done + ' of ' + st.total : '';
         /* the nail game: while something is going up, nails pop up round the site; tap them */
         if (current_site && st.done > 0 && st.done < st.total && !reduce) { if (now - game.last > 1400 && game.nails.filter(n => !n.done).length < 4) { game.last = now; const slot = [[0.1, 0.1], [0.9, 0.1], [0.1, 0.9], [0.9, 0.9], [0.5, 0.1], [0.5, 0.9]][Math.floor(Math.random() * 6)]; game.nails.push({ gx: current_site.gx + slot[0], gy: current_site.gy + slot[1], z: 36, born: now, done: false }); } game.nails = game.nails.filter(n => n.done ? now - n.at < 500 : now - n.born < 7000); game.nails.forEach(n => { const q = site.p(n.gx, n.gy, n.z); n.sx = q[0]; n.sy = q[1]; }); game.nails.forEach(n => { const ctx = site.ctx; if (n.done) { const t = (now - n.at) / 500; ctx.globalAlpha = 1 - t; ctx.font = '800 12px Baloo 2, system-ui, sans-serif'; ctx.fillStyle = '#ffc531'; ctx.textAlign = 'center'; ctx.fillText('+1', n.sx, n.sy - 10 - t * 16); ctx.textAlign = 'left'; ctx.globalAlpha = 1; return; } const pulse = 1 + Math.sin((now - n.born) / 150) * 0.15; ctx.fillStyle = 'rgba(255,197,49,.35)'; ctx.beginPath(); ctx.arc(n.sx, n.sy, 13 * pulse, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#ffc531'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(n.sx, n.sy, 13 * pulse, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = '#9aa3b0'; ctx.fillRect(n.sx - 1.5, n.sy - 9, 3, 11); ctx.fillStyle = '#e6e9ef'; ctx.fillRect(n.sx - 4, n.sy - 11, 8, 3); }); } }

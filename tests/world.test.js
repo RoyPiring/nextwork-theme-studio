@@ -14,7 +14,7 @@ function loadWorld() {
   const g = { console, Date, Math, JSON, Set, Map, Object, Array, Number, String, RegExp, Error, performance: { now: () => 0 } };
   g.window = g; g.self = g; g.document = { createElement: () => ({ style: {}, dataset: {}, classList: { add() {}, remove() {} }, appendChild() {}, addEventListener() {}, setAttribute() {}, getContext: () => null }), createTextNode: () => ({}) };
   const ctx = vm.createContext(g);
-  ['engine', 'assets', 'data', 'state', 'land', 'hq', 'global', 'readers', 'views'].forEach(f => {
+  ['engine', 'assets', 'data', 'state', 'eras', 'land', 'hq', 'global', 'readers', 'views'].forEach(f => {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'world', f + '.js'), 'utf8'), ctx, { filename: f + '.js' });
   });
   return g.NW;
@@ -118,4 +118,5 @@ test('the world settings default to off, and the content script draws nothing wi
   const js = manifest.content_scripts[0].js;
   assert.ok(js.indexOf('src/world/pane.js') < js.indexOf('src/content.js'), 'the world loads before the content script that calls it');
   assert.ok(js.indexOf('src/world/engine.js') < js.indexOf('src/world/views.js'));
+  assert.ok(js.indexOf('src/world/eras.js') < js.indexOf('src/world/land.js'), 'the eras load before the land that draws them');
 });

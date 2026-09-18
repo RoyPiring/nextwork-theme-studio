@@ -7,7 +7,10 @@
   const S = NW.State, { LAND, HOME } = S;
   const laneOfLot = q => S.LANES.find(l => q[1] === l - 2 || q[1] === l + 1);
 
-  const groundColour = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? '#d9d2b8' : '#cfc7aa'; const dry = clamp((h - 0.25) * 2.2, 0, 1); return rgb([lerp(0x7f, 0xb9, dry), lerp(0xb3, 0xb1, dry), lerp(0x5a, 0x62, dry)].map(Math.round)); };
+  /* the ground, in whichever land you chose: two grass tones by height, stone on the high ground */
+  let biome = NW.Eras.BIOMES.hill;
+  const groundColour = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? biome.stone : NW.shade(biome.stone, -0.06); const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(biome.grass[0]), b = NW.hex(biome.grass[1]); return rgb(a.map((v, i) => Math.round(lerp(v, b[i], dry)))); };
+  const treeOf = (I, gx, gy, size) => { const t = biome.tree; if (t === 'cactus') B.cactus(I, gx, gy, size); else if (t === 'pine') B.pine(I, gx, gy, size); else if (t === 'palm') B.palm(I, gx, gy, size); else B.oak(I, gx, gy, size); };
 
   /* you: always on a road. Tap somewhere and you take the roads there;
    * hold an arrow key and you walk, but only where there is road. */
@@ -43,23 +46,31 @@
   }
 
   function drawLand(I, state, me, now, opts) {
-    const ctx = I.ctx, L = S.layout(state); opts = opts || {};
+    const ctx = I.ctx, L = S.layout(state); opts = opts || {}; biome = NW.Eras.biomeOf(state);
+    const lvl = NW.Eras.level(state), era = NW.Eras.eraOf(state), river = lvl >= 6;   /* a kingdom has a river, not a creek */
+    const wet = (gx, gy) => S.inCreek(gx, gy) || (river && S.onBank(gx, gy));
+    const pavedRoad = (gx, gy) => lvl >= 3 || (lvl >= 2 && gx === HOME[0]);   /* a town paves its main street; a city paves every lane */
     for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) {
-      if (!I.onScreen(gx, gy)) continue;
-      if (S.inCreek(gx, gy) && !L.paths.has(gx + ',' + gy)) { I.tile(gx, gy, (Math.floor(now / 600) + gx + gy) % 5 === 0 ? '#5cc0f5' : '#3ea3e8'); continue; }
-      if (S.onBank(gx, gy) && !L.paths.has(gx + ',' + gy)) { I.tile(gx, gy, '#d9c9a0'); continue; }
-      if (L.paths.has(gx + ',' + gy)) { I.tile(gx, gy, S.inCreek(gx, gy) ? '#a88c5f' : '#c8a877', S.inCreek(gx, gy) ? '#6b4a2b' : 'rgba(110,75,30,.35)'); continue; }
+      if (!I.onScreen(gx, gy)) continue; const road = L.paths.has(gx + ',' + gy);
+      if (wet(gx, gy) && !road) { I.tile(gx, gy, (Math.floor(now / 600) + gx + gy) % 5 === 0 ? NW.shade(biome.water, 0.25) : biome.water); continue; }
+      if (S.onBank(gx, gy) && !road) { I.tile(gx, gy, biome.sand); continue; }
+      if (road) { if (wet(gx, gy)) I.tile(gx, gy, '#a88c5f', '#6b4a2b'); else if (pavedRoad(gx, gy)) I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.08)'); else I.tile(gx, gy, '#c8a877', 'rgba(110,75,30,.35)'); continue; }
       I.tile(gx, gy, groundColour(gx, gy));
     }
     const items = []; const add = (d, fn) => items.push({ d, fn });
-    if (!opts.map) for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { const r = S.hash(gx * 3, gy * 5); if (r > 0.045 || !I.onScreen(gx, gy) || S.inCreek(gx, gy) || S.onBank(gx, gy) || L.paths.has(gx + ',' + gy)) continue; if (L.buildings.some(b => Math.abs(b.gx - gx) < 1.8 && Math.abs(b.gy - gy) < 1.8) || (Math.abs(gx - HOME[0]) < 3 && Math.abs(gy - HOME[1]) < 3) || (L.next && Math.abs(L.next[0] - gx) < 2 && Math.abs(L.next[1] - gy) < 2)) continue; add(gx + gy + 0.5, r < 0.006 ? () => B.hay(I, gx, gy) : () => B.oak(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
-    /* the ranch house, or a tent until the first project */
+    if (!opts.map) for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { const r = S.hash(gx * 3, gy * 5); if (r > 0.045 || !I.onScreen(gx, gy) || S.inCreek(gx, gy) || S.onBank(gx, gy) || L.paths.has(gx + ',' + gy)) continue; if (L.buildings.some(b => Math.abs(b.gx - gx) < 1.8 && Math.abs(b.gy - gy) < 1.8) || (Math.abs(gx - HOME[0]) < 3 && Math.abs(gy - HOME[1]) < 3) || (L.next && Math.abs(L.next[0] - gx) < 2 && Math.abs(L.next[1] - gy) < 2)) continue; add(gx + gy + 0.5, r < 0.006 ? () => B.hay(I, gx, gy) : () => treeOf(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
+    /* city walks: lamps along every paved road */
+    if (!opts.map && lvl >= 2) L.paths.forEach(k => { const [x, y] = k.split(',').map(Number); if (!pavedRoad(x, y) || !I.onScreen(x, y) || wet(x, y)) return; if ((x + y * 3) % 7 === 0) add(x + y + 0.35, () => I.lamp(x + 0.15, y + 0.15)); });
+    /* the house: a tent at the campground, the cabin from the fort on, growing with the eras */
     const word = S.houseWord(state);
     if (I.onScreen(HOME[0], HOME[1])) {
-      if (state.done.length === 0) { add(HOME[0] + HOME[1] + 1, () => { const t = I.p(HOME[0] + 0.5, HOME[1] + 0.5); I.poly([[t[0] - 16, t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#e9e4d6'); I.poly([[t[0], t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#cfc7aa'); I.poly([[t[0] - 4, t[1]], [t[0] + 4, t[1]], [t[0], t[1] - 12]], '#6b4a2b'); }); }
-      else { const t = word[0] >= 60 ? 5 : word[0] >= 35 ? 4 : word[0] >= 15 ? 3 : 2; add(HOME[0] + HOME[1] + 2.2, () => B.homestead(I, HOME[0] - 0.7, HOME[1] - 1.2, now, t)); if (word[0] >= 5) { add(HOME[0] + HOME[1] + 0.2, () => B.windmill(I, HOME[0] + 1.6, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] + 0.9, () => B.tank(I, HOME[0] + 2.3, HOME[1] - 1.6)); } if (word[0] >= 15) { add(HOME[0] + HOME[1] - 1, () => B.coop(I, HOME[0] - 3.2, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] - 0.5, () => B.cow(I, HOME[0] - 2.4 + Math.sin(now / 9000) * 0.6, HOME[1] + 0.2, now / 1000)); } }
+      if (lvl === 0) { add(HOME[0] + HOME[1] + 1, () => { const t = I.p(HOME[0] + 0.5, HOME[1] + 0.5); I.poly([[t[0] - 16, t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#e9e4d6'); I.poly([[t[0], t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#cfc7aa'); I.poly([[t[0] - 4, t[1]], [t[0] + 4, t[1]], [t[0], t[1] - 12]], '#6b4a2b'); }); }
+      else { const t = lvl >= 5 ? 5 : lvl >= 4 ? 4 : lvl >= 3 ? 3 : 2; add(HOME[0] + HOME[1] + 2.2, () => B.homestead(I, HOME[0] - 0.7, HOME[1] - 1.2, now, t)); add(HOME[0] + HOME[1] + 0.2, () => B.windmill(I, HOME[0] + 1.6, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] + 0.9, () => B.tank(I, HOME[0] + 2.3, HOME[1] - 1.6)); if (lvl >= 2) { add(HOME[0] + HOME[1] - 1, () => B.coop(I, HOME[0] - 3.2, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] - 0.5, () => B.cow(I, HOME[0] - 2.4 + Math.sin(now / 9000) * 0.6, HOME[1] + 0.2, now / 1000)); } }
+      if (lvl === 1 && !opts.map) add(HOME[0] + HOME[1] - 2, () => { /* the fort: a stockade round the cabin */ I.fence(HOME[0] - 4, HOME[1] - 3.5, HOME[0] + 4.2, HOME[1] - 3.5, 12); I.fence(HOME[0] - 4, HOME[1] - 3.5, HOME[0] - 4, HOME[1] + 3, 10); I.fence(HOME[0] + 4.2, HOME[1] - 3.5, HOME[0] + 4.2, HOME[1] + 3, 10); });
+      /* what the era brought */
+      NW.Eras.civicOf(state).forEach(c => { const d = B.CIV[c.kind]; if (!d || !(I.onScreen(c.gx, c.gy) || I.onScreen(c.gx + 3, c.gy + 3))) return; add(c.gx + c.gy + 2.2, () => d(I, c.gx, c.gy, now)); });
       add(HOME[0] + HOME[1] + 3.6, () => B.board(I, HOME[0] - 1.6, HOME[1] + 1.8));
-      if (!opts.map && opts.land) add(9999, () => I.label(HOME[0] + 0.5, HOME[1] - 3.2, opts.land, word[1], 11));
+      if (!opts.map && opts.land) add(9999, () => I.label(HOME[0] + 0.5, HOME[1] - 3.2, opts.land, era.name, 11));
     }
     /* the next lot, pegged out; and every free lot on a lane in use while you are choosing */
     if (!opts.map && L.next && !opts.site) add(L.next[0] + L.next[1] + 0.4, () => { const q = I.p(L.next[0] + 0.5, L.next[1] + 0.5); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.ellipse(q[0], q[1], 14, 7, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); [[-0.3, -0.3], [1.3, -0.3], [-0.3, 1.3], [1.3, 1.3]].forEach(o => { const c = I.p(L.next[0] + o[0], L.next[1] + o[1]); ctx.fillStyle = '#8b5a2b'; ctx.fillRect(c[0] - 1, c[1] - 7, 2, 7); ctx.fillStyle = '#e8552f'; ctx.fillRect(c[0] - 2.5, c[1] - 9, 5, 2.5); }); });
@@ -83,5 +94,5 @@
   function sky(I, n) { n = n || 0; const g = I.ctx.createLinearGradient(0, 0, 0, I.H || 620); const mix = (a, b) => { const A = NW.hex(a), B2 = NW.hex(b); return NW.rgb(A.map((v, i) => Math.round(v + (B2[i] - v) * n))); }; g.addColorStop(0, mix('#9ccdf5', '#0b1730')); g.addColorStop(1, mix('#dfeefb', '#16325a')); I.ctx.fillStyle = g; I.ctx.fillRect(0, 0, I.W || 880, I.H || 620); }
   const hit = (L, g) => L.buildings.find(b => b.tier > 0 && Math.abs(b.gx + 0.5 - g[0]) < 0.75 && Math.abs(b.gy + 0.5 - g[1]) < 0.75);
   const tierName = (state) => { const x = S.xpOf(state); return tierOf(x)[1]; };
-  NW.Land = { groundColour, onRoad, laneOfLot, makeMe, goTo, stepMe, siteFor, drawSite, drawLand, sky, hit, tierName, TIERS, KIND_NAME };
+  NW.Land = { groundColour, treeOf, onRoad, laneOfLot, makeMe, goTo, stepMe, siteFor, drawSite, drawLand, sky, hit, tierName, TIERS, KIND_NAME };
 })();

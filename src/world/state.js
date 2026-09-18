@@ -9,10 +9,10 @@
   const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
 
   const AVATAR = { body: 'pineapple', shirt: '#2f7fd6', hat: 'none', skin: '#ffd6ad', hair: '#4a2e1a' };
-  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
+  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: 'hill', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
   function normalise(saved) {
     const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
-    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || '');
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['hill', 'desert', 'forest', 'coast'].includes(s.biome) ? s.biome : 'hill';
     s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA; s.avatar = Object.assign({}, AVATAR, s.avatar && typeof s.avatar === 'object' ? s.avatar : {});
     s.lists = s.lists.map(l => ({ name: String(l.name || ''), total: +l.total || 0, done: +l.done || +l.total || 0, blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }));
     return s;
@@ -20,7 +20,7 @@
   /* dev seeds: how the land looks at 0, 5, 50 and 90 projects */
   function seed(s, n, name) {
     s.done = PROJECTS.slice(0, Math.max(0, Math.min(90, n))).map(p => p.title);
-    s.lists = n > 0 ? SAMPLE_LISTS.map(l => Object.assign({}, l)) : []; s.name = name || 'Roy'; s.land = n > 0 ? 'Pineapple Kingdom' : ''; s.steps = {}; s.building = ''; s.sites = {}; s.craft = {}; s.me = null; return s;
+    s.lists = n > 0 ? SAMPLE_LISTS.map(l => Object.assign({}, l, { done: 0 })) : [];   /* pegged out, not built: one at a time */ s.name = name || 'Roy'; s.land = n > 0 ? 'Pineapple Kingdom' : ''; s.steps = {}; s.building = ''; s.sites = {}; s.craft = {}; s.me = null; return s;
   }
   const doneSet = s => new Set(s.done);
   const doneIn = (s, sr) => sr.projects.filter(pr => s.done.includes(pr[0])).length;
@@ -59,7 +59,9 @@
   const CROSSINGS = [35];
   const EAST_TRUNK = 48, CONNECT = 35;
   const LANES = []; for (let k = 0; k < 7; k++) { LANES.push(HOME[1] - 5 - k * 4); LANES.push(HOME[1] + 6 + k * 4); }
-  function lotsOf(side) { /* every lot on one side of the creek, nearest the house first */ const out = []; const x0 = side === 'west' ? 3 : 38, x1 = side === 'west' ? 27 : 64, trunk = side === 'west' ? HOME[0] : EAST_TRUNK; LANES.forEach(lane => { for (let x = x0; x <= x1; x += 3) { if (Math.abs(x - trunk) < 2) continue; out.push([x, lane - 2]); out.push([x, lane + 1]); } }); const home = side === 'west' ? HOME : [EAST_TRUNK, CONNECT]; out.sort((a, b) => (Math.abs(a[0] - home[0]) * 0.8 + Math.abs(a[1] - home[1])) - (Math.abs(b[0] - home[0]) * 0.8 + Math.abs(b[1] - home[1]))); return out; }
+  /* the civic district: south of the house, both sides of the trunk; and its twin across the creek */
+  const CIVIC = (x, y, side) => side === 'west' ? (x >= 4 && x <= 25 && y >= HOME[1] + 1 && y <= HOME[1] + 24) : (x >= 44 && x <= 56 && y >= 35 && y <= 44);
+  function lotsOf(side) { /* every lot on one side of the creek, nearest the house first */ const out = []; const x0 = side === 'west' ? 3 : 38, x1 = side === 'west' ? 27 : 64, trunk = side === 'west' ? HOME[0] : EAST_TRUNK; LANES.forEach(lane => { for (let x = x0; x <= x1; x += 3) { if (Math.abs(x - trunk) < 2) continue; if (!CIVIC(x, lane - 2, side)) out.push([x, lane - 2]); if (!CIVIC(x, lane + 1, side)) out.push([x, lane + 1]); } }); const home = side === 'west' ? HOME : [EAST_TRUNK, CONNECT]; out.sort((a, b) => (Math.abs(a[0] - home[0]) * 0.8 + Math.abs(a[1] - home[1])) - (Math.abs(b[0] - home[0]) * 0.8 + Math.abs(b[1] - home[1]))); return out; }
   const WEST_LOTS = lotsOf('west'), EAST_LOTS = lotsOf('east');
   const laneOf = q => LANES.find(l => q[1] === l - 2 || q[1] === l + 1);
   const key = (x, y) => x + ',' + y;
