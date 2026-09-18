@@ -9,13 +9,13 @@
   let el = null, root = null, api = null, tools = null, lastMode = '';
   const BAR_CSS = `
     :host { all: initial; }
-    .shell { display: flex; flex-direction: column; height: 100%; font: 13px/1.4 "Segoe UI", system-ui, sans-serif; color: #f2f5fb; background: #172033; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.12); }
-    .bar { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; background: #111828; cursor: grab; user-select: none; touch-action: none; }
-    .bar b { font-weight: 800; font-size: 13px; flex: 1; color: #fff; } .bar b span { color: #ffc531; }
-    .bar button { font: 700 12px/1 "Segoe UI", system-ui, sans-serif; width: 28px; height: 26px; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; background: rgba(255,255,255,.06); color: #fff; cursor: pointer; }
-    .bar button:hover { background: rgba(255,255,255,.14); } .bar button:focus-visible { outline: 3px solid #ffc531; outline-offset: 1px; }
-    .body { flex: 1; overflow: auto; min-height: 0; } .body[hidden] { display: none; }
-    .grip { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.35) 50%, rgba(255,255,255,.35) 60%, transparent 60%, transparent 75%, rgba(255,255,255,.35) 75%, rgba(255,255,255,.35) 85%, transparent 85%); }
+    .nwp-shell { display: flex; flex-direction: column; height: 100%; font: 13px/1.4 "Segoe UI", system-ui, sans-serif; color: #f2f5fb; background: #172033; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.12); }
+    .nwp-bar { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; background: #111828; cursor: grab; user-select: none; touch-action: none; }
+    .nwp-bar b { font-weight: 800; font-size: 13px; flex: 1; color: #fff; } .nwp-bar b span { color: #ffc531; }
+    .nwp-bar button { font: 700 12px/1 "Segoe UI", system-ui, sans-serif; width: 28px; height: 26px; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; background: rgba(255,255,255,.06); color: #fff; cursor: pointer; }
+    .nwp-bar button:hover { background: rgba(255,255,255,.14); } .nwp-bar button:focus-visible { outline: 3px solid #ffc531; outline-offset: 1px; }
+    .nwp-body { flex: 1; overflow: auto; min-height: 0; } .nwp-body[hidden] { display: none; }
+    .nwp-grip { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.35) 50%, rgba(255,255,255,.35) 60%, transparent 60%, transparent 75%, rgba(255,255,255,.35) 75%, rgba(255,255,255,.35) 85%, transparent 85%); }
   `;
   function world(settings) { return Object.assign({}, NWT.DEFAULT_SETTINGS.world, settings.world); }
   function place(w) {
@@ -29,18 +29,18 @@
     el.style.cssText = 'position:fixed;z-index:2147483000;left:0;top:0;width:470px;height:640px;';
     root = el.attachShadow({ mode: 'open' });
     const style = document.createElement('style'); style.textContent = BAR_CSS; root.appendChild(style);
-    const shell = document.createElement('div'); shell.className = 'shell'; root.appendChild(shell);
-    const bar = document.createElement('div'); bar.className = 'bar'; const title = document.createElement('b'); title.textContent = 'Next'; const span = document.createElement('span'); span.textContent = 'World'; title.appendChild(span);
+    const shell = document.createElement('div'); shell.className = 'nwp-shell'; root.appendChild(shell);
+    const bar = document.createElement('div'); bar.className = 'nwp-bar'; const title = document.createElement('b'); title.textContent = 'Next'; const span = document.createElement('span'); span.textContent = 'World'; title.appendChild(span);
     const fold = document.createElement('button'); fold.type = 'button'; fold.title = 'Fold'; fold.textContent = '▾'; fold.setAttribute('aria-label', 'Fold the world away');
     const close = document.createElement('button'); close.type = 'button'; close.title = 'Close'; close.textContent = '×'; close.setAttribute('aria-label', 'Close the world');
     bar.appendChild(title); bar.appendChild(fold); bar.appendChild(close); shell.appendChild(bar);
-    const body = document.createElement('div'); body.className = 'body'; shell.appendChild(body);
-    const grip = document.createElement('div'); grip.className = 'grip'; shell.appendChild(grip);
+    const body = document.createElement('div'); body.className = 'nwp-body'; shell.appendChild(body);
+    const grip = document.createElement('div'); grip.className = 'nwp-grip'; shell.appendChild(grip);
     fold.addEventListener('click', () => tools.saveWorld({ collapsed: !world(tools.current()).collapsed }));
     close.addEventListener('click', () => tools.saveWorld({ enabled: false }));
     tools.dragBy(el, bar, () => tools.saveWorld({ x: el.offsetLeft / window.innerWidth, y: el.offsetTop / window.innerHeight }));
     tools.resizeBy(el, grip, () => tools.saveWorld({ w: el.offsetWidth, h: el.offsetHeight }));
-    (document.body || document.documentElement).appendChild(el);
+    (document.nwp-body || document.documentElement).appendChild(el);
     const w = world(settings);
     api = NW.mount(body, {
       load: () => Object.assign({}, w.state || w.read || NW.State.fresh(), { mode: w.mode }),
@@ -57,7 +57,7 @@
     if (!el || !el.isConnected) { if (el) el.remove(); build(settings); }
     el.setAttribute('data-peek', settings.peek ? '1' : '0');
     el.style.opacity = settings.peek ? '0' : ''; el.style.pointerEvents = settings.peek ? 'none' : '';
-    root.querySelector('.body').hidden = !!w.collapsed;
+    root.querySelector('.nwp-body').hidden = !!w.collapsed;
     place(w);
     if (api && w.mode !== lastMode) { lastMode = w.mode; if (api.state.mode !== w.mode) { api.state.mode = w.mode; api.repaint(); } }
     if (settings.peek || w.collapsed || document.hidden) api.pause(); else api.resume();
