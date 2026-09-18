@@ -176,7 +176,7 @@
     [[0.3, 0.3], [2.5, 0.3], [0.3, 2.5], [2.5, 2.5], [1.4, 1.4]].forEach(o => I.box(gx + o[0], gy + o[1], 0.16, 0.16, 40, '#b58a5a', 3, { noShadow: true }));
     I.box(gx + 0.3, gy + 0.3, 2.36, 0.12, 4, '#b58a5a', 43, { noShadow: true }); I.box(gx + 0.3, gy + 2.5, 2.36, 0.12, 4, '#b58a5a', 43, { noShadow: true });
     const c1 = I.p(gx + 3.1, gy + 3.1), H = 78; I.line(c1, I.up(c1, H), '#f2b42a', 3); const arm = I.up(c1, H); const sw = Math.sin(now / 4000) * 0.4; const tip = [arm[0] - 40 * Math.cos(sw), arm[1] - 14 - 18 * Math.sin(sw)]; I.line(arm, tip, '#f2b42a', 3); I.line([arm[0] + 12, arm[1] - 6], [arm[0], arm[1] - 14], '#f2b42a', 2); I.line(tip, [tip[0], tip[1] + 24], '#3b4252', 1); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(tip[0] - 3, tip[1] + 24, 6, 3);
-    const s = I.p(gx + 1.5, gy + 3.35, 4); I.roundRect(s[0] - 30, s[1] - 26, 60, 22, 2, '#172033'); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 7.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(name.toUpperCase(), s[0], s[1] - 15); I.ctx.fillStyle = '#fff'; I.ctx.font = '700 6px Nunito, system-ui, sans-serif'; I.ctx.fillText('COMING SOON', s[0], s[1] - 7); I.ctx.textAlign = 'left'; I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(s[0] - 26, s[1] - 4, 2, 5); I.ctx.fillRect(s[0] + 24, s[1] - 4, 2, 5);
+    const s = I.p(gx + 1.5, gy + 3.35, 4); I.roundRect(s[0] - 30, s[1] - 26, 60, 22, 2, '#f4f1e8'); I.ctx.strokeStyle = '#c9c2b0'; I.ctx.lineWidth = 1; I.ctx.strokeRect(s[0] - 29.5, s[1] - 25.5, 59, 21); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 7.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(name.toUpperCase(), s[0], s[1] - 15); I.ctx.fillStyle = '#8a5a3a'; I.ctx.font = '700 6px Nunito, system-ui, sans-serif'; I.ctx.fillText('COMING SOON', s[0], s[1] - 7); I.ctx.textAlign = 'left'; I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(s[0] - 26, s[1] - 4, 2, 5); I.ctx.fillRect(s[0] + 24, s[1] - 4, 2, 5);
     I.box(gx + 3.0, gy + 0.2, 0.3, 0.3, 8, '#e8552f', 0, { noShadow: true }); I.box(gx + 3.0, gy + 0.7, 0.3, 0.3, 12, '#2f7fd6', 0, { noShadow: true });
   };
   B.hub = function (I, gx, gy, now, hub) {
@@ -278,8 +278,8 @@
     [0.02, 0.98].forEach(u => I.box(gx + u * 2.94, gy + 3.05, 0.06, 0.06, 30, '#efe9dc', 4, { noShadow: true })); I.poly([I.p(gx - 0.1, gy + 3.0, 34), I.p(gx + 3.1, gy + 3.0, 34), I.p(gx + 3.1, gy + 3.35, 31), I.p(gx - 0.1, gy + 3.35, 31)], look[2]);
     I.flatRoof(gx, gy, 3, 3, H + 4, look[2]);
     /* the name, on the building, big: a board across the front and one on the roof */
-    const s = I.up(I.P(b.D, b.C, 0.5), H - 12); const w = Math.hypot(b.C[0] - b.D[0], b.C[1] - b.D[1]) * 0.92; I.roundRect(s[0] - w / 2, s[1] - 9, w, 18, 3, '#172033'); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 11px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(hub.name.toUpperCase(), s[0], s[1] + 4); I.ctx.textAlign = 'left'; I.lights.push({ x: s[0], y: s[1], r: w * 0.45, c: '255,197,49', k: 0.45 });
-    const rb = I.box(gx + 0.5, gy + 0.4, 2, 0.25, 18, '#172033', H + 8, { noShadow: true }); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 9px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; const rs = I.up(I.P(rb.D, rb.C, 0.5), 6); I.ctx.fillText(hub.name.toUpperCase(), rs[0], rs[1] + 3); I.ctx.textAlign = 'left';
+    const s = I.up(I.P(b.D, b.C, 0.5), H - 12); const w = Math.hypot(b.C[0] - b.D[0], b.C[1] - b.D[1]) * 0.92; I.roundRect(s[0] - w / 2, s[1] - 9, w, 18, 3, '#f4f1e8'); I.ctx.strokeStyle = '#c9c2b0'; I.ctx.lineWidth = 1; I.ctx.strokeRect(s[0] - w / 2 + 0.5, s[1] - 8.5, w - 1, 17); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 11px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(hub.name.toUpperCase(), s[0], s[1] + 4); I.ctx.textAlign = 'left'; I.lights.push({ x: s[0], y: s[1], r: w * 0.45, c: '255,197,49', k: 0.45 });
+    const rb = I.box(gx + 0.5, gy + 0.4, 2, 0.25, 18, '#f4f1e8', H + 8, { noShadow: true }); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 9px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; const rs = I.up(I.P(rb.D, rb.C, 0.5), 6); I.ctx.fillText(hub.name.toUpperCase(), rs[0], rs[1] + 3); I.ctx.textAlign = 'left';
     const f = I.p(gx + 2.7, gy + 0.3, H + 8); I.line(f, [f[0], f[1] - 22], '#e6e9ef', 2); const wv = Math.sin(now / 300 + gx) * 2; I.poly([[f[0], f[1] - 22], [f[0] + 13, f[1] - 19 + wv], [f[0], f[1] - 15]], '#ffc531');
   };
 
@@ -289,8 +289,8 @@
     const H = 52; [gx - 2.2, gx + 2.2].forEach(x => { I.box(x - 0.15, gy - 0.15, 0.3, 0.3, H, '#8a5a3a', 0, { tex: 'siding' }); });
     const a = I.p(gx - 2.2, gy, H), b = I.p(gx + 2.2, gy, H);
     I.line([a[0], a[1] - 2], [b[0], b[1] - 2], '#6b3a22', 8); I.line([a[0], a[1] - 2], [b[0], b[1] - 2], '#8a5a3a', 5);
-    const m = I.P(a, b, 0.5); I.roundRect(m[0] - 46, m[1] - 20, 92, 22, 3, '#4a2b17'); I.ctx.strokeStyle = '#ffc531'; I.ctx.lineWidth = 1.5; I.ctx.strokeRect(m[0] - 43, m[1] - 17, 86, 16);
-    I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 9px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(text.toUpperCase(), m[0], m[1] - 6); I.ctx.textAlign = 'left';
+    const m = I.P(a, b, 0.5); I.roundRect(m[0] - 46, m[1] - 20, 92, 22, 3, '#f4f1e8'); I.ctx.strokeStyle = '#8a5a3a'; I.ctx.lineWidth = 1.5; I.ctx.strokeRect(m[0] - 43, m[1] - 17, 86, 16);
+    I.ctx.fillStyle = '#4a2b17'; I.ctx.font = '800 9px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(text.toUpperCase(), m[0], m[1] - 6); I.ctx.textAlign = 'left';
     I.blob(m[0], m[1] - 26, 4, '#ffc531'); I.ctx.fillStyle = '#4a2b17'; I.ctx.font = '800 6px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NW', m[0], m[1] - 24); I.ctx.textAlign = 'left';
   };
   B.bikerack = function (I, gx, gy, n) {
@@ -298,7 +298,7 @@
     for (let i = 0; i <= n; i++) { const q = I.P(a, b, i / n); I.ctx.strokeStyle = '#8a8f98'; I.ctx.lineWidth = 1.5; I.ctx.beginPath(); I.ctx.arc(q[0], q[1] - 4, 4, Math.PI, 0); I.ctx.stroke(); }
     for (let i = 0; i < n; i++) { if (i % 3 === 2) continue; const q = I.P(a, b, (i + 0.5) / n); I.wheel(q[0] - 3, q[1] + 1, 2.6); I.wheel(q[0] + 3, q[1] + 1, 2.6); I.line([q[0] - 3, q[1] + 1], [q[0] + 1, q[1] - 4], ['#e8552f', '#2f7fd6', '#3fa66b', '#f2b42a'][i % 4], 1.5); I.line([q[0] + 1, q[1] - 4], [q[0] + 3, q[1] + 1], ['#e8552f', '#2f7fd6', '#3fa66b', '#f2b42a'][i % 4], 1.5); }
   };
-  B.sign = function (I, gx, gy, text, sub) { const q = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(q[0] - 1, q[1] - 22, 2, 22); I.roundRect(q[0] - 22, q[1] - 34, 44, 14, 2, '#172033'); I.ctx.fillStyle = '#fff'; I.ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(text, q[0], q[1] - 27); if (sub) { I.ctx.fillStyle = '#ffc531'; I.ctx.font = '700 5px Nunito, system-ui, sans-serif'; I.ctx.fillText(sub, q[0], q[1] - 21.5); } I.ctx.textAlign = 'left'; };
+  B.sign = function (I, gx, gy, text, sub) { const q = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(q[0] - 1, q[1] - 22, 2, 22); I.roundRect(q[0] - 22, q[1] - 34, 44, 14, 2, '#f4f1e8'); I.ctx.strokeStyle = '#c9c2b0'; I.ctx.lineWidth = 1; I.ctx.strokeRect(q[0] - 21.5, q[1] - 33.5, 43, 13); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(text, q[0], q[1] - 27); if (sub) { I.ctx.fillStyle = '#8a5a3a'; I.ctx.font = '700 5px Nunito, system-ui, sans-serif'; I.ctx.fillText(sub, q[0], q[1] - 21.5); } I.ctx.textAlign = 'left'; };
 
   /* ---- the ranch: cows, chickens, coops; the lodge; the halls at the back ---- */
   B.cow = function (I, gx, gy, walkT) {
@@ -323,7 +323,7 @@
     I.faceTex(b.D, b.C, H * 0.55, 'glass', '#2f4f7f'); for (let u = 0.06; u < 0.95; u += 0.11) I.win(b.D, b.C, u, 40, 0.07, 14, (Math.floor(u * 100) % 2) === 0);
     const a = I.P(b.D, b.C, 0.42), c = I.P(b.D, b.C, 0.58); I.poly([a, c, I.up(c, 26), I.up(a, 26)], '#efe9dc'); I.poly([I.P(a, c, 0.12), I.P(a, c, 0.88), I.up(I.P(a, c, 0.88), 22), I.up(I.P(a, c, 0.12), 22)], '#3b4252');
     I.win(b.C, b.B, 0.2, 14, 0.25, 16, true); I.win(b.C, b.B, 0.6, 14, 0.25, 16, true); I.win(b.C, b.B, 0.2, 38, 0.25, 16, false); I.win(b.C, b.B, 0.6, 38, 0.25, 16, true);
-    I.flatRoof(gx, gy, 6, 3, H + 4, roofColour); const s = I.up(I.P(b.D, b.C, 0.5), H - 4); const w = Math.hypot(b.C[0] - b.D[0], b.C[1] - b.D[1]) * 0.9; I.roundRect(s[0] - w / 2, s[1] - 9, w, 18, 3, '#172033'); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 10.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(name.toUpperCase(), s[0], s[1] + 4); I.ctx.textAlign = 'left'; I.lights.push({ x: s[0], y: s[1], r: w * 0.5, c: '255,197,49', k: 0.5 });
+    I.flatRoof(gx, gy, 6, 3, H + 4, roofColour); const s = I.up(I.P(b.D, b.C, 0.5), H - 4); const w = Math.hypot(b.C[0] - b.D[0], b.C[1] - b.D[1]) * 0.9; I.roundRect(s[0] - w / 2, s[1] - 9, w, 18, 3, '#f4f1e8'); I.ctx.strokeStyle = '#c9c2b0'; I.ctx.lineWidth = 1; I.ctx.strokeRect(s[0] - w / 2 + 0.5, s[1] - 8.5, w - 1, 17); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 10.5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(name.toUpperCase(), s[0], s[1] + 4); I.ctx.textAlign = 'left'; I.lights.push({ x: s[0], y: s[1], r: w * 0.5, c: '255,197,49', k: 0.5 });
     [[0.5, 0.4], [5.3, 0.4]].forEach(o => { const f = I.p(gx + o[0], gy + o[1], H + 8); I.line(f, [f[0], f[1] - 20], '#e6e9ef', 2); const wv = Math.sin(now / 300 + o[0]) * 2; I.poly([[f[0], f[1] - 20], [f[0] + 12, f[1] - 17 + wv], [f[0], f[1] - 13]], '#ffc531'); });
   };
 
