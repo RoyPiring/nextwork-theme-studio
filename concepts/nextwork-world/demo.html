@@ -774,7 +774,7 @@
   /* dev seeds: how the land looks at 0, 5, 50 and 90 projects */
   function seed(s, n, name) {
     s.done = PROJECTS.slice(0, Math.max(0, Math.min(90, n))).map(p => p.title);
-    s.lists = n > 0 ? SAMPLE_LISTS.map(l => Object.assign({}, l, { done: 0 })) : [];   /* pegged out, not built: one at a time */ s.name = name || 'Roy'; s.land = n > 0 ? 'Pineapple Kingdom' : ''; s.steps = {}; s.building = ''; s.sites = {}; s.craft = {}; s.me = null; return s;
+    s.lists = n > 0 ? SAMPLE_LISTS.map(l => Object.assign({}, l, { done: 0 })) : [];   /* pegged out, not built: one at a time */ s.name = name || 'Sam'; s.land = n > 0 ? 'Pineapple Kingdom' : ''; s.steps = {}; s.building = ''; s.sites = {}; s.craft = {}; s.me = null; return s;
   }
   const doneSet = s => new Set(s.done);
   const doneIn = (s, sr) => sr.projects.filter(pr => s.done.includes(pr[0])).length;
@@ -1818,7 +1818,7 @@
       if (now - lastCrew > 5000) { lastCrew = now; const built = S.crew(state, Date.now()); if (built.length) { save(); lastL = S.layout(state); btoast('The crew built ' + built[0]); paintBuild(); } }
       if (now - lastPip > 90000 && S.nextProject(state) && current === 'base') { lastPip = now; bsay('Still here?', 'Your next step is waiting.', ['Build', () => show('build')]); }
       if (current === 'world') { world.ctx.setTransform(1, 0, 0, 1, 0, 0); Land.sky({ ctx: world.ctx, W: world.PW, H: world.PH }, night); world.reset(); world.night = night; HQ.drawHQ(world, state, now, {}); }
-      else if (current === 'avatar') { Land.sky(avI, night); avI.night = night; for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) avI.tile(x, y, y === 2 ? '#c8a877' : Land.groundColour(x + 30, y + 30), y === 2 ? 'rgba(110,75,30,.35)' : null); B.oak(avI, 4, 0, 0.9); B.hay(avI, 0, 4); avI.lamp(4.5, 2.5); const t = (now / 2600) % 1; B.avatar(avI, 0.5 + t * 4, 2.5, av, now / 1000, true); avI.nightfall(night); }
+      else if (current === 'avatar') { const ac = camTo(2, 2, avI.H); avI.cam.x = ac.x; avI.cam.y = ac.y + 10; Land.sky(avI, night); avI.night = night; for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) avI.tile(x, y, y === 2 ? '#c8a877' : Land.groundColour(x + 30, y + 30), y === 2 ? 'rgba(110,75,30,.35)' : null); B.oak(avI, 4, 0, 0.9); B.hay(avI, 0, 4); avI.lamp(4.5, 2.5); const t = (now / 2600) % 1; B.avatar(avI, 0.5 + t * 4, 2.5, av, now / 1000, true); avI.nightfall(night); }
       else if (current === 'base') { Land.stepMe(me, lastL.paths); if (me.follow) { const c = camTo(me.gx, me.gy, base.H); base.cam.x = lerp(base.cam.x, c.x, reduce ? 1 : 0.08); base.cam.y = lerp(base.cam.y, c.y, reduce ? 1 : 0.08); } Land.sky(base, night); base.night = night; Land.drawLand(base, state, me, now, { anim, fx, placing, land: S.landName(state), quiet: !!state.quiet }); const era = E.eraOf(state), nx = S.nextProject(state); setText(shield, String(E.level(state) + 1)); setText(whoS, era.name + ' · ' + E.score(state) + ' built · ' + S.population(state, Date.now(), lastL.capacity) + ' live here · ' + Math.round(S.power(state, Date.now()) * 100) + '%'); setText(whoN, nx ? 'Next: ' + nx.title + ' →' : 'Everything is built'); if (anim && now - anim.start > 1700) anim = null; while (fx.length && now - fx[0].start > fx[0].life) fx.shift(); if (!reduce && me.moving) { if (!state.me) state.me = { gx: 0, gy: 0 }; state.me.gx = me.gx; state.me.gy = me.gy; } lastL = S.layout(state); }
       else if (current === 'build') { Land.sky(site, night); site.night = night; const st = current_site ? stepsOf(current_site.title) : { done: 0, total: 0 }; const o = { site: current_site, stepsDone: st.done, stepsTotal: st.total, k: reduce ? 1 : clamp((now - bs.lastAt) / 900, 0, 1), anim, quiet: !!state.quiet }; Land.drawLand(site, state, null, now, o); setText(sbadge, o.stage ? o.stage + ' · ' + st.done + ' of ' + st.total : '');
         /* the nail game: while something is going up, nails pop up round the site; tap them */
@@ -1840,7 +1840,7 @@
   'use strict';
   const KEY = 'nww-state-v1';
   const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
-  const first = read() || NW.State.seed(NW.State.fresh(), 5, 'Roy');
+  const first = read() || NW.State.seed(NW.State.fresh(), 5, 'Sam');
   if (!read()) first.mode = 'dev';
   const api = NW.mount(document.getElementById('panel').attachShadow({ mode: 'open' }), {
     load: () => first,

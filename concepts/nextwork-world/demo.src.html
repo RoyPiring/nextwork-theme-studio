@@ -45,7 +45,7 @@
   'use strict';
   const KEY = 'nww-state-v1';
   const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
-  const first = read() || NW.State.seed(NW.State.fresh(), 5, 'Roy');
+  const first = read() || NW.State.seed(NW.State.fresh(), 5, 'Sam');
   if (!read()) first.mode = 'dev';
   const api = NW.mount(document.getElementById('panel').attachShadow({ mode: 'open' }), {
     load: () => first,

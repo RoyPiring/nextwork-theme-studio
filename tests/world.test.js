@@ -153,14 +153,14 @@ test('the project reader wants a project path, an h1 and a Steps heading', () =>
 });
 
 test('the portfolio reader finds learn lists by their "N projects · Learnlist" line', () => {
-  const doc = parseHTML('<h1>Roy Piring: Cloud Platform Engineer</h1><a href="/l/1"><h3>Cloud Systems Engineering</h3><p>Cloud platforms engineered for scale.</p><p>14 projects · Learnlist</p></a><a href="/l/2"><h3>Quantitative Finance</h3><p>1 project · Learnlist</p></a>');
+  const doc = parseHTML('<h1>Sam Learner: Cloud Platform Engineer</h1><a href="/l/1"><h3>Cloud Systems Engineering</h3><p>Cloud platforms engineered for scale.</p><p>14 projects · Learnlist</p></a><a href="/l/2"><h3>Quantitative Finance</h3><p>1 project · Learnlist</p></a>');
   const r = NW.Readers.readPortfolioPage(doc, '/portfolio/refreshed');
   assert.equal(r.lists.length, 2);
   assert.equal(r.lists[0].name, 'Cloud Systems Engineering');
   assert.equal(r.lists[0].count, 14);
   assert.equal(r.lists[0].blurb, 'Cloud platforms engineered for scale.');
   assert.equal(r.lists[1].count, 1);
-  assert.equal(r.name, 'Roy Piring');
+  assert.equal(r.name, 'Sam Learner');
   const s = S.applyPortfolioReading(S.normalise(null), r);
   assert.equal(s.lists[0].kind, 'datacentre');
   assert.equal(s.lists[1].kind, 'bank');
