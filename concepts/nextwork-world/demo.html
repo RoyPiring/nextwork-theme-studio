@@ -42,11 +42,11 @@
 
   .panel { background: var(--panel); display: flex; flex-direction: column; min-width: 0; border-left: 1px solid #263149; }
   .panel-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; background: linear-gradient(180deg, #223052, #182339); border-bottom: 1px solid var(--glass-line); }
-  .brand { font-family: var(--display); font-weight: 800; font-size: 19px; line-height: 1; color: #fff; }
+  .brand { font-family: var(--display); font-weight: 800; font-size: 17px; line-height: 1; color: #fff; white-space: nowrap; }
   .brand span { color: var(--gold); }
   .brand small { display: block; font-family: var(--body); font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
   .tabs { display: flex; gap: 4px; margin-left: auto; background: rgba(0,0,0,.25); border-radius: 12px; padding: 3px; }
-  .tabs button { font-family: var(--display); font-weight: 700; font-size: 12px; padding: 7px 11px; border: 0; border-radius: 9px; background: transparent; color: var(--text-dim); }
+  .tabs button { font-family: var(--display); font-weight: 700; font-size: 11.5px; padding: 7px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--text-dim); white-space: nowrap; }
   .tabs button[aria-selected="true"] { background: #fff; color: #172033; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
   .view { padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 12px; }
   .view[hidden] { display: none; }
@@ -142,6 +142,14 @@
   .reward .row .x { color: var(--xp); } .reward .row .c { color: var(--gold); } .reward .row .g { color: var(--gem); }
   .reward .btn { margin-top: 10px; }
 
+  .basehead { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 6px; }
+  .basehead > div { background: rgba(0,0,0,.25); border: 1px solid var(--glass-line); border-radius: 11px; padding: 7px 10px; }
+  .basehead .th { display: flex; align-items: center; gap: 8px; }
+  .basehead .th i { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #ffe27a, var(--gold-2)); box-shadow: inset 0 -3px 0 rgba(0,0,0,.2); flex: none; }
+  .basehead .th b { font-family: var(--display); font-weight: 800; font-size: 13px; display: block; line-height: 1.1; }
+  .basehead .th small { font-size: 11px; color: var(--text-dim); }
+  .basehead .stat b { font-family: var(--display); font-weight: 800; font-size: 16px; display: block; line-height: 1.1; }
+  .basehead .stat small { font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; }
   .series { display: flex; flex-direction: column; gap: 4px; }
   .srow { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; background: rgba(0,0,0,.22); border: 1px solid var(--glass-line); border-radius: 10px; }
   .srow.full { border-color: rgba(124,240,164,.5); }
@@ -207,15 +215,36 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
       <div class="panel-bar">
         <div class="brand">NextWork <span>World</span><small>your projects, as a place</small></div>
         <div class="tabs" role="tablist">
-          <button role="tab" id="tab-world" aria-selected="true" data-view="world">World</button>
+          <button role="tab" id="tab-base" aria-selected="true" data-view="base">My World</button>
+          <button role="tab" id="tab-world" aria-selected="false" data-view="world">World</button>
           <button role="tab" id="tab-build" aria-selected="false" data-view="build">Build</button>
           <button role="tab" id="tab-projects" aria-selected="false" data-view="projects">Projects</button>
           <button role="tab" id="tab-notes" aria-selected="false" data-view="notes">Notes</button>
         </div>
       </div>
 
+      <!-- ================= MY WORLD ================= -->
+      <section class="view" id="view-base">
+        <div class="basehead">
+          <div class="th"><i></i><div><b>Town Hall</b><small id="th-level">Level 3 · Village</small></div></div>
+          <div class="stat"><b id="b-count">0</b><small>buildings</small></div>
+          <div class="stat"><b id="b-districts">0</b><small>districts</small></div>
+          <div class="stat"><b id="b-walls">0</b><small>wall</small></div>
+        </div>
+        <div class="scene">
+          <canvas class="iso" id="base" width="880" height="620" tabindex="0" aria-label="Your base. Every finished project is a building. Drag to look around, tap a building for its project."></canvas>
+          <div class="badge" id="basetier">Village</div>
+          <div class="toast" id="basetoast"></div>
+        </div>
+        <div class="speech" id="basesay"><b>Your base</b>Every project you have finished is a building here, at its own level, grouped by series into districts. Tap one.</div>
+        <div class="controls">
+          <button class="btn go" id="basefinish">Simulate: finish a project</button>
+        </div>
+        <div class="caption"><b>Building = project.</b> Its level is the project's rarity — the fewer people who have done it, the higher the level. Finish the next part of a series and the district grows; finish a whole series and its buildings get a gold roof. The wall grows with your tier.</div>
+      </section>
+
       <!-- ================= WORLD ================= -->
-      <section class="view" id="view-world">
+      <section class="view" id="view-world" hidden>
         <div class="hud">
           <div class="ring" aria-label="Level"><svg viewBox="0 0 52 52"><circle class="track" cx="26" cy="26" r="22"/><circle class="fill" id="ringfill" cx="26" cy="26" r="22" stroke-dasharray="138.2" stroke-dashoffset="138.2"/></svg><b><span id="lv">1</span><small>LEVEL</small></b></div>
           <div class="who">
@@ -312,6 +341,13 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
 
         <h2>Builders</h2>
         <p>You start with one. A second arrives at 700 XP and a third at 1,500. On a build, each builder lays a piece per step — so with three builders a seven-piece component is up in three steps rather than seven. Builders live in the hut on your land; it is the one building nobody has to earn.</p>
+
+        <h2>Two views, like Clash of Clans</h2>
+        <ul>
+          <li><b>My World</b> is your base, close up. Every project you have finished is a building at its own level, grouped by series into districts, inside a wall that grows with your tier. The Town Hall in the middle <em>is</em> the tier. This is the view you look at.</li>
+          <li><b>World</b> is the map: HQ, the roads, other learners, your land as one place among many, with one building per series so it reads at a distance. This is the view you look around.</li>
+        </ul>
+        <p>A building's level is the project's rarity. The fewer people who have finished it, the higher the level it stands at — so a base full of level-five buildings says something a base full of level-ones does not.</p>
 
         <h2>The open world</h2>
         <ul>
@@ -967,6 +1003,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     const before = buildersOf(xpOf()); DONE.add(next.title); const after = buildersOf(xpOf());
     const sr = next.series, finished = doneIn(sr) === sr.projects.length;
     toast('+' + next.xp + ' XP · +' + Math.round(next.xp * 0.45) + ' coins' + (finished ? ' · +1 gem: series complete' : '') + (after > before ? '<br>A new builder has arrived' : ''));
+    baseAnim = { title: next.title, start: performance.now() };
     const at = state.placed.findIndex(b => b.series === sr.id);
     if (at >= 0) { state.anim = { i: at, start: performance.now() }; say(next.title, sr.name + ' part ' + doneIn(sr) + ' of ' + sr.projects.length + ' — the ' + KIND_NAME[sr.kind].toLowerCase() + ' grows.' + (finished ? ' Series complete: it is at full size.' : '')); paintHud(); paintCatalogue(); }
     else handOver(sr.kind, sr.name, sr.id);
@@ -975,6 +1012,125 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   $('gohome').addEventListener('click', () => { camGoal = camTo(HOME[0], HOME[1]); });
   $('goisland').addEventListener('click', () => { camGoal = camTo(22.5, 21.5); say(EXPANSION.name, 'Your own island, across the bridge. ' + EXPANSION.count + ' generated projects in ' + EXPANSION.series + ' series. The main world is the shared ninety, so every learner’s town can be compared; this is yours alone.'); });
   while (state.placed.some(b => b.gx === SG && b.gy === SGY)) SG++;
+
+  /* ============================================================= my world
+   * The base, close up. Every finished project is a building of its series'
+   * kind, at a level set by its rarity, clustered by series into districts.
+   * A wall runs round the lot and grows with the tier, and the Town Hall in
+   * the middle is the tier. This is the view you look at; the World is the
+   * view you look around.
+   * --------------------------------------------------------------------- */
+  const base = makeIso($('base'), 440, 310);
+  const BN = 18, BC = 9;                              /* base grid and its centre */
+  const levelOf = pr => pr.xp >= 140 ? 5 : pr.xp >= 120 ? 4 : pr.xp >= 95 ? 3 : pr.xp >= 75 ? 2 : 1;
+  const wallRadius = () => { const t = tierOf(xpOf())[1]; return t === 'Metropolis' ? 8 : t === 'City' ? 7 : t === 'Town' ? 6 : t === 'Village' ? 5 : 4; };
+
+  /* Districts: each started series gets an anchor on a ring round the hall,
+   * and its finished parts fill a small spiral from that anchor. Same series,
+   * same block - so the VPC tower stands with its eight siblings. */
+  function baseLayout() {
+    const started = SERIES.filter(sr => doneIn(sr) > 0);
+    /* tall districts go to the back, so a tower does not stand in front of the hall */
+    const anchors = [[3, 0], [0, 3], [0, -4], [-3, 0], [3, 3], [-3, 3], [-4, -3], [3, -3], [5, 1], [1, 5], [-5, 1], [1, -5], [5, -2], [-2, 5], [-5, -2], [-2, -5], [6, 4], [4, 6], [-6, 4], [4, -6], [-6, -4], [-4, 6], [6, -4], [-4, -6], [7, 0], [0, 7], [-7, 0]];
+    const taken = new Set(['0,0', '1,0', '0,1', '1,1', '-1,0', '0,-1', '-1,-1', '-1,1', '1,-1']);   /* the hall and its yard */
+    const out = [];
+    const ring = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [-1, -1], [1, -1], [2, 0], [0, 2], [-2, 0], [0, -2], [2, 1], [1, 2], [-2, 1], [-1, 2], [2, -1], [1, -2], [-2, -1], [-1, -2]];
+    started.forEach((sr, si) => {
+      const a = anchors[si % anchors.length];
+      sr.projects.forEach((pr, pi) => {
+        if (!DONE.has(pr[0])) return;
+        let spot = null;
+        for (const r of ring) { const gx = a[0] + r[0], gy = a[1] + r[1]; const k = gx + ',' + gy; if (Math.abs(gx) > 7 || Math.abs(gy) > 7 || taken.has(k)) continue; spot = [gx, gy]; taken.add(k); break; }
+        if (!spot) return;
+        out.push({ series: sr, kind: sr.kind, title: pr[0], part: pi + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard), level: levelOf({ xp: xpFor(pr[1], sr.hard) }), gx: BC + spot[0], gy: BC + spot[1], complete: doneIn(sr) === sr.projects.length });
+      });
+    });
+    return out;
+  }
+  let baseAnim = null;   /* { title, start } for the building that just went up */
+
+  function drawBase(now) {
+    const I = base, ctx = I.ctx;
+    ctx.clearRect(0, 0, 440, 310);
+    const g = ctx.createLinearGradient(0, 0, 0, 310); g.addColorStop(0, '#79c0ff'); g.addColorStop(0.5, '#bfe4ff'); g.addColorStop(1, '#e6f4ff'); ctx.fillStyle = g; ctx.fillRect(0, 0, 440, 310);
+    const R = wallRadius();
+    for (let gy = 0; gy < BN; gy++) for (let gx = 0; gx < BN; gx++) {
+      const inside = Math.abs(gx - BC) <= R && Math.abs(gy - BC) <= R;
+      const dist = Math.max(Math.abs(gx - BC), Math.abs(gy - BC));
+      const grass = (gx + gy) % 2 ? '#79c853' : '#84d15c', dirt = (gx * 7 + gy * 3) % 3 === 0 ? '#cdb58c' : '#c4ab82';
+      const gr = inside ? 1 : clamp(1 - (dist - R) / 2.5, 0.15, 1);
+      const c = hex(dirt).map((v, i) => Math.round(lerp(v, hex(grass)[i], gr)));
+      I.tile(gx, gy, rgb(c));
+      if ((gx === BC || gx === BC + 1) && gy > BC + 1 && gy <= BC + R + 1) I.tile(gx, gy, '#e0d2b4', 'rgba(0,0,0,.06)');   /* the path out of the gate */
+    }
+    const items = []; const add = (d, fn) => items.push({ d, fn });
+    /* the wall: low stone segments with crenels, a gap for the gate on the near side */
+    for (let i = -R; i <= R; i++) {
+      const segs = [[BC + i, BC - R], [BC + i, BC + R], [BC - R, BC + i], [BC + R, BC + i]];
+      segs.forEach((q, side) => {
+        if (side === 1 && (i === 0 || i === 1)) return;                          /* the gate */
+        const corner = Math.abs(i) === R;
+        add(q[0] + q[1] + (corner ? 0.7 : 0.5), () => { const b = I.box(q[0] + 0.2, q[1] + 0.2, 0.6, 0.6, corner ? 26 : 16, '#b3ada3', 0, { tex: 'stone', noShadow: !corner }); if (corner) crenel(I, b); else { const m = I.P(b.D2, b.C2, 0.5); I.poly([m, [m[0] + 5, m[1] + 2.5], [m[0] + 5, m[1] - 2], [m[0], m[1] - 4.5]], '#a39d93'); } });
+      });
+    }
+    add(BC + BC + R + 1.2, () => { const t = I.box(BC - 0.1, BC + R + 0.1, 0.35, 0.8, 30, '#b3ada3', 0, { tex: 'stone' }); crenel(I, t); const t2 = I.box(BC + 1.75, BC + R + 0.1, 0.35, 0.8, 30, '#b3ada3', 0, { tex: 'stone' }); crenel(I, t2); });
+    /* the town hall: the tier, made visible */
+    add(BC + BC + 0.9, () => { const t = tierOf(xpOf()); const two = t[0] >= 700;
+      const b = I.box(BC - 0.55, BC - 0.55, 1.6, 1.6, two ? 60 : 40, '#f3e6cc', 0, { tex: 'brick' });
+      I.win(b.D, b.C, 0.1, 12, 0.18, 14, true); I.win(b.D, b.C, 0.72, 12, 0.18, 14, true); I.door(b.D, b.C, 0.38, 0.24, 24, '#7a3c1d'); I.win(b.C, b.B, 0.2, 12, 0.22, 14, true); I.win(b.C, b.B, 0.6, 12, 0.22, 14, true);
+      if (two) { I.win(b.D, b.C, 0.1, 40, 0.18, 14, false); I.win(b.D, b.C, 0.41, 40, 0.18, 14, true); I.win(b.D, b.C, 0.72, 40, 0.18, 14, true); I.win(b.C, b.B, 0.4, 40, 0.22, 14, true); }
+      I.roof(BC - 0.55, BC - 0.55, 1.6, 1.6, (two ? 60 : 40), 30, '#ffc531');
+      const f = I.p(BC + 0.25, BC + 0.25, (two ? 60 : 40) + 30); I.line(f, [f[0], f[1] - 26], '#e6e9ef', 2); const wv = Math.sin(now / 300) * 2; I.poly([[f[0], f[1] - 26], [f[0] + 16, f[1] - 22 + wv], [f[0], f[1] - 17]], '#2f7fd6');
+      [[-0.9, 0.9], [1.3, 0.9], [-0.9, -0.9], [1.3, -0.9]].forEach(o => I.lamp(BC + o[0] + 0.5, BC + o[1] + 0.5, now)); });
+    add(BC + R - 1 + BC - R + 1 + 0.5, () => B.hut(I, BC - R + 1, BC + R - 1, 1, now));
+    /* the buildings, one per project */
+    const layout = baseLayout();
+    layout.forEach(b => {
+      let k = 1; if (baseAnim && baseAnim.title === b.title) k = reduce ? 1 : clamp((now - baseAnim.start) / 1600, 0, 1);
+      add(b.gx + b.gy + 0.5, () => {
+        B[b.kind](I, b.gx, b.gy, k, now, b.level >= 4 ? 3 : b.level >= 2 ? 2 : 1);
+        if (b.complete) { const q = I.p(b.gx + 0.5, b.gy + 0.5, 70); I.blob(q[0], q[1], 3.5, '#ffc531'); }   /* the series is whole */
+        if (k >= 1) { const q = I.p(b.gx + 0.85, b.gy + 0.15, 4); I.roundRect(q[0] - 12, q[1] - 8, 24, 11, 5, 'rgba(16,24,44,.78)'); ctx.fillStyle = b.complete ? '#ffc531' : '#fff'; ctx.font = '800 7px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('LV ' + b.level, q[0], q[1] - 0.5); ctx.textAlign = 'left'; }
+      });
+    });
+    /* builders potter about; a few trees outside the wall */
+    const walkT = now / 1000;
+    for (let i = 0; i < buildersOf(xpOf()); i++) { const bx = BC - R + 1.4 + ((walkT * 0.15 + i * 0.4) % 1.6), by = BC + R - 0.2; add(bx + by, () => I.person(bx, by, '#e8552f', walkT * 0.3 + i, true)); }
+    [[1, 2], [2, 16], [16, 3], [15, 15], [1, 9], [16, 9]].forEach(t => add(t[0] + t[1] + 0.5, () => I.tree(t[0], t[1], 1)));
+    items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
+    const vg = ctx.createRadialGradient(220, 155, 120, 220, 155, 300); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,20,40,.35)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, 440, 310);
+    if (baseAnim && now - baseAnim.start > 1700) baseAnim = null;
+    /* the header */
+    const t = tierOf(xpOf());
+    $('th-level').textContent = 'Level ' + (TIERS.indexOf(t) + 1) + ' \u00b7 ' + t[1];
+    $('b-count').textContent = layout.length; $('b-districts').textContent = SERIES.filter(sr => doneIn(sr) > 0).length; $('b-walls').textContent = (R * 8) + 'm';
+    $('basetier').innerHTML = t[1] + '<small>' + layout.length + ' buildings</small>';
+  }
+  base.cam.x = camTo(BC + 0.5, BC + 0.5).x; base.cam.y = camTo(BC + 0.5, BC + 0.5).y + 10;
+  const bcv = $('base'); let bdrag = null;
+  const bGrid = e => { const r = bcv.getBoundingClientRect(); const x = (e.clientX - r.left) * 440 / r.width + base.cam.x - 220, y = (e.clientY - r.top) * 310 / r.height + base.cam.y - 60; return [Math.floor((x / (TW / 2) + y / (TH / 2)) / 2), Math.floor((y / (TH / 2) - x / (TW / 2)) / 2)]; };
+  bcv.addEventListener('pointerdown', e => { bdrag = { x: e.clientX, y: e.clientY, cx: base.cam.x, cy: base.cam.y, moved: false }; bcv.setPointerCapture(e.pointerId); });
+  bcv.addEventListener('pointermove', e => { if (!bdrag) return; const dx = e.clientX - bdrag.x, dy = e.clientY - bdrag.y; if (Math.hypot(dx, dy) > 4) bdrag.moved = true; if (bdrag.moved) { const r = bcv.getBoundingClientRect(); base.cam.x = clamp(bdrag.cx - dx * 440 / r.width, -260, 260); base.cam.y = clamp(bdrag.cy - dy * 310 / r.height, -20, 260); } });
+  bcv.addEventListener('pointerup', e => { const was = bdrag; bdrag = null; if (!was || was.moved) return; const [gx, gy] = bGrid(e);
+    const hit = baseLayout().find(b => b.gx === gx && b.gy === gy);
+    if (hit) { baseSay(hit.title, hit.series.name + ' \u00b7 part ' + hit.part + ' of ' + hit.of + ' \u00b7 ' + KIND_NAME[hit.kind] + ' \u00b7 Level ' + hit.level + ' \u00b7 ' + hit.xp + ' XP' + (hit.complete ? ' \u00b7 series complete' : '')); return; }
+    if (Math.abs(gx - BC - 0.5) < 1.2 && Math.abs(gy - BC - 0.5) < 1.2) { const t = tierOf(xpOf()), nt = nextTier(xpOf()); baseSay('Town Hall \u00b7 ' + t[1], nt ? (nt[0] - xpOf()) + ' XP to ' + nt[1] + '. The wall grows with it.' : 'Top tier. The wall is as wide as it goes.'); return; }
+    baseSay('Open ground', 'Finish a project and its building goes up here, in its series\u2019 district.'); });
+  function baseSay(title, body) { const el = $('basesay'); el.innerHTML = '<b></b>'; el.querySelector('b').textContent = title; el.appendChild(document.createTextNode(body)); }
+  let btoastTimer = null;
+  function baseToast(text) { const t = $('basetoast'); t.innerHTML = text; t.classList.add('on'); clearTimeout(btoastTimer); btoastTimer = setTimeout(() => t.classList.remove('on'), 2800); }
+  $('basefinish').addEventListener('click', () => {
+    const next = nextProject(); if (!next) return;
+    const before = buildersOf(xpOf()); DONE.add(next.title); const after = buildersOf(xpOf());
+    const sr = next.series, finished = doneIn(sr) === sr.projects.length;
+    baseAnim = { title: next.title, start: performance.now() };
+    baseToast('+' + next.xp + ' XP \u00b7 +' + Math.round(next.xp * 0.45) + ' coins' + (finished ? ' \u00b7 +1 gem: series complete' : '') + (after > before ? '<br>A new builder has arrived' : ''));
+    baseSay(next.title, 'Level ' + levelOf(next) + ' ' + KIND_NAME[sr.kind].toLowerCase() + ' in the ' + sr.name + ' district.' + (finished ? ' The whole series is done: gold roofs.' : ''));
+    /* the world keeps its series building in step */
+    if (!state.placed.some(b => b.series === sr.id)) { const spot = PLOT_ORDER.find(q => !occupied(q[0], q[1])); if (spot) state.placed.push({ series: sr.id, kind: sr.kind, gx: spot[0], gy: spot[1] }); }
+    paintHud(); paintCatalogue();
+    $('basefinish').disabled = !nextProject(); if (!nextProject()) $('basefinish').textContent = 'Every project is built';
+  });
 
   /* ================================================================ build */
   const STEPS = ['Create the bot', 'Add an intent', 'Add sample utterances', 'Build and test the bot', 'Add a fallback intent', 'Publish an alias', 'Clean up your resources'];
@@ -1139,15 +1295,15 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     $('exp-count').textContent = EXPANSION.count; $('exp-series').textContent = EXPANSION.series;
     const smp = $('exp-sample'); smp.innerHTML = ''; EXPANSION.sample.forEach(t => { const x = document.createElement('span'); x.textContent = t; smp.appendChild(x); });
   }
-  function show(view) { ['world', 'build', 'projects', 'notes'].forEach(v => { $('tab-' + v).setAttribute('aria-selected', String(v === view)); $('view-' + v).hidden = v !== view; }); try { localStorage.setItem('nww-tab', view); } catch (e) { /* fine */ } }
+  function show(view) { ['base', 'world', 'build', 'projects', 'notes'].forEach(v => { $('tab-' + v).setAttribute('aria-selected', String(v === view)); $('view-' + v).hidden = v !== view; }); try { localStorage.setItem('nww-tab', view); } catch (e) { /* fine */ } }
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => show(b.dataset.view)));
-  let opening = 'world'; try { opening = localStorage.getItem('nww-tab') || 'world'; } catch (e) { /* fine */ }
-  show(['world', 'build', 'projects', 'notes'].includes(opening) ? opening : 'world');
+  let opening = 'base'; try { opening = localStorage.getItem('nww-tab') || 'base'; } catch (e) { /* fine */ }
+  show(['base', 'world', 'build', 'projects', 'notes'].includes(opening) ? opening : 'base');
 
-  function frame(now) { drawWorld(world, now); drawSite(now); requestAnimationFrame(frame); }
+  function frame(now) { drawWorld(world, now); drawSite(now); drawBase(now); requestAnimationFrame(frame); }
   paintHud(); paintBubbles(); tick();
   say(tierOf(xpOf())[1], PROJECTS.filter(p => DONE.has(p.title)).length + ' of the ' + PROJECTS.length + ' NextWork projects done, across ' + state.placed.length + ' series. Each series is a building that grows with its parts. Drag to look around — HQ is up the road, the expansion island is across the water.');
   paintCatalogue();
-  if (reduce) { drawWorld(world, performance.now()); drawSite(performance.now()); } else requestAnimationFrame(frame);
+  if (reduce) { drawWorld(world, performance.now()); drawSite(performance.now()); drawBase(performance.now()); } else requestAnimationFrame(frame);
 })();
 </script>

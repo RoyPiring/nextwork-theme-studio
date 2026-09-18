@@ -13,6 +13,10 @@ generated projects are an expansion island across the water.
 
 `demo.html` is self-contained. Open it in a browser. It shows:
 
+- **My World** — your base, close up, the way Clash of Clans shows a
+  village. Every finished project is a building at its own level, grouped
+  by series into districts, inside a stone wall that grows with your tier.
+  The Town Hall in the middle is the tier. Tap a building for its project.
 - **World** — the portfolio surface, as an open world. Your land starts as
   dust and greens around what you build. Growth is cumulative by XP, never by
   time: Plot, Homestead, Hamlet, Village, Town, City, Metropolis, with
