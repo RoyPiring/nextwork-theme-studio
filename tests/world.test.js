@@ -79,31 +79,33 @@ test('the place is never empty on the day it levels up: every finished project s
   const K = S.layout(k); assert.equal(K.plan.id, 'kingdom'); assert.equal(K.infra.map(b => b.kind).join(), 'skypad,hoverport,skyisland,skyisland,skyisland');
 });
 
-test('the battery: a step adds five percent, a project fills it, a day of grace, then twenty percent a day down to an ember', () => {
+test('the battery: a step adds eight percent, a project fills it, a day of grace, then fifteen percent a day down to an ember', () => {
   const day = S.REAL_DAY, now = Date.now(); const s = S.normalise({ mode: 'prod' });
   assert.equal(S.power(s, now), 1, 'nothing has happened yet: full');
   S.applyProjectReading(s, { title: 'Set Up An AWS Account', done: 7, total: 7 }, now);
   assert.ok(s.done.includes('Set Up An AWS Account')); assert.equal(S.power(s, now), 1);
-  assert.equal(S.power(s, now + 1 * day), 1, 'a day of grace'); assert.equal(+S.power(s, now + 2 * day).toFixed(2), 0.8); assert.equal(+S.power(s, now + 4 * day).toFixed(2), 0.4); assert.equal(S.power(s, now + 30 * day), S.EMBER, 'an ember, never out');
+  assert.equal(S.power(s, now + 1 * day), 1, 'a day of grace'); assert.equal(+S.power(s, now + 2 * day).toFixed(2), 0.85); assert.equal(+S.power(s, now + 4 * day).toFixed(2), 0.55); assert.equal(S.power(s, now + 30 * day), S.EMBER, 'an ember, never out');
   const later = now + 4 * day; S.applyProjectReading(s, { title: 'Host a Website on Amazon S3', done: 2, total: 7 }, later);
-  assert.equal(+S.power(s, later).toFixed(2), 0.5, 'two steps ticked at 40%: two fives'); assert.equal(s.steps['Host a Website on Amazon S3'].done, 2);
+  assert.equal(+S.power(s, later).toFixed(2), 0.71, 'two steps ticked at 55%: two eights'); assert.equal(s.steps['Host a Website on Amazon S3'].done, 2);
   S.applyProjectReading(s, { title: 'Host a Website on Amazon S3', done: 1, total: 7 }, later); assert.equal(s.steps['Host a Website on Amazon S3'].done, 2, 'steps never fall');
   assert.equal(s.pulse.steps, 0, 'and a reading that adds nothing pulses nothing');
+  const fresh = S.normalise({ mode: 'prod' }); S.applyProjectReading(fresh, { title: 'Set Up An AWS Account', done: 1, total: 7 }, now); assert.equal(S.power(fresh, now + 9 * day), 1, 'the clock does not start on a first step');
+  S.applyProjectReading(fresh, { title: 'Set Up An AWS Account', done: 0, total: 0 }, now); assert.equal(fresh.done.length, 0, 'a reading with no step list finishes nothing');
 });
 
 test('sparks, citizens and the contract come from steps and projects; the crew builds the pegged lists while the power holds', () => {
   const day = S.REAL_DAY, now = Date.now(); const s = S.normalise({ mode: 'prod' });
   S.applyProjectReading(s, { title: 'Set Up An AWS Account', done: 3, total: 7 }, now); assert.equal(s.wallet.sparks, 3, 'a spark a step');
-  S.applyProjectReading(s, { title: 'Set Up An AWS Account', done: 7, total: 7 }, now); assert.equal(s.wallet.sparks, 3 + 4 + 10, 'four more steps and ten for the project');
+  S.applyProjectReading(s, { title: 'Set Up An AWS Account', done: 7, total: 7 }, now); assert.equal(s.wallet.sparks, 3 + 4 + 10 + 25, 'four more steps, ten for the project, and the contract kept');
   assert.ok(S.citizens(s, now) >= 2, 'people moved in while the power was up'); assert.ok(S.citizens(s, now) <= S.layout(s).capacity);
-  const c = S.contract(s, now); assert.equal(c.week.projects, 1); assert.equal(c.week.steps, 7); assert.equal(c.met, false); assert.ok(c.infra, 'the week asks for the next piece of infrastructure');
-  for (let i = 0; i < 13; i++) S.event(s, 'step', now); assert.equal(S.contract(s, now).met, true, 'twenty steps meet the contract'); assert.equal(s.life.bonusCap, 2, 'two more can live here, for good');
+  const c = S.contract(s, now); assert.equal(c.week.projects, 1); assert.equal(c.week.steps, 7); assert.equal(c.met, true, 'one project meets the week'); assert.ok(c.infra, 'the week asks for the next piece of infrastructure'); assert.equal(s.life.bonusCap, 2, 'two more can live here, for good'); assert.ok(c.daysLeft >= 1 && c.daysLeft <= 7);
   assert.equal(S.citizens(s, now + 30 * day), Math.max(1, s.life.citizens - 25), 'after five idle days, one leaves a day');
-  assert.ok(S.buy(s, 'hat:cowboy'), 'twenty sparks buys a hat'); assert.ok(S.owns(s, 'hat:cowboy')); assert.equal(S.buy(s, 'body:robot'), s.wallet.sparks >= 40); assert.ok(S.owns(s, 'hat:cap'), 'the cap was always free');
+  s.wallet.sparks = 60; assert.ok(S.buy(s, 'hat:cowboy'), 'fifty sparks buys a hat'); assert.ok(S.owns(s, 'hat:cowboy')); assert.equal(S.buy(s, 'body:robot'), false, 'ten left: no robot'); assert.ok(S.owns(s, 'hat:cap'), 'the cap was always free');
   S.applyPortfolioReading(s, { lists: [{ name: 'AWS Networks', count: 5, blurb: 'x'.repeat(200) }], name: 'Somebody' });
   assert.equal(s.lists[0].done, 0, 'a portfolio is pegged out, not built'); assert.equal(s.lists[0].blurb.length, 80); assert.equal(s.name, 'You', 'the page does not name you');
   assert.equal(S.crew(s, now).length, 0, 'the crew starts the clock'); assert.equal(S.crew(s, now + 2 * day + 1000).length, 2, 'two days: two buildings'); assert.equal(s.lists[0].done, 2);
-  assert.equal(S.crew(s, now + 10 * day).length, 0, 'the power is down by then: nothing built'); assert.equal(s.lists[0].done, 2);
+  assert.equal(S.crew(s, now + 10 * day).length, 2, 'two more days with power, then it is down: two built, not eight'); assert.equal(s.lists[0].done, 4);
+  const r = S.normalise(JSON.parse(JSON.stringify(S.applyPortfolioReading(S.normalise({}), { lists: [{ name: 'X', count: 9 }] })))); assert.equal(r.lists[0].done, 0, 'a pegged list stays pegged across a reload');
 });
 
 test('the ranch house grows by count, not by rarity', () => {

@@ -59,7 +59,8 @@
       remember: (k, v) => { if (v === undefined) return w.tab || ''; tools.saveWorld({ tab: v }); },
       production: () => world(tools.current()).read || NW.State.fresh(),
       palette: () => palette(settings),
-      openProject: (title) => { api.state.building = title; api.repaint(); tools.openExplore(title); }
+      openProject: (title) => { api.state.building = title; api.repaint(); tools.openExplore(title); },
+      pageBadge: on => { if (on === undefined) return !world(tools.current()).badgeOff; tools.saveWorld({ badgeOff: !on }); return on; }
     });
     return body;
   }
@@ -81,8 +82,8 @@
   /* a reading is applied once: the same page read again changes nothing and saves nothing, so a save never triggers a read that triggers a save */
   let lastRead = '';
   function read(doc, pathname) {
-    const p = NW.Readers.readProjectPage(doc, pathname); if (p) { const k = 'p|' + pathname + '|' + p.title + '|' + p.done + '/' + p.total; if (k === lastRead) return p; lastRead = k; if (api) api.applyProject(p); const cur = world(tools.current()); const r = NW.State.applyProjectReading(NW.State.normalise(cur.read || {}), p); tools.saveWorld({ read: r }); badge(pathname); return p; }
-    const f = NW.Readers.readPortfolioPage(doc, pathname); if (f) { const k = 'f|' + pathname + '|' + f.lists.map(l => l.name + l.count).join(); if (k === lastRead) return f; lastRead = k; if (api) api.applyPortfolio(f); const cur = world(tools.current()); const r = NW.State.applyPortfolioReading(NW.State.normalise(cur.read || {}), f); tools.saveWorld({ read: r }); return f; }
+    const p = NW.Readers.readProjectPage(doc, pathname); if (p) { const k = 'p|' + pathname + '|' + p.title + '|' + p.done + '/' + p.total; if (k === lastRead) { badge(pathname); return p; } lastRead = k; if (api) api.applyProject(p); const cur = world(tools.current()); const r = NW.State.applyProjectReading(NW.State.normalise(cur.read || {}), p); tools.saveWorld({ read: r }); badge(pathname); return p; }
+    const f = NW.Readers.readPortfolioPage(doc, pathname); if (f) { const k = 'f|' + pathname + '|' + f.lists.map(l => l.name + l.count).join(); if (k === lastRead) { badge(pathname); return f; } lastRead = k; if (api) api.applyPortfolio(f); const cur = world(tools.current()); const r = NW.State.applyPortfolioReading(NW.State.normalise(cur.read || {}), f); tools.saveWorld({ read: r }); badge(pathname); return f; }
     badge(pathname); return null;
   }
   /* ---- the pineapple on the project page: what this project builds, the step you are on, and a way back to the land ---- */
@@ -103,13 +104,14 @@
       x.addEventListener('click', () => { tools.saveWorld({ badgeOff: true }); badgeEl.remove(); badgeEl = null; });
       tick.addEventListener('click', () => { const title = badgeParts.title; if (!title || !api) return; const st2 = api.state.steps[title] || { done: 0, total: 7 }; api.applyProject({ title, done: st2.done + 1, total: st2.total, at: Date.now() }); badge(pathname); });
     }
-    const h1 = document.querySelector('h1'); const title = (h1 && h1.textContent || '').replace(/\s+/g, ' ').trim(); badgeParts.title = title;
+    const title = NW.Readers.titleOf(document); badgeParts.title = title; if (!title) { badgeEl.remove(); badgeEl = null; return; }
     const known = NW.PROJECTS.find(p => p.title.toLowerCase() === title.toLowerCase()); const sr = known ? NW.SERIES.find(x => x.id === known.series) : null; const step = st.steps[title] || { done: 0, total: 0 }; const built = st.done.includes(title);
-    if (built) { badgeParts.b.textContent = 'Built: ' + title; badgeParts.s1.textContent = (NW.KIND_NAME[sr ? sr.kind : 'home'] || 'A home') + ' on your land. ' + NW.State.citizens(st, Date.now()) + ' live there now.'; badgeParts.s2.textContent = 'Next project, next building.'; badgeParts.tick.hidden = true; }
+    if (built) { badgeParts.b.textContent = 'Built: ' + title; badgeParts.s1.textContent = (NW.KIND_NAME[sr ? sr.kind : 'home'] || 'A home') + ' on your land. ' + (function (n) { return n + (n === 1 ? ' lives' : ' live'); })(NW.State.citizens(st, Date.now())) + ' there now.'; badgeParts.s2.textContent = 'Next project, next building.'; badgeParts.tick.hidden = true; }
     else { badgeParts.b.textContent = (known ? 'Building: ' : 'Not on the map yet: ') + title; badgeParts.s1.textContent = step.total ? 'Step ' + Math.min(step.done + 1, step.total) + ' of ' + step.total + ' \u00b7 a spark each \u00b7 power ' + Math.round(NW.State.power(st, Date.now()) * 100) + '%' : 'Tick a step below; a wall goes up.'; badgeParts.s2.textContent = known ? (step.done ? NW.LESSONS[step.done % NW.LESSONS.length] : 'Every step is a brick. Start with one.') : 'Finish it and it still counts: it is yours.'; badgeParts.tick.hidden = !known && !step.total; }
   }
   function setup(t) { tools = t; }
   /* the browser changed size: the pane keeps its place and its share of it */
   window.addEventListener('resize', () => { if (el && tools) place(world(tools.current())); });
+  document.addEventListener('visibilitychange', () => { if (el && tools) render(tools.current()); });
   self.NWT_WORLD = { ID, setup, render, remove, read, badge, isOpen: () => !!el };
 })();

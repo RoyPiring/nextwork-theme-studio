@@ -2335,12 +2335,17 @@
    * a way to save its corner of the settings, and the page to read. Every
    * call is wrapped, because a game must never break the site under it. */
   let worldSettings = null, worldReadTimer = null;
+  /* one save at a time, each on top of the last, so two patches in one tick both land */
+  let worldQueue = Promise.resolve();
   function saveWorld(patch) {
-    chrome.storage.local.get({ world: {} }, function (stored) {
-      if (chrome.runtime.lastError) return;
-      const w = Object.assign({}, NWT.DEFAULT_SETTINGS.world, stored.world, patch);
-      chrome.storage.local.set({ world: w });
-    });
+    worldQueue = worldQueue.then(function () { return new Promise(function (done) {
+      chrome.storage.local.get({ world: {} }, function (stored) {
+        if (chrome.runtime.lastError) { done(); return; }
+        const w = Object.assign({}, NWT.DEFAULT_SETTINGS.world, stored.world, patch);
+        if (worldSettings) worldSettings.world = w;
+        chrome.storage.local.set({ world: w }, function () { done(); });
+      });
+    }); }).catch(function () { /* never break the page */ });
   }
   function openExplore() {
     /* the catalogue, in a new tab, so the world stays where it is */

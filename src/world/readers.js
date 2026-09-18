@@ -13,17 +13,19 @@
   /* is this step ticked? any of the ways a checklist marks it */
   function ticked(el) {
     if (!el) return false;
-    const marked = e => attr(e, 'aria-checked') === 'true' || /^(complete|checked|done)$/.test(attr(e, 'data-state')) || /complete|checked|done/i.test(attr(e, 'aria-label')) || /(^|\s)(done|complete|completed)(\s|$)/.test(attr(e, 'class'));
+    const marked = e => attr(e, 'aria-checked') === 'true' || /^(complete|checked|done)$/.test(attr(e, 'data-state')) || /^(complete|completed|checked|done)$/i.test(attr(e, 'aria-label').trim()) || /(^|\s)(done|complete|completed)(\s|$)/.test(attr(e, 'class'));
     if (marked(el)) return true;
     if (all(el, 'input').some(i => i.checked)) return true;
     if (all(el, '[aria-checked], [data-state]').some(e => attr(e, 'aria-checked') === 'true' || /^(complete|checked|done)$/.test(attr(e, 'data-state')))) return true;   /* a 'Mark complete' button inside a step is not a tick */
     try { const cs = el.ownerDocument && el.ownerDocument.defaultView && el.ownerDocument.defaultView.getComputedStyle(el); if (cs && /line-through/.test(cs.textDecorationLine || cs.textDecoration || '')) return true; } catch (e) { /* a stand-in document */ }
     return false;
   }
+  /* the page's own title: the heading in its main content, never the site's name */
+  function titleOf(doc) { const hs = all(doc, 'h1'); const inMain = e => { for (let p = e && e.parentElement; p; p = p.parentElement) { const tag = (p.tagName || '').toLowerCase(); if (tag === 'main' || tag === 'article' || attr(p, 'role') === 'main') return true; } return false; }; const h = hs.find(inMain) || hs[0]; const t = text(h); return /^next\s*work(\.ai)?$/i.test(t) ? '' : t; }
   /* the project page: its title, and how many steps are done of how many */
   function readProjectPage(doc, pathname) {
     if (!doc || !/^\/projects?\/[^/]+/.test(pathname || '')) return null;
-    const title = text(first(doc, 'h1')); if (!title) return null;
+    const title = titleOf(doc); if (!title) return null;
     const head = all(doc, 'h2, h3, h4').find(h => /^steps?$/i.test(text(h))); let done = 0, total = 0;
     if (head) {
       let list = after(head); while (list && !kids(list).length) list = after(list);
@@ -46,5 +48,5 @@
     if (!lists.length) return null;
     return { lists, name, at: Date.now() };
   }
-  NW.Readers = { readProjectPage, readPortfolioPage, ticked };
+  NW.Readers = { readProjectPage, readPortfolioPage, ticked, titleOf };
 })();
