@@ -31,6 +31,7 @@
         "src/world/plans.js",
         "src/world/state.js",
         "src/world/eras.js",
+        "src/world/homes.js",
         "src/world/land.js",
         "src/world/hq.js",
         "src/world/global.js",

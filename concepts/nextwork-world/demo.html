@@ -503,7 +503,7 @@
   CIV.townhall2 = function (I, gx, gy, now) { B.cityhall(I, gx, gy, 1, now, 3); I.label(gx + 1, gy + 2.6, 'Second City Hall', '', 8); };
   /* trees for the other lands */
   B.cactus = function (I, gx, gy, size) { size = size || 1; const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 3, b[1] + 1, 6 * size, 2.5 * size, 0, 0, Math.PI * 2); I.ctx.fill(); I.roundRect(b[0] - 3 * size, b[1] - 26 * size, 6 * size, 26 * size, 3 * size, '#3f8f4a'); I.roundRect(b[0] - 10 * size, b[1] - 20 * size, 5 * size, 10 * size, 2.5 * size, '#3f8f4a'); I.roundRect(b[0] - 10 * size, b[1] - 20 * size, 8 * size, 4 * size, 2 * size, '#3f8f4a'); I.roundRect(b[0] + 5 * size, b[1] - 16 * size, 5 * size, 8 * size, 2.5 * size, '#3f8f4a'); I.roundRect(b[0] + 2 * size, b[1] - 16 * size, 8 * size, 4 * size, 2 * size, '#3f8f4a'); I.ctx.strokeStyle = 'rgba(255,255,255,.35)'; I.ctx.lineWidth = 0.8; for (let v = 4; v < 24; v += 4) I.line([b[0] - 1, b[1] - v * size], [b[0] + 1, b[1] - v * size], 'rgba(0,0,0,.2)', 0.8); };
-  B.pine = function (I, gx, gy, size) { size = size || 1; const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.25)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 5, b[1] + 2, 10 * size, 4 * size, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#5a3a1e'; I.ctx.fillRect(b[0] - 2, b[1] - 12 * size, 4, 12 * size); [[0, 12, 14], [1, 22, 11], [2, 31, 8]].forEach(t => { I.poly([[b[0] - t[2] * size, b[1] - t[1] * size + 8 * size], [b[0] + t[2] * size, b[1] - t[1] * size + 8 * size], [b[0], b[1] - t[1] * size - 6 * size]], ['#2f6b3a', '#3a7f46', '#4a9452'][t[0]]); }); };
+  B.pine = function (I, gx, gy, size) { size = size || 1; const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.25)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 5, b[1] + 2, 10 * size, 4 * size, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#5a3a1e'; I.ctx.fillRect(b[0] - 2, b[1] - 12 * size, 4, 12 * size); [[0, 12, 14], [1, 22, 11], [2, 31, 8]].forEach(t => { I.poly([[b[0] - t[2] * size, b[1] - t[1] * size + 8 * size], [b[0] + t[2] * size, b[1] - t[1] * size + 8 * size], [b[0], b[1] - t[1] * size - 6 * size]], ['#3f8a4a', '#4c9c58', '#5db068'][t[0]]); }); };
   B.palm = function (I, gx, gy, size) { size = size || 1; const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.22)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 6, b[1] + 2, 12 * size, 4 * size, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.strokeStyle = '#8a6a3f'; I.ctx.lineWidth = 3.5 * size; I.ctx.beginPath(); I.ctx.moveTo(b[0], b[1]); I.ctx.quadraticCurveTo(b[0] + 4 * size, b[1] - 18 * size, b[0] + 2 * size, b[1] - 34 * size); I.ctx.stroke(); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; I.ctx.strokeStyle = i % 2 ? '#3fa66b' : '#5cc464'; I.ctx.lineWidth = 2.5 * size; I.ctx.beginPath(); I.ctx.moveTo(b[0] + 2 * size, b[1] - 34 * size); I.ctx.quadraticCurveTo(b[0] + 2 * size + Math.cos(a) * 12 * size, b[1] - 40 * size + Math.sin(a) * 4 * size, b[0] + 2 * size + Math.cos(a) * 16 * size, b[1] - 30 * size + Math.abs(Math.sin(a)) * 6 * size); I.ctx.stroke(); } I.blob(b[0] + 2 * size, b[1] - 33 * size, 2 * size, '#8a5a3a'); };
   B.CIV = CIV;
   NW.B = B; NW.drop = drop;
@@ -719,10 +719,10 @@
   const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
 
   const AVATAR = { body: 'pineapple', shirt: '#2f7fd6', hat: 'none', skin: '#ffd6ad', hair: '#4a2e1a' };
-  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: 'hill', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
+  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: 'plains', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
   function normalise(saved) {
     const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
-    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['hill', 'desert', 'forest', 'coast'].includes(s.biome) ? s.biome : 'hill';
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['forest', 'sandy', 'island', 'plains', 'mountains', 'hill', 'desert'].includes(s.biome) ? s.biome : 'plains';
     s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA; s.avatar = Object.assign({}, AVATAR, s.avatar && typeof s.avatar === 'object' ? s.avatar : {});
     s.lists = s.lists.map(l => ({ name: String(l.name || ''), total: +l.total || 0, done: +l.done || +l.total || 0, blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }));
     return s;
@@ -775,7 +775,11 @@
   const LANES = []; for (let k = 0; k < 8; k++) { LANES.push(21 + k * 4 + (k >= 3 ? 4 : 0)); }   /* 21 25 29 37 41 45 49 53: the east city sits in the gap */
   const EAST_LOTS = (() => { const out = []; LANES.forEach(l => { for (let x = 49; x <= 66; x += 3) { if (Math.abs(x - EAST_TRUNK) < 2) continue; if (x <= 57 && l - 2 >= 28 && l + 1 <= 40) continue; out.push([x, l - 2]); out.push([x, l + 1]); } }); out.sort((a, b) => (Math.abs(a[0] - EAST_TRUNK) * 0.8 + Math.abs(a[1] - CONNECT)) - (Math.abs(b[0] - EAST_TRUNK) * 0.8 + Math.abs(b[1] - CONNECT))); return out; })();
   const key = (x, y) => x + ',' + y;
-  function layout(s) {
+  /* the layout is asked for many times a frame; it only changes when something is built, moved or read */
+  let memoKey = '', memoVal = null;
+  const layoutKey = s => planOf(s).id + '|' + s.done.length + '|' + (s.done[s.done.length - 1] || '') + '|' + s.lists.map(l => l.total + ':' + l.done).join(',') + '|' + Object.keys(s.sites).map(t => t + '@' + s.sites[t]).join(';') + '|' + s.biome;
+  function layout(s) { const k = layoutKey(s); if (k === memoKey && memoVal) return memoVal; memoVal = layoutRaw(s); memoKey = k; return memoVal; }
+  function layoutRaw(s) {
     const plan = planOf(s), buildings = [], taken = new Set(); const at = q => taken.add(key(q[0], q[1]));
     const lotOk = q => plan.lotList.some(l => l[0] === q[0] && l[1] === q[1]);
     Object.keys(s.sites).forEach(t => { if (lotOk(s.sites[t])) at(s.sites[t]); });
@@ -799,6 +803,7 @@
     return set;
   }
   const lotFree = (s, q) => !Object.keys(s.sites).some(t => s.sites[t][0] === q[0] && s.sites[t][1] === q[1]) && !layout(s).buildings.some(b => b.gx === q[0] && b.gy === q[1]);
+  const forget = () => { memoKey = ''; memoVal = null; };
   const nearestLot = (s, g) => { let best = null, bd = 1e9; planOf(s).lotList.forEach(q => { const d = Math.hypot(q[0] + 0.5 - g[0], q[1] + 0.5 - g[1]); if (d < bd && lotFree(s, q)) { bd = d; best = q; } }); return bd < 3 ? best : null; };
   /* the way from one tile to another along the roads, or null */
   function route(set, from, to) {
@@ -812,7 +817,7 @@
   const hourOf = s => (s.mode === 'dev' && typeof s.hour === 'number') ? s.hour : (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   const nightOf = h => h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0;
   const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
-  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
+  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
 })();
 
 /* NextWorld · eras: how a plot becomes a country
@@ -828,33 +833,156 @@
   const eraOf = s => { const n = score(s); let e = ERAS[0]; ERAS.forEach(x => { if (n >= x.n) e = x; }); return e; };
   const nextEra = s => ERAS.find(x => x.n > score(s)) || null;
   const level = s => ERAS.indexOf(eraOf(s));
-  const BIOMES = { hill: { name: 'Hill Country', grass: ['#7fb35a', '#b9b162'], stone: '#d9d2b8', tree: 'oak', water: '#3ea3e8', sand: '#d9c9a0' }, desert: { name: 'Desert', grass: ['#d8b97a', '#e2c58a'], stone: '#e9d7a8', tree: 'cactus', water: '#4fb3f0', sand: '#efe0b8' }, forest: { name: 'Forest', grass: ['#4f8f3f', '#6aa64f'], stone: '#a8a89a', tree: 'pine', water: '#2f7fb8', sand: '#c8b98a' }, coast: { name: 'Coast', grass: ['#8fc76a', '#a9d287'], stone: '#e9e2d0', tree: 'palm', water: '#3fbfe8', sand: '#f2e6c4' } };
-  const biomeOf = s => BIOMES[s.biome] || BIOMES.hill;
-  NW.Eras = { ERAS, BIOMES, score, eraOf, nextEra, level, biomeOf };
+  /* the moment a threshold is met, in the words of the era reached */
+  const LEVEL_UP = { campground: 'You have a fire and a place to sleep. Everything starts here.', fort: 'Five projects, and the walls are up. What you know now protects what you build next.', town: 'Fifteen projects. People have moved in to be near what you made.', city: 'Thirty-five. Streets, a hospital, a library. Your work is part of other people\u2019s days now.', metropolis: 'Sixty. Trams, crowds, cranes. The city runs on things you understood one at a time.', capital: 'Ninety projects. Others come here to learn how you did it.', kingdom: 'One hundred and twenty. Nothing here is borrowed. You built all of it.' };
+  NW.Eras = { ERAS, LEVEL_UP, score, eraOf, nextEra, level };
+})();
+
+/* NextWorld · homes: what a project builds, in the era it stands in
+ * One lineage. Every project on your land is drawn in the material of the
+ * era the place has reached, so when the settlement levels up the whole
+ * town rebuilds itself: canvas at the campground, logs at the fort,
+ * timber and stone in the town, brick in the city, steel and glass in
+ * the metropolis, white stone at the capital, and the kingdom's houses
+ * are the future. The kind of project only tints the building and adds
+ * one detail, so a street reads as one place, not a catalogue. */
+'use strict';
+(function () {
+  const { B } = NW;
+  /* the accent and the one detail each kind carries through every era */
+  const KIND = { home: ['#d9563f', 'chimney'], lab: ['#5a3aa8', 'dish'], library: ['#c9503c', 'sign'], barn: ['#8a5a3a', 'silo'], tower: ['#2f7fd6', 'mast'], workshop: ['#e3a45b', 'stack'], vault: ['#6b7280', 'gate'], datacentre: ['#3fa66b', 'vents'], yard: ['#f2b42a', 'crate'], clinic: ['#e8352f', 'cross'], bank: ['#c9971f', 'coin'] };
+  function detail(I, b, gx, gy, H, kind, now) {
+    const d = (KIND[kind] || KIND.home)[1], c = (KIND[kind] || KIND.home)[0];
+    if (d === 'chimney') { I.chimney(gx + 0.7, gy + 0.2, H + 6, '#9c5a3a'); const q = I.p(gx + 0.76, gy + 0.26, H + 24); I.smoke(q[0], q[1], now); }
+    else if (d === 'dish') { const q = I.p(gx + 0.75, gy + 0.3, H + 8); I.ctx.fillStyle = '#e6e9ef'; I.ctx.beginPath(); I.ctx.ellipse(q[0], q[1] - 4, 6, 4, -0.5, 0, Math.PI * 2); I.ctx.fill(); I.line(q, [q[0], q[1] - 4], '#8a95a6', 2); }
+    else if (d === 'sign') { const s = I.up(I.P(b.D, b.C, 0.5), H * 0.7); I.roundRect(s[0] - 8, s[1] - 4, 16, 7, 2, '#f4f1e8'); I.ctx.fillStyle = c; I.ctx.fillRect(s[0] - 6, s[1] - 2, 5, 3); I.ctx.fillRect(s[0] + 1, s[1] - 2, 5, 3); }
+    else if (d === 'silo') { const t = I.box(gx + 0.82, gy + 0.05, 0.16, 0.16, H + 10, '#c9c2b0', 0, { noShadow: true }); I.roof(gx + 0.82, gy + 0.05, 0.16, 0.16, H + 10, 6, '#8a8f98', 0.05); }
+    else if (d === 'mast') { const q = I.p(gx + 0.5, gy + 0.5, H + 4); I.line(q, [q[0], q[1] - 26], '#8a95a3', 2); I.blob(q[0], q[1] - 27, 2, Math.floor(now / 500) % 2 ? '#ff4d4d' : '#ffb3b3'); }
+    else if (d === 'stack') { I.chimney(gx + 0.75, gy + 0.15, H + 4, '#6b7280'); const q = I.p(gx + 0.81, gy + 0.21, H + 22); I.smoke(q[0], q[1], now); }
+    else if (d === 'gate') { const a = I.P(b.D, b.C, 0.36), e = I.P(b.D, b.C, 0.64); I.poly([a, e, I.up(e, H * 0.6), I.up(a, H * 0.6)], '#3b4252'); I.line(I.P(a, e, 0.5), I.up(I.P(a, e, 0.5), H * 0.6), '#9aa3b0', 1); }
+    else if (d === 'vents') { [0.2, 0.5, 0.8].forEach(u => I.box(gx + u - 0.06, gy + 0.2, 0.12, 0.12, 5, '#dfe5ee', H + 4, { noShadow: true })); }
+    else if (d === 'crate') { I.box(gx + 1.02, gy + 0.7, 0.22, 0.22, 7, c, 0, { noShadow: true, tex: 'ribbed' }); }
+    else if (d === 'cross') { const s = I.up(I.P(b.D, b.C, 0.5), H * 0.72); I.roundRect(s[0] - 5, s[1] - 5, 10, 10, 2, '#fff'); I.ctx.fillStyle = c; I.ctx.fillRect(s[0] - 1.2, s[1] - 3.5, 2.4, 7); I.ctx.fillRect(s[0] - 3.5, s[1] - 1.2, 7, 2.4); }
+    else if (d === 'coin') { const s = I.up(I.P(b.D, b.C, 0.5), H * 0.72); I.blob(s[0], s[1], 4, c); I.ctx.fillStyle = '#4a2b00'; I.ctx.font = '800 5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('$', s[0], s[1] + 2); I.ctx.textAlign = 'left'; }
+  }
+  const accent = kind => (KIND[kind] || KIND.home)[0];
+  const ERA_HOME = [
+    /* 0 campground: a canvas shelter over poles, a firewood stack, what you carried in */
+    function (I, gx, gy, k, now, kind) { const c = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.22)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 2, c[1] + 2, 16, 7, 0, 0, Math.PI * 2); I.ctx.fill(); const t = accent(kind); I.poly([[c[0] - 16, c[1] + 2], [c[0] + 16, c[1] + 2], [c[0], c[1] - 24]], '#e9e4d6'); I.poly([[c[0], c[1] + 2], [c[0] + 16, c[1] + 2], [c[0], c[1] - 24]], '#cfc7aa'); I.poly([[c[0] - 4, c[1] + 2], [c[0] + 4, c[1] + 2], [c[0], c[1] - 10]], '#6b4a2b'); I.ctx.fillStyle = t; I.ctx.fillRect(c[0] - 15, c[1] - 1, 30, 2.5); const w = I.p(gx + 1.05, gy + 0.6); for (let i = 0; i < 5; i++) { I.ctx.fillStyle = i % 2 ? '#8a5a3a' : '#6b4a2b'; I.ctx.fillRect(w[0] - 6 + (i % 3) * 4, w[1] - 4 - Math.floor(i / 3) * 3.5, 3.5, 3); } },
+    /* 1 fort: a log cabin, shake roof, stone chimney */
+    function (I, gx, gy, k, now, kind) { const b = I.box(gx + 0.12, gy + 0.12, 0.76, 0.76, 30, '#a8763f', 0, { tex: 'siding' }); I.line(b.D, b.C, '#6b4a2b', 2); I.win(b.D, b.C, 0.15, 10, 0.22, 11, true); I.door(b.D, b.C, 0.6, 0.24, 20, '#4a2b17'); I.roof(gx + 0.12, gy + 0.12, 0.76, 0.76, 30, 18, '#6b4a2b'); I.ctx.fillStyle = accent(kind); const q = I.p(gx + 0.5, gy + 0.98); I.ctx.fillRect(q[0] - 6, q[1] - 3, 12, 2); detail(I, b, gx, gy, 30, kind, now); },
+    /* 2 town: timber-frame on a stone base, tiled roof, a storey and a half */
+    function (I, gx, gy, k, now, kind) { I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, 8, '#b3ada3', 0, { tex: 'stone' }); const b = I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, 34, '#f3e6cc', 8, { noShadow: true }); [0.15, 0.5, 0.85].forEach(u => I.line(I.P(b.D, b.C, u), I.up(I.P(b.D, b.C, u), 34), '#5a3a1e', 1.5)); I.line(I.up(b.D, 17), I.up(b.C, 17), '#5a3a1e', 1.5); I.line(I.up(b.D, 34), I.up(b.C, 34), '#5a3a1e', 2); I.win(b.D, b.C, 0.2, 10, 0.2, 12, true); I.win(b.D, b.C, 0.6, 20, 0.2, 10, false); I.door(b.D, b.C, 0.58, 0.22, 20, '#6b3a22'); I.roof(gx + 0.1, gy + 0.1, 0.8, 0.8, 42, 22, accent(kind)); detail(I, b, gx, gy, 42, kind, now); },
+    /* 3 city: a brick townhouse, two storeys, a parapet and an awning */
+    function (I, gx, gy, k, now, kind) { const b = I.box(gx + 0.08, gy + 0.08, 0.84, 0.84, 56, '#b8553f', 0, { tex: 'brick' }); I.win(b.D, b.C, 0.12, 12, 0.2, 14, true); I.win(b.D, b.C, 0.12, 38, 0.2, 14, false); I.win(b.D, b.C, 0.66, 38, 0.2, 14, true); I.door(b.D, b.C, 0.6, 0.24, 22, '#172033'); I.win(b.C, b.B, 0.25, 12, 0.3, 14, true); I.win(b.C, b.B, 0.25, 38, 0.3, 14, false); I.poly([I.p(gx + 0.55, gy + 0.9, 26), I.p(gx + 0.92, gy + 0.9, 26), I.p(gx + 0.92, gy + 1.1, 22), I.p(gx + 0.55, gy + 1.1, 22)], accent(kind)); I.flatRoof(gx + 0.08, gy + 0.08, 0.84, 0.84, 56, '#4b5563'); I.box(gx + 0.05, gy + 0.05, 0.9, 0.06, 5, '#e9e2d0', 58, { noShadow: true }); detail(I, b, gx, gy, 58, kind, now); },
+    /* 4 metropolis: steel and glass, three storeys, a rooftop unit */
+    function (I, gx, gy, k, now, kind) { const b = I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, 78, '#3b6fb5', 0, { tex: 'glass', top: 0.1 }); [0.15, 0.55].forEach(u => I.line(I.P(b.D, b.C, u), I.up(I.P(b.D, b.C, u), 78), '#dfe5ee', 1)); I.door(b.D, b.C, 0.58, 0.28, 22, '#172033'); I.poly([I.up(b.D, 78), I.up(b.C, 78), I.up(b.C, 82), I.up(b.D, 82)], accent(kind)); I.flatRoof(gx + 0.1, gy + 0.1, 0.8, 0.8, 82, '#9aa3b0'); I.box(gx + 0.6, gy + 0.55, 0.22, 0.22, 8, '#dfe5ee', 86, { noShadow: true }); detail(I, b, gx, gy, 86, kind, now); },
+    /* 5 capital: white stone, a colonnade, a roof garden */
+    function (I, gx, gy, k, now, kind) { I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 6, '#e9e2d0', 0, { tex: 'stone', top: 0.1 }); const b = I.box(gx + 0.12, gy + 0.12, 0.76, 0.76, 64, '#f4f1e8', 6, { tex: 'stone', noShadow: true }); [0.1, 0.4, 0.7].forEach(u => I.win(b.D, b.C, u, 14, 0.14, 18, (Math.floor(u * 10)) % 2 === 0)); [0.1, 0.4, 0.7].forEach(u => I.win(b.D, b.C, u, 42, 0.14, 16, true)); I.door(b.D, b.C, 0.58, 0.22, 24, accent(kind)); [0.05, 0.35, 0.65, 0.95].forEach(u => I.box(gx + 0.12 + u * 0.72, gy + 0.9, 0.05, 0.05, 30, '#f4f1e8', 6, { noShadow: true })); I.flatRoof(gx + 0.12, gy + 0.12, 0.76, 0.76, 70, '#e9e2d0'); I.blob(I.p(gx + 0.4, gy + 0.4, 76)[0], I.p(gx + 0.4, gy + 0.4, 76)[1], 6, '#5cc464', 0.7); I.blob(I.p(gx + 0.7, gy + 0.6, 76)[0], I.p(gx + 0.7, gy + 0.6, 76)[1], 5, '#3fa66b', 0.7); detail(I, b, gx, gy, 72, kind, now); },
+    /* 6 kingdom: the future. a rounded shell, a light band, a lit spire */
+    function (I, gx, gy, k, now, kind) { const c = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.25)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 3, c[1] + 2, 18, 8, 0, 0, Math.PI * 2); I.ctx.fill(); const g = I.ctx.createLinearGradient(c[0] - 16, c[1], c[0] + 16, c[1]); g.addColorStop(0, '#ffffff'); g.addColorStop(0.55, '#e6e9ef'); g.addColorStop(1, '#9aa3b0'); I.ctx.fillStyle = g; I.ctx.beginPath(); I.ctx.moveTo(c[0] - 16, c[1]); I.ctx.quadraticCurveTo(c[0] - 18, c[1] - 60, c[0], c[1] - 66); I.ctx.quadraticCurveTo(c[0] + 18, c[1] - 60, c[0] + 16, c[1]); I.ctx.closePath(); I.ctx.fill(); const a = accent(kind); I.ctx.strokeStyle = a; I.ctx.lineWidth = 2.5; I.ctx.beginPath(); I.ctx.moveTo(c[0] - 16.5, c[1] - 22); I.ctx.quadraticCurveTo(c[0], c[1] - 16, c[0] + 16.5, c[1] - 22); I.ctx.stroke(); I.ctx.fillStyle = 'rgba(79,240,255,.55)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] - 4, c[1] - 38, 6, 9, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#172033'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 5, c[1] - 10, 4, 8, 0, 0, Math.PI * 2); I.ctx.fill(); I.line([c[0], c[1] - 66], [c[0], c[1] - 80], '#e6e9ef', 2); I.blob(c[0], c[1] - 82, 2.5, a); I.lights.push({ x: c[0], y: c[1] - 30, r: 30, c: '120,220,255', k: 0.6 }); const q = I.p(gx + 0.5, gy + 1.02); I.ctx.fillStyle = 'rgba(79,240,255,.5)'; I.ctx.fillRect(q[0] - 10, q[1] - 1.5, 20, 1.5); }
+  ];
+  /* what a building goes up as, one component per step */
+  const STAGES = ['pegs', 'slab', 'posts', 'walls', 'windows', 'roof', 'door', 'trim', 'garden'];
+  function drawStage(I, gx, gy, done, total, kind, era, k, now) {
+    const n = Math.max(1, total | 0), reached = Math.round(Math.min(done, n) / n * STAGES.length), z = (1 - k) * -50;
+    const has = s => reached >= STAGES.indexOf(s) + 1, lift = s => reached === STAGES.indexOf(s) + 1 ? -z : 0;
+    I.ctx.setLineDash([4, 4]); I.poly([I.p(gx - 0.2, gy - 0.2), I.p(gx + 1.2, gy - 0.2), I.p(gx + 1.2, gy + 1.2), I.p(gx - 0.2, gy + 1.2)], 'rgba(255,255,255,.1)', 'rgba(255,255,255,.8)', 1.2); I.ctx.setLineDash([]);
+    [[-0.2, -0.2], [1.2, -0.2], [-0.2, 1.2], [1.2, 1.2]].forEach(o => { const q = I.p(gx + o[0], gy + o[1]); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(q[0] - 1, q[1] - 9, 2, 9); I.ctx.fillStyle = '#e8552f'; I.ctx.fillRect(q[0] - 3, q[1] - 11, 6, 3); });
+    if (done >= n && n > 0) { ERA_HOME[era](I, gx, gy, 1, now, kind); return 'Finished'; }
+    const wall = era <= 1 ? '#a8763f' : era === 2 ? '#f3e6cc' : era === 3 ? '#b8553f' : era === 4 ? '#3b6fb5' : '#f4f1e8', tex = era <= 1 ? 'siding' : era === 2 ? 'siding' : era === 3 ? 'brick' : era === 4 ? 'glass' : 'stone', H = era <= 2 ? 34 : era === 3 ? 56 : era === 4 ? 78 : 64;
+    if (has('slab')) I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 5, era >= 2 ? '#c9c2b0' : '#8a6a3f', lift('slab'), { top: 0.1 });
+    if (has('posts') && !has('walls')) [[0.12, 0.12], [0.88, 0.12], [0.12, 0.88], [0.88, 0.88]].forEach(o => I.box(gx + o[0] - 0.04, gy + o[1] - 0.04, 0.08, 0.08, H, era <= 2 ? '#b58a5a' : '#8a95a6', 5 + lift('posts'), { noShadow: true }));
+    let b = null; if (has('walls')) { b = I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, H, wall, 5 + lift('walls'), { noShadow: true, tex }); }
+    if (has('windows') && b) { I.win(b.D, b.C, 0.15, 12, 0.22, 14, false); I.win(b.C, b.B, 0.25, 12, 0.3, 14, false); if (H > 40) I.win(b.D, b.C, 0.15, 38, 0.22, 14, false); }
+    if (has('roof')) { if (era <= 2) I.roof(gx + 0.1, gy + 0.1, 0.8, 0.8, H + 5 + lift('roof'), 22, era === 0 ? '#e9e4d6' : era === 1 ? '#6b4a2b' : accent(kind)); else I.flatRoof(gx + 0.1, gy + 0.1, 0.8, 0.8, H + 5 + lift('roof'), era === 3 ? '#4b5563' : '#9aa3b0'); }
+    if (has('door') && b) I.door(b.D, b.C, 0.6, 0.24, 22, '#6b3a22');
+    if (has('trim') && b) I.poly([I.up(b.D, H + 5), I.up(b.C, H + 5), I.up(b.C, H + 9), I.up(b.D, H + 9)], accent(kind));
+    if (has('garden')) { I.bush(gx - 0.05, gy + 0.95, true); I.bush(gx + 0.95, gy - 0.05, false); }
+    if (done > 0) I.puff(gx, gy, k);
+    return reached ? STAGES[Math.min(reached, STAGES.length) - 1].replace(/^\w/, ch => ch.toUpperCase()) : 'Pegged out';
+  }
+  /* the hospital, at hospital size: three wide, two deep, three storeys, the cross on the roof */
+  B.CIV.hospital = function (I, gx, gy, now) { I.box(gx - 0.2, gy - 0.2, 3.4, 2.4, 4, '#cfd5df', 0, { top: 0.1 }); const H = 62, b = I.box(gx, gy, 3, 2, H, '#f4f6f8', 4, { tex: 'siding' }); for (let r = 0; r < 3; r++) for (let u = 0.06; u < 0.95; u += 0.12) { if (r === 0 && u > 0.38 && u < 0.6) continue; I.win(b.D, b.C, u, 10 + r * 19, 0.07, 12, ((r + Math.floor(u * 10)) % 3) !== 0); } for (let r = 0; r < 3; r++) [0.15, 0.45, 0.75].forEach(u => I.win(b.C, b.B, u, 10 + r * 19, 0.16, 12, r !== 1)); const a = I.P(b.D, b.C, 0.4), c = I.P(b.D, b.C, 0.6); I.poly([a, c, I.up(c, 20), I.up(a, 20)], '#9ad3ff'); I.poly([I.p(gx + 0.9, gy + 2.05, 24), I.p(gx + 2.1, gy + 2.05, 24), I.p(gx + 2.1, gy + 2.5, 20), I.p(gx + 0.9, gy + 2.5, 20)], '#e8352f'); I.flatRoof(gx, gy, 3, 2, H + 4, '#dfe5ee'); const s = I.p(gx + 1.5, gy + 1, H + 12); I.roundRect(s[0] - 9, s[1] - 9, 18, 18, 3, '#ffffff'); I.ctx.fillStyle = '#e8352f'; I.ctx.fillRect(s[0] - 2.5, s[1] - 7, 5, 14); I.ctx.fillRect(s[0] - 7, s[1] - 2.5, 14, 5); I.box(gx + 2.5, gy + 0.3, 0.3, 0.3, 10, '#dfe5ee', H + 4, { noShadow: true }); I.label(gx + 1.5, gy + 2.9, 'Hospital', '', 9); };
+  B.CIV.library = function (I, gx, gy, now) { B.library(I, gx, gy, 1, now, 3); B.library(I, gx + 1, gy, 1, now, 3); I.label(gx + 1, gy + 1.7, 'Library', '', 8); };
+  B.CIV.datacentre = function (I, gx, gy, now) { B.datacentre(I, gx, gy, 1, now, 3); I.label(gx + 0.6, gy + 1.7, 'Data Centre', 'what keeps the city running', 8); };
+  NW.Homes = { ERA_HOME, drawStage, STAGES, KIND };
 })();
 
 /* NextWorld · land: your world, drawn
- * Hill Country. Grass that dries on the high ground, a creek, worn paths
- * that appear where you have walked, and one figure on it: you. */
+ * The plan for your era, on the terrain you chose, with every project
+ * built in the era's material and the people your work has drawn in.
+ * The ground is classified once per plan and terrain into a byte grid;
+ * the trees and lamps are placed once; only what moves is worked out
+ * each frame. */
 'use strict';
 (function () {
-  const { B, clamp, lerp, ease, rgb, reduce, TIERS, tierOf, KIND_NAME } = NW;
-  const S = NW.State, { LAND, HOME } = S;
+  const { B, clamp, lerp, ease, rgb, reduce } = NW;
+  const S = NW.State, { LAND, HOME } = S, Homes = NW.Homes;
 
-  /* the ground, in whichever land you chose: two grass tones by height, stone on the high ground */
-  let biome = NW.Eras.BIOMES.hill;
-  const groundColour = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? biome.stone : NW.shade(biome.stone, -0.06); const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(biome.grass[0]), b = NW.hex(biome.grass[1]); return rgb(a.map((v, i) => Math.round(lerp(v, b[i], dry)))); };
-  const treeOf = (I, gx, gy, size) => { const t = biome.tree; if (t === 'cactus') B.cactus(I, gx, gy, size); else if (t === 'pine') B.pine(I, gx, gy, size); else if (t === 'palm') B.palm(I, gx, gy, size); else B.oak(I, gx, gy, size); };
+  /* ---- terrain ---- */
+  const TERRAINS = {
+    forest: { name: 'Forest', grass: ['#5f8a4b', '#4e7440'], stone: '#8a8f86', water: '#3f7d9c', sand: '#c9b98a', tree: 'pine', edge: 'dense' },
+    sandy: { name: 'Sandy', grass: ['#d9c290', '#c8ad76'], stone: '#b58e5c', water: '#3aa5a0', sand: '#eedaa8', tree: 'cactus', edge: 'mesa' },
+    island: { name: 'Ocean Island', grass: ['#6aa35a', '#579248'], stone: '#7d8a8c', water: '#2f8fb8', sand: '#f0e2b6', tree: 'palm', edge: 'ocean' },
+    plains: { name: 'Plains', grass: ['#8fb35c', '#7da34e'], stone: '#9a9a90', water: '#4b8fb0', sand: '#d3c49a', tree: 'oak', edge: 'open' },
+    mountains: { name: 'Rocky Mountains', grass: ['#6f8f5a', '#5b7a4a'], stone: '#8c8a85', water: '#3b7fa8', sand: '#b8b09a', tree: 'pine', edge: 'peaks' }
+  };
+  TERRAINS.hill = TERRAINS.plains; TERRAINS.desert = TERRAINS.sandy;
+  const terrainOf = s => TERRAINS[s.biome] || TERRAINS.plains;
+  let T = TERRAINS.plains;
+  const groundColour = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? T.stone : NW.shade(T.stone, -0.06); const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(T.grass[0]), b = NW.hex(T.grass[1]); return rgb(a.map((v, i) => Math.round(lerp(v, b[i], dry)))); };
+  const treeOf = (I, gx, gy, size) => { const t = T.tree; if (t === 'cactus') B.cactus(I, gx, gy, size); else if (t === 'pine') B.pine(I, gx, gy, size); else if (t === 'palm') B.palm(I, gx, gy, size); else B.oak(I, gx, gy, size); };
+  /* the edge of the world, by terrain: ocean round an island, peaks round the mountains, mesas in the desert */
+  const edgeOf = (gx, gy) => { const dx = (gx - 34) / 33, dy = (gy - 34) / 33, r = dx * dx + dy * dy; if (T.edge === 'ocean') return r > 1 ? 'ocean' : r > 0.86 ? 'beach' : null; if (T.edge === 'peaks') { const h = S.height(gx * 1.7, gy * 1.7); if (r > 0.92 || (r > 0.7 && h > 0.55)) return h > 0.62 ? 'snow' : 'rock'; return null; } if (T.edge === 'mesa') { const h = S.height(gx * 1.3 + 50, gy * 1.3); return r > 0.8 && h > 0.6 ? 'rock' : null; } return null; };
 
-  /* you: always on a road. Tap somewhere and you take the roads there;
-   * hold an arrow key and you walk, but only where there is road. */
+  /* ---- the ground, classified once ---- */
+  const G = { WATER: 1, BANK: 2, ROAD: 3, PAVED: 4, BRIDGE: 5, EMBANK: 6, PROM: 7, PLAZA: 8, PARK: 9, FIELD: 10, MANAGED: 11, WILD: 12, OCEAN: 13, BEACH: 14, ROCK: 15, SNOW: 16 };
+  let groundKey = '', ground = null, decor = null;
+  function classify(L) {
+    const plan = L.plan, W = plan.water, g = new Uint8Array(LAND * LAND);
+    const inRect = (x, y, r) => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3];
+    const road = (x, y) => L.paths.has(x + ',' + y), paved = (x, y) => plan.pavedSet.has(x + ',' + y) || (x >= S.EAST_TRUNK - 1 && road(x, y) && plan.pavedSet.size > 0);
+    const prom = (x, y) => W.promenade && x >= W.promenade.x0 && x <= W.promenade.x1 && y >= W.promenade.y0 && y <= W.promenade.y1;
+    const managed = (x, y) => { const c = plan.clearing; const dx = (x - c.cx) / c.rx, dy = (y - c.cy) / c.ry; return dx * dx + dy * dy < 1; };
+    for (let y = 0; y < LAND; y++) for (let x = 0; x < LAND; x++) {
+      let k; const r = road(x, y), e = edgeOf(x, y);
+      if (r) k = S.inWater(x, y, plan) ? G.BRIDGE : paved(x, y) ? G.PAVED : G.ROAD;
+      else if (e === 'ocean') k = G.OCEAN; else if (e === 'snow') k = G.SNOW; else if (e === 'rock') k = G.ROCK;
+      else if (S.inWater(x, y, plan)) k = G.WATER;
+      else if (S.onBank(x, y, plan)) k = W.channelled ? (prom(x, y) ? G.PROM : G.EMBANK) : G.BANK;
+      else if (e === 'beach') k = G.BEACH;
+      else { const z = plan.zones.find(zz => inRect(x, y, zz.rect)); k = z ? (z.kind === 'park' ? G.PARK : G.PLAZA) : plan.landscape.fields.some(f => inRect(x, y, f)) ? G.FIELD : managed(x, y) ? G.MANAGED : G.WILD; }
+      g[y * LAND + x] = k;
+    }
+    /* what stands still: trees, hay, lamps, bridge rails; placed once */
+    const d = { trees: [], lamps: [], rails: [] }; const dens = plan.landscape.treeline === 'dense' ? 0.035 : plan.landscape.treeline === 'thin' ? 0.018 : 0; const rail = plan.civic.find(c => c.kind === 'rail');
+    for (let y = 0; y < LAND; y++) for (let x = 0; x < LAND; x++) { const k = g[y * LAND + x]; if (k !== G.MANAGED && k !== G.WILD) continue; const r = S.hash(x * 3, y * 5); const dd = k === G.MANAGED ? 0.006 : dens; if (r > dd || (rail && y === rail.from[1] && x <= rail.to[0])) continue; if (L.buildings.some(b => Math.abs(b.gx - x) < 1.6 && Math.abs(b.gy - y) < 1.6) || (Math.abs(x - HOME[0] - 1) < 3 && Math.abs(y - HOME[1] - 1) < 3) || (L.next && Math.abs(L.next[0] - x) < 2 && Math.abs(L.next[1] - y) < 2)) continue; if (plan.civic.some(c => c.rect ? inRect(x, y, [c.rect[0] - 1, c.rect[1] - 1, c.rect[2] + 2, c.rect[3] + 2]) : c.at && Math.abs(c.at[0] - x) < 4 && Math.abs(c.at[1] - y) < 3)) continue; d.trees.push([x, y, r < 0.004 && k === G.MANAGED ? 'hay' : 'tree', 0.8 + S.hash(y, x) * 0.5]); }
+    if (plan.landscape.lamps !== 'none') L.paths.forEach(key => { const [x, y] = key.split(',').map(Number); const k = g[y * LAND + x]; if (k !== G.PAVED) return; if (plan.landscape.lamps === 'main' && y !== 33) return; if ((x + y * 3) % 7 === 0) d.lamps.push([x, y]); });
+    L.paths.forEach(key => { const [x, y] = key.split(',').map(Number); if (g[y * LAND + x] === G.BRIDGE) d.rails.push([x, y]); });
+    return { g, d };
+  }
+  function groundFor(L, state) { const k = L.plan.id + '|' + state.biome + '|' + L.buildings.length + '|' + (L.next || []).join(); if (k !== groundKey) { const c = classify(L); ground = c.g; decor = c.d; groundKey = k; } return ground; }
+  const colourOf = (k, gx, gy) => {
+    switch (k) {
+      case G.WATER: return (gx + gy) % 5 === 0 ? NW.shade(T.water, 0.2) : T.water;
+      case G.OCEAN: return (gx * 7 + gy * 3) % 9 === 0 ? NW.shade(T.water, -0.25) : NW.shade(T.water, -0.4);
+      case G.BEACH: case G.BANK: return T.sand;
+      case G.ROAD: return '#c8a877'; case G.PAVED: return (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc'; case G.BRIDGE: return '#a88c5f';
+      case G.EMBANK: return '#b8b4a8'; case G.PROM: return '#e3dccb';
+      case G.PLAZA: return (gx + gy) % 2 ? '#e9e2d0' : '#dfd7c3'; case G.PARK: return (gx + gy) % 2 ? '#7fc55a' : '#86cc60';
+      case G.FIELD: return gy % 2 ? '#a8783f' : '#c8a06a';
+      case G.ROCK: return (gx + gy) % 2 ? T.stone : NW.shade(T.stone, -0.12); case G.SNOW: return (gx + gy) % 2 ? '#f4f7fa' : '#e6ecf2';
+      case G.MANAGED: return groundColour(gx, gy);
+      default: return NW.shade(groundColour(gx, gy), -0.08);
+    }
+  };
+  const edgeStroke = k => k === G.ROAD ? 'rgba(110,75,30,.35)' : k === G.PAVED || k === G.PROM ? 'rgba(0,0,0,.08)' : k === G.BRIDGE ? '#6b4a2b' : k === G.EMBANK ? 'rgba(0,0,0,.12)' : k === G.PLAZA ? 'rgba(0,0,0,.05)' : k === G.FIELD ? 'rgba(90,50,10,.35)' : null;
+
+  /* ---- you: always on a road ---- */
   const onRoad = (roads, gx, gy) => roads.has(Math.floor(gx) + ',' + Math.floor(gy));
   function makeMe(state) { const m = state.me && typeof state.me.gx === 'number' ? state.me : { gx: HOME[0] + 1.5, gy: HOME[1] + 2.5 }; return { gx: m.gx, gy: m.gy, route: null, target: null, moving: false, keys: {}, follow: true }; }
-  function goTo(me, roads, q) {
-    const start = S.nearestRoad(roads, [me.gx, me.gy]), end = S.nearestRoad(roads, q); if (!start || !end) return false;
-    const r = S.route(roads, start, end); if (!r) return false;
-    me.route = r.map(t => [t[0] + 0.5, t[1] + 0.5]); if (me.route.length > 1 && Math.hypot(me.route[0][0] - me.gx, me.route[0][1] - me.gy) < 0.2) me.route.shift(); me.target = me.route[me.route.length - 1]; return true;
-  }
+  function goTo(me, roads, q) { const start = S.nearestRoad(roads, [me.gx, me.gy]), end = S.nearestRoad(roads, q); if (!start || !end) return false; const r = S.route(roads, start, end); if (!r) return false; me.route = r.map(t => [t[0] + 0.5, t[1] + 0.5]); if (me.route.length > 1 && Math.hypot(me.route[0][0] - me.gx, me.route[0][1] - me.gy) < 0.2) me.route.shift(); me.target = me.route[me.route.length - 1]; return true; }
   function stepMe(me, roads) {
     const k = me.keys; const dx = (k.ArrowRight || k.d ? 1 : 0) - (k.ArrowLeft || k.a ? 1 : 0), dy = (k.ArrowDown || k.s ? 1 : 0) - (k.ArrowUp || k.w ? 1 : 0);
     if (dx || dy) { me.route = null; me.target = null; const gx = (dx + dy) * 0.5, gy = (dy - dx) * 0.5, n = Math.hypot(gx, gy) || 1; const nx = me.gx + gx / n * 0.06, ny = me.gy + gy / n * 0.06; if (onRoad(roads, nx, ny)) { me.gx = nx; me.gy = ny; me.moving = true; } else if (onRoad(roads, nx, me.gy)) { me.gx = nx; me.moving = true; } else if (onRoad(roads, me.gx, ny)) { me.gy = ny; me.moving = true; } else me.moving = false; me.follow = true; return; }
@@ -864,75 +992,54 @@
     const step = Math.min(d, 0.07); me.gx += tx / d * step; me.gy += ty / d * step; me.moving = true;
   }
 
-  /* the build site: four stages tied to how many steps are ticked, trim after */
-  function siteFor(state) { const nx = S.nextProject(state); if (!nx) return null; const q = state.sites[nx.title] || S.layout(state).next; if (!q) return null; return { title: nx.title, series: nx.series, xp: nx.xp, gx: q[0], gy: q[1], kind: nx.series.kind }; }
-  function drawSite(I, site, done, total, k, now) {
-    const { gx, gy } = site; const stage = total > 0 ? Math.min(4, Math.floor(done / total * 4 + 1e-9)) : 0; const z = (1 - k) * -60;
-    I.ctx.setLineDash([4, 4]); I.poly([I.p(gx - 0.2, gy - 0.2), I.p(gx + 1.2, gy - 0.2), I.p(gx + 1.2, gy + 1.2), I.p(gx - 0.2, gy + 1.2)], 'rgba(255,255,255,.1)', 'rgba(255,255,255,.8)', 1.2); I.ctx.setLineDash([]);
-    [[-0.2, -0.2], [1.2, -0.2], [-0.2, 1.2], [1.2, 1.2]].forEach(o => { const q = I.p(gx + o[0], gy + o[1]); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(q[0] - 1, q[1] - 9, 2, 9); I.ctx.fillStyle = '#e8552f'; I.ctx.fillRect(q[0] - 3, q[1] - 11, 6, 3); });
-    if (stage >= 1) I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 5, '#c9c2b0', stage === 1 ? -z : 0, { top: 0.1 });
-    if (stage >= 2) [[0.1, 0.1], [0.9, 0.1], [0.1, 0.9], [0.9, 0.9]].forEach(o => I.box(gx + o[0] - 0.04, gy + o[1] - 0.04, 0.08, 0.08, 34, '#b58a5a', 5 + (stage === 2 ? -z : 0), { noShadow: true }));
-    let b = null; if (stage >= 3) { b = I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, 34, '#f3e6cc', 5 + (stage === 3 ? -z : 0), { noShadow: true, tex: 'siding' }); I.win(b.D, b.C, 0.12, 11, 0.24, 14, false); I.win(b.C, b.B, 0.2, 11, 0.28, 14, false); }
-    if (stage >= 4) { const zz = stage === 4 && done < total ? -z : 0; I.roof(gx + 0.1, gy + 0.1, 0.8, 0.8, 39 + zz, 24, '#d9563f'); if (b) I.door(b.D, b.C, 0.6, 0.24, 22, '#8b4a2b'); }
-    if (done >= total && total > 0) { I.chimney(gx + 0.62, gy + 0.22, 49); I.bush(gx - 0.05, gy + 0.95, true); }
-    if (done > 0 && done < total) I.puff(gx, gy, k);
-    return ['Pegged out', 'Foundation', 'Frame up', 'Walls up', done >= total ? 'Finished' : 'Roof on'][stage];
+  /* ---- the people your work drew in: more of them every era, walking the roads between what you built ---- */
+  const CAP = [1, 2, 4, 10, 18, 24, 30]; let folk = [], folkKey = '', lastTick = 0;
+  function tickFolk(L, state, now) {
+    const lvl = NW.Eras.level(state), want = Math.min(CAP[lvl], 1 + Math.floor(S.score(state) / 4)); const key = L.plan.id + '|' + want; const tiles = Array.from(L.paths).map(k => k.split(',').map(Number));
+    if (key !== folkKey || !folk.length) { folkKey = key; folk = []; for (let i = 0; i < want; i++) { const t = tiles[Math.floor(S.hash(i, 7) * tiles.length)]; folk.push({ at: [t[0] + 0.5, t[1] + 0.5], path: null, dwell: S.hash(i, 3) * 4, shirt: ['#2f7fd6', '#e8552f', '#3fa66b', '#f2b42a', '#8f5fd1', '#1c1f26', '#f4f1e8'][i % 7], hat: i % 4 === 0, dog: lvl >= 2 && i % 5 === 1 }); } }
+    const dt = Math.min(0.1, lastTick ? (now - lastTick) / 1000 : 0); lastTick = now; if (reduce) return;
+    folk.forEach((f, i) => { if (f.path && f.path.length) { const w = f.path[0], dx = w[0] - f.at[0], dy = w[1] - f.at[1], d = Math.hypot(dx, dy), sp = 1.3 * dt; if (d <= sp) { f.at = w.slice(); f.path.shift(); if (!f.path.length) f.dwell = 2 + S.hash(now, i) * 5; } else { f.at[0] += dx / d * sp; f.at[1] += dy / d * sp; } f.moving = true; return; } f.moving = false; f.dwell -= dt; if (f.dwell > 0) return; const to = tiles[Math.floor(S.hash(Math.floor(now / 1000), i) * tiles.length)]; const r = S.route(L.paths, [Math.floor(f.at[0]), Math.floor(f.at[1])], to); if (r) { f.path = r.map(t => [t[0] + 0.5, t[1] + 0.5]); if (f.path.length && Math.hypot(f.path[0][0] - f.at[0], f.path[0][1] - f.at[1]) < 0.1) f.path.shift(); } else f.dwell = 2; });
   }
 
+  /* ---- the build site: one component per step ---- */
+  function siteFor(state) { const nx = S.nextProject(state); if (!nx) return null; const q = state.sites[nx.title] || S.layout(state).next; if (!q) return null; return { title: nx.title, series: nx.series, xp: nx.xp, gx: q[0], gy: q[1], kind: nx.series.kind }; }
+
   function drawLand(I, state, me, now, opts) {
-    const ctx = I.ctx, L = S.layout(state), plan = L.plan, W = plan.water; opts = opts || {}; biome = NW.Eras.biomeOf(state);
-    const road = (x, y) => L.paths.has(x + ',' + y), paved = (x, y) => plan.pavedSet.has(x + ',' + y) || (x >= S.EAST_TRUNK - 1 && road(x, y) && plan.pavedSet.size > 0);
-    const inRect = (x, y, r) => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3];
-    const zone = (x, y) => { for (const z of plan.zones) if (inRect(x, y, z.rect)) return z.kind; return null; };
-    const field = (x, y) => plan.landscape.fields.some(f => inRect(x, y, f));
-    const prom = (x, y) => W.promenade && x >= W.promenade.x0 && x <= W.promenade.x1 && y >= W.promenade.y0 && y <= W.promenade.y1;
-    const managed = (x, y) => { const c = plan.clearing; const dx = (x - c.cx) / c.rx, dy = (y - c.cy) / c.ry; return dx * dx + dy * dy < 1; };
+    const ctx = I.ctx, L = S.layout(state), plan = L.plan; opts = opts || {}; T = terrainOf(state);
+    const g = groundFor(L, state), lvl = NW.Eras.level(state), era = NW.Eras.eraOf(state);
+    for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { if (!I.onScreen(gx, gy)) continue; const k = g[gy * LAND + gx]; I.tile(gx, gy, colourOf(k, gx, gy), edgeStroke(k)); }
     const rail = plan.civic.find(c => c.kind === 'rail');
-    /* ---- the ground ---- */
-    for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) {
-      if (!I.onScreen(gx, gy)) continue; const r = road(gx, gy);
-      if (S.inWater(gx, gy, plan) && !r) { I.tile(gx, gy, (Math.floor(now / 600) + gx + gy) % 5 === 0 ? NW.shade(biome.water, 0.25) : biome.water); continue; }
-      if (r) { if (S.inWater(gx, gy, plan)) I.tile(gx, gy, '#a88c5f', '#6b4a2b'); else if (paved(gx, gy)) I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.08)'); else I.tile(gx, gy, '#c8a877', 'rgba(110,75,30,.35)'); continue; }
-      if (W.channelled && S.onBank(gx, gy, plan)) { I.tile(gx, gy, prom(gx, gy) ? '#e3dccb' : '#b8b4a8', 'rgba(0,0,0,.12)'); continue; }   /* embankment */
-      if (S.onBank(gx, gy, plan)) { I.tile(gx, gy, biome.sand); continue; }
-      const z = zone(gx, gy); if (z === 'plaza' || z === 'square') { I.tile(gx, gy, (gx + gy) % 2 ? '#e9e2d0' : '#dfd7c3', 'rgba(0,0,0,.05)'); continue; } if (z === 'park') { I.tile(gx, gy, (gx + gy) % 2 ? '#7fc55a' : '#86cc60'); continue; }
-      if (field(gx, gy)) { I.tile(gx, gy, gy % 2 ? '#a8783f' : '#c8a06a', 'rgba(90,50,10,.35)'); continue; }
-      I.tile(gx, gy, managed(gx, gy) ? groundColour(gx, gy) : NW.shade(groundColour(gx, gy), -0.08));
-    }
     if (rail && !opts.map) { ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 1.2; for (let x = rail.from[0]; x <= rail.to[0]; x += 0.5) { const a = I.p(x, rail.from[1] + 0.15), b = I.p(x, rail.from[1] + 0.85); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); } [0.3, 0.7].forEach(o => { const a = I.p(rail.from[0], rail.from[1] + o), b = I.p(rail.to[0] + 1, rail.to[1] + o); ctx.strokeStyle = '#9aa3b0'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }); }
     const items = []; const add = (d, fn) => items.push({ d, fn });
-    /* bridges: rails either side of the deck */
-    if (!opts.map) L.paths.forEach(k => { const [x, y] = k.split(',').map(Number); if (!S.inWater(x, y, plan) || !I.onScreen(x, y)) return; add(x + y + 0.4, () => { const a = I.p(x, y), b = I.p(x + 1, y), c = I.p(x, y + 1), d = I.p(x + 1, y + 1); I.line(I.up(a, 6), I.up(b, 6), '#8a6a3f', 1.5); I.line(I.up(c, 6), I.up(d, 6), '#8a6a3f', 1.5); }); });
-    /* the wild: trees where the plan leaves the land alone, thinner as the place grows */
-    if (!opts.map) { const dens = plan.landscape.treeline === 'dense' ? 0.06 : plan.landscape.treeline === 'thin' ? 0.025 : 0; for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { const r = S.hash(gx * 3, gy * 5); const d = managed(gx, gy) ? 0.006 : dens; if (r > d || !I.onScreen(gx, gy) || S.inWater(gx, gy, plan) || S.onBank(gx, gy, plan) || road(gx, gy) || zone(gx, gy) || field(gx, gy) || (rail && gy === rail.from[1] && gx <= rail.to[0])) continue; if (L.buildings.some(b => Math.abs(b.gx - gx) < 1.6 && Math.abs(b.gy - gy) < 1.6) || (Math.abs(gx - HOME[0]) < 3 && Math.abs(gy - HOME[1]) < 3) || (L.next && Math.abs(L.next[0] - gx) < 2 && Math.abs(L.next[1] - gy) < 2)) continue; if (plan.civic.some(c => c.rect ? inRect(gx, gy, [c.rect[0] - 1, c.rect[1] - 1, c.rect[2] + 2, c.rect[3] + 2]) : c.at && Math.abs(c.at[0] - gx) < 4 && Math.abs(c.at[1] - gy) < 3)) continue; add(gx + gy + 0.5, r < 0.004 && managed(gx, gy) ? () => B.hay(I, gx, gy) : () => treeOf(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); } }
-    /* lamps: the main street once there is one, every street in a metropolis */
-    if (!opts.map && plan.landscape.lamps !== 'none') L.paths.forEach(k => { const [x, y] = k.split(',').map(Number); if (!paved(x, y) || !I.onScreen(x, y) || S.inWater(x, y, plan)) return; if (plan.landscape.lamps === 'main' && y !== 33) return; if ((x + y * 3) % 7 === 0) add(x + y + 0.35, () => I.lamp(x + 0.15, y + 0.15)); });
+    if (!opts.map) { decor.rails.forEach(([x, y]) => { if (!I.onScreen(x, y)) return; add(x + y + 0.4, () => { const a = I.p(x, y), b = I.p(x + 1, y), c = I.p(x, y + 1), d = I.p(x + 1, y + 1); I.line(I.up(a, 6), I.up(b, 6), '#8a6a3f', 1.5); I.line(I.up(c, 6), I.up(d, 6), '#8a6a3f', 1.5); }); });
+      decor.trees.forEach(([x, y, what, size]) => { if (!I.onScreen(x, y)) return; add(x + y + 0.5, what === 'hay' ? () => B.hay(I, x, y) : () => treeOf(I, x, y, size)); });
+      decor.lamps.forEach(([x, y]) => { if (I.onScreen(x, y)) add(x + y + 0.35, () => I.lamp(x + 0.15, y + 0.15)); }); }
     /* the home: a tent at the campground, the cabin from the fort on, growing with the eras */
-    const lvl = NW.Eras.level(state), era = NW.Eras.eraOf(state);
     if (I.onScreen(HOME[0], HOME[1])) {
       if (lvl === 0) { add(HOME[0] + HOME[1] + 1.5, () => { const t = I.p(HOME[0] + 1, HOME[1] + 1); I.poly([[t[0] - 16, t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#e9e4d6'); I.poly([[t[0], t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#cfc7aa'); I.poly([[t[0] - 4, t[1]], [t[0] + 4, t[1]], [t[0], t[1] - 12]], '#6b4a2b'); }); }
       else { const t = lvl >= 5 ? 5 : lvl >= 3 ? 4 : lvl >= 2 ? 3 : 2; add(HOME[0] + 1 + HOME[1] + 1.2, () => B.homestead(I, HOME[0] + 0.1, HOME[1] - 0.2, now, t)); }
       if (!opts.map && opts.land) add(9999, () => I.label(HOME[0] + 1, HOME[1] - 2.4, opts.land, era.name, 11));
     }
-    /* what the plan brought: every civic piece on its ground */
+    /* what the plan brought */
     plan.civic.forEach(c => {
       if (c.kind === 'rail') return;
-      if (c.kind === 'stockade') { if (!opts.map) add(c.rect[0] + c.rect[1] - 0.5, () => { const [x, y, w, h] = c.rect; I.fence(x, y, x + w, y, w * 2); I.fence(x, y, x, y + h, h * 2); I.fence(x + w, y, x + w, y + h, h * 2); I.fence(x, y + h, x + 16, y + h, 32); I.fence(x + 18 - 0.8, y + h, x + w, y + h, 2); }); return; }
+      if (c.kind === 'stockade') { if (!opts.map) add(c.rect[0] + c.rect[1] - 0.5, () => { const [x, y, w, h] = c.rect; I.fence(x, y, x + w, y, w * 2); I.fence(x, y, x, y + h, h * 2); I.fence(x + w, y, x + w, y + h, h * 2); I.fence(x, y + h, x + 16, y + h, 32); I.fence(x + 17.2, y + h, x + w, y + h, 2); }); return; }
       if (c.kind === 'paddock') { add(c.rect[0] + c.rect[1] - 0.5, () => B.paddock(I, c.rect[0], c.rect[1], c.rect[2], c.rect[3])); [[1, 1.2], [4, 2]].forEach((o, i) => { const q = [c.rect[0] + o[0] + Math.sin(now / 9000 + i) * 0.8, c.rect[1] + o[1] + Math.cos(now / 11000 + i) * 0.5]; add(q[0] + q[1] + 0.2, () => (i ? B.cow : B.horse)(I, q[0], q[1], i ? now / 1000 : '#8a5a3a', now / 1000)); }); return; }
       if (!c.at) return; const d = c.kind === 'board' ? (I2, x, y) => B.board(I2, x, y) : c.kind === 'windmill' ? (I2, x, y, n) => B.windmill(I2, x, y, n) : c.kind === 'tank' ? (I2, x, y) => B.tank(I2, x, y) : c.kind === 'barn' ? (I2, x, y, n) => B.barn(I2, x, y, 1, n, 2) : c.kind === 'coop' ? (I2, x, y, n) => B.coop(I2, x, y, n) : B.CIV[c.kind];
-      if (!d || !(I.onScreen(c.at[0], c.at[1]) || I.onScreen(c.at[0] + 3, c.at[1] + 3))) return; const big = ['cityhall', 'capitol', 'palace', 'university', 'stadium'].includes(c.kind); add(c.at[0] + c.at[1] + (big ? 4 : 1.2), () => d(I, c.at[0], c.at[1], now)); });
+      if (!d || !(I.onScreen(c.at[0], c.at[1]) || I.onScreen(c.at[0] + 3, c.at[1] + 3))) return; const big = ['cityhall', 'capitol', 'palace', 'university', 'stadium', 'hospital'].includes(c.kind); add(c.at[0] + c.at[1] + (big ? 4 : 1.2), () => d(I, c.at[0], c.at[1], now)); });
     /* the next lot, pegged out; every free lot while you are choosing */
     if (!opts.map && L.next && !opts.site) add(L.next[0] + L.next[1] + 0.4, () => { const q = I.p(L.next[0] + 0.5, L.next[1] + 0.5); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.ellipse(q[0], q[1], 14, 7, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); [[-0.3, -0.3], [1.3, -0.3], [-0.3, 1.3], [1.3, 1.3]].forEach(o => { const c = I.p(L.next[0] + o[0], L.next[1] + o[1]); ctx.fillStyle = '#8b5a2b'; ctx.fillRect(c[0] - 1, c[1] - 7, 2, 7); ctx.fillStyle = '#e8552f'; ctx.fillRect(c[0] - 2.5, c[1] - 9, 5, 2.5); }); });
     if (opts.placing) L.west.forEach(q => { if (!I.onScreen(q[0], q[1]) || !S.lotFree(state, q)) return; add(q[0] + q[1] + 0.3, () => { const c = I.p(q[0] + 0.5, q[1] + 0.5); ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.ellipse(c[0], c[1], 13, 6.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]); }); });
-    /* the way out: the main road's west end, and the signpost that says where it goes */
-    const exit = plan.roads[0].from; if (!opts.map) add(exit[0] + exit[1] + 0.6, () => B.sign(I, exit[0] - 1, exit[1] - 1, 'TO NEXTWORLD', 'NextWork HQ, Austin'));
-    /* the buildings */
+    const exit = plan.roads[0].from; if (!opts.map) add(exit[0] + exit[1] + 0.6, () => B.sign(I, exit[0] - 1, exit[1] - 1, 'THE WAY OUT', 'to the world'));
+    /* the buildings, every one in the era's material */
     L.buildings.forEach(b => { if (!I.onScreen(b.gx, b.gy)) return;
       if (b.tier === 0) { add(b.gx + b.gy + 0.5, () => { const q = I.p(b.gx + 0.5, b.gy + 0.5); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(q[0] - 1, q[1] - 10, 2, 10); I.ctx.strokeStyle = 'rgba(255,255,255,.6)'; I.ctx.setLineDash([2, 3]); I.ctx.strokeRect(q[0] - 10, q[1] - 5, 20, 10); I.ctx.setLineDash([]); }); return; }
       let k = 1; if (opts.anim && opts.anim.title === b.title) k = reduce ? 1 : clamp((now - opts.anim.start) / 1600, 0, 1);
-      add(b.gx + b.gy + 0.5, () => B[b.kind](I, b.gx, b.gy, k, now, b.tier)); if (!opts.map && b.order && !opts.quiet) add(b.gx + b.gy + 0.51, () => { const q = I.p(b.gx + 0.15, b.gy + 0.15, 2); I.roundRect(q[0] - 7, q[1] - 6, 14, 9, 3, 'rgba(255,255,255,.88)'); ctx.fillStyle = '#172033'; ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(String(b.order), q[0], q[1] + 1); ctx.textAlign = 'left'; }); });
-    if (opts.placing) add(9998, () => { const q = I.p(HOME[0] + 1, HOME[1] + 4.5); ctx.font = '800 12px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.75)'; ctx.strokeText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.fillStyle = '#ffe9a6'; ctx.fillText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.textAlign = 'left'; });
-    if (opts.site) { const st = opts.site; add(st.gx + st.gy + 0.5, () => { opts.stage = drawSite(I, st, opts.stepsDone, opts.stepsTotal, opts.k == null ? 1 : opts.k, now); }); }
+      add(b.gx + b.gy + 0.5, () => Homes.ERA_HOME[lvl](I, b.gx, b.gy, k, now, b.kind)); if (!opts.map && b.order && !opts.quiet) add(b.gx + b.gy + 0.51, () => { const q = I.p(b.gx + 0.15, b.gy + 0.15, 2); I.roundRect(q[0] - 7, q[1] - 6, 14, 9, 3, 'rgba(255,255,255,.88)'); ctx.fillStyle = '#172033'; ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(String(b.order), q[0], q[1] + 1); ctx.textAlign = 'left'; }); });
+    if (opts.placing) add(9998, () => { const q = I.p(HOME[0] + 1, HOME[1] + 4.5); ctx.font = '800 12px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,40,60,.55)'; ctx.strokeText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.fillStyle = '#fff'; ctx.fillText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.textAlign = 'left'; });
+    if (opts.site) { const st = opts.site; add(st.gx + st.gy + 0.5, () => { opts.stage = Homes.drawStage(I, st.gx, st.gy, opts.stepsDone, opts.stepsTotal, st.kind, lvl, opts.k == null ? 1 : opts.k, now); }); }
+    /* the people */
+    if (!opts.map && !opts.quiet && lvl >= 1) { tickFolk(L, state, now); folk.forEach((f, i) => { if (!I.onScreen(f.at[0], f.at[1])) return; add(f.at[0] + f.at[1] + 0.02, () => { I.person(f.at[0], f.at[1], f.shirt, f.moving && !reduce ? now / 1000 + i : 3 + i, f.hat); if (f.dog) { const q = I.p(f.at[0] + 0.35, f.at[1] + 0.1); I.ctx.fillStyle = '#8a5a3a'; I.ctx.fillRect(q[0] - 4, q[1] - 5, 8, 4); I.ctx.fillRect(q[0] + 3, q[1] - 8, 3, 4); I.ctx.fillRect(q[0] - 3, q[1] - 1.5, 1.5, 2); I.ctx.fillRect(q[0] + 1.5, q[1] - 1.5, 1.5, 2); } }); }); }
     if (!opts.map && me) { add(me.gx + me.gy, () => B.avatar(I, me.gx, me.gy, state.avatar, now / 1000, me.moving)); if (me.target) { const q = I.p(me.target[0], me.target[1]); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(q[0], q[1], 9, 4.5, 0, 0, Math.PI * 2); ctx.stroke(); } }
     (opts.fx || []).forEach(f => { const t = (now - f.start) / f.life; if (t >= 1 || t < 0) return;
       if (f.type === 'float') add(999, () => { const q = I.p(f.gx, f.gy, 40 + t * 40); ctx.globalAlpha = 1 - t; ctx.font = '800 13px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.6)'; ctx.strokeText(f.text, q[0], q[1]); ctx.fillStyle = f.colour; ctx.fillText(f.text, q[0], q[1]); ctx.textAlign = 'left'; ctx.globalAlpha = 1; });
@@ -943,8 +1050,7 @@
   }
   function sky(I, n) { n = n || 0; const g = I.ctx.createLinearGradient(0, 0, 0, I.H || 620); const mix = (a, b) => { const A = NW.hex(a), B2 = NW.hex(b); return NW.rgb(A.map((v, i) => Math.round(v + (B2[i] - v) * n))); }; g.addColorStop(0, mix('#9ccdf5', '#0b1730')); g.addColorStop(1, mix('#dfeefb', '#16325a')); I.ctx.fillStyle = g; I.ctx.fillRect(0, 0, I.W || 880, I.H || 620); }
   const hit = (L, g) => L.buildings.find(b => b.tier > 0 && Math.abs(b.gx + 0.5 - g[0]) < 0.75 && Math.abs(b.gy + 0.5 - g[1]) < 0.75);
-  const tierName = (state) => { const x = S.xpOf(state); return tierOf(x)[1]; };
-  NW.Land = { groundColour, treeOf, onRoad, makeMe, goTo, stepMe, siteFor, drawSite, drawLand, sky, hit, tierName, TIERS, KIND_NAME };
+  NW.Land = { TERRAINS, terrainOf, groundColour, treeOf, onRoad, makeMe, goTo, stepMe, siteFor, drawLand, sky, hit };
 })();
 
 /* NextWorld · HQ: the NextWork World map
@@ -1247,6 +1353,7 @@
     .zoom { position: absolute; left: 8px; bottom: 8px; display: flex; gap: 4px; } .zoom button { width: 30px; height: 30px; font: 800 16px/1 "Baloo 2", system-ui, sans-serif; border: 1px solid rgba(0,0,0,.12); border-radius: 8px; background: rgba(255,255,255,.88); color: #172033; }
     .hud { border: 0; padding: 0; background: transparent; cursor: pointer; text-align: left; pointer-events: auto; } .hud:hover .who { border-color: var(--gold); }
     .dash { position: absolute; left: 8px; right: 8px; top: 56px; bottom: 46px; overflow: auto; background: var(--nww-canvas, #172033); color: var(--nww-text, #f2f5fb); border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; line-height: 1.4; box-shadow: 0 10px 30px rgba(0,0,0,.4); } .dash[hidden] { display: none; }
+    .levelup { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); width: min(92%, 520px); background: rgba(255,255,255,.94); color: #172033; border-radius: 14px; padding: 12px 16px; text-align: center; box-shadow: 0 12px 34px rgba(0,0,0,.35); border: 2px solid var(--gold); } .levelup[hidden] { display: none; } .levelup small { display: block; font: 700 11px/1.2 "Baloo 2", system-ui, sans-serif; color: #8a5a3a; letter-spacing: .05em; text-transform: uppercase; } .levelup b { display: block; font: 800 20px/1.15 "Baloo 2", system-ui, sans-serif; margin: 2px 0 4px; } .levelup p { margin: 0; font-size: 13px; line-height: 1.45; }
     .prog { display: flex; flex-direction: column; gap: 4px; } .prog .barx { height: 12px; margin: 0; } .prog small { font-size: 11.5px; color: var(--dim); }
     .scene[hidden] { display: none; }
     @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
@@ -1321,6 +1428,8 @@
     nav(b1.sc, [['Home', () => { Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; }], ['World', () => show('world')], ['Build', () => show('build')]]);
     zoomer(b1.sc, b1.cv, f => base.zoom(f));
     const btoast = toast(b1.sc); views.base.appendChild(b1.sc);
+    const levelup = el('div', 'levelup'); levelup.hidden = true; const luT = el('b'); const luS = el('small'); const luP = el('p'); put(levelup, luS, luT, luP); b1.sc.appendChild(levelup); let luTimer = null, lastEra = E.eraOf(state).name;
+    function showLevelUp(era) { luS.textContent = 'You met the threshold: ' + era.n + ' projects'; luT.textContent = 'You have reached ' + era.word; luP.textContent = E.LEVEL_UP[era.plan.id] || ''; levelup.hidden = false; clearTimeout(luTimer); luTimer = setTimeout(() => { levelup.hidden = true; }, 6000); }
     /* the dashboard panel: tap the shield */
     const dash = el('div', 'dash'); dash.hidden = true; const dashT = el('h3'); const dashList = el('div', 'list'); const dashClose = el('button', 'btn', 'Close'); dashClose.type = 'button'; dashClose.addEventListener('click', () => { dash.hidden = true; }); put(dash, dashT, dashList, dashClose); b1.sc.appendChild(dash);
     function paintDash() { const era = E.eraOf(state), ne = E.nextEra(state), nx = S.nextProject(state); dashT.textContent = S.landName(state) + ' · ' + era.word + ' · ' + E.score(state) + ' built'; while (dashList.firstChild) dashList.removeChild(dashList.firstChild);
@@ -1360,14 +1469,14 @@
     field('Name', 'nww-name', state.name, v => { state.name = v || 'You'; save(); whoB.textContent = S.landName(state); });
     field('Your land', 'nww-land', state.land, v => { state.land = v; save(); whoB.textContent = S.landName(state); });
     function choices(label, k, list, swatch) { const g = el('div', 'grp'); g.appendChild(el('span', null, label)); const paint = () => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === av[k]))); list.forEach(([v, t]) => { const b = el('button', swatch ? 'sw' : null, swatch ? '' : t); b.type = 'button'; b.dataset.v = v; if (swatch) { b.style.background = v; b.title = t; b.setAttribute('aria-label', t); } b.addEventListener('click', () => { av[k] = v; save(); paint(); }); g.appendChild(b); }); paint(); opts.appendChild(g); }
-    const landRow = el('div', 'grp'); landRow.appendChild(el('span', null, 'Land')); Object.keys(E.BIOMES).forEach(k => { const b = el('button', null, E.BIOMES[k].name); b.type = 'button'; b.dataset.v = k; b.setAttribute('aria-pressed', String(state.biome === k)); b.addEventListener('click', () => { state.biome = k; save(); landRow.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === k))); }); landRow.appendChild(b); }); opts.appendChild(landRow);
+    const landRow = el('div', 'grp'); landRow.appendChild(el('span', null, 'Terrain')); ['forest', 'sandy', 'island', 'plains', 'mountains'].forEach(k => { const b = el('button', null, Land.TERRAINS[k].name); b.type = 'button'; b.dataset.v = k; b.setAttribute('aria-pressed', String(state.biome === k)); b.addEventListener('click', () => { state.biome = k; save(); S.forget(); lastL = S.layout(state); landRow.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === k))); }); landRow.appendChild(b); }); opts.appendChild(landRow);
     choices('Body', 'body', [['pineapple', 'Pineapple'], ['person', 'Person']]);
     choices('Shirt', 'shirt', [['#2f7fd6', 'Blue'], ['#e8552f', 'Red'], ['#3fa66b', 'Green'], ['#f2b42a', 'Gold'], ['#8f5fd1', 'Purple'], ['#1c1f26', 'Black'], ['#f4f1e8', 'White']], true);
     choices('Hat', 'hat', [['none', 'None'], ['cowboy', 'Cowboy'], ['cap', 'Cap'], ['hard', 'Hard hat'], ['beanie', 'Beanie']]);
     choices('Hat colour', 'hatColour', [['#8a5a3a', 'Tan'], ['#1c1f26', 'Black'], ['#ffc531', 'Yellow'], ['#e8552f', 'Red'], ['#2f7fd6', 'Blue']], true);
     choices('Skin', 'skin', [['#ffd6ad', 'Light'], ['#e8b48a', 'Medium'], ['#b87a4b', 'Tan'], ['#7a4b2a', 'Deep'], ['#4a2e1a', 'Dark']], true);
     choices('Hair', 'hair', [['#4a2e1a', 'Brown'], ['#1c1f26', 'Black'], ['#d9b24c', 'Blond'], ['#b03a2e', 'Red'], ['#9aa3b0', 'Grey']], true);
-    views.avatar.appendChild(el('div', 'cap', 'The pineapple is the house avatar. Whatever you build here walks your land, on the roads. The land is scenery only: Hill Country, desert, forest or coast, it grows the same way.'));
+    views.avatar.appendChild(el('div', 'cap', 'The pineapple is the house avatar. Whatever you build here walks your land, on the roads. Terrain is scenery only: forest, sand, an island, the plains or the mountains, it grows the same way.'));
 
     /* ---- 4. My Build ---- */
     const bt = el('div', 'tiles'); const tWhere = el('div', 'tile wide'); const tWb = el('b'); const tWs = el('span'); const tWbar = el('div', 'barx'); const tWi = el('i'); tWbar.appendChild(tWi); put(tWhere, el('small', null, 'Where you are'), tWb, tWs, tWbar);
@@ -1440,7 +1549,7 @@
     /* ---- mode, dev controls ---- */
     function paintMode() { setTimeout(fit, 0); mode.textContent = state.mode === 'dev' ? 'Dev · simulate and reset' : 'Production · real data only'; mode.dataset.on = state.mode; devToggle.hidden = state.mode !== 'dev'; devbar.hidden = state.mode !== 'dev' || !devOpen; }
     mode.addEventListener('click', () => { state.mode = state.mode === 'dev' ? 'prod' : 'dev'; if (state.mode === 'prod' && host.production) { const p = S.normalise(host.production()); state.done = p.done; state.lists = p.lists; state.steps = p.steps; state.name = p.name; } save(); lastL = S.layout(state); paintMode(); paintDev(); paintBuild(); paintBoard(); });
-    function paintDev() { while (devbar.firstChild) devbar.removeChild(devbar.firstChild); devbar.appendChild(el('span', null, 'One at a time'));
+    function paintDev() { while (devbar.firstChild) devbar.removeChild(devbar.firstChild); { const e = E.eraOf(state), ne = E.nextEra(state); devbar.appendChild(el('span', null, e.name + ' \u00b7 ' + E.score(state) + ' built' + (ne ? ' \u00b7 next at ' + ne.n : ''))); } devbar.appendChild(el('span', null, 'One at a time'));
       const nx = S.nextProject(state), nl = nx ? null : S.nextListProject(state); const f = el('button', null, nx ? 'Build the next: ' + nx.title : nl ? 'Build the next: ' + nl.name + ' ' + (nl.done + 1) + ' of ' + nl.total : 'Every project is built'); f.type = 'button'; f.disabled = !nx && !nl; f.addEventListener('click', () => { if (nx) finish(nx.title, nx.series); else if (nl) { nl.done++; save(); lastL = S.layout(state); btoast('Built: ' + nl.name + ' ' + nl.done + ' of ' + nl.total); paintBuild(); paintDev(); } }); devbar.appendChild(f);
       const port = el('button', null, 'Load my portfolio: 219, one at a time'); port.type = 'button'; port.addEventListener('click', () => { const m = state.mode; S.seed(state, 0, 'Roy'); state.mode = m; state.land = 'Pineapple Kingdom'; state.lists = NW.SAMPLE_LISTS.map(l => Object.assign({}, l, { done: 0 })); save(); lastL = S.layout(state); whoB.textContent = S.landName(state); paintBuild(); paintBoard(); paintDev(); bsay('Your portfolio, pegged out', '90 in the catalogue, 129 of your own across 24 lists. Build the next, one at a time, until it is all there.'); }); devbar.appendChild(port);
       const all = el('button', null, 'Finish it all'); all.type = 'button'; all.addEventListener('click', () => { state.done = NW.PROJECTS.map(p => p.title); state.lists.forEach(l => { l.done = l.total; }); state.building = ''; save(); lastL = S.layout(state); paintBuild(); paintBoard(); paintDev(); bsay('All of it', state.done.length + ' from the catalogue and ' + state.lists.reduce((a, l) => a + l.total, 0) + ' of your own. The whole valley.'); }); devbar.appendChild(all);
@@ -1454,6 +1563,7 @@
     function frame(now) {
       if (!running) return;
       const night = S.nightOf(S.hourOf(state));
+      { const e = E.eraOf(state); if (e.name !== lastEra) { lastEra = e.name; if (E.level(state) > 0) { show('base'); showLevelUp(e); Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; } } }
       if (current === 'world') { world.ctx.setTransform(1, 0, 0, 1, 0, 0); Land.sky({ ctx: world.ctx, W: world.PW, H: world.PH }, night); world.reset(); world.night = night; HQ.drawHQ(world, state, now, {}); }
       else if (current === 'avatar') { Land.sky(avI, night); avI.night = night; for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) avI.tile(x, y, y === 2 ? '#c8a877' : Land.groundColour(x + 30, y + 30), y === 2 ? 'rgba(110,75,30,.35)' : null); B.oak(avI, 4, 0, 0.9); B.hay(avI, 0, 4); avI.lamp(4.5, 2.5); const t = (now / 2600) % 1; B.avatar(avI, 0.5 + t * 4, 2.5, av, now / 1000, true); avI.nightfall(night); }
       else if (current === 'base') { Land.stepMe(me, lastL.paths); if (me.follow) { const c = camTo(me.gx, me.gy, base.H); base.cam.x = lerp(base.cam.x, c.x, reduce ? 1 : 0.08); base.cam.y = lerp(base.cam.y, c.y, reduce ? 1 : 0.08); } Land.sky(base, night); base.night = night; Land.drawLand(base, state, me, now, { anim, fx, placing, land: S.landName(state) }); const era = E.eraOf(state); shield.textContent = String(E.level(state) + 1); whoS.textContent = era.name + ' · ' + E.score(state) + ' built'; if (anim && now - anim.start > 1700) anim = null; while (fx.length && now - fx[0].start > fx[0].life) fx.shift(); if (!reduce && me.moving) { state.me = { gx: me.gx, gy: me.gy }; } lastL = S.layout(state); }

@@ -11,7 +11,7 @@
   const eraOf = s => { const n = score(s); let e = ERAS[0]; ERAS.forEach(x => { if (n >= x.n) e = x; }); return e; };
   const nextEra = s => ERAS.find(x => x.n > score(s)) || null;
   const level = s => ERAS.indexOf(eraOf(s));
-  const BIOMES = { hill: { name: 'Hill Country', grass: ['#7fb35a', '#b9b162'], stone: '#d9d2b8', tree: 'oak', water: '#3ea3e8', sand: '#d9c9a0' }, desert: { name: 'Desert', grass: ['#d8b97a', '#e2c58a'], stone: '#e9d7a8', tree: 'cactus', water: '#4fb3f0', sand: '#efe0b8' }, forest: { name: 'Forest', grass: ['#4f8f3f', '#6aa64f'], stone: '#a8a89a', tree: 'pine', water: '#2f7fb8', sand: '#c8b98a' }, coast: { name: 'Coast', grass: ['#8fc76a', '#a9d287'], stone: '#e9e2d0', tree: 'palm', water: '#3fbfe8', sand: '#f2e6c4' } };
-  const biomeOf = s => BIOMES[s.biome] || BIOMES.hill;
-  NW.Eras = { ERAS, BIOMES, score, eraOf, nextEra, level, biomeOf };
+  /* the moment a threshold is met, in the words of the era reached */
+  const LEVEL_UP = { campground: 'You have a fire and a place to sleep. Everything starts here.', fort: 'Five projects, and the walls are up. What you know now protects what you build next.', town: 'Fifteen projects. People have moved in to be near what you made.', city: 'Thirty-five. Streets, a hospital, a library. Your work is part of other people\u2019s days now.', metropolis: 'Sixty. Trams, crowds, cranes. The city runs on things you understood one at a time.', capital: 'Ninety projects. Others come here to learn how you did it.', kingdom: 'One hundred and twenty. Nothing here is borrowed. You built all of it.' };
+  NW.Eras = { ERAS, LEVEL_UP, score, eraOf, nextEra, level };
 })();

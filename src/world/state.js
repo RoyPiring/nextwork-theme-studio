@@ -9,10 +9,10 @@
   const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
 
   const AVATAR = { body: 'pineapple', shirt: '#2f7fd6', hat: 'none', skin: '#ffd6ad', hair: '#4a2e1a' };
-  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: 'hill', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
+  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: 'plains', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
   function normalise(saved) {
     const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
-    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['hill', 'desert', 'forest', 'coast'].includes(s.biome) ? s.biome : 'hill';
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['forest', 'sandy', 'island', 'plains', 'mountains', 'hill', 'desert'].includes(s.biome) ? s.biome : 'plains';
     s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA; s.avatar = Object.assign({}, AVATAR, s.avatar && typeof s.avatar === 'object' ? s.avatar : {});
     s.lists = s.lists.map(l => ({ name: String(l.name || ''), total: +l.total || 0, done: +l.done || +l.total || 0, blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }));
     return s;
@@ -65,7 +65,11 @@
   const LANES = []; for (let k = 0; k < 8; k++) { LANES.push(21 + k * 4 + (k >= 3 ? 4 : 0)); }   /* 21 25 29 37 41 45 49 53: the east city sits in the gap */
   const EAST_LOTS = (() => { const out = []; LANES.forEach(l => { for (let x = 49; x <= 66; x += 3) { if (Math.abs(x - EAST_TRUNK) < 2) continue; if (x <= 57 && l - 2 >= 28 && l + 1 <= 40) continue; out.push([x, l - 2]); out.push([x, l + 1]); } }); out.sort((a, b) => (Math.abs(a[0] - EAST_TRUNK) * 0.8 + Math.abs(a[1] - CONNECT)) - (Math.abs(b[0] - EAST_TRUNK) * 0.8 + Math.abs(b[1] - CONNECT))); return out; })();
   const key = (x, y) => x + ',' + y;
-  function layout(s) {
+  /* the layout is asked for many times a frame; it only changes when something is built, moved or read */
+  let memoKey = '', memoVal = null;
+  const layoutKey = s => planOf(s).id + '|' + s.done.length + '|' + (s.done[s.done.length - 1] || '') + '|' + s.lists.map(l => l.total + ':' + l.done).join(',') + '|' + Object.keys(s.sites).map(t => t + '@' + s.sites[t]).join(';') + '|' + s.biome;
+  function layout(s) { const k = layoutKey(s); if (k === memoKey && memoVal) return memoVal; memoVal = layoutRaw(s); memoKey = k; return memoVal; }
+  function layoutRaw(s) {
     const plan = planOf(s), buildings = [], taken = new Set(); const at = q => taken.add(key(q[0], q[1]));
     const lotOk = q => plan.lotList.some(l => l[0] === q[0] && l[1] === q[1]);
     Object.keys(s.sites).forEach(t => { if (lotOk(s.sites[t])) at(s.sites[t]); });
@@ -89,6 +93,7 @@
     return set;
   }
   const lotFree = (s, q) => !Object.keys(s.sites).some(t => s.sites[t][0] === q[0] && s.sites[t][1] === q[1]) && !layout(s).buildings.some(b => b.gx === q[0] && b.gy === q[1]);
+  const forget = () => { memoKey = ''; memoVal = null; };
   const nearestLot = (s, g) => { let best = null, bd = 1e9; planOf(s).lotList.forEach(q => { const d = Math.hypot(q[0] + 0.5 - g[0], q[1] + 0.5 - g[1]); if (d < bd && lotFree(s, q)) { bd = d; best = q; } }); return bd < 3 ? best : null; };
   /* the way from one tile to another along the roads, or null */
   function route(set, from, to) {
@@ -102,5 +107,5 @@
   const hourOf = s => (s.mode === 'dev' && typeof s.hour === 'number') ? s.hour : (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   const nightOf = h => h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0;
   const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
-  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
+  NW.State = { SCHEMA, AVATAR, landName, hourOf, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
 })();
