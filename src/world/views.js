@@ -202,7 +202,8 @@
     const s1 = scene(880, 500, 'The building site. Tap the nails as they pop up to hammer them in.'); const site = makeIso(s1.cv, 440, 250); const sbadge = el('div', 'badge', ''); s1.sc.appendChild(sbadge); zoomer(s1.sc, s1.cv, f => site.zoom(f)); views.build.appendChild(s1.sc);
     const game = { nails: [], hit: 0, last: 0 };
     drag(s1.cv, site, (g, lg) => { const n = game.nails.find(x => !x.done && Math.hypot(x.sx - lg[0], x.sy - lg[1]) < 26); if (n) { n.done = true; n.at = performance.now(); game.hit++; const cs = current_site ? (state.craft[current_site.title] = (state.craft[current_site.title] || 0) + 1) : 0; if (state.mode === 'dev' && current_site && cs % 5 === 0) tickStep(); paintBuild(); } });
-    const placeBtn = el('button', 'btn', 'Move it: choose a different lot'); placeBtn.type = 'button'; views.build.appendChild(placeBtn);
+    views.build.appendChild(el('div', 'cap', 'Placed by the plan. The architect fills the street being built, lot by lot, the way a city is actually laid out; you never have to choose. Move one only if you want to.'));
+    const placeBtn = el('button', 'btn', 'Choose this lot myself'); placeBtn.type = 'button'; views.build.appendChild(placeBtn);
     const steps = el('div', 'steps'); views.build.appendChild(steps);
     const openBtn = el('button', 'btn go', 'Open the project'); openBtn.type = 'button'; views.build.appendChild(openBtn);
     const stepBtn = el('button', 'btn', 'Complete the next step'); stepBtn.type = 'button'; views.build.appendChild(stepBtn);

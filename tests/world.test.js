@@ -69,6 +69,16 @@ test('the hash is uniform on [0, 1), so heights reach the peaks', () => {
   assert.ok(max > 0.95 && sum / 2000 > 0.45 && sum / 2000 < 0.55);
 });
 
+test('the place is never empty on the day it levels up: every finished project stays a home, rebuilt in the era', () => {
+  const s = S.normalise({ mode: 'dev', done: NW.PROJECTS.slice(0, 90).map(p => p.title), lists: [{ name: 'Other', kind: 'workshop', total: 12, done: 12, projects: [] }] });
+  const L = S.layout(s); assert.equal(L.plan.id, 'capital');
+  assert.equal(L.infra.length, 8, 'list projects count toward the capital and its monuments');
+  assert.equal(L.infra.map(b => b.kind).join(), ['capitol', 'arch', 'obelisk', 'pool', 'memorial', 'cityhall', 'library', 'park'].join());
+  assert.ok(L.buildings.filter(b => b.series).length >= 80, 'the homes from every earlier era are still there');
+  const k = S.normalise({ mode: 'dev', done: NW.PROJECTS.map(p => p.title), lists: [{ name: 'Other', kind: 'workshop', total: 40, done: 40, projects: [] }] });
+  const K = S.layout(k); assert.equal(K.plan.id, 'kingdom'); assert.equal(K.infra.map(b => b.kind).join(), 'skypad,hoverport,skyisland,skyisland,skyisland');
+});
+
 test('the ranch house grows by count, not by rarity', () => {
   const s = S.seed(S.fresh(), 50);
   assert.equal(s.done.length, 50);

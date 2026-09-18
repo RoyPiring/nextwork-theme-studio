@@ -74,10 +74,9 @@
     const lotOk = q => plan.lotList.some(l => l[0] === q[0] && l[1] === q[1]);
     Object.keys(s.sites).forEach(t => { if (lotOk(s.sites[t])) at(s.sites[t]); });
     let wi = 0; const nextLot = () => { while (wi < plan.lotList.length && taken.has(key(plan.lotList[wi][0], plan.lotList[wi][1]))) wi++; return plan.lotList[wi++] || plan.lotList[plan.lotList.length - 1]; };
-    /* what this era's projects have built so far: its infrastructure first, in order; homes only after the place has what it needs */
-    const k = Math.max(0, s.done.length - plan.threshold), infra = plan.builds.slice(0, k).map((b, i) => Object.assign({ title: s.done[plan.threshold + i] }, b));
-    const homesFrom = plan.threshold + plan.builds.length;
-    s.done.forEach((title, i) => { if (i < homesFrom) return; const sr = SERIES.find(x => x.projects.some(pr => pr[0] === title)); if (!sr) return; const pr = sr.projects.find(x => x[0] === title); const pi = sr.projects.indexOf(pr); const q = (s.sites[title] && lotOk(s.sites[title])) ? s.sites[title] : nextLot(); at(q); buildings.push({ series: sr, kind: sr.kind, title, part: pi + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard), tier: tierIn(s, sr), order: i + 1, gx: q[0], gy: q[1] }); });
+    /* the era's first projects build its infrastructure, in order; every other finished project is a home, rebuilt in the era's material, so the place is never empty on the day it levels up */
+    const k = Math.max(0, score(s) - plan.threshold), infra = plan.builds.slice(0, k).map((b, i) => Object.assign({ title: s.done[plan.threshold + i] || s.done[s.done.length - 1] || b.kind }, b));   /* list projects count toward the era and its builds too */
+    s.done.forEach((title, i) => { if (i >= plan.threshold && i < plan.threshold + infra.length) return; const sr = SERIES.find(x => x.projects.some(pr => pr[0] === title)); if (!sr) return; const pr = sr.projects.find(x => x[0] === title); const pi = sr.projects.indexOf(pr); const q = (s.sites[title] && lotOk(s.sites[title])) ? s.sites[title] : nextLot(); at(q); buildings.push({ series: sr, kind: sr.kind, title, part: pi + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard), tier: tierIn(s, sr), order: i + 1, gx: q[0], gy: q[1] }); });
     let ei = 0; s.lists.forEach(ll => { for (let k = 0; k < ll.total; k++) { const q = EAST_LOTS[ei++] || EAST_LOTS[EAST_LOTS.length - 1]; buildings.push({ list: ll, kind: ll.kind, title: ll.name, part: k + 1, of: ll.total, xp: 0, tier: k < ll.done ? 2 : 0, gx: q[0], gy: q[1] }); } });
     const nextBuild = k < plan.builds.length ? plan.builds[k] : null, next = nextBuild ? null : nextLot();
     const homes = buildings.filter(b => b.series).length, capacity = plan.capacity * (homes + 1);
