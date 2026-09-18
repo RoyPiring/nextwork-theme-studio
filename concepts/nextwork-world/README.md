@@ -1,4 +1,4 @@
-# NextWork World — concept
+# NextWorld — concept
 
 A 2D pixel base-builder that grows from completed NextWork projects, drawn as
 a side panel beside the page. This is a concept demo for the NextWork team,
