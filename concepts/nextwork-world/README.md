@@ -14,11 +14,14 @@ of it ships in a build.
   the hub town up the road, and other learners' land is either side with a
   nameplate. *Simulate* finishes a project and hands you the component it
   built, and you choose the plot it goes on.
-- **Build** — the project surface. One construction site for the project you
-  are in. Pick what the project builds - a house, a car, a data centre - and
-  how: *agile*, where every step delivers something whole (tent, shed, cabin,
-  cottage, house), or *waterfall*, where pieces arrive in order and nothing is
-  usable until the last one. Each step is a bubble worth XP.
+- **Build** — the project surface, on your land. The same world, camera on
+  the plot under construction. Pick what the project builds - a house, a
+  car, a data centre - and how: *agile*, where every step delivers something
+  whole (shed, cabin, cottage, house), or *waterfall*, where pieces arrive in
+  order and nothing is usable until the last one. Every step is an event: a
+  flatbed drives in from the hub with the piece, the builders run out from
+  their hut and hammer it up, the XP floats off the site. Keep it, and it
+  stays where it was built.
 - **Notes** — the loop, what each tag builds, the growth tiers, what the
   extension can actually read from the page, and the open questions.
 

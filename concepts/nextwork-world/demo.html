@@ -228,7 +228,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
       <section class="view" id="view-build" hidden>
         <div class="project">
           <div class="name">Build a Typed Crossplane v2 API</div>
-          <div class="meta"><span>Kubernetes</span><span>·</span><span>7 steps</span><span>·</span><span><em>+140 XP</em>, a gem, and the thing you built</span></div>
+          <div class="meta"><span>Kubernetes</span><span>·</span><span>7 steps</span><span>·</span><span><em>+140 XP</em>, a gem, and the thing you built stays on your land</span></div>
         </div>
         <div class="seg three" role="group" aria-label="What this project builds">
           <button class="btn" data-template="house" aria-pressed="true">House<small>for your land</small></button>
@@ -240,12 +240,12 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
           <button class="btn" data-mode="waterfall" aria-pressed="false">Waterfall<small>pieces in order, done at the end</small></button>
         </div>
         <div class="scene">
-          <canvas class="iso" id="site" width="880" height="460" aria-label="The construction site for this project"></canvas>
+          <canvas class="iso" id="site" width="880" height="620" aria-label="The construction site, on your land"></canvas>
           <div class="badge" id="sitetier"></div>
           <div class="reward" id="reward" hidden>
             <div class="big">Project complete</div>
             <div class="row"><span class="x">+140 XP</span><span class="c">+60 coins</span><span class="g">+1 gem</span></div>
-            <button class="btn go" id="placeit">Place it on your land →</button>
+            <button class="btn go" id="placeit">Keep it →</button>
           </div>
         </div>
         <div class="clock">
@@ -255,7 +255,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
         </div>
         <div class="bubbles" id="bubbles"></div>
         <button class="btn go" id="step">Complete step 4 of 7</button>
-        <div class="caption">You are building the <b>component</b> that goes on your land. Each step is a bubble worth XP; each bubble adds a piece. More builders, more pieces per step. Walking away costs nothing — the clock pauses when the tab does.</div>
+        <div class="caption">This is <b>your land</b>, camera on the plot. Every step you tick sends a truck from the hub with the next piece, the builders run out from the hut and put it up, and the XP floats off the site. Drag to look around. Walking away costs nothing — the clock pauses when the tab does.</div>
       </section>
 
       <!-- ================= NOTES ================= -->
@@ -462,41 +462,57 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     }
     function lamp(gx, gy, now) {
       const b = p(gx, gy); ctx.fillStyle = 'rgba(20,40,30,.25)'; ctx.beginPath(); ctx.ellipse(b[0] + 2, b[1] + 1, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#3b4252'; ctx.fillRect(b[0] - 1, b[1] - 26, 2, 26); ctx.fillRect(b[0] - 3, b[1] - 1, 6, 2);
-      roundRect(b[0] - 3.5, b[1] - 32, 7, 6, 2, '#3b4252'); ctx.fillStyle = '#ffe9a6'; ctx.fillRect(b[0] - 2, b[1] - 30, 4, 3);
+      ctx.fillStyle = '#3b4252'; ctx.fillRect(b[0] - 1, b[1] - 38, 2, 38); ctx.fillRect(b[0] - 3, b[1] - 1, 6, 2);
+      roundRect(b[0] - 3.5, b[1] - 44, 7, 6, 2, '#3b4252'); ctx.fillStyle = '#ffe9a6'; ctx.fillRect(b[0] - 2, b[1] - 42, 4, 3);
       ctx.fillStyle = 'rgba(255,225,150,.16)'; ctx.beginPath(); ctx.ellipse(b[0], b[1] - 4, 14, 8, 0, 0, Math.PI * 2); ctx.fill();
     }
     function tree(gx, gy, size, tone) {
       size = size || 1; const b = p(gx + 0.5, gy + 0.5);
       ctx.fillStyle = 'rgba(20,40,30,.25)'; ctx.beginPath(); ctx.ellipse(b[0] + 7, b[1] + 3, 14 * size, 6 * size, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#7a4b25'; ctx.fillRect(b[0] - 2.5, b[1] - 15 * size, 5, 15 * size); ctx.fillStyle = '#5a361a'; ctx.fillRect(b[0] + 0.5, b[1] - 15 * size, 2, 15 * size);
+      ctx.fillStyle = '#7a4b25'; ctx.fillRect(b[0] - 3, b[1] - 20 * size, 6, 20 * size); ctx.fillStyle = '#5a361a'; ctx.fillRect(b[0] + 0.5, b[1] - 20 * size, 2.5, 20 * size);
       const c = tone || ['#3c9a4a', '#46ad53', '#5cc464'];
-      blob(b[0] + 5, b[1] - 17 * size, 10 * size, c[0]); blob(b[0] - 6, b[1] - 21 * size, 11 * size, c[1]); blob(b[0] + 1, b[1] - 30 * size, 10 * size, c[2]);
+      blob(b[0] + 6, b[1] - 24 * size, 12 * size, c[0]); blob(b[0] - 7, b[1] - 29 * size, 13 * size, c[1]); blob(b[0] + 1, b[1] - 40 * size, 12 * size, c[2]);
     }
     function bush(gx, gy, flowers) { const b = p(gx + 0.5, gy + 0.5); blob(b[0] - 5, b[1] - 3, 6, '#4fb85a', 0.8); blob(b[0] + 4, b[1] - 2, 5, '#5cc464', 0.8);
       if (flowers) ['#ff6b8a', '#ffd54a', '#ff8fb1'].forEach((f, i) => blob(b[0] - 6 + i * 5, b[1] - 6 - (i % 2) * 2, 1.6, f)); }
     function wheel(x, y, r) { ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2); ctx.fillStyle = '#20242b'; ctx.fill(); ctx.beginPath(); ctx.ellipse(x, y, r * 0.45, r * 0.25, 0, 0, Math.PI * 2); ctx.fillStyle = '#9aa3b0'; ctx.fill(); }
-    function person(gx, gy, colour, walkT, hat) {
-      const c = p(gx, gy); const bob = Math.sin(walkT * 12) * 1.2;
-      ctx.fillStyle = 'rgba(20,40,30,.28)'; ctx.beginPath(); ctx.ellipse(c[0] + 2, c[1] + 1, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#2b3a5c'; ctx.fillRect(c[0] - 4, c[1] - 9 + bob, 3, 8 + Math.sin(walkT * 12) * 2); ctx.fillRect(c[0] + 1, c[1] - 9 + bob, 3, 8 - Math.sin(walkT * 12) * 2);
-      roundRect(c[0] - 6, c[1] - 22 + bob, 12, 14, 4, colour);
-      blob(c[0], c[1] - 27 + bob, 6, '#ffd6ad');
-      if (hat) { roundRect(c[0] - 7, c[1] - 33 + bob, 14, 5, 2, '#ffc531'); roundRect(c[0] - 5, c[1] - 37 + bob, 10, 5, 3, '#ffc531'); }
-      else { ctx.fillStyle = '#4a2e1a'; ctx.beginPath(); ctx.ellipse(c[0], c[1] - 30 + bob, 6, 3.5, 0, Math.PI, 0); ctx.fill(); }
+    /* One metre is eleven pixels of height, and a person is 1.75 m: nineteen
+     * pixels, hat and all, against a storey of thirty-four. Drawn at a scale
+     * so the same figure can hammer, carry, or be a visitor. */
+    function person(gx, gy, colour, walkT, hat, tool) {
+      const c = p(gx, gy); const bob = Math.sin(walkT * 12) * 0.7; const S = 0.58;
+      ctx.fillStyle = 'rgba(20,40,30,.28)'; ctx.beginPath(); ctx.ellipse(c[0] + 1, c[1] + 0.5, 4.5, 2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2b3a5c'; ctx.fillRect(c[0] - 2.4, c[1] - 5.5 + bob, 1.8, 5 + Math.sin(walkT * 12) * 1.2); ctx.fillRect(c[0] + 0.6, c[1] - 5.5 + bob, 1.8, 5 - Math.sin(walkT * 12) * 1.2);
+      roundRect(c[0] - 3.5, c[1] - 13 + bob, 7, 8.5, 2.5, colour);
+      blob(c[0], c[1] - 16 + bob, 3.5, '#ffd6ad');
+      if (hat) { roundRect(c[0] - 4.2, c[1] - 19.5 + bob, 8.4, 3, 1.2, '#ffc531'); roundRect(c[0] - 3, c[1] - 22 + bob, 6, 3, 2, '#ffc531'); }
+      else { ctx.fillStyle = '#4a2e1a'; ctx.beginPath(); ctx.ellipse(c[0], c[1] - 17.5 + bob, 3.5, 2, 0, Math.PI, 0); ctx.fill(); }
+      if (tool === 'hammer') { const sw = Math.sin(walkT * 18); ctx.strokeStyle = '#7a4b25'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(c[0] + 3, c[1] - 10 + bob); ctx.lineTo(c[0] + 8, c[1] - 14 - sw * 4 + bob); ctx.stroke(); ctx.fillStyle = '#5f6b73'; ctx.fillRect(c[0] + 6.5, c[1] - 16.5 - sw * 4 + bob, 4, 3);
+        if (sw > 0.8) for (let i = 0; i < 3; i++) blob(c[0] + 9 + i * 2 - 2, c[1] - 12 + bob - i * 2, 1, '#ffd54a'); }
+      if (tool === 'carry') { ctx.fillStyle = '#b58a5a'; ctx.fillRect(c[0] - 6, c[1] - 12 + bob, 12, 2.5); }
     }
-    function pet(gx, gy, walkT) { const c = p(gx, gy); const bob = Math.abs(Math.sin(walkT * 14)) * 2; ctx.fillStyle = 'rgba(20,40,30,.25)'; ctx.beginPath(); ctx.ellipse(c[0] + 1, c[1] + 1, 5, 2.2, 0, 0, Math.PI * 2); ctx.fill(); blob(c[0], c[1] - 6 - bob, 5.5, '#ffb347', 0.85); blob(c[0] + 3, c[1] - 11 - bob, 4, '#ffc46b'); ctx.fillStyle = '#20242b'; ctx.fillRect(c[0] + 4, c[1] - 12 - bob, 1.5, 1.5); }
+    function pet(gx, gy, walkT) { const c = p(gx, gy); const bob = Math.abs(Math.sin(walkT * 14)) * 1.2; ctx.fillStyle = 'rgba(20,40,30,.25)'; ctx.beginPath(); ctx.ellipse(c[0] + 0.5, c[1] + 0.5, 3.2, 1.4, 0, 0, Math.PI * 2); ctx.fill(); blob(c[0], c[1] - 3.5 - bob, 3.3, '#ffb347', 0.85); blob(c[0] + 2, c[1] - 6.5 - bob, 2.4, '#ffc46b'); ctx.fillStyle = '#20242b'; ctx.fillRect(c[0] + 2.6, c[1] - 7 - bob, 1, 1); }
     function puff(gx, gy, t) { if (t <= 0 || t >= 1) return; const c = p(gx + 0.5, gy + 0.5); for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2, r = 8 + t * 22; ctx.beginPath(); ctx.arc(c[0] + Math.cos(a) * r, c[1] - 2 + Math.sin(a) * r * 0.5, 6 * (1 - t) + 1, 0, Math.PI * 2); ctx.fillStyle = 'rgba(225,215,190,' + (0.75 * (1 - t)) + ')'; ctx.fill(); } }
     function car(gx, gy, colour, z) {
       z = z || 0;
-      const b = box(gx + 0.08, gy + 0.25, 0.84, 0.5, 9, colour, 6 + z, { noShadow: true });
-      shadow(gx + 0.08, gy + 0.25, 0.84, 0.5, 6);
-      const cab = box(gx + 0.3, gy + 0.3, 0.42, 0.4, 8, colour, 15 + z, { noShadow: true });
-      faceTex(cab.D, cab.C, 8, 'glass', '#2f4f7f'); faceTex(cab.C, cab.B, 8, 'glass', '#2f4f7f');
-      [[0.2, 0.28], [0.8, 0.28], [0.2, 0.72], [0.8, 0.72]].forEach(o => { const q = p(gx + o[0], gy + o[1], 3 + z); wheel(q[0], q[1], 4.5); });
-      const hl = p(gx + 0.08, gy + 0.5, 10 + z); blob(hl[0] + 1, hl[1], 1.6, '#fff4c2');
+      shadow(gx + 0.2, gy + 0.32, 0.55, 0.3, 4);
+      box(gx + 0.2, gy + 0.32, 0.55, 0.3, 7, colour, 4 + z, { noShadow: true });
+      const cab = box(gx + 0.34, gy + 0.34, 0.28, 0.26, 7, colour, 11 + z, { noShadow: true });
+      faceTex(cab.D, cab.C, 7, 'glass', '#2f4f7f'); faceTex(cab.C, cab.B, 7, 'glass', '#2f4f7f');
+      [[0.27, 0.34], [0.68, 0.34], [0.27, 0.6], [0.68, 0.6]].forEach(o => { const q = p(gx + o[0], gy + o[1], 2 + z); wheel(q[0], q[1], 3); });
+      const hl = p(gx + 0.2, gy + 0.47, 7 + z); blob(hl[0] + 1, hl[1], 1.2, '#fff4c2');
     }
-    return { ctx, cam, p, P, up, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, wheel, person, pet, puff, car, blob, roundRect, shadow };
+    /* A flatbed that brings the next piece. */
+    function truck(gx, gy, load, z) {
+      z = z || 0;
+      shadow(gx + 0.1, gy + 0.3, 0.75, 0.32, 4);
+      box(gx + 0.1, gy + 0.32, 0.75, 0.3, 5, '#5f6b73', 4 + z, { noShadow: true });
+      const cab = box(gx + 0.12, gy + 0.33, 0.24, 0.28, 13, '#e8552f', 9 + z, { noShadow: true });
+      faceTex(cab.D, cab.C, 13, 'glass', '#2f4f7f');
+      if (load) box(gx + 0.42, gy + 0.36, 0.38, 0.22, 9, load, 9 + z, { noShadow: true, tex: 'ribbed' });
+      [[0.2, 0.34], [0.5, 0.34], [0.78, 0.34], [0.2, 0.6], [0.5, 0.6], [0.78, 0.6]].forEach(o => { const q = p(gx + o[0], gy + o[1], 2 + z); wheel(q[0], q[1], 3); });
+    }
+    return { ctx, cam, p, P, up, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, wheel, person, pet, puff, car, truck, blob, roundRect, shadow };
   }
 
   /* ============================================================ buildings */
@@ -508,24 +524,24 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
 
   const B = {
     hut(I, gx, gy, k, now) {   /* the builders' hut: earned by nobody, lived in by the builders */
-      const b = I.box(gx + 0.15, gy + 0.2, 0.7, 0.6, 20, '#c9a06a', 0, { tex: 'siding' });
-      I.win(b.D, b.C, 0.25, 6, 0.3, 8, true); I.door(b.C, b.B, 0.3, 0.35, 15, '#6b4a2b');
-      I.roof(gx + 0.15, gy + 0.2, 0.7, 0.6, 20, 10, '#6b7280', 0.12);
-      const s = I.p(gx + 0.95, gy + 0.55); I.ctx.fillStyle = '#7a4b25'; I.ctx.fillRect(s[0] - 1, s[1] - 22, 2, 22); I.roundRect(s[0] - 9, s[1] - 26, 18, 8, 2, '#ffc531');
-      I.ctx.fillStyle = '#4a2b00'; I.ctx.font = 'bold 6px sans-serif'; I.ctx.fillText('BUILDERS', s[0] - 8, s[1] - 20);
+      const b = I.box(gx + 0.15, gy + 0.2, 0.7, 0.6, 28, '#c9a06a', 0, { tex: 'siding' });
+      I.win(b.D, b.C, 0.25, 9, 0.3, 11, true); I.door(b.C, b.B, 0.3, 0.35, 21, '#6b4a2b');
+      I.roof(gx + 0.15, gy + 0.2, 0.7, 0.6, 28, 12, '#6b7280', 0.12);
+      const s = I.p(gx + 0.95, gy + 0.55); I.ctx.fillStyle = '#7a4b25'; I.ctx.fillRect(s[0] - 1, s[1] - 26, 2, 26); I.roundRect(s[0] - 9, s[1] - 30, 18, 8, 2, '#ffc531');
+      I.ctx.fillStyle = '#4a2b00'; I.ctx.font = 'bold 6px sans-serif'; I.ctx.fillText('BUILDERS', s[0] - 8, s[1] - 24);
       /* stacked timber */
       I.box(gx + 0.02, gy + 0.85, 0.5, 0.12, 4, '#a8743f', 0, { noShadow: true }); I.box(gx + 0.02, gy + 0.85, 0.5, 0.12, 4, '#b8834a', 4, { noShadow: true });
     },
     house(I, gx, gy, k, now, tier) {
-      const n = 5, storeys = tier >= 3 ? 2 : 1, H = storeys === 2 ? 44 : 26;
+      const n = 5, storeys = tier >= 3 ? 2 : 1, H = storeys === 2 ? 64 : 34;
       let d = drop(k, 0, n); if (d.on) { I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 4, '#c9c2b0', 0, { top: 0.1 });
         /* garden path to the road */ I.poly([I.p(gx + 0.55, gy + 0.95), I.p(gx + 0.7, gy + 0.95), I.p(gx + 0.7, gy + 1.35), I.p(gx + 0.55, gy + 1.35)], '#d8ccae'); }
       d = drop(k, 1, n); if (d.on) { const b = I.box(gx + 0.12, gy + 0.12, 0.76, 0.76, H, '#f3e6cc', 4 - d.z, { tex: tier >= 2 ? 'brick' : 'siding', noShadow: true });
-        I.win(b.D, b.C, 0.12, 8, 0.24, 11, true); if (storeys === 2) { I.win(b.D, b.C, 0.12, 27, 0.24, 11, false); I.win(b.D, b.C, 0.62, 27, 0.24, 11, true); }
-        I.door(b.D, b.C, 0.6, 0.24, 17, '#8b4a2b');
-        I.win(b.C, b.B, 0.2, 8, 0.28, 11, tier < 2); if (storeys === 2) I.win(b.C, b.B, 0.55, 27, 0.28, 11, true);
+        I.win(b.D, b.C, 0.12, 11, 0.24, 14, true); if (storeys === 2) { I.win(b.D, b.C, 0.12, 42, 0.24, 14, false); I.win(b.D, b.C, 0.62, 42, 0.24, 14, true); }
+        I.door(b.D, b.C, 0.6, 0.24, 22, '#8b4a2b');
+        I.win(b.C, b.B, 0.2, 11, 0.28, 14, tier < 2); if (storeys === 2) I.win(b.C, b.B, 0.55, 42, 0.28, 14, true);
         /* gutter */ I.line(I.up(b.D, H), I.up(b.C, H), '#c9c2b0', 2); }
-      d = drop(k, 2, n); if (d.on) { I.roof(gx + 0.12, gy + 0.12, 0.76, 0.76, H + 4 - d.z, 22, tier >= 2 ? '#8a5a3a' : '#d9563f'); I.chimney(gx + 0.62, gy + 0.22, H + 12 - d.z); const c = I.p(gx + 0.68, gy + 0.28, H + 30 - d.z); I.smoke(c[0], c[1], now); }
+      d = drop(k, 2, n); if (d.on) { I.roof(gx + 0.12, gy + 0.12, 0.76, 0.76, H + 4 - d.z, 26, tier >= 2 ? '#8a5a3a' : '#d9563f'); I.chimney(gx + 0.62, gy + 0.22, H + 14 - d.z); const c = I.p(gx + 0.68, gy + 0.28, H + 32 - d.z); I.smoke(c[0], c[1], now); }
       d = drop(k, 3, n); if (d.on) { I.bush(gx + 0.05, gy + 0.95, true); I.bush(gx + 0.85, gy + 0.05, tier >= 2); if (tier >= 2) I.fence(gx + 0.0, gy + 1.0, gx + 0.5, gy + 1.0, 4); }
       d = drop(k, 4, n); if (d.on && tier >= 2) { const m = I.p(gx + 1.02, gy + 0.9); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(m[0] - 1, m[1] - 10, 2, 10); I.roundRect(m[0] - 4, m[1] - 14, 8, 5, 1.5, '#2f7fd6'); }
       I.puff(gx, gy, k * n - 4);
@@ -534,11 +550,11 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
       const n = 5, w = tier >= 2 ? 1.25 : 0.95;
       let d = drop(k, 0, n); if (d.on) { I.box(gx, gy, w + 0.05, 1, 3, '#aeb4bf', 0, { top: 0.05 });
         /* car park */ I.poly([I.p(gx, gy + 1.02), I.p(gx + w, gy + 1.02), I.p(gx + w, gy + 1.4), I.p(gx, gy + 1.4)], '#6b7280'); for (let i = 0; i < 3; i++) I.line(I.p(gx + 0.15 + i * 0.3, gy + 1.05), I.p(gx + 0.15 + i * 0.3, gy + 1.37), '#f5f5f5', 1); }
-      d = drop(k, 1, n); if (d.on) { const b = I.box(gx + 0.05, gy + 0.08, w - 0.05, 0.84, 30, '#8a95a6', 3 - d.z, { tex: 'ribbed', noShadow: true });
+      d = drop(k, 1, n); if (d.on) { const b = I.box(gx + 0.05, gy + 0.08, w - 0.05, 0.84, 40, '#8a95a6', 3 - d.z, { tex: 'ribbed', noShadow: true });
         for (let r = 0; r < 2; r++) for (let c = 0; c < 6; c++) { const u = (c + 0.5) / 6, x = b.D[0] + (b.C[0] - b.D[0]) * u, y = b.D[1] + (b.C[1] - b.D[1]) * u - 9 - r * 9; const on = Math.floor(now / 350 + c * 1.7 + r * 2.3) % 3 !== 0; I.ctx.fillStyle = on ? '#4ff0ff' : '#1e3a4a'; I.ctx.fillRect(x - 1.5, y - 1.5, 3, 3); }
-        I.door(b.C, b.B, 0.4, 0.2, 14, '#2f3a4a'); const s = I.up(I.P(b.C, b.B, 0.5), 22); I.roundRect(s[0] - 10, s[1] - 4, 20, 7, 1.5, '#ffffff'); I.ctx.fillStyle = '#2f7fd6'; I.ctx.fillRect(s[0] - 8, s[1] - 2, 16, 3); }
-      d = drop(k, 2, n); if (d.on) { I.flatRoof(gx + 0.05, gy + 0.08, w - 0.05, 0.84, 33 - d.z, '#c9d1dc'); [0.15, 0.45, 0.75].forEach((o, i) => { if (i === 2 && tier < 2) return; const u = I.box(gx + 0.1 + o * (w - 0.3), gy + 0.2, 0.18, 0.18, 8, '#dfe5ee', 37 - d.z, { noShadow: true }); const f = I.P(u.A2, u.C2, 0.5); I.ctx.strokeStyle = '#8a95a6'; I.ctx.lineWidth = 1; I.ctx.beginPath(); I.ctx.ellipse(f[0], f[1], 3.5, 1.8, 0, 0, Math.PI * 2); I.ctx.stroke(); }); }
-      d = drop(k, 3, n); if (d.on) { const dsh = I.p(gx + w - 0.15, gy + 0.75, 37 - d.z); I.ctx.fillStyle = '#e6e9ef'; I.ctx.beginPath(); I.ctx.ellipse(dsh[0], dsh[1] - 4, 6, 4, -0.5, 0, Math.PI * 2); I.ctx.fill(); I.line([dsh[0], dsh[1]], [dsh[0], dsh[1] - 4], '#8a95a6', 2); }
+        I.door(b.C, b.B, 0.4, 0.2, 22, '#2f3a4a'); const s = I.up(I.P(b.C, b.B, 0.5), 30); I.roundRect(s[0] - 10, s[1] - 4, 20, 7, 1.5, '#ffffff'); I.ctx.fillStyle = '#2f7fd6'; I.ctx.fillRect(s[0] - 8, s[1] - 2, 16, 3); }
+      d = drop(k, 2, n); if (d.on) { I.flatRoof(gx + 0.05, gy + 0.08, w - 0.05, 0.84, 43 - d.z, '#c9d1dc'); [0.15, 0.45, 0.75].forEach((o, i) => { if (i === 2 && tier < 2) return; const u = I.box(gx + 0.1 + o * (w - 0.3), gy + 0.2, 0.18, 0.18, 8, '#dfe5ee', 47 - d.z, { noShadow: true }); const f = I.P(u.A2, u.C2, 0.5); I.ctx.strokeStyle = '#8a95a6'; I.ctx.lineWidth = 1; I.ctx.beginPath(); I.ctx.ellipse(f[0], f[1], 3.5, 1.8, 0, 0, Math.PI * 2); I.ctx.stroke(); }); }
+      d = drop(k, 3, n); if (d.on) { const dsh = I.p(gx + w - 0.15, gy + 0.75, 47 - d.z); I.ctx.fillStyle = '#e6e9ef'; I.ctx.beginPath(); I.ctx.ellipse(dsh[0], dsh[1] - 4, 6, 4, -0.5, 0, Math.PI * 2); I.ctx.fill(); I.line([dsh[0], dsh[1]], [dsh[0], dsh[1] - 4], '#8a95a6', 2); }
       d = drop(k, 4, n); if (d.on) { I.fence(gx - 0.05, gy + 1.0, gx + w, gy + 1.0, 8); I.lamp(gx + w + 0.05, gy + 1.2, now); if (tier >= 2) I.car(gx + 0.05, gy + 1.0, '#3b7dd8'); }
       I.puff(gx, gy, k * n - 4);
     },
@@ -547,16 +563,16 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
       const spots = [[0.05, 0.05, 0], [0.5, 0.05, 0], [0.05, 0.55, 0], [0.5, 0.55, 0], [0.28, 0.3, 14], [0.05, 0.05, 14]];
       I.poly([I.p(gx - 0.05, gy - 0.05), I.p(gx + 1.05, gy - 0.05), I.p(gx + 1.05, gy + 1.05), I.p(gx - 0.05, gy + 1.05)], '#9aa3b0');
       for (let i = 0; i < 6; i++) { if (i >= 4 && tier < 2 && i > 4) break; const d = drop(k, i, n); if (!d.on) continue;
-        const b = I.box(gx + spots[i][0], gy + spots[i][1], 0.42, 0.42, 14, cols[i], spots[i][2] - d.z, { tex: 'ribbed', noShadow: spots[i][2] > 0 });
-        I.line(I.P(b.C, b.B, 0.5), I.up(I.P(b.C, b.B, 0.5), 14), 'rgba(0,0,0,.35)', 1); I.ctx.fillStyle = 'rgba(255,255,255,.75)'; I.ctx.fillRect(b.D2[0] + 3, b.D2[1] + 3, 6, 2); }
+        const b = I.box(gx + spots[i][0], gy + spots[i][1], 0.42, 0.42, 16, cols[i], spots[i][2] * 16 / 14 - d.z, { tex: 'ribbed', noShadow: spots[i][2] > 0 });
+        I.line(I.P(b.C, b.B, 0.5), I.up(I.P(b.C, b.B, 0.5), 16), 'rgba(0,0,0,.35)', 1); I.ctx.fillStyle = 'rgba(255,255,255,.75)'; I.ctx.fillRect(b.D2[0] + 3, b.D2[1] + 3, 6, 2); }
       /* gantry crane */
-      const c1 = I.p(gx - 0.05, gy + 1.08), c2 = I.p(gx + 1.05, gy + 1.08); const H = 48;
+      const c1 = I.p(gx - 0.05, gy + 1.08), c2 = I.p(gx + 1.05, gy + 1.08); const H = 62;
       I.line(c1, I.up(c1, H), '#f2b42a', 3); I.line(c2, I.up(c2, H), '#f2b42a', 3); I.line(I.up(c1, H), I.up(c2, H), '#f2b42a', 4);
       const hook = I.P(I.up(c1, H), I.up(c2, H), 0.4 + Math.sin(now / 1500) * 0.15); I.line(hook, [hook[0], hook[1] + 14], '#3b4252', 1); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(hook[0] - 3, hook[1] + 14, 6, 3);
       I.puff(gx, gy, k * n - 5);
     },
     tower(I, gx, gy, k, now, tier) {
-      const n = 3, H = tier >= 2 ? 74 : 56;
+      const n = 3, H = tier >= 2 ? 120 : 90;
       let d = drop(k, 0, n); if (d.on) { I.box(gx + 0.2, gy + 0.2, 0.6, 0.6, 6, '#aab3bf', 0, { tex: 'stone' }); I.fence(gx + 0.1, gy + 0.9, gx + 0.9, gy + 0.9, 5); }
       d = drop(k, 1, n); if (d.on) { const base = 6 - d.z; const a = I.p(gx + 0.3, gy + 0.7, base), b = I.p(gx + 0.7, gy + 0.7, base), c = I.p(gx + 0.7, gy + 0.3, base), t = I.p(gx + 0.5, gy + 0.5, base + H);
         [a, b, c].forEach(q => I.line(q, [t[0], t[1]], '#d8dde5', 2.5));
@@ -568,19 +584,19 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     },
     gate(I, gx, gy, k, now, tier) {
       const n = 3;
-      let d = drop(k, 0, n); if (d.on) { const t = I.box(gx + 0.02, gy + 0.3, 0.26, 0.4, 36, '#b3ada3', -d.z, { tex: 'stone' }); crenel(I, t); }
-      d = drop(k, 1, n); if (d.on) { const t = I.box(gx + 0.72, gy + 0.3, 0.26, 0.4, 36, '#b3ada3', -d.z, { tex: 'stone' }); crenel(I, t); }
-      d = drop(k, 2, n); if (d.on) { I.box(gx + 0.02, gy + 0.36, 0.96, 0.28, 12, '#c2bcb3', 30 - d.z, { noShadow: true, tex: 'stone' });
-        const m = I.p(gx + 0.5, gy + 0.64); I.ctx.fillStyle = '#4a2b17'; I.ctx.beginPath(); I.ctx.moveTo(m[0] - 8, m[1]); I.ctx.lineTo(m[0] - 8, m[1] - 18); I.ctx.arc(m[0], m[1] - 18, 8, Math.PI, 0); I.ctx.lineTo(m[0] + 8, m[1]); I.ctx.closePath(); I.ctx.fill();
-        for (let i = 0; i < 3; i++) I.line([m[0] - 8, m[1] - 4 - i * 5], [m[0] + 8, m[1] - 4 - i * 5], 'rgba(255,255,255,.12)', 1);
-        [[gx + 0.15, gy + 0.72], [gx + 0.85, gy + 0.72]].forEach(q => { const f = I.p(q[0], q[1], 22); const fl = 1 + Math.sin(now / 90 + q[0]) * 0.2; I.blob(f[0], f[1] - 4 * fl, 3 * fl, '#ff8a2a', 1.3); I.ctx.fillStyle = 'rgba(255,170,60,.15)'; I.ctx.beginPath(); I.ctx.arc(f[0], f[1] - 3, 9, 0, Math.PI * 2); I.ctx.fill(); }); }
+      let d = drop(k, 0, n); if (d.on) { const t = I.box(gx + 0.02, gy + 0.3, 0.26, 0.4, 48, '#b3ada3', -d.z, { tex: 'stone' }); crenel(I, t); }
+      d = drop(k, 1, n); if (d.on) { const t = I.box(gx + 0.72, gy + 0.3, 0.26, 0.4, 48, '#b3ada3', -d.z, { tex: 'stone' }); crenel(I, t); }
+      d = drop(k, 2, n); if (d.on) { I.box(gx + 0.02, gy + 0.36, 0.96, 0.28, 14, '#c2bcb3', 40 - d.z, { noShadow: true, tex: 'stone' });
+        const m = I.p(gx + 0.5, gy + 0.64); I.ctx.fillStyle = '#4a2b17'; I.ctx.beginPath(); I.ctx.moveTo(m[0] - 8, m[1]); I.ctx.lineTo(m[0] - 8, m[1] - 26); I.ctx.arc(m[0], m[1] - 26, 8, Math.PI, 0); I.ctx.lineTo(m[0] + 8, m[1]); I.ctx.closePath(); I.ctx.fill();
+        for (let i = 0; i < 4; i++) I.line([m[0] - 8, m[1] - 4 - i * 6], [m[0] + 8, m[1] - 4 - i * 6], 'rgba(255,255,255,.12)', 1);
+        [[gx + 0.15, gy + 0.72], [gx + 0.85, gy + 0.72]].forEach(q => { const f = I.p(q[0], q[1], 28); const fl = 1 + Math.sin(now / 90 + q[0]) * 0.2; I.blob(f[0], f[1] - 4 * fl, 3 * fl, '#ff8a2a', 1.3); I.ctx.fillStyle = 'rgba(255,170,60,.15)'; I.ctx.beginPath(); I.ctx.arc(f[0], f[1] - 3, 9, 0, Math.PI * 2); I.ctx.fill(); }); }
       I.puff(gx, gy, k * n - 2);
     },
     observatory(I, gx, gy, k, now, tier) {
       const n = 3;
-      let d = drop(k, 0, n); if (d.on) { I.box(gx + 0.08, gy + 0.08, 0.84, 0.84, 6, '#d6d1c4', 0, { top: 0.1 }); [0.2, 0.5, 0.8].forEach(u => I.box(gx + 0.08 + u * 0.8, gy + 0.9, 0.06, 0.06, 26, '#efe9dc', 6, { noShadow: true })); }
-      d = drop(k, 1, n); if (d.on) { const b = I.box(gx + 0.2, gy + 0.2, 0.6, 0.6, 30, '#efe9dc', 6 - d.z, { tex: 'stone', noShadow: true }); I.win(b.D, b.C, 0.2, 9, 0.25, 12, true); I.win(b.D, b.C, 0.6, 9, 0.25, 12, true); I.door(b.C, b.B, 0.35, 0.3, 16, '#4a3a6b'); }
-      d = drop(k, 2, n); if (d.on) { const c = I.p(gx + 0.5, gy + 0.5, 36 - d.z); const r = 17;
+      let d = drop(k, 0, n); if (d.on) { I.box(gx + 0.08, gy + 0.08, 0.84, 0.84, 6, '#d6d1c4', 0, { top: 0.1 }); [0.2, 0.5, 0.8].forEach(u => I.box(gx + 0.08 + u * 0.8, gy + 0.9, 0.06, 0.06, 34, '#efe9dc', 6, { noShadow: true })); }
+      d = drop(k, 1, n); if (d.on) { const b = I.box(gx + 0.2, gy + 0.2, 0.6, 0.6, 40, '#efe9dc', 6 - d.z, { tex: 'stone', noShadow: true }); I.win(b.D, b.C, 0.2, 12, 0.25, 14, true); I.win(b.D, b.C, 0.6, 12, 0.25, 14, true); I.door(b.C, b.B, 0.35, 0.3, 22, '#4a3a6b'); }
+      d = drop(k, 2, n); if (d.on) { const c = I.p(gx + 0.5, gy + 0.5, 46 - d.z); const r = 17;
         const g = I.ctx.createRadialGradient(c[0] - 6, c[1] - 9, 2, c[0], c[1], r); g.addColorStop(0, '#c9b6ff'); g.addColorStop(1, '#5a3aa8');
         I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1], r, r * 0.8, 0, Math.PI, 0); I.ctx.closePath(); I.ctx.fillStyle = g; I.ctx.fill();
         I.ctx.fillStyle = '#2a1a4d'; I.ctx.beginPath(); I.ctx.moveTo(c[0] + 2, c[1] - r * 0.78); I.ctx.lineTo(c[0] + 6, c[1] - r * 0.78); I.ctx.lineTo(c[0] + 12, c[1] - 4); I.ctx.lineTo(c[0] + 6, c[1] - 4); I.ctx.closePath(); I.ctx.fill();
@@ -589,43 +605,43 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     },
     workshop(I, gx, gy, k, now, tier) {
       const n = 4;
-      let d = drop(k, 0, n); if (d.on) { const b = I.box(gx + 0.08, gy + 0.08, 0.84, 0.84, 26, '#e3a45b', -d.z, { tex: 'brick' }); I.win(b.D, b.C, 0.1, 9, 0.22, 10, false); I.win(b.D, b.C, 0.68, 9, 0.22, 10, false);
-        /* big garage door */ const a = I.P(b.D, b.C, 0.36), c = I.P(b.D, b.C, 0.64); I.poly([a, c, I.up(c, 18), I.up(a, 18)], '#6b7280'); for (let v = 4; v < 18; v += 4) I.line(I.up(a, v), I.up(c, v), '#4b5563', 1); }
-      d = drop(k, 1, n); if (d.on) { /* sawtooth roof */ for (let i = 0; i < 3; i++) { const g0 = gx + 0.08 + i * 0.28; I.box(g0, gy + 0.08, 0.28, 0.84, 10, '#6b7280', 26 - d.z, { noShadow: true, top: -0.05 }); const s = I.box(g0 + 0.02, gy + 0.1, 0.1, 0.8, 8, '#9ad3ff', 36 - d.z, { noShadow: true, top: 0.5 }); } }
-      d = drop(k, 2, n); if (d.on) { I.chimney(gx + 0.8, gy + 0.2, 36 - d.z, '#8a5a3a'); const c = I.p(gx + 0.86, gy + 0.26, 54 - d.z); I.smoke(c[0], c[1], now); }
+      let d = drop(k, 0, n); if (d.on) { const b = I.box(gx + 0.08, gy + 0.08, 0.84, 0.84, 36, '#e3a45b', -d.z, { tex: 'brick' }); I.win(b.D, b.C, 0.1, 14, 0.22, 12, false); I.win(b.D, b.C, 0.68, 14, 0.22, 12, false);
+        /* big garage door */ const a = I.P(b.D, b.C, 0.36), c = I.P(b.D, b.C, 0.64); I.poly([a, c, I.up(c, 26), I.up(a, 26)], '#6b7280'); for (let v = 4; v < 26; v += 4) I.line(I.up(a, v), I.up(c, v), '#4b5563', 1); }
+      d = drop(k, 1, n); if (d.on) { /* sawtooth roof */ for (let i = 0; i < 3; i++) { const g0 = gx + 0.08 + i * 0.28; I.box(g0, gy + 0.08, 0.28, 0.84, 10, '#6b7280', 36 - d.z, { noShadow: true, top: -0.05 }); const s = I.box(g0 + 0.02, gy + 0.1, 0.1, 0.8, 8, '#9ad3ff', 46 - d.z, { noShadow: true, top: 0.5 }); } }
+      d = drop(k, 2, n); if (d.on) { I.chimney(gx + 0.8, gy + 0.2, 46 - d.z, '#8a5a3a'); const c = I.p(gx + 0.86, gy + 0.26, 64 - d.z); I.smoke(c[0], c[1], now); }
       d = drop(k, 3, n); if (d.on) { I.box(gx + 0.95, gy + 0.75, 0.16, 0.16, 8, '#e8552f', 0, { noShadow: true }); I.box(gx + 0.95, gy + 0.55, 0.16, 0.16, 12, '#2f7fd6', 0, { noShadow: true }); I.lamp(gx + 0.5, gy + 1.1, now); }
       I.puff(gx, gy, k * n - 3);
     },
     warehouse(I, gx, gy, k, now, tier) {
       const n = 3, w = tier >= 2 ? 1.3 : 1;
-      let d = drop(k, 0, n); if (d.on) { const b = I.box(gx, gy + 0.15, w, 0.7, 24, '#c9a06a', -d.z, { tex: 'ribbed' }); const a = I.P(b.D, b.C, 0.2), c = I.P(b.D, b.C, 0.45); I.poly([a, c, I.up(c, 16), I.up(a, 16)], '#5b3a22'); for (let v = 3; v < 16; v += 3) I.line(I.up(a, v), I.up(c, v), 'rgba(255,255,255,.14)', 1);
-        const a2 = I.P(b.D, b.C, 0.55), c2 = I.P(b.D, b.C, 0.8); I.poly([a2, c2, I.up(c2, 16), I.up(a2, 16)], '#5b3a22'); for (let v = 3; v < 16; v += 3) I.line(I.up(a2, v), I.up(c2, v), 'rgba(255,255,255,.14)', 1);
+      let d = drop(k, 0, n); if (d.on) { const b = I.box(gx, gy + 0.15, w, 0.7, 34, '#c9a06a', -d.z, { tex: 'ribbed' }); const a = I.P(b.D, b.C, 0.2), c = I.P(b.D, b.C, 0.45); I.poly([a, c, I.up(c, 24), I.up(a, 24)], '#5b3a22'); for (let v = 3; v < 24; v += 3) I.line(I.up(a, v), I.up(c, v), 'rgba(255,255,255,.14)', 1);
+        const a2 = I.P(b.D, b.C, 0.55), c2 = I.P(b.D, b.C, 0.8); I.poly([a2, c2, I.up(c2, 24), I.up(a2, 24)], '#5b3a22'); for (let v = 3; v < 24; v += 3) I.line(I.up(a2, v), I.up(c2, v), 'rgba(255,255,255,.14)', 1);
         /* loading dock */ I.box(gx, gy + 0.85, w, 0.12, 6, '#9aa3b0', 0, { noShadow: true }); }
-      d = drop(k, 1, n); if (d.on) { I.roof(gx, gy + 0.15, w, 0.7, 24 - d.z, 9, '#4b5563', 0.08); }
+      d = drop(k, 1, n); if (d.on) { I.roof(gx, gy + 0.15, w, 0.7, 34 - d.z, 9, '#4b5563', 0.08); }
       d = drop(k, 2, n); if (d.on) { [0.1, 0.3].forEach((o, i) => { I.box(gx + o, gy + 1.02, 0.14, 0.14, 4, '#b8834a', 0, { noShadow: true }); if (i) I.box(gx + o, gy + 1.02, 0.14, 0.14, 4, '#c9a06a', 4, { noShadow: true }); }); I.lamp(gx + w + 0.05, gy + 0.5, now); }
       I.puff(gx, gy, k * n - 2);
     },
     hq(I, gx, gy, k, now) {
       /* NextWork headquarters: a glass tower on a stone plinth with a canopy */
       I.box(gx - 0.2, gy - 0.2, 2.4, 2.4, 5, '#cfd5df', 0, { top: 0.1, tex: 'stone' });
-      const b = I.box(gx + 0.15, gy + 0.15, 1.7, 1.7, 92, '#2f5f9f', 5, { tex: 'glass', noShadow: false, top: 0.12 });
-      I.box(gx + 0.4, gy + 0.4, 1.2, 1.2, 14, '#3b6fb5', 97, { tex: 'glass', noShadow: true, top: 0.2 });
-      I.flatRoof(gx + 0.6, gy + 0.6, 0.8, 0.8, 111, '#dfe5ee');
+      const b = I.box(gx + 0.15, gy + 0.15, 1.7, 1.7, 150, '#2f5f9f', 5, { tex: 'glass', noShadow: false, top: 0.12 });
+      I.box(gx + 0.4, gy + 0.4, 1.2, 1.2, 18, '#3b6fb5', 155, { tex: 'glass', noShadow: true, top: 0.2 });
+      I.flatRoof(gx + 0.6, gy + 0.6, 0.8, 0.8, 173, '#dfe5ee');
       /* canopy and doors */
-      I.box(gx + 0.5, gy + 1.85, 1.0, 0.3, 3, '#ffc531', 22, { noShadow: true, top: 0.15 });
-      const a = I.P(b.D, b.C, 0.32), c = I.P(b.D, b.C, 0.68); I.poly([a, c, I.up(c, 20), I.up(a, 20)], '#dff1ff'); I.line(I.up(I.P(a, c, 0.5), 0), I.up(I.P(a, c, 0.5), 20), '#8ab', 1);
+      I.box(gx + 0.5, gy + 1.85, 1.0, 0.3, 3, '#ffc531', 30, { noShadow: true, top: 0.15 });
+      const a = I.P(b.D, b.C, 0.32), c = I.P(b.D, b.C, 0.68); I.poly([a, c, I.up(c, 26), I.up(a, 26)], '#dff1ff'); I.line(I.up(I.P(a, c, 0.5), 0), I.up(I.P(a, c, 0.5), 26), '#8ab', 1);
       /* sign */
-      const s = I.up(I.P(b.D, b.C, 0.5), 70); I.roundRect(s[0] - 26, s[1] - 8, 52, 14, 3, '#ffffff'); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 9px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NEXTWORK', s[0], s[1] + 3); I.ctx.textAlign = 'left';
+      const s = I.up(I.P(b.D, b.C, 0.5), 120); I.roundRect(s[0] - 26, s[1] - 8, 52, 14, 3, '#ffffff'); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 9px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NEXTWORK', s[0], s[1] + 3); I.ctx.textAlign = 'left';
       /* flag */
-      const f = I.p(gx + 1.0, gy + 1.0, 116); I.line(f, [f[0], f[1] - 26], '#e6e9ef', 2); const wv = Math.sin(now / 300) * 2; I.poly([[f[0], f[1] - 26], [f[0] + 16, f[1] - 22 + wv], [f[0], f[1] - 17]], '#ffc531');
+      const f = I.p(gx + 1.0, gy + 1.0, 178); I.line(f, [f[0], f[1] - 26], '#e6e9ef', 2); const wv = Math.sin(now / 300) * 2; I.poly([[f[0], f[1] - 26], [f[0] + 16, f[1] - 22 + wv], [f[0], f[1] - 17]], '#ffc531');
     },
     fountain(I, gx, gy, k, now) {
       const c = I.p(gx + 0.5, gy + 0.5);
       I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 2, c[1] + 2, 20, 10, 0, 0, Math.PI * 2); I.ctx.fill();
       I.ctx.fillStyle = '#c9c2b0'; I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1], 20, 10, 0, 0, Math.PI * 2); I.ctx.fill();
       I.ctx.fillStyle = '#4fb3f0'; I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1] - 2, 16, 8, 0, 0, Math.PI * 2); I.ctx.fill();
-      I.ctx.fillStyle = '#e9e4d6'; I.ctx.fillRect(c[0] - 2, c[1] - 16, 4, 14);
-      for (let i = 0; i < 8; i++) { const ph = (now / 900 + i / 8) % 1; const a = i / 8 * Math.PI * 2; I.ctx.fillStyle = 'rgba(200,235,255,' + (0.9 - ph * 0.8) + ')'; I.ctx.beginPath(); I.ctx.arc(c[0] + Math.cos(a) * ph * 12, c[1] - 16 + ph * 16 - Math.sin(ph * Math.PI) * 10, 1.6, 0, Math.PI * 2); I.ctx.fill(); }
+      I.ctx.fillStyle = '#e9e4d6'; I.ctx.fillRect(c[0] - 2, c[1] - 22, 4, 20);
+      for (let i = 0; i < 8; i++) { const ph = (now / 900 + i / 8) % 1; const a = i / 8 * Math.PI * 2; I.ctx.fillStyle = 'rgba(200,235,255,' + (0.9 - ph * 0.8) + ')'; I.ctx.beginPath(); I.ctx.arc(c[0] + Math.cos(a) * ph * 12, c[1] - 22 + ph * 22 - Math.sin(ph * Math.PI) * 12, 1.6, 0, Math.PI * 2); I.ctx.fill(); }
     },
     board(I, gx, gy, k, now) {
       const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = '#7a4b25'; I.ctx.fillRect(b[0] - 8, b[1] - 20, 2, 20); I.ctx.fillRect(b[0] + 6, b[1] - 20, 2, 20);
@@ -669,6 +685,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     { name: 'Adam',    tier: 'Town',    at: [14, 10], built: [['datacentre', 14, 11, 2], ['house', 16, 13, 2], ['observatory', 15, 15, 1], ['containers', 16, 10, 1]] }
   ];
 
+  let SG = 9, SGY = 12;   /* the plot under construction, on your land */
   const state = {
     done: 3,
     placed: [ { kind: 'house', gx: 6, gy: 11, tier: 1 }, { kind: 'datacentre', gx: 10, gy: 10, tier: 1 }, { kind: 'containers', gx: 6, gy: 14, tier: 1 } ],
@@ -699,12 +716,12 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   }
   const HUT = [12, 15];
   const isYours = (x, y) => x >= YOURS.x0 && x <= YOURS.x1 && y >= YOURS.y0 && y <= YOURS.y1;
-  const occupied = (x, y) => ROAD.has(x + ',' + y) || WATER.has(x + ',' + y) || (x === HUT[0] && y === HUT[1]) || state.placed.some(b => b.gx === x && b.gy === y) || TREES.some(t => t[0] === x && t[1] === y);
+  const occupied = (x, y) => ROAD.has(x + ',' + y) || WATER.has(x + ',' + y) || (x === HUT[0] && y === HUT[1]) || (x === SG && y === SGY) || state.placed.some(b => b.gx === x && b.gy === y) || TREES.some(t => t[0] === x && t[1] === y);
 
-  function drawWorld(now) {
-    const I = world, ctx = I.ctx;
-    if (camGoal && !reduce) { I.cam.x = lerp(I.cam.x, camGoal.x, 0.12); I.cam.y = lerp(I.cam.y, camGoal.y, 0.12); if (Math.hypot(I.cam.x - camGoal.x, I.cam.y - camGoal.y) < 0.5) camGoal = null; }
-    else if (camGoal) { Object.assign(I.cam, camGoal); camGoal = null; }
+  function drawWorld(I, now, construction) {
+    const ctx = I.ctx;
+    if (I === world && camGoal && !reduce) { I.cam.x = lerp(I.cam.x, camGoal.x, 0.12); I.cam.y = lerp(I.cam.y, camGoal.y, 0.12); if (Math.hypot(I.cam.x - camGoal.x, I.cam.y - camGoal.y) < 0.5) camGoal = null; }
+    else if (I === world && camGoal) { Object.assign(I.cam, camGoal); camGoal = null; }
     ctx.clearRect(0, 0, 440, 310);
     const g = ctx.createLinearGradient(0, 0, 0, 310); g.addColorStop(0, '#79c0ff'); g.addColorStop(0.5, '#bfe4ff'); g.addColorStop(1, '#e6f4ff'); ctx.fillStyle = g; ctx.fillRect(0, 0, 440, 310);
     /* far hills, parallax */
@@ -721,7 +738,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
       const c = hex(dirt).map((v, i) => Math.round(lerp(v, hex(grass)[i], gr)));
       I.tile(gx, gy, rgb(c));
       if (gr < 0.3 && (gx * 13 + gy * 7) % 5 === 0) { const q = I.p(gx + 0.5, gy + 0.5); ctx.fillStyle = 'rgba(120,90,50,.35)'; ctx.fillRect(q[0] - 2, q[1] - 1, 4, 2); }   /* a stone in the dust */
-      if (isYours(gx, gy) && !occupied(gx, gy) && state.pending) I.tile(gx, gy, 'rgba(255,255,255,.14)', 'rgba(255,255,255,.35)');
+      if (I === world && isYours(gx, gy) && !occupied(gx, gy) && state.pending) I.tile(gx, gy, 'rgba(255,255,255,.14)', 'rgba(255,255,255,.35)');
     }
     /* road markings and kerb */
     ctx.setLineDash([6, 6]); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.2;
@@ -729,7 +746,8 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     /* your boundary */
     I.poly([I.p(YOURS.x0, YOURS.y0), I.p(YOURS.x1 + 1, YOURS.y0), I.p(YOURS.x1 + 1, YOURS.y1 + 1), I.p(YOURS.x0, YOURS.y1 + 1)], null, 'rgba(255,197,49,.55)', 1.5);
     /* hover plot */
-    if (state.pending && state.hover && isYours(state.hover[0], state.hover[1]) && !occupied(state.hover[0], state.hover[1])) I.tile(state.hover[0], state.hover[1], 'rgba(255,197,49,.35)', '#ffc531');
+    if (I === world && state.pending && state.hover && isYours(state.hover[0], state.hover[1]) && !occupied(state.hover[0], state.hover[1])) I.tile(state.hover[0], state.hover[1], 'rgba(255,197,49,.35)', '#ffc531');
+    if (construction) { ctx.setLineDash([4, 4]); I.poly([I.p(SG - 0.15, SGY - 0.15), I.p(SG + 1.6, SGY - 0.15), I.p(SG + 1.6, SGY + 1.6), I.p(SG - 0.15, SGY + 1.6)], 'rgba(255,255,255,.1)', 'rgba(255,255,255,.8)', 1.5); ctx.setLineDash([]); }
 
     const items = [];
     const add = (d, fn) => items.push({ d, fn });
@@ -748,14 +766,37 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     /* people: you on the road, builders at the hut, a visitor in the plaza */
     const walkT = reduce ? 3 : now / 1000; const u = reduce ? 0.4 : ((walkT * 0.16) % 2), s = u < 1 ? u : 2 - u;
     const gy = 8.5 + s * 8.5, gx = 8.5; add(gx + gy, () => I.person(gx, gy, '#2f7fd6', walkT)); add(gx + gy - 0.01, () => I.pet(gx + 0.35, gy + (u < 1 ? -0.5 : 0.5), walkT));
-    for (let i = 0; i < buildersOf(xpOf()); i++) { const bx = HUT[0] - 0.4 - i * 0.45, by = HUT[1] + 1.1; add(bx + by, () => I.person(bx, by, '#e8552f', walkT * 0.3 + i, true)); }
+    /* builders: at the hut, or - while a step is landing - out at the site with hammers */
+    const since = now - build.stepAt, busy = construction && since < 4200;
+    for (let i = 0; i < buildersOf(xpOf()); i++) {
+      const hx = HUT[0] - 0.4 - i * 0.45, hy = HUT[1] + 1.1;
+      const sx = SG - 0.25 + i * 0.5, sy = SGY + 1.45 - (i % 2) * 0.2;
+      let bx = hx, by = hy, tool = null, wt = walkT * 0.3 + i;
+      if (busy) { const go = ease(since / 900), back = ease((since - 3300) / 900); bx = lerp(lerp(hx, sx, go), hx, back); by = lerp(lerp(hy, sy, go), hy, back); tool = since > 900 && since < 3300 ? 'hammer' : (since < 900 ? 'carry' : null); wt = since / 1000 + i; }
+      add(bx + by, () => I.person(bx, by, '#e8552f', wt, true, tool));
+    }
+    if (construction) {
+      const k = reduce ? 1 : clamp((now - build.lastAt) / 900, 0, 1);
+      add(SG + SGY + 1.2, () => { $('sitetier').innerHTML = SITE[build.template][build.mode](I, build.done, ease(k), now) + '<small>' + build.done + ' of 7</small>'; });
+      /* the delivery: down the road from the hub, then across to the plot */
+      const tt = since / 1400;
+      if (tt < 1 && build.done > 0) { const a = tt < 0.6 ? tt / 0.6 : 1, b2 = tt < 0.6 ? 0 : (tt - 0.6) / 0.4; const tx = lerp(8.4, SG + 1.35, b2), ty = lerp(4.5, SGY + 0.4, a); add(tx + ty + 0.6, () => I.truck(tx, ty, TEMPLATE_COLOUR[build.template])); }
+      if (since >= 1400 && since < 2000) add(SG + SGY + 2, () => I.puff(SG + 1.2, SGY + 0.3, (since - 1400) / 600));
+    }
+    fx.forEach(f => { const t = (now - f.start) / f.life; if (t >= 1) return;
+      if (f.type === 'float') add(99, () => { const q = I.p(f.gx, f.gy, 40 + t * 40); ctx.globalAlpha = 1 - t; ctx.font = '800 13px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.6)'; ctx.strokeText(f.text, q[0], q[1]); ctx.fillStyle = f.colour; ctx.fillText(f.text, q[0], q[1]); ctx.textAlign = 'left'; ctx.globalAlpha = 1; });
+      if (f.type === 'sparkle') add(99, () => { const q = I.p(f.gx, f.gy, 20); for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + f.seed, r = ease(t) * 34; ctx.globalAlpha = 1 - t; I.blob(q[0] + Math.cos(a) * r, q[1] + Math.sin(a) * r * 0.55 - t * 18, 2.2 * (1 - t) + 0.5, ['#ffd54a', '#7cf0a4', '#4fc3ff', '#ff8fb1'][i % 4]); } ctx.globalAlpha = 1; });
+    });
     const v = (now / 1000 * 0.1) % 1; const vx = 6 + v * 5, vy = 5.5; add(vx + vy, () => I.person(vx, vy, '#8f5fd1', walkT * 0.8));
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
 
     /* vignette */
     const vg = ctx.createRadialGradient(220, 155, 120, 220, 155, 300); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,20,40,.35)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, 440, 310);
     if (state.anim && now - state.anim.start > 1700) state.anim = null;
+    while (fx.length && now - fx[0].start > fx[0].life) fx.shift();
   }
+  const fx = [];
+  const TEMPLATE_COLOUR = { house: '#f3e6cc', car: '#e8552f', datacentre: '#8a95a6' };
 
   /* ---- input: drag to pan, click to pick ---- */
   const cv = $('world'); let drag = null;
@@ -826,6 +867,8 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   });
   $('gohq').addEventListener('click', () => { camGoal = camTo(8.5, 4); say('NextWork HQ', 'The hub town. Every learner’s road leads here. Drag around; press My land to go back.'); });
   $('gohome').addEventListener('click', () => { camGoal = camTo(8.5, 12.5); });
+  const occupiedForBuild = () => state.placed.some(b => b.gx === SG && b.gy === SGY);
+  if (occupiedForBuild()) { SG = 9; SGY = 13; }
 
   /* ================================================================ build */
   const STEPS = ['Start the control plane', 'Freeze the contract', 'Build the typed API', 'Reconcile the environment', 'Run the staleness check', 'Secret mission: measure drift', 'Clean up your resources'];
@@ -835,36 +878,36 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     car:        { name: 'Car',         waterfall: ['Chassis', 'Wheels', 'Engine', 'Body', 'Glass', 'Paint', 'Badge'],   agile: ['Skateboard', 'Scooter', 'Bicycle', 'Motorbike', 'Small car', 'Car', 'Car + spoiler'] },
     datacentre: { name: 'Data centre', waterfall: ['Slab', 'Cage', 'Racks', 'Cooling', 'Roof', 'Lights', 'Sign'],       agile: ['One server', 'A rack', 'A row', 'A room', 'A hall', 'Hall + cooling', 'Campus'] }
   };
-  const build = { template: 'house', mode: 'agile', done: 3, lastAt: -5000 };
-  const site = makeIso($('site'), 440, 230);
-  const SG = 2.4, SGY = 2.4;
+  const build = { template: 'house', mode: 'agile', done: 3, lastAt: -5000, stepAt: -9000 };
+  const site = makeIso($('site'), 440, 310);
+  site.cam.x = camTo(9.8, 12.8).x; site.cam.y = camTo(9.8, 12.8).y + 20;
 
   const SITE = {
     house: {
       waterfall(I, s, k, now) {
         const z = (1 - k) * -80, Z = i => (s === i ? -z : 0);
         if (s >= 1) I.box(SG, SGY, 1.2, 1.2, 5, '#c9c2b0', 0, { top: 0.1 });
-        if (s >= 2) [[0.05, 0.05], [1.05, 0.05], [0.05, 1.05], [1.05, 1.05]].forEach(o => I.box(SG + o[0], SGY + o[1], 0.1, 0.1, 40, '#b58a5a', 5 + Z(2), { noShadow: true }));
-        if (s >= 2 && s < 3) for (let v = 12; v < 40; v += 12) I.line(I.p(SG + 0.05, SGY + 1.15, 5 + v), I.p(SG + 1.15, SGY + 1.15, 5 + v), '#b58a5a', 1.5);
-        let b = null; if (s >= 3) b = I.box(SG + 0.05, SGY + 0.05, 1.1, 1.1, 40, '#f3e6cc', 5 + Z(3), { noShadow: true, tex: 'siding' });
-        if (s >= 4) { I.roof(SG + 0.05, SGY + 0.05, 1.1, 1.1, 45 + Z(4), 26, '#d9563f'); I.chimney(SG + 0.8, SGY + 0.2, 56 + Z(4)); }
-        if (s >= 5 && b) { I.win(b.D, b.C, 0.1, 10, 0.2, 13, true); I.win(b.D, b.C, 0.72, 10, 0.2, 13, true); I.win(b.C, b.B, 0.15, 10, 0.25, 13, false); I.win(b.C, b.B, 0.6, 10, 0.25, 13, true); }
-        if (s >= 6 && b) I.door(b.D, b.C, 0.4, 0.2, 19, '#8b4a2b');
+        if (s >= 2) [[0.05, 0.05], [1.05, 0.05], [0.05, 1.05], [1.05, 1.05]].forEach(o => I.box(SG + o[0], SGY + o[1], 0.1, 0.1, 44, '#b58a5a', 5 + Z(2), { noShadow: true }));
+        if (s >= 2 && s < 3) for (let v = 12; v < 44; v += 12) I.line(I.p(SG + 0.05, SGY + 1.15, 5 + v), I.p(SG + 1.15, SGY + 1.15, 5 + v), '#b58a5a', 1.5);
+        let b = null; if (s >= 3) b = I.box(SG + 0.05, SGY + 0.05, 1.1, 1.1, 44, '#f3e6cc', 5 + Z(3), { noShadow: true, tex: 'siding' });
+        if (s >= 4) { I.roof(SG + 0.05, SGY + 0.05, 1.1, 1.1, 49 + Z(4), 28, '#d9563f'); I.chimney(SG + 0.8, SGY + 0.2, 60 + Z(4)); }
+        if (s >= 5 && b) { I.win(b.D, b.C, 0.1, 12, 0.2, 14, true); I.win(b.D, b.C, 0.72, 12, 0.2, 14, true); I.win(b.C, b.B, 0.15, 12, 0.25, 14, false); I.win(b.C, b.B, 0.6, 12, 0.25, 14, true); }
+        if (s >= 6 && b) I.door(b.D, b.C, 0.4, 0.2, 22, '#8b4a2b');
         if (s >= 7) { I.bush(SG - 0.35, SGY + 1.3, true); I.bush(SG + 1.3, SGY - 0.25, true); I.fence(SG - 0.1, SGY + 1.35, SG + 0.7, SGY + 1.35, 5); I.lamp(SG + 1.5, SGY + 1.4, now); }
         if (s < 7) I.puff(SG, SGY, k);
         return ['Nothing yet', 'Foundation', 'Frame up', 'Walls up', 'Roofed', 'Windows in', 'Door on', 'Complete'][s];
       },
       agile(I, s, k, now) {
         const z = (1 - k) * -60;
-        if (s === 1) { const b = I.box(SG + 0.35, SGY + 0.35, 0.5, 0.5, 18, '#b58a5a', -z, { tex: 'siding' }); I.door(b.D, b.C, 0.3, 0.4, 13, '#6b4a2b'); I.flatRoof(SG + 0.35, SGY + 0.35, 0.5, 0.5, 18 - z, '#6b7280'); }
-        if (s === 2) { const b = I.box(SG + 0.25, SGY + 0.25, 0.7, 0.7, 24, '#c9a06a', -z, { tex: 'siding' }); I.win(b.D, b.C, 0.15, 7, 0.28, 10, true); I.door(b.C, b.B, 0.3, 0.3, 16, '#6b4a2b'); I.roof(SG + 0.25, SGY + 0.25, 0.7, 0.7, 24 - z, 14, '#8b4a2b'); }
-        if (s === 3) { const b = I.box(SG + 0.15, SGY + 0.15, 0.9, 0.9, 28, '#f3e6cc', -z, { tex: 'siding' }); I.win(b.D, b.C, 0.1, 8, 0.22, 12, true); I.door(b.D, b.C, 0.55, 0.22, 18); I.win(b.C, b.B, 0.3, 8, 0.3, 12, true); I.roof(SG + 0.15, SGY + 0.15, 0.9, 0.9, 28 - z, 18, '#d9563f'); I.chimney(SG + 0.8, SGY + 0.25, 40 - z); }
-        if (s >= 4) { const two = s >= 7, H = two ? 46 : 30, zz = (s === 4 || s === 7) ? -z : 0; const b = I.box(SG + 0.05, SGY + 0.05, 1.1, 1.1, H, '#f3e6cc', zz, { tex: 'brick' });
-          I.win(b.D, b.C, 0.1, 10, 0.2, 13, true); I.win(b.D, b.C, 0.72, 10, 0.2, 13, true); I.door(b.D, b.C, 0.4, 0.2, 19, '#8b4a2b'); I.win(b.C, b.B, 0.15, 10, 0.25, 13, false); I.win(b.C, b.B, 0.6, 10, 0.25, 13, true);
-          if (two) { I.win(b.D, b.C, 0.1, 30, 0.2, 13, false); I.win(b.D, b.C, 0.72, 30, 0.2, 13, true); I.win(b.C, b.B, 0.6, 30, 0.25, 13, true); }
-          I.line(I.up(b.D, H), I.up(b.C, H), '#c9c2b0', 2); I.roof(SG + 0.05, SGY + 0.05, 1.1, 1.1, H + zz, 26, '#d9563f'); I.chimney(SG + 0.8, SGY + 0.2, H + 11 + zz); const c = I.p(SG + 0.86, SGY + 0.26, H + 29 + zz); I.smoke(c[0], c[1], now); }
+        if (s === 1) { const b = I.box(SG + 0.35, SGY + 0.35, 0.5, 0.5, 24, '#b58a5a', -z, { tex: 'siding' }); I.door(b.D, b.C, 0.3, 0.4, 20, '#6b4a2b'); I.flatRoof(SG + 0.35, SGY + 0.35, 0.5, 0.5, 24 - z, '#6b7280'); }
+        if (s === 2) { const b = I.box(SG + 0.25, SGY + 0.25, 0.7, 0.7, 30, '#c9a06a', -z, { tex: 'siding' }); I.win(b.D, b.C, 0.15, 9, 0.28, 12, true); I.door(b.C, b.B, 0.3, 0.3, 21, '#6b4a2b'); I.roof(SG + 0.25, SGY + 0.25, 0.7, 0.7, 30 - z, 16, '#8b4a2b'); }
+        if (s === 3) { const b = I.box(SG + 0.15, SGY + 0.15, 0.9, 0.9, 34, '#f3e6cc', -z, { tex: 'siding' }); I.win(b.D, b.C, 0.1, 11, 0.22, 14, true); I.door(b.D, b.C, 0.55, 0.22, 22); I.win(b.C, b.B, 0.3, 11, 0.3, 14, true); I.roof(SG + 0.15, SGY + 0.15, 0.9, 0.9, 34 - z, 20, '#d9563f'); I.chimney(SG + 0.8, SGY + 0.25, 46 - z); }
+        if (s >= 4) { const two = s >= 7, H = two ? 64 : 36, zz = (s === 4 || s === 7) ? -z : 0; const b = I.box(SG + 0.05, SGY + 0.05, 1.1, 1.1, H, '#f3e6cc', zz, { tex: 'brick' });
+          I.win(b.D, b.C, 0.1, 12, 0.2, 14, true); I.win(b.D, b.C, 0.72, 12, 0.2, 14, true); I.door(b.D, b.C, 0.4, 0.2, 22, '#8b4a2b'); I.win(b.C, b.B, 0.15, 12, 0.25, 14, false); I.win(b.C, b.B, 0.6, 12, 0.25, 14, true);
+          if (two) { I.win(b.D, b.C, 0.1, 42, 0.2, 14, false); I.win(b.D, b.C, 0.72, 42, 0.2, 14, true); I.win(b.C, b.B, 0.6, 42, 0.25, 14, true); }
+          I.line(I.up(b.D, H), I.up(b.C, H), '#c9c2b0', 2); I.roof(SG + 0.05, SGY + 0.05, 1.1, 1.1, H + zz, 28, '#d9563f'); I.chimney(SG + 0.8, SGY + 0.2, H + 12 + zz); const c = I.p(SG + 0.86, SGY + 0.26, H + 30 + zz); I.smoke(c[0], c[1], now); }
         if (s >= 5) { I.bush(SG - 0.35, SGY + 1.3, true); I.bush(SG + 1.3, SGY - 0.25, true); I.fence(SG - 0.1, SGY + 1.35, SG + 0.7, SGY + 1.35, 5); I.poly([I.p(SG + 0.75, SGY + 1.2), I.p(SG + 0.95, SGY + 1.2), I.p(SG + 0.95, SGY + 1.6), I.p(SG + 0.75, SGY + 1.6)], '#d8ccae'); }
-        if (s >= 6) { const zz = s === 6 ? -z : 0; const g = I.box(SG + 1.25, SGY + 0.35, 0.65, 0.7, 22, '#e9e4d6', zz, { tex: 'siding' }); const a = I.P(g.D, g.C, 0.15), c = I.P(g.D, g.C, 0.85); I.poly([a, c, I.up(c, 16), I.up(a, 16)], '#6b7280'); for (let v = 4; v < 16; v += 4) I.line(I.up(a, v), I.up(c, v), '#4b5563', 1); I.flatRoof(SG + 1.25, SGY + 0.35, 0.65, 0.7, 22 + zz, '#8a95a6'); I.car(SG + 1.25, SGY + 1.1, '#3b7dd8'); }
+        if (s >= 6) { const zz = s === 6 ? -z : 0; const g = I.box(SG + 1.25, SGY + 0.35, 0.65, 0.7, 28, '#e9e4d6', zz, { tex: 'siding' }); const a = I.P(g.D, g.C, 0.15), c = I.P(g.D, g.C, 0.85); I.poly([a, c, I.up(c, 22), I.up(a, 22)], '#6b7280'); for (let v = 4; v < 22; v += 4) I.line(I.up(a, v), I.up(c, v), '#4b5563', 1); I.flatRoof(SG + 1.25, SGY + 0.35, 0.65, 0.7, 28 + zz, '#8a95a6'); I.car(SG + 1.15, SGY + 1.1, '#3b7dd8'); }
         I.puff(SG, SGY, k);
         return ['Empty plot', 'Shed', 'Cabin', 'Cottage', 'House', 'House + garden', 'House + garage', 'Two storeys'][s];
       }
@@ -923,19 +966,7 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     }
   };
 
-  function drawSite(now) {
-    const I = site, ctx = I.ctx;
-    ctx.clearRect(0, 0, 440, 230);
-    const g = ctx.createLinearGradient(0, 0, 0, 230); g.addColorStop(0, '#8fd0ff'); g.addColorStop(1, '#e6f4ff'); ctx.fillStyle = g; ctx.fillRect(0, 0, 440, 230);
-    for (let gy = 0; gy < 6; gy++) for (let gx = 0; gx < 6; gx++) { const near = Math.hypot(gx - 3, gy - 3) < 2.2 ? 1 : 0.35; const c = hex('#c4ab82').map((v, i) => Math.round(lerp(v, hex((gx + gy) % 2 ? '#79c853' : '#84d15c')[i], near))); I.tile(gx, gy, rgb(c)); }
-    ctx.setLineDash([4, 4]); I.poly([I.p(SG - 0.25, SGY - 0.25), I.p(SG + 1.6, SGY - 0.25), I.p(SG + 1.6, SGY + 1.6), I.p(SG - 0.25, SGY + 1.6)], 'rgba(255,255,255,.08)', 'rgba(255,255,255,.75)', 1.5); ctx.setLineDash([]);
-    I.tree(0, 1, 1); I.tree(5, 0, 0.9); I.tree(0, 5, 1.1); I.tree(5, 5, 0.9);
-    const k = reduce ? 1 : clamp((now - build.lastAt) / 900, 0, 1);
-    const label = SITE[build.template][build.mode](I, build.done, ease(k), now);
-    const nb = buildersOf(xpOf()); for (let i = 0; i < nb; i++) I.person(1.3 + i * 0.5, 4.3 + i * 0.2, '#e8552f', now / 1000 * 0.4 + i, true);
-    $('sitetier').innerHTML = label + '<small>' + build.done + ' of 7</small>';
-    const vg = ctx.createRadialGradient(220, 115, 90, 220, 115, 240); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,20,40,.3)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, 440, 230);
-  }
+  function drawSite(now) { drawWorld(site, now, true); }
   function paintBubbles() {
     const host = $('bubbles'); host.innerHTML = '';
     const pieces = TEMPLATES[build.template][build.mode];
@@ -948,13 +979,34 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
     document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === build.mode)));
     if (reduce) drawSite(performance.now());
   }
-  $('step').addEventListener('click', () => { if (build.done >= STEPS.length) return; build.done = Math.min(STEPS.length, build.done + buildersOf(xpOf())); build.lastAt = performance.now(); paintBubbles(); });
+  $('step').addEventListener('click', () => {
+    if (build.done >= STEPS.length) return;
+    const gained = STEP_XP.slice(build.done, build.done + buildersOf(xpOf())).reduce((a, b) => a + b, 0);
+    build.done = Math.min(STEPS.length, build.done + buildersOf(xpOf()));
+    const now = performance.now();
+    build.stepAt = now; build.lastAt = now + 1400;                 /* the piece lands when the truck does */
+    fx.push({ type: 'float', gx: SG + 0.7, gy: SGY + 0.5, text: '+' + gained + ' XP', colour: '#4fc3ff', start: now + 1500, life: 1600 });
+    fx.push({ type: 'float', gx: SG + 0.7, gy: SGY + 0.9, text: '+' + Math.round(gained * 0.45) + ' coins', colour: '#ffc531', start: now + 1900, life: 1600 });
+    fx.push({ type: 'sparkle', gx: SG + 0.7, gy: SGY + 0.7, seed: Math.random() * 6, start: now + 1450, life: 900 });
+    if (build.done >= STEPS.length) fx.push({ type: 'sparkle', gx: SG + 0.7, gy: SGY + 0.7, seed: 1, start: now + 2200, life: 1200 });
+    paintBubbles();
+  });
   document.querySelectorAll('[data-template]').forEach(b => b.addEventListener('click', () => { build.template = b.dataset.template; build.lastAt = performance.now(); paintBubbles(); }));
   document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { build.mode = b.dataset.mode; build.lastAt = performance.now(); paintBubbles(); }));
   $('placeit').addEventListener('click', () => {
-    const kind = build.template === 'car' ? 'house' : build.template;   /* a car parks beside a house */
+    /* it was built on the plot; keeping it is one press */
+    const kind = build.template === 'car' ? 'house' : build.template;
     if (state.done < PROJECTS.length) state.done++;
-    handOver(kind, TEMPLATES[build.template].name); build.done = 0; build.lastAt = performance.now(); paintBubbles(); show('world');
+    const kin = state.placed.filter(b => b.kind === kind).length;
+    state.placed.push({ kind, gx: SG, gy: SGY, tier: 1 + Math.min(2, kin) });
+    state.anim = { i: state.placed.length - 1, start: performance.now() };
+    toast('+140 XP \u00b7 +60 coins \u00b7 +1 gem');
+    /* the next build goes on the next open plot */
+    for (let gy = YOURS.y0; gy <= YOURS.y1; gy++) for (let gx = YOURS.x0; gx <= YOURS.x1; gx++) if (!occupied(gx, gy) && !(gx === SG && gy === SGY)) { SG = gx; SGY = gy; gy = 99; break; }
+    site.cam.x = camTo(SG + 0.8, SGY + 0.8).x; site.cam.y = camTo(SG + 0.8, SGY + 0.8).y + 20;
+    build.done = 0; build.lastAt = performance.now(); build.stepAt = -9000; paintBubbles(); paintHud();
+    camGoal = camTo(8.5, 12.5); show('world');
+    say(TEMPLATES[build.template].name + ' finished', 'It is on your land now. The next build has its own plot.');
   });
 
   let invested = 47 * 60 + 12, session = 12 * 60 + 40;
@@ -968,9 +1020,9 @@ kubectl get xrd applicationenvironments.platform.nextwork</pre>
   let opening = 'world'; try { opening = localStorage.getItem('nww-tab') || 'world'; } catch (e) { /* fine */ }
   show(['world', 'build', 'notes'].includes(opening) ? opening : 'world');
 
-  function frame(now) { drawWorld(now); drawSite(now); requestAnimationFrame(frame); }
+  function frame(now) { drawWorld(world, now); drawSite(now); requestAnimationFrame(frame); }
   paintHud(); paintBubbles(); tick();
   say(tierOf(xpOf())[1], state.done + ' projects in. The land greens as you build on it. Drag to look around — NextWork HQ is up the road, and other learners are building next door.');
-  if (reduce) { drawWorld(performance.now()); drawSite(performance.now()); } else requestAnimationFrame(frame);
+  if (reduce) { drawWorld(world, performance.now()); drawSite(performance.now()); } else requestAnimationFrame(frame);
 })();
 </script>
