@@ -18,6 +18,8 @@
     .nwp-grip { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.35) 50%, rgba(255,255,255,.35) 60%, transparent 60%, transparent 75%, rgba(255,255,255,.35) 75%, rgba(255,255,255,.35) 85%, transparent 85%); }
   `;
   function world(settings) { return Object.assign({}, NWT.DEFAULT_SETTINGS.world, settings.world); }
+  /* the extension's palette for whatever theme is on, so the world wears it too */
+  function palette(settings) { try { return NWT.buildPalette(NWT.getTheme(settings)); } catch (e) { return null; } }
   function place(w) {
     const vw = window.innerWidth, vh = window.innerHeight; const width = Math.min(w.w || 470, vw - 16), height = Math.min(w.h || 640, vh - 16);
     el.style.width = width + 'px'; el.style.height = (w.collapsed ? 38 : height) + 'px';
@@ -47,6 +49,7 @@
       save: s => tools.saveWorld({ state: s, mode: s.mode }),
       remember: (k, v) => { if (v === undefined) return w.tab || ''; tools.saveWorld({ tab: v }); },
       production: () => world(tools.current()).read || NW.State.fresh(),
+      palette: () => palette(settings),
       openProject: (title) => { api.state.building = title; api.repaint(); tools.openExplore(title); }
     });
     return body;
@@ -59,6 +62,7 @@
     el.style.opacity = settings.peek ? '0' : ''; el.style.pointerEvents = settings.peek ? 'none' : '';
     root.querySelector('.nwp-body').hidden = !!w.collapsed;
     place(w);
+    if (api) api.theme(palette(settings));
     if (api && w.mode !== lastMode) { lastMode = w.mode; if (api.state.mode !== w.mode) { api.state.mode = w.mode; api.repaint(); } }
     if (settings.peek || w.collapsed || document.hidden) api.pause(); else api.resume();
   }

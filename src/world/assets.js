@@ -215,5 +215,53 @@
     I.poly([I.p(gx - 0.6, gy - 0.6), I.p(gx + 1.8, gy - 0.6), I.p(gx + 1.8, gy + 1.8), I.p(gx - 0.6, gy + 1.8)], owner.mine ? 'rgba(255,197,49,.28)' : 'rgba(255,255,255,.14)', owner.mine ? '#ffc531' : 'rgba(255,255,255,.55)', owner.mine ? 2 : 1);
     if (owner.built > 0) B.house(I, gx + 0.1, gy + 0.1, 1, now, owner.built >= 20 ? 3 : owner.built >= 5 ? 2 : 1); else { const s = I.p(gx + 0.6, gy + 0.6); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(s[0] - 1, s[1] - 16, 2, 16); I.roundRect(s[0] - 8, s[1] - 20, 16, 7, 1.5, '#f4f1e8'); }
   };
+
+  /* ---- the avatar: you, as you built yourself ---- */
+  function hat(I, x, y, kind, colour) {
+    if (kind === 'cap') { I.roundRect(x - 4.2, y - 2, 8.4, 3.5, 1.5, colour); I.roundRect(x - 1, y - 0.5, 7, 1.6, 0.8, colour); }
+    else if (kind === 'hard') { I.roundRect(x - 4.4, y - 0.8, 8.8, 2.2, 1, colour); I.roundRect(x - 3.2, y - 4, 6.4, 3.8, 2.4, colour); }
+    else if (kind === 'cowboy') { I.roundRect(x - 6.5, y - 0.6, 13, 2, 1, colour); I.roundRect(x - 3.4, y - 5, 6.8, 5, 2, colour); I.ctx.fillStyle = 'rgba(0,0,0,.25)'; I.ctx.fillRect(x - 3.4, y - 1.6, 6.8, 1); }
+    else if (kind === 'beanie') { I.roundRect(x - 4, y - 4.5, 8, 5, 2.5, colour); I.blob(x, y - 5, 1.6, colour); }
+  }
+  B.avatar = function (I, gx, gy, av, walkT, moving) {
+    av = av || {}; const c = I.p(gx, gy); const bob = moving ? Math.sin(walkT * 12) * 0.7 : 0, swing = moving ? Math.sin(walkT * 12) * 1.2 : 0;
+    I.ctx.fillStyle = 'rgba(20,40,30,.28)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 1, c[1] + 0.5, 5, 2.2, 0, 0, Math.PI * 2); I.ctx.fill();
+    if (av.body === 'pineapple') {
+      /* the pineapple: legs, an oval body with the diamond skin, a face, the crown */
+      I.ctx.fillStyle = '#2b3a5c'; I.ctx.fillRect(c[0] - 2.6, c[1] - 5 + bob, 2, 5 + swing); I.ctx.fillRect(c[0] + 0.6, c[1] - 5 + bob, 2, 5 - swing);
+      I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(c[0] - 3.2, c[1] - 0.6 + bob, 3, 1.4); I.ctx.fillRect(c[0] + 0.4, c[1] - 0.6 + bob, 3, 1.4);
+      const by = c[1] - 12 + bob; I.blob(c[0], by, 6.2, '#f2b42a', 1.25);
+      I.ctx.save(); I.ctx.beginPath(); I.ctx.ellipse(c[0], by, 6.2, 7.7, 0, 0, Math.PI * 2); I.ctx.clip(); I.ctx.strokeStyle = 'rgba(140,80,10,.45)'; I.ctx.lineWidth = 0.8; for (let d = -14; d < 14; d += 3.2) { I.ctx.beginPath(); I.ctx.moveTo(c[0] + d - 8, by + 8); I.ctx.lineTo(c[0] + d + 8, by - 8); I.ctx.stroke(); I.ctx.beginPath(); I.ctx.moveTo(c[0] + d + 8, by + 8); I.ctx.lineTo(c[0] + d - 8, by - 8); I.ctx.stroke(); } I.ctx.restore();
+      I.ctx.fillStyle = '#2a1d0e'; I.ctx.fillRect(c[0] - 2.6, by - 1.5, 1.4, 1.8); I.ctx.fillRect(c[0] + 1.2, by - 1.5, 1.4, 1.8); I.ctx.strokeStyle = '#2a1d0e'; I.ctx.lineWidth = 0.9; I.ctx.beginPath(); I.ctx.arc(c[0], by + 1.6, 2.2, 0.25, Math.PI - 0.25); I.ctx.stroke();
+      I.ctx.fillStyle = 'rgba(255,255,255,.35)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] - 2.6, by - 4, 1.6, 2.4, -0.4, 0, Math.PI * 2); I.ctx.fill();
+      if (av.shirt) { I.ctx.fillStyle = av.shirt; I.ctx.beginPath(); I.ctx.ellipse(c[0], by + 4.6, 5.4, 2.6, 0, 0, Math.PI); I.ctx.fill(); }
+      const top = by - 7.5; [[-4, -3, -6], [-2, -1.5, -9], [0, 0, -10.5], [2, 1.5, -9], [4, 3, -6]].forEach(l => { I.ctx.fillStyle = l[0] % 4 === 0 ? '#3fa66b' : '#5cc464'; I.ctx.beginPath(); I.ctx.moveTo(c[0] + l[0] * 0.55, top + 1.5); I.ctx.lineTo(c[0] + l[1] + l[0] * 0.9, top + l[2]); I.ctx.lineTo(c[0] + l[0] * 0.55 + 1.6, top + 1.5); I.ctx.closePath(); I.ctx.fill(); });
+      hat(I, c[0], top - 1, av.hat, av.hatColour || '#8a5a3a');
+      I.ctx.fillStyle = '#f2b42a'; I.ctx.fillRect(c[0] - 8, by + 1 + swing * 0.5, 2.4, 1.6); I.ctx.fillRect(c[0] + 5.6, by + 1 - swing * 0.5, 2.4, 1.6);
+      return;
+    }
+    /* a person: legs, shirt, head, hair, and a hat if you picked one */
+    I.ctx.fillStyle = '#2b3a5c'; I.ctx.fillRect(c[0] - 2.4, c[1] - 5.5 + bob, 1.8, 5 + swing); I.ctx.fillRect(c[0] + 0.6, c[1] - 5.5 + bob, 1.8, 5 - swing);
+    I.roundRect(c[0] - 3.5, c[1] - 13 + bob, 7, 8.5, 2.5, av.shirt || '#2f7fd6'); I.blob(c[0], c[1] - 16 + bob, 3.5, av.skin || '#ffd6ad');
+    I.ctx.fillStyle = av.hair || '#4a2e1a'; I.ctx.beginPath(); I.ctx.ellipse(c[0], c[1] - 17.5 + bob, 3.5, 2, 0, Math.PI, 0); I.ctx.fill();
+    hat(I, c[0], c[1] - 18.5 + bob, av.hat, av.hatColour || '#8a5a3a');
+  };
+
+  /* ---- a hub: a building the size of headquarters, with its name on it ---- */
+  const HUB_LOOK = { datacentre: ['#8a95a6', 'ribbed', '#c9d1dc'], lab: ['#efe9dc', 'stone', '#5a3aa8'], workshop: ['#e3a45b', 'brick', '#4b5563'], vault: ['#b3ada3', 'stone', '#6b7280'], library: ['#c9503c', 'brick', '#8a5a3a'], clinic: ['#f4f6f8', 'siding', '#dfe5ee'], bank: ['#e9e2d0', 'stone', '#c9971f'], home: ['#f3e6cc', 'siding', '#d9563f'] };
+  B.bighub = function (I, gx, gy, now, hub) {
+    const look = HUB_LOOK[hub.kind] || HUB_LOOK.home, H = 84;
+    I.box(gx - 0.4, gy - 0.4, 3.8, 3.8, 4, '#d6d1c4', 0, { top: 0.1, tex: 'stone' });
+    const b = I.box(gx, gy, 3, 3, H, look[0], 4, { tex: look[1] });
+    for (let r = 0; r < 3; r++) for (let u = 0.08; u < 0.95; u += 0.16) { if (r === 0 && u > 0.35 && u < 0.6) continue; I.win(b.D, b.C, u, 12 + r * 24, 0.09, 15, ((r * 7 + Math.floor(u * 10)) % 3) !== 0); }
+    for (let r = 0; r < 3; r++) [0.15, 0.45, 0.75].forEach((u, i) => I.win(b.C, b.B, u, 12 + r * 24, 0.16, 15, (r + i) % 2 === 0));
+    const a = I.P(b.D, b.C, 0.38), c = I.P(b.D, b.C, 0.62); I.poly([a, c, I.up(c, 28), I.up(a, 28)], '#efe9dc'); I.poly([I.P(a, c, 0.15), I.P(a, c, 0.85), I.up(I.P(a, c, 0.85), 24), I.up(I.P(a, c, 0.15), 24)], '#3b4252'); I.line(I.P(a, c, 0.5), I.up(I.P(a, c, 0.5), 24), '#9ad3ff', 1.2);
+    [0.02, 0.98].forEach(u => I.box(gx + u * 2.94, gy + 3.05, 0.06, 0.06, 30, '#efe9dc', 4, { noShadow: true })); I.poly([I.p(gx - 0.1, gy + 3.0, 34), I.p(gx + 3.1, gy + 3.0, 34), I.p(gx + 3.1, gy + 3.35, 31), I.p(gx - 0.1, gy + 3.35, 31)], look[2]);
+    I.flatRoof(gx, gy, 3, 3, H + 4, look[2]);
+    /* the name, on the building, big: a board across the front and one on the roof */
+    const s = I.up(I.P(b.D, b.C, 0.5), H - 12); const w = Math.hypot(b.C[0] - b.D[0], b.C[1] - b.D[1]) * 0.92; I.roundRect(s[0] - w / 2, s[1] - 9, w, 18, 3, '#172033'); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 11px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(hub.name.toUpperCase(), s[0], s[1] + 4); I.ctx.textAlign = 'left';
+    const rb = I.box(gx + 0.5, gy + 0.4, 2, 0.25, 18, '#172033', H + 8, { noShadow: true }); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 9px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; const rs = I.up(I.P(rb.D, rb.C, 0.5), 6); I.ctx.fillText(hub.name.toUpperCase(), rs[0], rs[1] + 3); I.ctx.textAlign = 'left';
+    const f = I.p(gx + 2.7, gy + 0.3, H + 8); I.line(f, [f[0], f[1] - 22], '#e6e9ef', 2); const wv = Math.sin(now / 300 + gx) * 2; I.poly([[f[0], f[1] - 22], [f[0] + 13, f[1] - 19 + wv], [f[0], f[1] - 15]], '#ffc531');
+  };
   NW.B = B; NW.drop = drop;
 })();

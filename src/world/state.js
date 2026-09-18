@@ -8,18 +8,19 @@
   const SCHEMA = 1;
   const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
 
-  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', done: [], lists: [], steps: {}, building: '', me: null, readAt: 0 }; }
+  const AVATAR = { body: 'pineapple', shirt: '#2f7fd6', hat: 'none', skin: '#ffd6ad', hair: '#4a2e1a' };
+  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
   function normalise(saved) {
     const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
-    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {};
-    s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA;
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || '');
+    s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA; s.avatar = Object.assign({}, AVATAR, s.avatar && typeof s.avatar === 'object' ? s.avatar : {});
     s.lists = s.lists.map(l => ({ name: String(l.name || ''), total: +l.total || 0, done: +l.done || +l.total || 0, blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }));
     return s;
   }
   /* dev seeds: how the land looks at 0, 5, 50 and 90 projects */
   function seed(s, n, name) {
     s.done = n >= 90 ? PROJECTS.map(p => p.title) : n >= 50 ? PROJECTS.slice(0, 50).map(p => p.title) : n >= 5 ? SAMPLE_DONE.slice(0, 14) : [];
-    s.lists = n > 0 ? SAMPLE_LISTS.map(l => Object.assign({}, l)) : []; s.name = name || 'Roy'; s.steps = {}; s.building = ''; s.me = null; return s;
+    s.lists = n > 0 ? SAMPLE_LISTS.map(l => Object.assign({}, l)) : []; s.name = name || 'Roy'; s.land = n > 0 ? 'Pineapple Kingdom' : ''; s.steps = {}; s.building = ''; s.sites = {}; s.craft = {}; s.me = null; return s;
   }
   const doneSet = s => new Set(s.done);
   const doneIn = (s, sr) => sr.projects.filter(pr => s.done.includes(pr[0])).length;
@@ -58,22 +59,43 @@
   function layout(s) {
     const started = SERIES.filter(sr => doneIn(s, sr) > 0), buildings = [], spreads = [];
     started.forEach((sr, i) => { const a = WEST[i]; const n = doneIn(s, sr); spreads.push({ id: sr.id, name: sr.name, at: a, n, of: sr.projects.length, whole: n === sr.projects.length, kind: sr.kind });
-      sr.projects.forEach((pr, pi) => { if (!s.done.includes(pr[0])) return; const q = lot(a, pi), xp = xpFor(pr[1], sr.hard); buildings.push({ series: sr, kind: sr.kind, title: pr[0], part: pi + 1, of: sr.projects.length, xp, tier: tierIn(s, sr), gx: q[0], gy: q[1], spread: a }); }); });
+      sr.projects.forEach((pr, pi) => { if (!s.done.includes(pr[0])) return; const q = s.sites[pr[0]] || lot(a, pi), xp = xpFor(pr[1], sr.hard); buildings.push({ series: sr, kind: sr.kind, title: pr[0], part: pi + 1, of: sr.projects.length, xp, tier: tierIn(s, sr), gx: q[0], gy: q[1], spread: a }); }); });
     s.lists.forEach((ll, i) => { const a = EAST[i]; if (!a) return; spreads.push({ id: 'll' + i, name: ll.name, at: a, n: ll.done, of: ll.total, whole: ll.done >= ll.total, kind: ll.kind, list: ll });
       for (let k = 0; k < ll.total; k++) { const q = lot(a, k); buildings.push({ list: ll, kind: ll.kind, title: ll.name, part: k + 1, of: ll.total, xp: 0, tier: k < ll.done ? 2 : 0, gx: q[0], gy: q[1], spread: a }); } });
-    return { buildings, spreads, paths: paths(spreads, buildings) };
+    return { buildings, spreads, paths: roads(spreads, buildings) };
   }
-  /* desire lines: every new building is reached from the nearest worn tile,
-   * so later walks merge into trunks and the land grows a root system */
-  function paths(spreads, buildings) {
-    const worn = new Set(), tiles = [[HOME[0], HOME[1] + 2]]; worn.add(tiles[0].join(','));
-    const key = q => Math.floor(q[0]) + ',' + Math.floor(q[1]);
-    const nearest = to => { let best = tiles[0], bd = 1e9; tiles.forEach(t => { const d = Math.hypot(t[0] - to[0], t[1] - to[1]); if (d < bd) { bd = d; best = t; } }); return best; };
-    const walk = (from, to) => { const n = Math.ceil(Math.hypot(to[0] - from[0], to[1] - from[1]) * 2) + 1; for (let i = 0; i <= n; i++) { const t = i / n, w = Math.sin(t * Math.PI) * (hash(from[0] + to[0], from[1] + to[1]) - 0.5) * 3; const q = [lerp(from[0], to[0], t) + w * (to[1] - from[1]) / (n / 2 + 1), lerp(from[1], to[1], t) - w * (to[0] - from[0]) / (n / 2 + 1)]; const k = key(q); if (!worn.has(k)) { worn.add(k); tiles.push([Math.floor(q[0]) + 0.5, Math.floor(q[1]) + 0.5]); } } };
-    const targets = spreads.slice().sort((a, b) => Math.hypot(a.at[0] - HOME[0], a.at[1] - HOME[1]) - Math.hypot(b.at[0] - HOME[0], b.at[1] - HOME[1]));
-    targets.forEach(sp => { if (sp.n === 0) return; const to = [sp.at[0] + 0.5, sp.at[1] + 1.5]; let from = nearest(to); const east = to[0] > creekX(to[1]), fromEast = from[0] > creekX(from[1]); if (east !== fromEast) { const gy = CROSSINGS.reduce((a, c) => Math.abs(c - to[1]) < Math.abs(a - to[1]) ? c : a, CROSSINGS[0]); const cx = creekX(gy + 0.5); walk(from, [cx - 3, gy + 0.5]); walk([cx - 3, gy + 0.5], [cx + 3, gy + 0.5]); from = [cx + 3, gy + 0.5]; if (!east) { from = nearest(to); } } walk(from, to); });
-    buildings.forEach(b => { if (b.tier === 0) return; const to = [b.gx + 0.5, b.gy + 1.2]; walk(nearest(to), to); });
-    return worn;
+  /* Roads. Dirt, but real: one connected network, four-connected so a
+   * person can walk it tile to tile. A trunk road comes in from the south
+   * edge to the ranch house; every spread gets a road from the nearest bit
+   * of road there already is, with a bend so it does not read as a grid;
+   * every building gets a short lane to the spread's road. Bridges cross
+   * the creek where the roads need to. */
+  const key = (x, y) => x + ',' + y;
+  function roads(spreads, buildings) {
+    const set = new Set(), tiles = [];
+    const lay = (x, y) => { const k = key(x, y); if (!set.has(k)) { set.add(k); tiles.push([x, y]); } };
+    const line = (a, b) => { /* four-connected: x first, then y */ let [x, y] = a; lay(x, y); while (x !== b[0]) { x += x < b[0] ? 1 : -1; lay(x, y); } while (y !== b[1]) { y += y < b[1] ? 1 : -1; lay(x, y); } };
+    const bent = (a, b) => { /* a bend part-way along, jittered by where it goes, so no two roads look alike */ const t = 0.35 + hash(a[0] + b[0], a[1] + b[1]) * 0.3; const m = [Math.round(lerp(a[0], b[0], t)), Math.round(lerp(a[1], b[1], 1 - t))]; line(a, m); line(m, b); };
+    const nearest = to => { let best = tiles[0], bd = 1e9; tiles.forEach(t => { const d = Math.abs(t[0] - to[0]) + Math.abs(t[1] - to[1]); if (d < bd) { bd = d; best = t; } }); return best; };
+    /* the trunk: from the south edge up to the porch */
+    line([HOME[0], LAND - 1], [HOME[0], HOME[1] + 2]);
+    /* one road to each spread, nearest first so later ones branch off earlier ones */
+    const order = spreads.slice().sort((a, b) => (Math.abs(a.at[0] - HOME[0]) + Math.abs(a.at[1] - HOME[1])) - (Math.abs(b.at[0] - HOME[0]) + Math.abs(b.at[1] - HOME[1])));
+    order.forEach(sp => { const to = [Math.round(sp.at[0]), Math.round(sp.at[1]) + 1]; const east = to[0] > creekX(to[1]); const from = nearest(to); const fromEast = from[0] > creekX(from[1]);
+      if (east !== fromEast) { /* over the nearest bridge */ const gy = CROSSINGS.reduce((a, c) => Math.abs(c - to[1]) < Math.abs(a - to[1]) ? c : a, CROSSINGS[0]); const cx = Math.round(creekX(gy + 0.5)); const w = [cx - 3, gy], e = [cx + 2, gy]; bent(from, fromEast ? e : w); line(w, e); bent(fromEast ? w : e, to); }
+      else bent(from, to); });
+    /* a lane to every building, from the nearest road tile */
+    buildings.forEach(b => { const to = [Math.round(b.gx), Math.round(b.gy) + 1]; const from = nearest(to); if (Math.abs(from[0] - to[0]) + Math.abs(from[1] - to[1]) > 0) line(from, to); });
+    return set;
   }
-  NW.State = { SCHEMA, LAND, HOME, WEST, EAST, CROSSINGS, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, finish, applyProjectReading, applyPortfolioReading, layout, lot, hash, noise, height, creekX, inCreek, onBank };
+  /* the way from one tile to another along the roads, or null */
+  function route(set, from, to) {
+    const start = key(from[0], from[1]), goal = key(to[0], to[1]); if (!set.has(start) || !set.has(goal)) return null;
+    const prev = new Map([[start, null]]); const q = [from]; let qi = 0;
+    while (qi < q.length) { const c = q[qi++]; if (key(c[0], c[1]) === goal) break; [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(d => { const n = [c[0] + d[0], c[1] + d[1]], k = key(n[0], n[1]); if (set.has(k) && !prev.has(k)) { prev.set(k, c); q.push(n); } }); }
+    if (!prev.has(goal)) return null; const out = []; let c = to; while (c) { out.unshift(c); c = prev.get(key(c[0], c[1])); } return out;
+  }
+  function nearestRoad(set, q) { let best = null, bd = 1e9; set.forEach(k => { const t = k.split(',').map(Number); const d = Math.hypot(t[0] + 0.5 - q[0], t[1] + 0.5 - q[1]); if (d < bd) { bd = d; best = t; } }); return best; }
+  const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
+  NW.State = { SCHEMA, AVATAR, landName, route, nearestRoad, LAND, HOME, WEST, EAST, CROSSINGS, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, finish, applyProjectReading, applyPortfolioReading, layout, lot, hash, noise, height, creekX, inCreek, onBank };
 })();

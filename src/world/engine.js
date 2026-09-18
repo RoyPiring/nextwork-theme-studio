@@ -12,11 +12,13 @@
   function shade(h, k) { const c = hex(h).map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))); return rgb(c); }
 
   const TW = 48, TH = 24;
-  function makeIso(canvas, W, H, scale) {
+  function makeIso(canvas, W0, H0, scale) {
     const ctx = canvas.getContext('2d');
-    const S = scale || 1;
+    let S = scale || 1, W = W0, H = H0; const PW = W0 * 2 * S, PH = H0 * 2 * S;   /* the canvas, in device pixels */
     ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
     const cam = { x: 0, y: 0 };
+    /* zoom: the same point stays under the middle of the canvas */
+    function setScale(next) { S = Math.max(0.12, Math.min(3, next)); W = PW / (2 * S); H = PH / (2 * S); ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0); cam.y = cam.y; out.S = S; out.W = W; out.H = H; }
     const p = (gx, gy, z) => [W / 2 + (gx - gy) * TW / 2 - cam.x, 60 + (gx + gy) * TH / 2 - (z || 0) - cam.y];
     const P = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
     const up = (q, h) => [q[0], q[1] - h];
@@ -91,7 +93,8 @@
     function truck(gx, gy, load, z) { z = z || 0; shadow(gx + 0.1, gy + 0.3, 0.75, 0.32, 4); box(gx + 0.1, gy + 0.32, 0.75, 0.3, 5, '#5f6b73', 4 + z, { noShadow: true }); const cab = box(gx + 0.12, gy + 0.33, 0.24, 0.28, 13, '#e8552f', 9 + z, { noShadow: true }); faceTex(cab.D, cab.C, 13, 'glass', '#2f4f7f'); if (load) box(gx + 0.42, gy + 0.36, 0.38, 0.22, 9, load, 9 + z, { noShadow: true, tex: 'ribbed' }); [[0.2, 0.34], [0.5, 0.34], [0.78, 0.34], [0.2, 0.6], [0.5, 0.6], [0.78, 0.6]].forEach(o => { const q = p(gx + o[0], gy + o[1], 2 + z); wheel(q[0], q[1], 3); }); }
     function label(gx, gy, text, sub, size) { const q = p(gx, gy), k = 1 / S; ctx.font = '800 ' + (size || 11) * k + 'px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3 * k; ctx.strokeStyle = 'rgba(16,24,44,.75)'; ctx.strokeText(text, q[0], q[1]); ctx.fillStyle = '#fff'; ctx.fillText(text, q[0], q[1]); if (sub) { ctx.font = '700 ' + 8 * k + 'px Nunito, sans-serif'; ctx.strokeText(sub, q[0], q[1] + 10 * k); ctx.fillStyle = '#ffe9a6'; ctx.fillText(sub, q[0], q[1] + 10 * k); } ctx.textAlign = 'left'; }
     const reset = () => ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
-    return { ctx, cam, W, H, S, reset, p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, blob, roundRect, shadow, label };
+    const out = { ctx, cam, W, H, S, PW, PH, reset, setScale, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, blob, roundRect, shadow, label };
+    return out;
   }
 
   window.NW = window.NW || {};
