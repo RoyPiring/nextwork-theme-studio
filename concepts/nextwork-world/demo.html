@@ -2,173 +2,29 @@
 <title>NextWorld</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap">
 <style>
-  :root {
-    --bg: #0e1424; --panel: #172033; --panel-2: #1f2a42;
-    --glass-line: rgba(255,255,255,.12);
-    --text: #f2f5fb; --text-dim: #9aa6c0;
-    --gold: #ffc531; --gold-2: #ff9d1c; --gold-ink: #4a2b00;
-    --xp: #4fc3ff; --xp-2: #2c8fe8; --gem: #7cf0a4; --ok: #47d16c;
-    --site-bg: #f6f5f2; --site-ink: #2a2a2a; --site-line: #e2dfd8;
-    --display: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
-    --body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
-  }
+  :root { --bg: #0e1424; --text: #f2f5fb; --dim: #9aa6c0; --site-bg: #f6f5f2; --site-ink: #2a2a2a; --site-line: #e2dfd8; }
   html, body { height: 100%; }
-  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-size: 14px; line-height: 1.45; padding-block: 18px; padding-inline: 16px; box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Nunito, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.45; padding-block: 18px; padding-inline: 16px; box-sizing: border-box; }
   * { box-sizing: border-box; }
-  button { font: inherit; cursor: pointer; }
-  button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
-
   .browser { max-width: 1200px; margin: 0 auto; border-radius: 14px; overflow: hidden; border: 1px solid #263149; background: #131a2b; box-shadow: 0 40px 100px rgba(0,0,0,.6); }
   .chrome { display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: #1a2236; border-bottom: 1px solid #263149; font-size: 12px; color: #8f9bb8; }
-  .chrome .dots { display: flex; gap: 6px; }
-  .chrome .dots i { width: 11px; height: 11px; border-radius: 50%; background: #34405c; display: block; }
+  .chrome .dots { display: flex; gap: 6px; } .chrome .dots i { width: 11px; height: 11px; border-radius: 50%; background: #34405c; display: block; }
   .chrome .url { flex: 1; background: #111828; border-radius: 8px; padding: 6px 11px; color: #c4cde0; }
-  .chrome .tag { font-family: var(--display); font-weight: 700; font-size: 12px; color: var(--gold); }
-  .stage { display: grid; grid-template-columns: 1fr 440px; min-height: 780px; }
+  .chrome .tag { font: 700 12px/1 "Baloo 2", system-ui, sans-serif; color: #ffc531; }
+  .stage { display: grid; grid-template-columns: 1fr 460px; min-height: 780px; }
   @media (max-width: 920px) { .stage { grid-template-columns: 1fr; } .site { display: none; } }
-
   .site { background: var(--site-bg); color: var(--site-ink); padding: 28px 34px; font-size: 14px; line-height: 1.55; position: relative; }
   .site::after { content: ''; position: absolute; inset: 0; background: rgba(14,20,36,.5); pointer-events: none; }
-  .site h1 { font-size: 24px; margin: 0 0 6px; font-weight: 700; }
-  .site .crumb { font-size: 12px; color: #7a7a7a; margin-bottom: 18px; }
+  .site h1 { font-size: 24px; margin: 0 0 6px; font-weight: 700; } .site .crumb { font-size: 12px; color: #7a7a7a; margin-bottom: 18px; }
   .site .pill { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #e8f0ff; color: #2b56b8; margin-right: 6px; font-weight: 700; }
-  .site .block { height: 12px; border-radius: 4px; background: var(--site-line); margin: 10px 0; }
-  .site .block.w60 { width: 60%; } .site .block.w80 { width: 80%; } .site .block.w40 { width: 40%; }
-  .site .card { border: 1px solid var(--site-line); border-radius: 10px; padding: 16px; margin: 18px 0; background: #fff; }
-  .site .card h3 { margin: 0 0 8px; font-size: 14px; }
-  .site .step { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--site-line); }
-  .site .step i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #b9c7e6; display: inline-block; flex: none; }
-  .site .step i.done { background: #2b56b8; border-color: #2b56b8; }
-  .site pre { background: #1f2430; color: #d6deeb; border-radius: 8px; padding: 12px 14px; font-size: 12px; overflow-x: auto; }
-
-  .panel { background: var(--panel); display: flex; flex-direction: column; min-width: 0; border-left: 1px solid #263149; }
-  .panel-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; background: linear-gradient(180deg, #223052, #182339); border-bottom: 1px solid var(--glass-line); }
-  .brand { font-family: var(--display); font-weight: 800; font-size: 17px; line-height: 1; color: #fff; white-space: nowrap; }
-  .brand span { color: var(--gold); }
-  .brand small { display: block; font-family: var(--body); font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
-  .tabs { display: flex; gap: 4px; margin-left: auto; background: rgba(0,0,0,.25); border-radius: 12px; padding: 3px; }
-  .tabs button { font-family: var(--display); font-weight: 700; font-size: 12px; padding: 7px 11px; border: 0; border-radius: 9px; background: transparent; color: var(--text-dim); white-space: nowrap; }
-  .tabs button[aria-selected="true"] { background: #fff; color: #172033; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
-  .view { padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 12px; }
-  .view[hidden] { display: none; }
-
-  .scene { position: relative; border-radius: 14px; overflow: hidden; background: #8fd0ff; box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.15); line-height: 0; }
-  canvas.iso { width: 100%; height: auto; display: block; touch-action: none; cursor: grab; }
-  .hud-tl { position: absolute; left: 8px; top: 8px; display: flex; align-items: center; gap: 7px; pointer-events: none; }
-  .shield { width: 40px; height: 44px; background: linear-gradient(180deg, #5db2ff, #1f6fd1); clip-path: polygon(50% 0, 100% 15%, 92% 72%, 50% 100%, 8% 72%, 0 15%); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 800; font-size: 17px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.4); }
-  .who2 { background: rgba(16,24,44,.72); border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 4px 9px 5px; backdrop-filter: blur(6px); min-width: 110px; }
-  .who2 b { font-family: var(--display); font-weight: 800; font-size: 12px; display: block; line-height: 1.1; color: #fff; }
-  .who2 small { font-size: 10px; color: var(--text-dim); font-weight: 700; }
-  .xpmini { height: 6px; border-radius: 4px; background: rgba(0,0,0,.45); margin: 3px 0 2px; overflow: hidden; }
-  .xpmini i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--xp-2), var(--xp)); }
-  .hud-res { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
-  .res { display: flex; align-items: center; gap: 6px; background: rgba(16,24,44,.72); border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 3px 9px 3px 4px; min-width: 92px; }
-  .res i { width: 16px; height: 16px; border-radius: 50%; flex: none; }
-  .res.coins i { background: radial-gradient(circle at 35% 30%, #fff1a8, var(--gold) 45%, var(--gold-2)); }
-  .res.gems i { background: linear-gradient(135deg, #b8ffd0, var(--gem) 50%, #1fb765); border-radius: 4px; transform: rotate(45deg) scale(.8); }
-  .res.xp i { background: radial-gradient(circle at 35% 30%, #cfeaff, var(--xp) 50%, var(--xp-2)); }
-  .res .v { flex: 1; }
-  .res .v b { font-family: var(--display); font-weight: 800; font-size: 12px; color: #fff; display: block; line-height: 1; }
-  .res .v .bar2 { height: 4px; border-radius: 3px; background: rgba(0,0,0,.45); margin-top: 3px; overflow: hidden; }
-  .res .v .bar2 i { display: block; height: 100%; width: 0; border-radius: 0; }
-  .res.coins .bar2 i { background: var(--gold); } .res.gems .bar2 i { background: var(--gem); } .res.xp .bar2 i { background: var(--xp); }
-  .hud-btn { position: absolute; bottom: 10px; font-family: var(--display); font-weight: 800; font-size: 12.5px; padding: 9px 14px; border: 0; border-radius: 12px; color: var(--gold-ink); background: linear-gradient(180deg, #ffe27a, var(--gold) 55%, var(--gold-2)); box-shadow: inset 0 -3px 0 rgba(0,0,0,.2), 0 6px 14px rgba(0,0,0,.35); }
-  .hud-btn.bl { left: 10px; } .hud-btn.br { right: 10px; background: linear-gradient(180deg, #8fe3a4, #47d16c 55%, #1fa34a); color: #0b3d1b; }
-  .hud-btn:hover { filter: brightness(1.06); }
-  .badge { position: absolute; left: 10px; top: 10px; font-family: var(--display); font-weight: 800; font-size: 12px; color: #fff; background: rgba(16,24,44,.72); backdrop-filter: blur(6px); padding: 6px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); }
-  .badge small { font-weight: 700; color: var(--text-dim); margin-left: 6px; }
-  .mini { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 70%; }
-  .mini button { font-family: var(--display); font-weight: 700; font-size: 11.5px; padding: 6px 10px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(16,24,44,.72); color: #fff; backdrop-filter: blur(6px); }
-  .mini button:hover { background: rgba(30,40,70,.85); }
-  .compass { position: absolute; left: 10px; bottom: 10px; width: 40px; height: 40px; }
-  .toast { position: absolute; right: 10px; top: 92px; font-family: var(--display); font-weight: 800; font-size: 13px; color: var(--gold-ink); background: linear-gradient(180deg, #ffe27a, var(--gold)); padding: 8px 12px; border-radius: 12px; line-height: 1.25; box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.15); opacity: 0; transform: translateY(-8px) scale(.96); transition: opacity .25s, transform .25s; pointer-events: none; }
-  .toast.on { opacity: 1; transform: none; }
-
-  .speech { background: #fff; color: #172033; border-radius: 14px; padding: 11px 13px; position: relative; box-shadow: 0 8px 24px rgba(0,0,0,.35); font-size: 14px; line-height: 1.4; display: grid; grid-template-columns: 46px 1fr; gap: 10px; align-items: start; }
-  .speech::before { content: ''; position: absolute; left: 26px; top: -8px; border: 8px solid transparent; border-top: 0; border-bottom-color: #fff; }
-  .speech canvas { width: 46px; height: 46px; border-radius: 50%; background: #dfe9f7; }
-  .speech b { font-family: var(--display); font-weight: 800; font-size: 14px; display: block; margin-bottom: 2px; color: #0f5fc6; }
-  .card2 { background: #fff; color: #172033; border-radius: 14px; padding: 10px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.4); display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; }
-  .card2[hidden] { display: none; }
-  .card2 .ic { width: 44px; height: 44px; border-radius: 10px; background: #eef2f8; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-  .card2 b { font-family: var(--display); font-weight: 800; font-size: 14px; display: block; line-height: 1.15; }
-  .card2 small { font-size: 12px; color: #5b6478; display: block; }
-  .card2 .acts { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 2px; }
-  .card2 .acts button { font-family: var(--display); font-weight: 800; font-size: 11.5px; padding: 8px 4px; border: 0; border-radius: 10px; background: #eef2f8; color: #172033; box-shadow: inset 0 -3px 0 rgba(0,0,0,.08); }
-  .card2 .acts button.up { background: linear-gradient(180deg, #8fe3a4, #47d16c); color: #0b3d1b; }
-  .card2 .acts button:disabled { opacity: .45; }
-  .btn { font-family: var(--display); font-weight: 700; font-size: 13px; padding: 9px 8px; border: 0; border-radius: 11px; background: var(--panel-2); color: var(--text); box-shadow: inset 0 -3px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.06); }
-  .btn:hover { background: #283555; }
-  .btn[aria-pressed="true"] { background: #fff; color: #172033; box-shadow: inset 0 -3px 0 rgba(0,0,0,.12); }
-  .btn.go { font-size: 15px; padding: 12px; color: var(--gold-ink); background: linear-gradient(180deg, #ffe27a 0%, var(--gold) 55%, var(--gold-2) 100%); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18), 0 6px 16px rgba(255,180,0,.25); }
-  .btn.go:hover { filter: brightness(1.05); }
-  .btn:disabled { opacity: .45; cursor: default; filter: none; }
-  .btn small { display: block; font-family: var(--body); font-weight: 600; font-size: 10.5px; opacity: .75; margin-top: 1px; }
-  .caption { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
-  .caption b { color: var(--text); font-weight: 700; }
-
-  /* ---- the dashboard ---- */
-  .dash { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .dash .tile { background: var(--panel-2); border: 1px solid var(--glass-line); border-radius: 12px; padding: 10px 12px; }
-  .dash .tile small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim); }
-  .dash .tile b { font-family: var(--display); font-weight: 800; font-size: 18px; display: block; line-height: 1.1; margin-top: 2px; }
-  .dash .tile span { font-size: 12px; color: var(--text-dim); }
-  .dash .tile.wide { grid-column: 1 / -1; }
-  .dash .bar { height: 8px; border-radius: 6px; background: rgba(0,0,0,.35); margin-top: 8px; overflow: hidden; }
-  .dash .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--xp-2), var(--xp)); border-radius: 6px; }
-  h3.sec { font-family: var(--display); font-weight: 800; font-size: 15px; margin: 6px 0 0; display: flex; align-items: baseline; gap: 8px; }
-  h3.sec small { font-family: var(--body); font-weight: 600; font-size: 12px; color: var(--text-dim); }
-  .project .name { font-family: var(--display); font-weight: 800; font-size: 16px; line-height: 1.15; }
-  .project .meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
-  .project .meta em { font-style: normal; color: var(--gold); font-weight: 700; }
-  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .seg .btn { font-size: 12.5px; padding: 8px 6px; }
-  .bubbles { display: flex; flex-direction: column; }
-  .bubble { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 6px 4px; position: relative; }
-  .bubble + .bubble::before { content: ''; position: absolute; left: 20px; top: -8px; width: 2px; height: 16px; background: var(--glass-line); }
-  .bubble i { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--panel-2); border: 2px solid var(--glass-line); font-family: var(--display); font-weight: 800; font-size: 12px; color: var(--text-dim); }
-  .bubble.done i { background: var(--ok); border-color: var(--ok); color: #fff; }
-  .bubble.done + .bubble::before { background: var(--ok); }
-  .bubble.now i { border-color: var(--gold); color: var(--gold); animation: pulse 1.6s ease-in-out infinite; }
-  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px rgba(255,197,49,.15); } 50% { box-shadow: 0 0 0 7px rgba(255,197,49,.05); } }
-  @media (prefers-reduced-motion: reduce) { .bubble.now i { animation: none; } }
-  .bubble .t b { display: block; font-weight: 700; font-size: 13px; }
-  .bubble .t small { display: block; font-size: 11.5px; color: var(--text-dim); }
-  .bubble.done .t b { color: var(--text-dim); text-decoration: line-through; }
-  .bubble .xp { font-family: var(--display); font-weight: 800; font-size: 12px; color: var(--xp); white-space: nowrap; }
-  .bubble.done .xp { color: var(--ok); }
-  .reward { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: radial-gradient(ellipse at center, rgba(16,24,44,.5), rgba(16,24,44,.9)); font-family: var(--display); text-align: center; padding: 12px; }
-  .reward[hidden] { display: none; }
-  .reward .big { font-size: 22px; font-weight: 800; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.4); }
-  .reward .row { display: flex; gap: 8px; margin-top: 6px; }
-  .reward .row span { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 999px; padding: 5px 12px; font-weight: 800; font-size: 13px; }
-  .reward .row .x { color: var(--xp); } .reward .row .c { color: var(--gold); }
-  .reward .btn { margin-top: 10px; }
-  .series { display: flex; flex-direction: column; gap: 4px; }
-  .srow { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; background: rgba(0,0,0,.22); border: 1px solid var(--glass-line); border-radius: 10px; }
-  .srow.full { border-color: rgba(124,240,164,.5); }
-  .srow.going { border-color: rgba(255,197,49,.45); }
-  .srow i { width: 30px; height: 30px; border-radius: 8px; background: var(--panel-2); display: flex; align-items: center; justify-content: center; font-size: 15px; }
-  .srow .n { min-width: 0; }
-  .srow .n b { display: block; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .srow .n small { display: block; font-size: 11px; color: var(--text-dim); }
-  .srow .bar { height: 5px; border-radius: 4px; background: rgba(0,0,0,.35); margin-top: 4px; overflow: hidden; }
-  .srow .bar i { display: block; height: 100%; width: 0; border-radius: 0; background: linear-gradient(90deg, var(--xp-2), var(--xp)); }
-  .srow.full .bar i { background: var(--ok); }
-  .srow.ll .bar i { background: linear-gradient(90deg, #c9971f, var(--gold)); }
-  .srow .v { text-align: right; font-family: var(--display); font-weight: 800; font-size: 12px; white-space: nowrap; }
-  .srow .v small { display: block; font-family: var(--body); font-weight: 600; font-size: 10.5px; color: var(--text-dim); }
-  .srow button { grid-column: 1 / -1; font-family: var(--display); font-weight: 800; font-size: 11px; padding: 6px; border: 0; border-radius: 8px; background: rgba(255,255,255,.08); color: var(--text); }
-  .srow button:hover { background: rgba(255,255,255,.14); }
+  .site .block { height: 12px; border-radius: 4px; background: var(--site-line); margin: 10px 0; } .site .block.w60 { width: 60%; } .site .block.w80 { width: 80%; } .site .block.w40 { width: 40%; }
+  .site .card { border: 1px solid var(--site-line); border-radius: 10px; padding: 16px; margin: 18px 0; background: #fff; } .site .card h3 { margin: 0 0 8px; font-size: 14px; }
+  .site .step { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--site-line); } .site .step i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #b9c7e6; display: inline-block; flex: none; } .site .step i.done { background: #2b56b8; border-color: #2b56b8; }
+  .panel { background: #172033; border-left: 1px solid #263149; min-width: 0; }
   .foot { max-width: 1200px; margin: 12px auto 0; font-size: 12px; color: #6f7b98; text-align: center; }
 </style>
-
 <div class="browser">
-  <div class="chrome">
-    <div class="dots"><i></i><i></i><i></i></div>
-    <div class="url">nextwork.ai/projects/build-a-chatbot-with-amazon-lex</div>
-    <div class="tag">NextWorld · concept</div>
-  </div>
+  <div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="url">nextwork.ai/projects/build-a-chatbot-with-amazon-lex</div><div class="tag">NextWorld · concept</div></div>
   <div class="stage">
     <div class="site" aria-hidden="true">
       <div class="crumb">Projects › Amazon Lex Chatbot › Build a Chatbot with Amazon Lex</div>
@@ -176,121 +32,27 @@
       <span class="pill">Amazon Lex</span><span class="pill">AI</span><span class="pill">Beginner</span>
       <div class="block w80" style="margin-top:18px"></div><div class="block w60"></div><div class="block w40"></div>
       <div class="card"><h3>30 Second Summary</h3><div class="block w80"></div><div class="block"></div><div class="block w60"></div></div>
-      <div class="card">
-        <h3>Steps</h3>
-        <div class="step"><i class="done"></i>Create the bot</div>
-        <div class="step"><i class="done"></i>Add an intent</div>
-        <div class="step"><i class="done"></i>Add sample utterances</div>
-        <div class="step"><i></i>Build and test the bot</div>
-        <div class="step"><i></i>Add a fallback intent</div>
-        <div class="step"><i></i>Publish an alias</div>
-        <div class="step"><i></i>Clean up your resources</div>
-      </div>
-      <pre>aws lexv2-models create-bot --bot-name NextWorkBot --role-arn ...</pre>
+      <div class="card"><h3>Steps</h3><div class="step"><i class="done"></i>Create the bot</div><div class="step"><i class="done"></i>Add an intent</div><div class="step"><i class="done"></i>Add sample utterances</div><div class="step"><i></i>Build and test the bot</div><div class="step"><i></i>Add a fallback intent</div><div class="step"><i></i>Publish an alias</div><div class="step"><i></i>Clean up your resources</div></div>
       <div class="block w80"></div><div class="block w60"></div><div class="block"></div><div class="block w40"></div>
     </div>
-
-    <div class="panel">
-      <div class="panel-bar">
-        <div class="brand">Next<span>World</span><small>your projects, as land</small></div>
-        <div class="tabs" role="tablist">
-          <button role="tab" id="tab-world" aria-selected="true" data-view="world">NextWorld</button>
-          <button role="tab" id="tab-base" aria-selected="false" data-view="base">My World</button>
-          <button role="tab" id="tab-projects" aria-selected="false" data-view="projects">My Build</button>
-        </div>
-      </div>
-
-      <!-- ================= 1. WORLD ================= -->
-      <section class="view" id="view-world">
-        <div class="scene">
-          <canvas class="iso" id="world" width="880" height="620" tabindex="0" aria-label="NextWorld: your state, seen whole, with the outlines of the states next to it. Tap anywhere to walk there."></canvas>
-          <div class="badge" id="wtier">Village</div>
-          <div class="toast" id="toast"></div>
-          <div class="mini" id="wnav"></div>
-          <svg class="compass" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="rgba(16,24,44,.7)" stroke="rgba(255,255,255,.25)"/><polygon points="20,4 24,20 20,36 16,20" fill="#fff"/><polygon points="20,4 24,20 20,20" fill="#e8552f"/><text x="20" y="9" font-size="6" font-weight="800" fill="#fff" text-anchor="middle" font-family="Baloo 2, sans-serif">N</text></svg>
-        </div>
-        <div class="speech" id="wsay"><canvas id="guide1" width="92" height="92"></canvas><div><b>Foreman Pua</b>This is NextWorld, and this is your state. West of the creek is the NextWork catalogue, one spread per series. East of it is learn-list country: every list in your library is a spread of its own. Other learners’ states sit next to yours one day. Tap anywhere and you walk there.</div></div>
-        <div class="caption"><b>One state, yours.</b> Ranch house in the middle, the catalogue west of the creek, your library east of it, bridges between. Drag to look around; tap to go.</div>
-      </section>
-
-      <!-- ================= 2. MY WORLD ================= -->
-      <section class="view" id="view-base" hidden>
-        <div class="scene">
-          <canvas class="iso" id="base" width="880" height="620" tabindex="0" aria-label="Your land. Every finished project is a building on its series' spread. Tap the ground or use the arrow keys to walk, tap a building for its project, drag to look around."></canvas>
-          <div class="hud-tl"><div class="shield" id="hud-lv">3</div><div class="who2"><b>Roy</b><div class="xpmini"><i id="hud-xp"></i></div><small id="hud-tier">Village</small></div></div>
-          <div class="hud-res">
-            <div class="res coins"><i></i><div class="v"><b id="hud-coins">0</b><div class="bar2"><i id="hud-coins-bar"></i></div></div></div>
-            <div class="res gems"><i></i><div class="v"><b id="hud-gems">0</b><div class="bar2"><i id="hud-gems-bar"></i></div></div></div>
-            <div class="res xp"><i></i><div class="v"><b id="hud-xpv">0</b><div class="bar2"><i id="hud-xp-bar"></i></div></div></div>
-          </div>
-          <button class="hud-btn bl" id="toworld">NextWorld</button>
-          <button class="hud-btn br" id="toprojects">My Build</button>
-          <div class="toast" id="basetoast"></div>
-        </div>
-        <div class="card2" id="bcard" hidden>
-          <div class="ic" id="bc-ic"></div>
-          <div><b id="bc-name"></b><small id="bc-sub"></small></div>
-          <div class="acts"><button id="bc-info">Info</button><button class="up" id="bc-up">Next part</button><button id="bc-go">Open project</button></div>
-        </div>
-        <div class="speech" id="basesay"><canvas id="guide2" width="92" height="92"></canvas><div><b>Foreman Pua</b>Your land. Every finished project is a building on its series’ spread, with room around it, and the ranch house is your tier. Tap the ground or use the arrow keys and you walk; tap a building for its project.</div></div>
-        <div class="caption"><b>Spreads are series.</b> Dirt tracks, a windmill once a spread has two buildings, a fence once it is whole, oaks where nothing is built yet. Over the creek, your learn lists. Arrow keys or tap to walk.</div>
-      </section>
-
-      <!-- ================= 3. PROJECTS ================= -->
-      <section class="view" id="view-projects" hidden>
-        <div class="dash">
-          <div class="tile wide"><small>Where you are</small><b id="d-tier">Village · 1,060 XP</b><span id="d-next-tier">440 XP to Town</span><div class="bar"><i id="d-bar"></i></div></div>
-          <div class="tile"><small>Done</small><b id="d-done">13 / 90</b><span>NextWork projects</span></div>
-          <div class="tile"><small>Library</small><b id="d-ll">0 lists</b><span id="d-ll-sub">your own projects</span></div>
-          <div class="tile wide"><small>Next up</small><b id="d-next">—</b><span id="d-next-sub"></span></div>
-        </div>
-
-        <h3 class="sec">Building now <small>on its spread</small></h3>
-        <div class="project">
-          <div class="name" id="p-name">Build a Chatbot with Amazon Lex</div>
-          <div class="meta"><span id="p-series">Amazon Lex Chatbot · part 2 of 6</span><span>·</span><span>7 steps</span><span>·</span><span><em id="p-xp">+60 XP</em> when it is done</span></div>
-        </div>
-        <div class="seg" role="group" aria-label="How it is built">
-          <button class="btn" data-mode="agile" aria-pressed="true">Agile<small>something whole every step</small></button>
-          <button class="btn" data-mode="waterfall" aria-pressed="false">Waterfall<small>pieces in order, done at the end</small></button>
-        </div>
-        <div class="scene">
-          <canvas class="iso" id="site" width="880" height="500" aria-label="The construction site, on its spread"></canvas>
-          <div class="badge" id="sitetier"></div>
-          <div class="reward" id="reward" hidden>
-            <div class="big">Project complete</div>
-            <div class="row"><span class="x" id="r-xp">+60 XP</span><span class="c" id="r-coins">+27 coins</span></div>
-            <button class="btn go" id="placeit">Keep it →</button>
-          </div>
-        </div>
-        <div class="bubbles" id="bubbles"></div>
-        <button class="btn go" id="step">Complete step 4 of 7</button>
-
-        <h3 class="sec">The catalogue <small id="cat-summary"></small></h3>
-        <div class="series" id="series"></div>
-
-        <h3 class="sec">Your library <small>every learn list is a spread over the creek</small></h3>
-        <div class="series" id="lls"></div>
-        <div class="caption">The catalogue is shared, so everyone's west side means the same thing. Learn lists are yours: the projects you authored toward a goal of your own. Each one is a spread over the creek, built by its projects under the same rules, and together they are your portfolio.</div>
-      </section>
-    </div>
+    <div class="panel" id="panel"></div>
   </div>
 </div>
-<div class="foot">Concept demo — nothing here is wired to nextwork.ai. Example account, real catalogue.</div>
-
+<div class="foot">Concept demo. Nothing here is wired to nextwork.ai; Dev mode simulates, Production shows only what the extension would read.</div>
 <script>
+/* NextWorld · engine: the isometric canvas
+ * Part of the NextWorld feature. Plain script, no modules, so the same file
+ * runs in the extension page and in the bundled concept demo. */
 (function () {
   'use strict';
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const $ = id => document.getElementById(id);
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const ease = t => { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); };
   function hex(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
   function rgb(c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a == null ? 1 : a) + ')'; }
   function shade(h, k) { const c = hex(h).map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))); return rgb(c); }
 
-  /* ============================================================ iso engine */
   const TW = 48, TH = 24;
   function makeIso(canvas, W, H, scale) {
     const ctx = canvas.getContext('2d');
@@ -374,7 +136,16 @@
     return { ctx, cam, W, H, S, reset, p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, blob, roundRect, shadow, label };
   }
 
-  /* ============================================================ buildings */
+  window.NW = window.NW || {};
+  Object.assign(NW, { TW, TH, reduce, clamp, lerp, ease, hex, rgb, shade, makeIso });
+})();
+
+/* NextWorld · assets: every building and prop
+ * Part of the NextWorld feature. Plain script, no modules, so the same file
+ * runs in the extension page and in the bundled concept demo. */
+(function () {
+  'use strict';
+  const { ease, clamp, lerp, shade, reduce } = NW;
   const drop = (k, i, n) => { const e = ease(k * n - i); return { z: (1 - e) * -90, on: e > 0 }; };
   function crenel(I, t) { for (let i = 0; i < 3; i++) { const q = I.P(t.D2, t.C2, 0.15 + i * 0.35); I.poly([q, [q[0] + 4, q[1] + 2], [q[0] + 4, q[1] - 3], [q[0], q[1] - 5]], '#a39d93'); } }
   const B = {
@@ -477,344 +248,689 @@
     }
   };
 
-  /* ============================================================ the data */
-  const SERIES = [
-    { id: 'account',   name: 'Account Management',          kind: 'house',       hard: 0, projects: [['Set Up An AWS Account', 5680]] },
-    { id: 'cbc',       name: 'Cloud Beginner Challenge',    kind: 'house',       hard: 0, projects: [['Join the Cloud Beginner Challenge!', 1380], ['Host a Website on Amazon S3', 4710], ['Cloud Security with AWS IAM', 2290]] },
-    { id: 'vpc',       name: 'Amazon VPC',                  kind: 'tower',       hard: 1, projects: [['Build a Virtual Private Cloud', 1870], ['VPC Traffic Flow and Security', 1240], ['Creating a Private Subnet', 980], ['Launching VPC Resources', 850], ['Testing VPC Connectivity', 700], ['VPC Peering', 640], ['VPC Monitoring with Flow Logs', 580], ['Access S3 from a VPC', 540], ['VPC Endpoints', 490]] },
-    { id: 'databases', name: 'Databases',                   kind: 'warehouse',   hard: 1, projects: [['Aurora Database with EC2', 490], ['Connect a Web App with Aurora', 390], ['Load Data into DynamoDB', 400], ['Query Data with DynamoDB', 330]] },
-    { id: 'k8s',       name: 'Kubernetes',                  kind: 'containers',  hard: 1, projects: [['Launch a Kubernetes Cluster', 270], ['Set Up Kubernetes Deployment', 200], ['Create Kubernetes Manifests', 170], ['Deploy Backend with Kubernetes', 170]] },
-    { id: 'devops',    name: '6 Day DevOps Challenge',      kind: 'workshop',    hard: 1, projects: [['Set Up a Web App in the Cloud', 1550], ['Connect a GitHub Repo with AWS', 1070], ['Secure Packages with CodeArtifact', 630], ['Continuous Integration with CodeBuild', 490], ['Deploy a Web App with CodeDeploy', 390], ['Build a CI/CD Pipeline with AWS', 300]] },
-    { id: 'threetier', name: 'Three-Tier',                  kind: 'datacentre',  hard: 1, projects: [['Website Delivery with CloudFront', 260], ['APIs with Lambda + API Gateway', 220], ['Fetch Data with AWS Lambda', 210], ['Build a Three-Tier Web App', 200]] },
-    { id: 'security',  name: 'Security',                    kind: 'gate',        hard: 1, projects: [['Encrypt Data with AWS KMS', 320], ['Threat Detection with GuardDuty', 200], ['Secure Secrets with Secrets Manager', 140], ['Build a Security Monitoring System', 210]] },
-    { id: 'lex',       name: 'Amazon Lex Chatbot',          kind: 'observatory', hard: 0, projects: [['Welcome to the Lex Chatbot series!', 230], ['Build a Chatbot with Amazon Lex', 1240], ['Add Custom Slots to a Lex Chatbot', 780], ['Connect Amazon Lex with Lambda', 610], ['Save User Info with a Lex Chatbot', 480], ['Set Up Multiple Slots in a Lex Chatbot', 410]] },
-    { id: 'bedrock',   name: 'Amazon Bedrock',              kind: 'observatory', hard: 1, projects: [['Build an AI Chatbot with Amazon Bedrock', 60], ['AI Finance Agent with Amazon Bedrock', 30], ['AI Email Router with Bedrock Flows', 20]] },
-    { id: 'rag',       name: 'RAG API',                     kind: 'datacentre',  hard: 1, projects: [['Run Ollama On Your Own Machine', 320], ['Build a RAG API with FastAPI', 520]] },
-    { id: 'terraform', name: 'Terraform',                   kind: 'workshop',    hard: 1, projects: [['Create S3 Buckets with Terraform', 230]] },
-    { id: 'transcribe',name: 'Amazon Transcribe',           kind: 'observatory', hard: 0, projects: [['Transcribe Audio Files with AI', 40]] },
-    { id: 'intro',     name: 'Intro to Claude',             kind: 'observatory', hard: 0, projects: [['Explore Claude.ai, Code, and Cowork', 50], ['Claude Code Skills Basics', 30], ['Get Started with Claude Code', 80]] },
-    { id: 'everyday',  name: 'Claude for Everyday Life',    kind: 'observatory', hard: 0, projects: [['Build a Fitness Coach with Claude', 30], ['Tailor Your Resume with Claude Dispatch', 10], ['Build a Calorie Tracker with Claude', 10]] },
-    { id: 'work',      name: 'Claude for Work Productivity',kind: 'observatory', hard: 0, projects: [['Build a Dashboard with Claude Artifacts', 20], ['Automate Your Email Briefing with Claude', 10], ['Build an AI Meeting Prep Assistant', 5], ['Intro to Linear Agents + Claude', 0]] },
-    { id: 'brain',     name: 'Claude AI Second Brain',      kind: 'observatory', hard: 0, projects: [['Build an AI Second Brain with Claude Code', 120], ['Automate Your AI Second Brain', 20]] },
-    { id: 'code',      name: 'Claude Code',                 kind: 'workshop',    hard: 1, projects: [['Set Up Claude Code Guardrails', 30], ['Design to Code: Paper + Claude Code via MCP', 10], ['Claude Code with Git Worktrees', 10], ["Set Up Claude Code's Status Line", 30], ['Video Editing with Claude x Remotion', 0], ['Viral Carousels with Claude x Paper', 0]] },
-    { id: 'prompt',    name: 'Claude Prompt Engineering',   kind: 'observatory', hard: 0, projects: [['Prompt Engineering for Healthcare', 20], ['Prompt Engineering for Research', 20], ['Prompt Engineer a Lesson Plan', 20]] },
-    { id: 'git',       name: 'Git & GitHub',                kind: 'workshop',    hard: 0, projects: [['Learn Git Fundamentals', 0], ['Git Pull Requests and Merging', 0], ['Git Branching and Rebasing', 0], ['Git Undo, Recovery, and Debugging', 0]] },
-    { id: 'beginnerai',name: 'Beginner AI Projects',        kind: 'observatory', hard: 0, projects: [['Ship a Landing Page with v0 and Vercel', 190], ['Build a Blog Writing Crew with CrewAI', 40], ['Automate Your Calendar with AI', 340]] },
-    { id: 'agents',    name: 'AI Agents · Hermes',          kind: 'observatory', hard: 1, projects: [['Set Up Hermes Agent for Free', 10], ['Give Hermes Agent Powers with MCP', 3]] },
-    { id: 'openclaw',  name: 'Build with OpenClaw',         kind: 'observatory', hard: 1, projects: [['Build a Telegram AI Bot with OpenClaw', 10], ['Give Your Assistant a Memory', 7], ['Build an Automated AI Briefing', 8]] },
-    { id: 'cursor',    name: 'Cursor',                      kind: 'workshop',    hard: 0, projects: [['Build a Spotify Clone with Cursor', 130], ['Create a Docker Container using Cursor', 90]] },
-    { id: 'chat',      name: 'Gemini · ChatGPT',            kind: 'observatory', hard: 0, projects: [['Gemini AI Email Assistant', 0], ['Personalize Your ChatGPT', 10], ['ChatGPT Prompting Hack', 8]] },
-    { id: 'secai',     name: 'Security x AI · AI Safety',   kind: 'gate',        hard: 1, projects: [['AI Security Scanner for Python', 70], ['Do this before downloading any MCP or Skill', 10]] },
-    { id: 'design',    name: 'System Design',               kind: 'workshop',    hard: 1, projects: [['URL Shortener System Design', 20], ['Break a Distributed System on Purpose', 10]] }
-  ];
-  const xpFor = (done, hard) => 50 + (done >= 1000 ? 10 : done >= 200 ? 25 : done >= 50 ? 45 : 70) + (hard ? 20 : 0);
-  const PROJECTS = []; SERIES.forEach(sr => sr.projects.forEach((pr, i) => PROJECTS.push({ title: pr[0], series: sr.id, part: i + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard) })));
-  const CATALOGUE_XP = PROJECTS.reduce((a, p) => a + p.xp, 0);
-  const KIND_NAME = { house: 'House', datacentre: 'Data centre', containers: 'Container yard', tower: 'Signal tower', gate: 'Gatehouse', observatory: 'Observatory', workshop: 'Workshop', warehouse: 'Warehouse' };
-  const ICON = { house: '🏠', datacentre: '🏢', containers: '📦', tower: '📡', gate: '🛡️', observatory: '🔭', workshop: '🔧', warehouse: '🏭' };
-  /* Your library: the 23 learn lists you authored, with their project counts.
-   * Every one is a bridge to an island. In the real thing this comes from
-   * the portfolio; here it is copied from it. */
-  const LEARNLISTS = [
-    { name: 'Cloud Systems Engineering', total: 14, kind: 'datacentre', blurb: 'Cloud platforms engineered for scale, reliability, and uptime.' },
-    { name: 'Fresh Off the Crown', total: 13, kind: 'tower', blurb: 'Follows the AI race through subscriptions, tooling and interests, and ships a 30-minute build each time.' },
-    { name: 'Agentic Systems Engineering', total: 11, kind: 'observatory', blurb: 'AI agents and orchestration that move from prompt to outcome.' },
-    { name: 'Build & Brew: AI Dojo - Solutions Engineering', total: 9, kind: 'workshop', blurb: 'One rep. One project. Real systems designed, built and defended end to end.' },
-    { name: 'Federal Principal Cloud Platform Engineering', total: 7, kind: 'gate', blurb: 'Principal-level builds: the pipeline, the promotion path, the compliance evidence stream, the data contract.' },
-    { name: 'Solo Startup Systems Engineering', total: 7, kind: 'workshop', blurb: 'Systems for building and scaling a startup as a solo operator.' },
-    { name: 'Value-Driven Systems Engineering', total: 6, kind: 'workshop', blurb: 'Solutions and strategy engineered for small and growing business operators.' },
-    { name: 'Applied Frameworks Systems Engineering', total: 5, kind: 'workshop', blurb: 'Frameworks from books and methodologies, engineered into working systems.' },
-    { name: 'Leadership Systems Engineering', total: 4, kind: 'house', blurb: 'Leadership frameworks from formal coursework, engineered as working systems.' },
-    { name: 'Delivery Systems Engineering', total: 4, kind: 'warehouse', blurb: 'Multi-project, multi-team customer engagements built to scale from one client to many.' },
-    { name: 'Governance Systems Engineering', total: 4, kind: 'gate', blurb: 'Systems aligned to enterprise governance, security, and architecture standards.' },
-    { name: 'Government Systems Engineering', total: 4, kind: 'gate', blurb: 'Cloud systems engineered for federal-grade security and compliance.' },
-    { name: 'A Solo-Operated Company Built on GrokBot', total: 3, kind: 'observatory', blurb: 'A solo-operated company with GrokBot as the foundation and its agents checking the work.' },
-    { name: 'Priority Management Systems', total: 3, kind: 'house', blurb: 'A personal operating system for priority management, one evidence-backed practice at a time.' },
-    { name: 'Real Estate Development', total: 3, kind: 'house', blurb: 'Learning real estate development by building the field end to end, one system at a time.' },
-    { name: 'Global Problem Systems Engineering', total: 3, kind: 'warehouse', blurb: 'Population-scale systems built for civic and public-good outcomes.' },
-    { name: 'Protecting Your Daily Life From AI, With AI', total: 2, kind: 'gate', blurb: 'Lock down the AI you use, then protect your family and clients, then write rules a whole company can follow.' },
-    { name: 'From Scratch to Principal Full-Stack Engineer', total: 2, kind: 'workshop', blurb: 'From your first line of code to a job as a full-stack engineer, one small build at a time.' },
-    { name: 'Residential Architecture', total: 1, kind: 'house', blurb: 'Learning residential architecture by building the field end to end.' },
-    { name: 'Quantitative Finance', total: 1, kind: 'observatory', blurb: 'Learning quantitative finance by building the field end to end.' },
-    { name: 'Computational Neuroscience', total: 1, kind: 'observatory', blurb: 'Learning computational neuroscience by building the field end to end.' },
-    { name: 'Kinesiology & Human Movement', total: 1, kind: 'house', blurb: 'Learning kinesiology and human movement by building the field end to end.' },
-    { name: 'Biology of Aging & Geroscience', total: 1, kind: 'observatory', blurb: 'Learning the biology of aging and geroscience by building the field end to end.' }
-  ];
-  LEARNLISTS.forEach(ll => { ll.done = ll.total; });   /* the library shows nothing in progress */
-  const LL_TOTAL = LEARNLISTS.reduce((a, l) => a + l.total, 0);
-  const TIERS = [[0, 'Plot'], [100, 'Homestead'], [300, 'Hamlet'], [700, 'Village'], [1500, 'Town'], [3000, 'City'], [6000, 'Metropolis']];
-  const DONE = new Set(['Set Up An AWS Account', 'Join the Cloud Beginner Challenge!', 'Host a Website on Amazon S3', 'Cloud Security with AWS IAM', 'Build a Virtual Private Cloud', 'VPC Traffic Flow and Security', 'Creating a Private Subnet', 'Aurora Database with EC2', 'Launch a Kubernetes Cluster', 'Set Up a Web App in the Cloud', 'Connect a GitHub Repo with AWS', 'Explore Claude.ai, Code, and Cowork', 'Claude Code Skills Basics', 'Welcome to the Lex Chatbot series!']);
-  const doneIn = sr => sr.projects.filter(pr => DONE.has(pr[0])).length;
-  const tierIn = sr => { const d = doneIn(sr), n = sr.projects.length; return d >= n ? 3 : d >= Math.ceil(n / 2) ? 2 : 1; };
-  const xpOf = () => PROJECTS.filter(p => DONE.has(p.title)).reduce((a, p) => a + p.xp, 0);
-  const tierOf = xp => { let t = TIERS[0]; TIERS.forEach(x => { if (xp >= x[0]) t = x; }); return t; };
-  const nextTier = xp => TIERS.find(x => x[0] > xp);
-  const levelOf = xp => xp >= 140 ? 5 : xp >= 120 ? 4 : xp >= 95 ? 3 : xp >= 75 ? 2 : 1;
-  function nextProject() {
-    const started = SERIES.filter(sr => doneIn(sr) > 0 && doneIn(sr) < sr.projects.length);
-    for (const sr of started) { const pr = sr.projects.find(x => !DONE.has(x[0])); if (pr) return { title: pr[0], series: sr, xp: xpFor(pr[1], sr.hard) }; }
-    for (const sr of SERIES) { const pr = sr.projects.find(x => !DONE.has(x[0])); if (pr) return { title: pr[0], series: sr, xp: xpFor(pr[1], sr.hard) }; }
-    return null;
-  }
+  /* ---- the taxonomy names, over the drawers that already existed ---- */
+  B.home = B.house; B.lab = B.observatory; B.barn = B.warehouse; B.vault = B.gate; B.yard = B.containers;
 
-  /* ============================================================ the land
-   * Hill Country. Sixty-four tiles of rolling grass with a creek down it.
-   * West of the creek is your spread: the NextWork catalogue, one homestead
-   * per series, buildings with room between them, a dirt track back to the
-   * ranch house. East of the creek is learn-list country: every list in your
-   * library is its own spread, reached by a bridge. Nothing is a city.
-   * --------------------------------------------------------------------- */
-  const LAND = 64, HOME = [15, 33], MAIN_X = 15, MAIN_Y = 33, EAST_X = 49;
-  const hash = (x, y) => { let h = (x * 374761393 + y * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967296; };
-  function noise(x, y) { const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return lerp(lerp(hash(x0, y0), hash(x0 + 1, y0), u), lerp(hash(x0, y0 + 1), hash(x0 + 1, y0 + 1), u), v); }
-  const height = (gx, gy) => noise(gx / 9, gy / 9) * 0.65 + noise(gx / 3.5, gy / 3.5) * 0.35;
-  const creekX = gy => 33 + Math.sin(gy / 7.5) * 5 + Math.sin(gy / 3.3 + 1) * 2;
-  const inCreek = (gx, gy) => Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 1.5;
-  const onBank = (gx, gy) => !inCreek(gx, gy) && Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 2.6;
-  const CROSSINGS = [9, 21, 33, 45, 57];   /* where the bridges are */
-  /* spreads: a jittered grid so nothing lines up, catalogue west, library east */
-  const CLUSTER = [[0, 0], [2.6, 0.4], [0.3, 2.7], [2.9, 2.9], [-2.5, 1.3], [1.4, -2.4], [-2.2, -1.8], [4.9, 1.5], [1.5, 5.1], [-2.6, 4.2], [4.7, -1.4], [5.2, 4.3], [-4.9, 2.9], [-0.6, -4.7], [3.8, -3.9], [-4.6, -1.2]];
-  function slots(x0, cols, rows, sx, sy) { const out = []; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) out.push([x0 + c * sx + (hash(c + 7, r + 3) - 0.5) * 2.4, 5 + r * sy + (hash(c + 1, r + 9) - 0.5) * 2.4]); return out; }
-  const WEST = slots(6, 4, 7, 6.2, 8.4).filter(a => Math.abs(a[0] - MAIN_X) > 2.2 || Math.abs(a[1] - MAIN_Y) > 4);   /* keep the homestead clear */
-  const EAST = slots(42, 3, 8, 6.4, 7.5);
-  function landLayout() {
-    const started = SERIES.filter(sr => doneIn(sr) > 0), buildings = [], spreads = {};
-    started.forEach((sr, i) => { const a = WEST[i]; spreads[sr.id] = a; sr.projects.forEach((pr, pi) => { if (!DONE.has(pr[0])) return; const o = CLUSTER[pi % CLUSTER.length], xp = xpFor(pr[1], sr.hard); buildings.push({ series: sr, kind: sr.kind, title: pr[0], part: pi + 1, of: sr.projects.length, xp, level: levelOf(xp), gx: a[0] + o[0], gy: a[1] + o[1], complete: doneIn(sr) === sr.projects.length }); }); });
-    LEARNLISTS.forEach((ll, i) => { const a = EAST[i]; ll.at = a; for (let k = 0; k < ll.total; k++) { const o = CLUSTER[k % CLUSTER.length]; buildings.push({ list: ll, kind: ll.kind, title: ll.name + ' · ' + (k + 1), part: k + 1, of: ll.total, xp: 0, level: 2, gx: a[0] + o[0], gy: a[1] + o[1], complete: true }); } });
-    return { buildings, spreads, used: started.length };
-  }
-  const isTrack = (gx, gy) => (gx === MAIN_X && gy > 1 && gy < LAND - 2) || (gy === MAIN_Y && gx > 1 && gx < LAND - 2) || (gx === EAST_X && gy > 1 && gy < LAND - 2) || (CROSSINGS.includes(gy) && gx > MAIN_X && gx < EAST_X);
-  const groundColour = (gx, gy) => { const h = height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? '#d9d2b8' : '#cfc7aa'; const dry = clamp((h - 0.25) * 2.2, 0, 1); const g = [lerp(0x7f, 0xb9, dry), lerp(0xb3, 0xb1, dry), lerp(0x5a, 0x62, dry)]; return rgb(g.map(Math.round)); };
+  B.library = function (I, gx, gy, k, now, tier) {
+    const n = 3, H = tier >= 3 ? 46 : 36;
+    let d = drop(k, 0, n); if (d.on) { I.box(gx - 0.05, gy - 0.05, 1.1, 1.1, 5, '#d6d1c4', 0, { top: 0.1, tex: 'stone' }); I.poly([I.p(gx + 0.35, gy + 1.05), I.p(gx + 0.65, gy + 1.05), I.p(gx + 0.65, gy + 1.4), I.p(gx + 0.35, gy + 1.4)], '#d8ccae'); }
+    d = drop(k, 1, n); if (d.on) { const b = I.box(gx + 0.12, gy + 0.12, 0.76, 0.76, H, '#c9503c', 5 - d.z, { tex: 'brick', noShadow: true }); I.win(b.D, b.C, 0.1, 12, 0.2, 18, true); I.win(b.D, b.C, 0.7, 12, 0.2, 18, true); const a = I.P(b.D, b.C, 0.38), c = I.P(b.D, b.C, 0.62); I.poly([a, c, I.up(c, 26), I.up(a, 26)], '#efe9dc'); I.ctx.fillStyle = '#4a2b17'; I.ctx.beginPath(); const m = I.P(a, c, 0.5); I.ctx.moveTo(m[0] - 5, m[1]); I.ctx.lineTo(m[0] - 5, m[1] - 18); I.ctx.arc(m[0], m[1] - 18, 5, Math.PI, 0); I.ctx.lineTo(m[0] + 5, m[1]); I.ctx.closePath(); I.ctx.fill(); [0.08, 0.3, 0.7, 0.92].forEach(u => I.box(gx + 0.12 + u * 0.72, gy + 0.9, 0.05, 0.05, H, '#efe9dc', 5 - d.z, { noShadow: true })); I.win(b.C, b.B, 0.25, 12, 0.5, 18, true); }
+    d = drop(k, 2, n); if (d.on) { I.flatRoof(gx + 0.12, gy + 0.12, 0.76, 0.76, H + 5 - d.z, '#8a5a3a'); I.box(gx + 0.1, gy + 0.1, 0.8, 0.08, 6, '#efe9dc', H + 9 - d.z, { noShadow: true }); const s = I.p(gx + 0.5, gy + 1.05, 34 - d.z); I.roundRect(s[0] - 9, s[1] - 5, 18, 8, 2, '#ffffff'); I.ctx.fillStyle = '#c9503c'; I.ctx.fillRect(s[0] - 7, s[1] - 3, 5, 4); I.ctx.fillRect(s[0] - 1, s[1] - 3, 5, 4); if (tier >= 2) I.tree(gx + 1.0, gy + 0.9, 0.8); }
+    I.puff(gx, gy, k * n - 2);
+  };
+  B.clinic = function (I, gx, gy, k, now, tier) {
+    const n = 3, w = tier >= 2 ? 1.1 : 0.9;
+    let d = drop(k, 0, n); if (d.on) { I.box(gx - 0.05, gy - 0.05, w + 0.1, 1.1, 4, '#cfd5df', 0, { top: 0.1 }); I.poly([I.p(gx + 0.3, gy + 1.05), I.p(gx + 0.7, gy + 1.05), I.p(gx + 0.7, gy + 1.4), I.p(gx + 0.3, gy + 1.4)], '#c8ccd4'); }
+    d = drop(k, 1, n); if (d.on) { const b = I.box(gx + 0.08, gy + 0.1, w - 0.16, 0.8, 34, '#f4f6f8', 4 - d.z, { tex: 'siding', noShadow: true }); I.win(b.D, b.C, 0.08, 11, 0.22, 14, true); I.win(b.D, b.C, 0.7, 11, 0.22, 14, true); const a = I.P(b.D, b.C, 0.36), c = I.P(b.D, b.C, 0.64); I.poly([a, c, I.up(c, 24), I.up(a, 24)], '#9ad3ff'); I.line(I.P(a, c, 0.5), I.up(I.P(a, c, 0.5), 24), '#e6f1fb', 1.5); I.win(b.C, b.B, 0.2, 11, 0.28, 14, true); I.win(b.C, b.B, 0.6, 11, 0.28, 14, true); }
+    d = drop(k, 2, n); if (d.on) { I.flatRoof(gx + 0.08, gy + 0.1, w - 0.16, 0.8, 38 - d.z, '#dfe5ee'); const s = I.p(gx + w / 2, gy + 0.12, 50 - d.z); I.roundRect(s[0] - 8, s[1] - 8, 16, 16, 3, '#ffffff'); I.ctx.fillStyle = '#e8352f'; I.ctx.fillRect(s[0] - 2, s[1] - 6, 4, 12); I.ctx.fillRect(s[0] - 6, s[1] - 2, 12, 4); if (tier >= 2) I.bush(gx + w, gy + 0.95, true); }
+    I.puff(gx, gy, k * n - 2);
+  };
+  B.bank = function (I, gx, gy, k, now, tier) {
+    const n = 3, H = tier >= 3 ? 48 : 40;
+    let d = drop(k, 0, n); if (d.on) { I.box(gx - 0.08, gy - 0.08, 1.16, 1.16, 8, '#d6d1c4', 0, { top: 0.1, tex: 'stone' }); [0.1, 0.2].forEach((o, i) => I.box(gx + 0.25, gy + 1.08 + o, 0.5, 0.1, 6 - i * 3, '#e3dccb', 0, { noShadow: true })); }
+    d = drop(k, 1, n); if (d.on) { const b = I.box(gx + 0.15, gy + 0.15, 0.7, 0.7, H, '#e9e2d0', 8 - d.z, { tex: 'stone', noShadow: true }); I.win(b.D, b.C, 0.12, 14, 0.18, 16, false); I.win(b.D, b.C, 0.7, 14, 0.18, 16, false); I.door(b.D, b.C, 0.4, 0.2, 26, '#3b3a44'); [0.02, 0.34, 0.66, 0.98].forEach(u => I.box(gx + 0.15 + u * 0.66, gy + 0.9, 0.06, 0.06, H, '#f4f1e8', 8 - d.z, { noShadow: true })); I.win(b.C, b.B, 0.3, 14, 0.4, 16, true); }
+    d = drop(k, 2, n); if (d.on) { const base = H + 8 - d.z; I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, 6, '#e9e2d0', base, { noShadow: true, top: 0.15 }); const a = I.p(gx + 0.1, gy + 0.95, base + 6), c = I.p(gx + 0.9, gy + 0.95, base + 6), t = I.p(gx + 0.5, gy + 0.95, base + 22); I.poly([a, c, t], '#f4f1e8'); I.line(a, c, '#c9c2b0', 1.5); const s = I.p(gx + 0.5, gy + 0.95, base + 12); I.ctx.fillStyle = '#c9971f'; I.ctx.font = '800 7px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('$', s[0], s[1] + 2); I.ctx.textAlign = 'left'; }
+    I.puff(gx, gy, k * n - 2);
+  };
 
-  /* a few things the country needs that the catalogue did not */
+  /* ---- NextWork HQ: the tower with the cafe at its foot, and a hub ---- */
+  B.tower_hq = function (I, gx, gy, now) {
+    I.box(gx - 0.5, gy - 0.5, 3, 3, 5, '#cfd5df', 0, { top: 0.1, tex: 'stone' });
+    const b = I.box(gx + 0.2, gy + 0.2, 1.6, 1.6, 170, '#2f5f9f', 5, { tex: 'glass', top: 0.12 });
+    I.box(gx + 0.45, gy + 0.45, 1.1, 1.1, 16, '#3b6fb5', 175, { tex: 'glass', noShadow: true, top: 0.2 }); I.flatRoof(gx + 0.65, gy + 0.65, 0.7, 0.7, 191, '#dfe5ee');
+    const s = I.up(I.P(b.D, b.C, 0.5), 140); I.roundRect(s[0] - 28, s[1] - 8, 56, 15, 3, '#ffffff'); I.ctx.fillStyle = '#172033'; I.ctx.font = '800 10px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('NEXTWORK', s[0], s[1] + 3); I.ctx.textAlign = 'left';
+    /* the cafe: a low warm room across the front, tables outside */
+    const c = I.box(gx - 0.1, gy + 1.85, 2.2, 0.7, 20, '#f1e7d2', 0, { tex: 'siding', noShadow: true }); const a = I.P(c.D, c.C, 0.1), d2 = I.P(c.D, c.C, 0.9); I.poly([a, d2, I.up(d2, 15), I.up(a, 15)], '#ffe9a6'); for (let u = 0.2; u < 0.9; u += 0.2) I.line(I.P(a, d2, u), I.up(I.P(a, d2, u), 15), '#d9b24c', 1);
+    I.poly([I.p(gx - 0.2, gy + 1.8, 22), I.p(gx + 2.2, gy + 1.8, 22), I.p(gx + 2.2, gy + 2.75, 16), I.p(gx - 0.2, gy + 2.75, 16)], '#c9503c'); for (let u = 0; u <= 1; u += 0.125) I.line(I.p(gx - 0.2 + u * 2.4, gy + 1.8, 22), I.p(gx - 0.2 + u * 2.4, gy + 2.75, 16), u % 0.25 ? '#f4f1e8' : '#c9503c', 3);
+    const sg = I.p(gx + 1, gy + 2.75, 20); I.roundRect(sg[0] - 14, sg[1] - 5, 28, 9, 2, '#4a2b17'); I.ctx.fillStyle = '#ffe9a6'; I.ctx.font = '800 6px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('CAFE', sg[0], sg[1] + 2); I.ctx.textAlign = 'left';
+    [[-0.5, 2.9], [0.6, 3.1], [1.7, 2.9]].forEach(o => B.table(I, gx + o[0], gy + o[1]));
+    const f = I.p(gx + 1, gy + 1, 196); I.line(f, [f[0], f[1] - 26], '#e6e9ef', 2); const wv = Math.sin(now / 300) * 2; I.poly([[f[0], f[1] - 26], [f[0] + 16, f[1] - 22 + wv], [f[0], f[1] - 17]], '#ffc531');
+  };
+  B.table = function (I, gx, gy) { const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] + 1, 8, 3.5, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 1, b[1] - 10, 2, 10); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 10, 7, 3, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#e9e4d6'; I.ctx.fill(); I.ctx.fillRect(b[0] - 1, b[1] - 26, 2, 16); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 26, 11, 4, 0, Math.PI, 0); I.ctx.fillStyle = '#c9503c'; I.ctx.fill(); };
+  B.hub = function (I, gx, gy, now, hub) {
+    I.box(gx - 0.3, gy - 0.3, 2.2, 2.2, 4, '#d6d1c4', 0, { top: 0.1 });
+    B[hub.kind](I, gx + 0.3, gy + 0.3, 1, now, 3);
+    const s = I.p(gx + 0.8, gy + 2.05, 2); I.roundRect(s[0] - 22, s[1] - 12, 44, 12, 3, '#172033'); I.ctx.fillStyle = '#ffc531'; I.ctx.font = '800 7px Baloo 2, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText(hub.name.toUpperCase(), s[0], s[1] - 3.5); I.ctx.textAlign = 'left';
+    I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(s[0] - 1, s[1] - 1, 2, 6);
+  };
+  B.bench = function (I, gx, gy, who, now) {
+    const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 2, b[1] + 1, 10, 4, 0, 0, Math.PI * 2); I.ctx.fill();
+    I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(b[0] - 9, b[1] - 8, 18, 3); I.ctx.fillRect(b[0] - 9, b[1] - 13, 18, 2.5); I.ctx.fillStyle = '#3b4252'; I.ctx.fillRect(b[0] - 8, b[1] - 5, 2, 5); I.ctx.fillRect(b[0] + 6, b[1] - 5, 2, 5);
+    if (who) { /* someone sitting, laptop open, typing */ const t = now / 1000; I.roundRect(b[0] - 3.5, b[1] - 17, 7, 8, 2.5, who); I.blob(b[0], b[1] - 20, 3.5, '#ffd6ad'); I.ctx.fillStyle = '#4a2e1a'; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 21.5, 3.5, 2, 0, Math.PI, 0); I.ctx.fill(); I.ctx.fillStyle = '#2b3a5c'; I.ctx.fillRect(b[0] - 3, b[1] - 10, 2.5, 3); I.ctx.fillRect(b[0] + 0.5, b[1] - 10, 2.5, 3); I.roundRect(b[0] - 5, b[1] - 12, 10, 1.5, 0.5, '#9aa3b0'); I.poly([[b[0] - 5, b[1] - 12], [b[0] + 5, b[1] - 12], [b[0] + 5, b[1] - 19], [b[0] - 5, b[1] - 19]], '#dfe5ee'); I.ctx.fillStyle = Math.sin(t * 7) > 0 ? '#4ff0ff' : '#9ad3ff'; I.ctx.fillRect(b[0] - 4, b[1] - 18, 8, 5); }
+  };
+  B.horse = function (I, gx, gy, colour, walkT) {
+    const c = I.p(gx, gy); const bob = Math.sin(walkT * 9) * 0.6;
+    I.ctx.fillStyle = 'rgba(20,40,30,.25)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 2, c[1] + 1, 9, 3, 0, 0, Math.PI * 2); I.ctx.fill();
+    I.ctx.fillStyle = shade(colour, -0.25); [[-6, 0], [-2, 1], [3, 1], [6, 0]].forEach((l, i) => I.ctx.fillRect(c[0] + l[0], c[1] - 7 + l[1] + bob, 2, 7 + Math.sin(walkT * 9 + i) * 1.2));
+    I.roundRect(c[0] - 8, c[1] - 13 + bob, 15, 7, 3, colour);
+    I.roundRect(c[0] + 5, c[1] - 20 + bob, 4, 9, 1.5, colour); I.roundRect(c[0] + 6, c[1] - 21 + bob, 6, 4, 1.5, colour);
+    I.ctx.fillStyle = shade(colour, -0.45); I.ctx.fillRect(c[0] + 4, c[1] - 20 + bob, 2, 8); I.ctx.fillRect(c[0] - 9, c[1] - 12 + bob, 2, 6);
+    I.ctx.fillStyle = '#20242b'; I.ctx.fillRect(c[0] + 10, c[1] - 19.5 + bob, 1.2, 1.2);
+  };
+  B.bike = function (I, gx, gy, colour, walkT) {
+    const c = I.p(gx, gy); I.ctx.fillStyle = 'rgba(20,40,30,.25)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 1, c[1] + 1, 7, 2.5, 0, 0, Math.PI * 2); I.ctx.fill();
+    I.wheel(c[0] - 5, c[1] - 2, 3.2); I.wheel(c[0] + 5, c[1] - 2, 3.2); I.line([c[0] - 5, c[1] - 2], [c[0] + 1, c[1] - 8], '#e8552f', 1.5); I.line([c[0] + 1, c[1] - 8], [c[0] + 5, c[1] - 2], '#e8552f', 1.5); I.line([c[0] - 1, c[1] - 3], [c[0] + 1, c[1] - 8], '#e8552f', 1.5);
+    const p = Math.sin(walkT * 10); I.ctx.fillStyle = '#2b3a5c'; I.ctx.fillRect(c[0] - 1, c[1] - 7 + p, 2, 4); I.roundRect(c[0] - 3, c[1] - 16, 6, 8, 2.5, colour); I.blob(c[0], c[1] - 19, 3.2, '#ffd6ad'); I.roundRect(c[0] - 3.8, c[1] - 22.5, 7.6, 3.5, 2, '#f2b42a');
+  };
+  B.lake = function (I, gx, gy, w, h, now) {
+    const ctx = I.ctx; const pts = []; for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; const r = 1 + Math.sin(a * 3 + 1) * 0.12 + Math.sin(a * 5) * 0.06; pts.push(I.p(gx + w / 2 + Math.cos(a) * w / 2 * r, gy + h / 2 + Math.sin(a) * h / 2 * r)); }
+    I.poly(pts.map(q => [q[0], q[1] + 3]), '#d9c9a0'); I.poly(pts, '#3ea3e8');
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.2; for (let i = 0; i < 9; i++) { const q = I.p(gx + 0.8 + (i * 1.7) % (w - 1.5), gy + 0.8 + (i * 2.3) % (h - 1.5)); const o = ((now / 900 + i) % 1) * 6; ctx.beginPath(); ctx.moveTo(q[0] - 6 + o, q[1]); ctx.lineTo(q[0] + 2 + o, q[1]); ctx.stroke(); }
+    const j = I.p(gx + w * 0.75, gy + h * 0.85); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(j[0] - 14, j[1] - 4, 28, 4); [-12, -4, 4, 12].forEach(o => I.ctx.fillRect(j[0] + o, j[1] - 4, 2, 7));
+  };
+  B.paddock = function (I, gx, gy, w, h) { I.fence(gx, gy, gx + w, gy, Math.round(w * 2)); I.fence(gx, gy, gx, gy + h, Math.round(h * 2)); I.fence(gx + w, gy, gx + w, gy + h, Math.round(h * 2)); I.fence(gx, gy + h, gx + w, gy + h, Math.round(w * 2)); const t = I.p(gx + w - 0.8, gy + 0.6); I.ctx.fillStyle = '#9aa3b0'; I.ctx.fillRect(t[0] - 6, t[1] - 8, 12, 8); I.ctx.fillStyle = '#4fb3f0'; I.ctx.fillRect(t[0] - 5, t[1] - 7, 10, 2); };
+
+  /* ---- ranch props ---- */
   B.windmill = function (I, gx, gy, now) { const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.22)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 3, b[1] + 2, 8, 3.5, 0, 0, Math.PI * 2); I.ctx.fill(); [[-5, 0], [5, 0], [0, -6], [0, 6]].forEach(o => I.line([b[0] + o[0], b[1] + o[1] * 0.5], [b[0], b[1] - 46], '#8a8f98', 1.5)); I.line([b[0] - 3, b[1] - 20], [b[0] + 3, b[1] - 20], '#8a8f98', 1); I.line([b[0] - 4, b[1] - 32], [b[0] + 4, b[1] - 32], '#8a8f98', 1); const c = [b[0] + 1, b[1] - 48]; const a0 = reduce ? 0 : now / 900; I.ctx.strokeStyle = '#e6e9ef'; I.ctx.lineWidth = 2; for (let i = 0; i < 8; i++) { const a = a0 + i * Math.PI / 4; I.ctx.beginPath(); I.ctx.moveTo(c[0], c[1]); I.ctx.lineTo(c[0] + Math.cos(a) * 9, c[1] + Math.sin(a) * 9); I.ctx.stroke(); } I.ctx.beginPath(); I.ctx.arc(c[0], c[1], 2, 0, Math.PI * 2); I.ctx.fillStyle = '#3b4252'; I.ctx.fill(); I.line([c[0] - 1, c[1] + 2], [c[0] - 7, c[1] + 6], '#3b4252', 2); };
   B.tank = function (I, gx, gy) { const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.22)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 2, b[1] + 1, 9, 4, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#9aa3b0'; I.ctx.fillRect(b[0] - 7, b[1] - 14, 14, 14); I.ctx.fillStyle = '#7b848f'; I.ctx.fillRect(b[0], b[1] - 14, 7, 14); I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 14, 7, 3, 0, 0, Math.PI * 2); I.ctx.fillStyle = '#4fb3f0'; I.ctx.fill(); for (let v = 3; v < 14; v += 4) I.line([b[0] - 7, b[1] - v], [b[0] + 7, b[1] - v], 'rgba(0,0,0,.18)', 1); };
   B.oak = function (I, gx, gy, size) { size = size || 1; const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.22)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 8, b[1] + 3, 18 * size, 7 * size, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.strokeStyle = '#5a3a1e'; I.ctx.lineWidth = 4 * size; I.ctx.beginPath(); I.ctx.moveTo(b[0], b[1]); I.ctx.lineTo(b[0] - 2, b[1] - 14 * size); I.ctx.lineTo(b[0] - 9, b[1] - 22 * size); I.ctx.moveTo(b[0] - 2, b[1] - 14 * size); I.ctx.lineTo(b[0] + 8, b[1] - 24 * size); I.ctx.stroke(); const c = ['#4f7f3a', '#5c9143', '#6ea24c']; I.blob(b[0] - 12, b[1] - 24 * size, 11 * size, c[0], 0.8); I.blob(b[0] + 10, b[1] - 26 * size, 12 * size, c[1], 0.8); I.blob(b[0] - 1, b[1] - 33 * size, 13 * size, c[2], 0.8); };
   B.hay = function (I, gx, gy) { const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 2, b[1] + 1, 7, 3, 0, 0, Math.PI * 2); I.ctx.fill(); I.blob(b[0], b[1] - 5, 6, '#d9b24c', 0.85); I.ctx.strokeStyle = 'rgba(120,80,20,.5)'; I.ctx.lineWidth = 1; I.ctx.beginPath(); I.ctx.ellipse(b[0], b[1] - 5, 3.5, 3, 0, 0, Math.PI * 2); I.ctx.stroke(); };
+  B.board = function (I, gx, gy) { /* the bulletin board: start here */ const b = I.p(gx + 0.5, gy + 0.5); I.ctx.fillStyle = 'rgba(20,40,30,.2)'; I.ctx.beginPath(); I.ctx.ellipse(b[0] + 2, b[1] + 1, 12, 4, 0, 0, Math.PI * 2); I.ctx.fill(); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(b[0] - 10, b[1] - 24, 3, 24); I.ctx.fillRect(b[0] + 7, b[1] - 24, 3, 24); I.roundRect(b[0] - 14, b[1] - 34, 28, 16, 2, '#c9a06a'); I.ctx.fillStyle = '#fff8e0'; I.ctx.fillRect(b[0] - 11, b[1] - 31, 9, 6); I.ctx.fillRect(b[0] + 1, b[1] - 31, 9, 6); I.ctx.fillRect(b[0] - 11, b[1] - 24, 9, 4); I.ctx.fillStyle = '#e8552f'; I.ctx.fillRect(b[0] + 2, b[1] - 24, 8, 4); I.poly([[b[0] - 16, b[1] - 34], [b[0], b[1] - 40], [b[0] + 16, b[1] - 34]], '#8a5a3a'); };
   B.homestead = function (I, gx, gy, now, tier) {
-    /* the ranch house: yours, and it grows with your tier */
     const two = tier >= 4, H = two ? 58 : 36, w = tier >= 5 ? 1.9 : 1.5;
     I.poly([I.p(gx - 0.4, gy - 0.4), I.p(gx + w + 0.6, gy - 0.4), I.p(gx + w + 0.6, gy + 2.2), I.p(gx - 0.4, gy + 2.2)], '#c9b98a');
     const b = I.box(gx, gy, w, 1.4, H, '#f1e7d2', 0, { tex: 'siding' });
     I.win(b.D, b.C, 0.08, 12, 0.18, 14, true); I.win(b.D, b.C, 0.74, 12, 0.18, 14, true); I.door(b.D, b.C, 0.41, 0.18, 24, '#6b3a22'); I.win(b.C, b.B, 0.2, 12, 0.25, 14, true); I.win(b.C, b.B, 0.6, 12, 0.25, 14, false);
     if (two) { I.win(b.D, b.C, 0.08, 40, 0.18, 14, false); I.win(b.D, b.C, 0.41, 40, 0.18, 14, true); I.win(b.D, b.C, 0.74, 40, 0.18, 14, true); }
-    /* the porch */
     I.box(gx - 0.05, gy + 1.4, w + 0.1, 0.55, 3, '#c9a06a', 0, { noShadow: true, top: 0.1 }); [0.05, 0.5, 0.95].forEach(u => I.box(gx + u * w - 0.03, gy + 1.88, 0.06, 0.06, 26, '#f1e7d2', 3, { noShadow: true }));
     I.poly([I.p(gx - 0.1, gy + 1.4, 29), I.p(gx + w + 0.1, gy + 1.4, 29), I.p(gx + w + 0.1, gy + 2.0, 24), I.p(gx - 0.1, gy + 2.0, 24)], '#8a5a3a');
     I.roof(gx, gy, w, 1.4, H, 24, '#8a5a3a'); I.chimney(gx + w - 0.3, gy + 0.2, H + 10, '#b3ada3'); const c = I.p(gx + w - 0.24, gy + 0.26, H + 28); I.smoke(c[0], c[1], now);
   };
+  B.plot = function (I, gx, gy, owner, now) {
+    /* a learner's plot on the NextWork World map: a little home if they have
+     * built, a stake and a name if they are just starting */
+    I.poly([I.p(gx - 0.6, gy - 0.6), I.p(gx + 1.8, gy - 0.6), I.p(gx + 1.8, gy + 1.8), I.p(gx - 0.6, gy + 1.8)], owner.mine ? 'rgba(255,197,49,.28)' : 'rgba(255,255,255,.14)', owner.mine ? '#ffc531' : 'rgba(255,255,255,.55)', owner.mine ? 2 : 1);
+    if (owner.built > 0) B.house(I, gx + 0.1, gy + 0.1, 1, now, owner.built >= 20 ? 3 : owner.built >= 5 ? 2 : 1); else { const s = I.p(gx + 0.6, gy + 0.6); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(s[0] - 1, s[1] - 16, 2, 16); I.roundRect(s[0] - 8, s[1] - 20, 16, 7, 1.5, '#f4f1e8'); }
+  };
+  NW.B = B; NW.drop = drop;
+})();
 
-  function drawLand(I, now, opts) {
-    const ctx = I.ctx, L = landLayout(); opts = opts || {};
+/* NextWorld · data: the catalogue, the taxonomy, NextWork itself
+ * Part of the NextWorld feature. Plain script, no modules, so the same file
+ * runs in the extension page and in the bundled concept demo. */
+(function () {
+  'use strict';
+  window.NW = window.NW || {};
+  /* The 90 NextWork projects, by series, with how many people had finished
+   * each when this was written. Fewer finishers = harder = more XP. */
+  const SERIES = [
+    { id: 'account',   name: 'Account Management',          kind: 'home',       hard: 0, projects: [['Set Up An AWS Account', 5680]] },
+    { id: 'cbc',       name: 'Cloud Beginner Challenge',    kind: 'home',       hard: 0, projects: [['Join the Cloud Beginner Challenge!', 1380], ['Host a Website on Amazon S3', 4710], ['Cloud Security with AWS IAM', 2290]] },
+    { id: 'vpc',       name: 'Amazon VPC',                  kind: 'tower',       hard: 1, projects: [['Build a Virtual Private Cloud', 1870], ['VPC Traffic Flow and Security', 1240], ['Creating a Private Subnet', 980], ['Launching VPC Resources', 850], ['Testing VPC Connectivity', 700], ['VPC Peering', 640], ['VPC Monitoring with Flow Logs', 580], ['Access S3 from a VPC', 540], ['VPC Endpoints', 490]] },
+    { id: 'databases', name: 'Databases',                   kind: 'barn',   hard: 1, projects: [['Aurora Database with EC2', 490], ['Connect a Web App with Aurora', 390], ['Load Data into DynamoDB', 400], ['Query Data with DynamoDB', 330]] },
+    { id: 'k8s',       name: 'Kubernetes',                  kind: 'yard',  hard: 1, projects: [['Launch a Kubernetes Cluster', 270], ['Set Up Kubernetes Deployment', 200], ['Create Kubernetes Manifests', 170], ['Deploy Backend with Kubernetes', 170]] },
+    { id: 'devops',    name: '6 Day DevOps Challenge',      kind: 'workshop',    hard: 1, projects: [['Set Up a Web App in the Cloud', 1550], ['Connect a GitHub Repo with AWS', 1070], ['Secure Packages with CodeArtifact', 630], ['Continuous Integration with CodeBuild', 490], ['Deploy a Web App with CodeDeploy', 390], ['Build a CI/CD Pipeline with AWS', 300]] },
+    { id: 'threetier', name: 'Three-Tier',                  kind: 'datacentre',  hard: 1, projects: [['Website Delivery with CloudFront', 260], ['APIs with Lambda + API Gateway', 220], ['Fetch Data with AWS Lambda', 210], ['Build a Three-Tier Web App', 200]] },
+    { id: 'security',  name: 'Security',                    kind: 'vault',        hard: 1, projects: [['Encrypt Data with AWS KMS', 320], ['Threat Detection with GuardDuty', 200], ['Secure Secrets with Secrets Manager', 140], ['Build a Security Monitoring System', 210]] },
+    { id: 'lex',       name: 'Amazon Lex Chatbot',          kind: 'lab', hard: 0, projects: [['Welcome to the Lex Chatbot series!', 230], ['Build a Chatbot with Amazon Lex', 1240], ['Add Custom Slots to a Lex Chatbot', 780], ['Connect Amazon Lex with Lambda', 610], ['Save User Info with a Lex Chatbot', 480], ['Set Up Multiple Slots in a Lex Chatbot', 410]] },
+    { id: 'bedrock',   name: 'Amazon Bedrock',              kind: 'lab', hard: 1, projects: [['Build an AI Chatbot with Amazon Bedrock', 60], ['AI Finance Agent with Amazon Bedrock', 30], ['AI Email Router with Bedrock Flows', 20]] },
+    { id: 'rag',       name: 'RAG API',                     kind: 'datacentre',  hard: 1, projects: [['Run Ollama On Your Own Machine', 320], ['Build a RAG API with FastAPI', 520]] },
+    { id: 'terraform', name: 'Terraform',                   kind: 'workshop',    hard: 1, projects: [['Create S3 Buckets with Terraform', 230]] },
+    { id: 'transcribe',name: 'Amazon Transcribe',           kind: 'lab', hard: 0, projects: [['Transcribe Audio Files with AI', 40]] },
+    { id: 'intro',     name: 'Intro to Claude',             kind: 'lab', hard: 0, projects: [['Explore Claude.ai, Code, and Cowork', 50], ['Claude Code Skills Basics', 30], ['Get Started with Claude Code', 80]] },
+    { id: 'everyday',  name: 'Claude for Everyday Life',    kind: 'home', hard: 0, projects: [['Build a Fitness Coach with Claude', 30], ['Tailor Your Resume with Claude Dispatch', 10], ['Build a Calorie Tracker with Claude', 10]] },
+    { id: 'work',      name: 'Claude for Work Productivity',kind: 'home', hard: 0, projects: [['Build a Dashboard with Claude Artifacts', 20], ['Automate Your Email Briefing with Claude', 10], ['Build an AI Meeting Prep Assistant', 5], ['Intro to Linear Agents + Claude', 0]] },
+    { id: 'brain',     name: 'Claude AI Second Brain',      kind: 'library', hard: 0, projects: [['Build an AI Second Brain with Claude Code', 120], ['Automate Your AI Second Brain', 20]] },
+    { id: 'code',      name: 'Claude Code',                 kind: 'workshop',    hard: 1, projects: [['Set Up Claude Code Guardrails', 30], ['Design to Code: Paper + Claude Code via MCP', 10], ['Claude Code with Git Worktrees', 10], ["Set Up Claude Code's Status Line", 30], ['Video Editing with Claude x Remotion', 0], ['Viral Carousels with Claude x Paper', 0]] },
+    { id: 'prompt',    name: 'Claude Prompt Engineering',   kind: 'library', hard: 0, projects: [['Prompt Engineering for Healthcare', 20], ['Prompt Engineering for Research', 20], ['Prompt Engineer a Lesson Plan', 20]] },
+    { id: 'git',       name: 'Git & GitHub',                kind: 'library',    hard: 0, projects: [['Learn Git Fundamentals', 0], ['Git Pull Requests and Merging', 0], ['Git Branching and Rebasing', 0], ['Git Undo, Recovery, and Debugging', 0]] },
+    { id: 'beginnerai',name: 'Beginner AI Projects',        kind: 'lab', hard: 0, projects: [['Ship a Landing Page with v0 and Vercel', 190], ['Build a Blog Writing Crew with CrewAI', 40], ['Automate Your Calendar with AI', 340]] },
+    { id: 'agents',    name: 'AI Agents · Hermes',          kind: 'lab', hard: 1, projects: [['Set Up Hermes Agent for Free', 10], ['Give Hermes Agent Powers with MCP', 3]] },
+    { id: 'openclaw',  name: 'Build with OpenClaw',         kind: 'lab', hard: 1, projects: [['Build a Telegram AI Bot with OpenClaw', 10], ['Give Your Assistant a Memory', 7], ['Build an Automated AI Briefing', 8]] },
+    { id: 'cursor',    name: 'Cursor',                      kind: 'workshop',    hard: 0, projects: [['Build a Spotify Clone with Cursor', 130], ['Create a Docker Container using Cursor', 90]] },
+    { id: 'chat',      name: 'Gemini · ChatGPT',            kind: 'lab', hard: 0, projects: [['Gemini AI Email Assistant', 0], ['Personalize Your ChatGPT', 10], ['ChatGPT Prompting Hack', 8]] },
+    { id: 'secai',     name: 'Security x AI · AI Safety',   kind: 'vault',        hard: 1, projects: [['AI Security Scanner for Python', 70], ['Do this before downloading any MCP or Skill', 10]] },
+    { id: 'design',    name: 'System Design',               kind: 'library',    hard: 1, projects: [['URL Shortener System Design', 20], ['Break a Distributed System on Purpose', 10]] }
+  ];
+  const xpFor = (done, hard) => 50 + (done >= 1000 ? 10 : done >= 200 ? 25 : done >= 50 ? 45 : 70) + (hard ? 20 : 0);
+  const PROJECTS = []; SERIES.forEach(sr => sr.projects.forEach((pr, i) => PROJECTS.push({ title: pr[0], series: sr.id, part: i + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard) })));
+  const CATALOGUE_XP = PROJECTS.reduce((a, p) => a + p.xp, 0);
+
+  /* What a finished project becomes. Homes for the everyday, labs for AI,
+   * libraries for the things you read and design, barns for what you
+   * store, vaults for what you protect, towers for what you connect. */
+  const KIND_NAME = { home: 'Home', lab: 'Research lab', library: 'Library', barn: 'Barn', tower: 'Signal tower', workshop: 'Workshop', vault: 'Vault', datacentre: 'Data centre', yard: 'Container yard', clinic: 'Clinic', bank: 'Bank' };
+  const ICON = { home: '🏠', lab: '🔬', library: '📚', barn: '🌾', tower: '📡', workshop: '🔧', vault: '🛡️', datacentre: '🏢', yard: '📦', clinic: '🩺', bank: '🏦' };
+  /* a learn list's building comes from what it is about */
+  function kindFor(name) { const n = name.toLowerCase(); if (/health|medic|clinic|neuro|aging|kinesio|biolog/.test(n)) return 'clinic'; if (/financ|bank|quant|real estate|value/.test(n)) return 'bank'; if (/secur|govern|protect|compliance/.test(n)) return 'vault'; if (/cloud|platform|federal|deliver/.test(n)) return 'datacentre'; if (/agent|ai |ai$|dojo|grok|neuro/.test(n)) return 'lab'; if (/leader|framework|priorit|architect/.test(n)) return 'library'; if (/startup|company|engineer|full-stack|crown/.test(n)) return 'workshop'; return 'home'; }
+
+  /* The eight hubs round NextWork HQ: the roadmaps on the site, as places. */
+  const HUBS = [
+    { id: 'cloud',   name: 'Cloud',        sub: 'Cloud Engineer roadmap · 45 projects', kind: 'datacentre' },
+    { id: 'ai',      name: 'AI',           sub: 'AI Beginner roadmap · 38 projects',   kind: 'lab' },
+    { id: 'devops',  name: 'DevOps',       sub: 'DevOps roadmap · 14 projects',        kind: 'workshop' },
+    { id: 'sec',     name: 'Security',     sub: 'Security Engineer roadmap · 14',      kind: 'vault' },
+    { id: 'design',  name: 'System Design',sub: '23 projects',                              kind: 'library' },
+    { id: 'health',  name: 'Healthcare',   sub: 'Project Generator domain',                 kind: 'clinic' },
+    { id: 'finance', name: 'Finance',      sub: 'Project Generator domain',                 kind: 'bank' },
+    { id: 'prod',    name: 'Productivity', sub: 'Productivity roadmap · 9 projects',   kind: 'home' }
+  ];
+  /* NextWork, in its own words, for the HQ tab. Read from nextwork.ai and its story. */
+  const ABOUT = {
+    tagline: 'Learn anything by building',
+    mission: "Meet the skill demand to solve the world's toughest problems.",
+    story: 'NextWork began as a one-person Salesforce training business in New Zealand. Its founder, Amber Winton, noticed that certificates were not what got learners hired; the projects they could talk about were. So the course became projects, the projects became documentation learners could show, and the business became NextWork.',
+    facts: [['90', 'projects in the catalogue'], ['10+', 'roadmaps, from AWS Beginner to DevSecOps'], ['1', 'Project Generator, for anything the catalogue does not cover'], ['Discord', 'where the community builds together']],
+    roadmaps: [['Cloud Engineer', 45], ['AWS Cloud Practitioner', 42], ['AI Beginner', 38], ['DevSecOps', 35], ['Solutions Architect', 35], ['System Design', 23], ['Claude', 22], ['DevOps', 14], ['Security Engineer', 14], ['Networks', 11], ['Productivity', 9]],
+    links: [['The NextWork Story', 'https://blog.nextwork.ai/p/the-nextwork-story'], ['Explore projects', 'https://nextwork.ai/projects'], ['Discord', 'https://nextwork.ai']]
+  };
+  const TIERS = [[0, 'Plot'], [100, 'Homestead'], [300, 'Hamlet'], [700, 'Village'], [1500, 'Town'], [3000, 'City'], [6000, 'Metropolis']];
+  const levelOf = xp => xp >= 140 ? 5 : xp >= 120 ? 4 : xp >= 95 ? 3 : xp >= 75 ? 2 : 1;
+  const tierOf = xp => { let t = TIERS[0]; TIERS.forEach(x => { if (xp >= x[0]) t = x; }); return t; };
+  const nextTier = xp => TIERS.find(x => x[0] > xp);
+
+  /* The bulletin board: where a new learner starts. Real projects, first parts. */
+  const START_HERE = [
+    ['Set Up An AWS Account', 'account', 'Ten minutes. Your first home goes up.'],
+    ['Host a Website on Amazon S3', 'cbc', 'Something on the internet with your name on it.'],
+    ['Build a Virtual Private Cloud', 'vpc', 'The first tower. Networks are where cloud gets real.'],
+    ['Explore Claude.ai, Code, and Cowork', 'intro', 'The AI tools you will use for everything after.'],
+    ['Set Up a Web App in the Cloud', 'devops', 'Day one of the six-day DevOps challenge.']
+  ];
+
+  /* A sample library, so dev mode has something to show. In production the
+   * extension reads the real one off the portfolio page. */
+  const SAMPLE_LISTS = [
+    ['Cloud Systems Engineering', 14, 'Cloud platforms engineered for scale, reliability, and uptime.'],
+    ['Fresh Off the Crown', 13, 'Follows the AI race and ships a 30-minute build each time.'],
+    ['Agentic Systems Engineering', 11, 'AI agents and orchestration that move from prompt to outcome.'],
+    ['Build & Brew: AI Dojo - Solutions Engineering', 9, 'One rep. One project. Real systems built and defended end to end.'],
+    ['Federal Principal Cloud Platform Engineering', 7, 'Principal-level builds: pipeline, promotion path, compliance evidence.'],
+    ['Solo Startup Systems Engineering', 7, 'Systems for building and scaling a startup as a solo operator.'],
+    ['Value-Driven Systems Engineering', 6, 'Solutions and strategy for small and growing business operators.'],
+    ['Applied Frameworks Systems Engineering', 5, 'Frameworks from books, engineered into working systems.'],
+    ['Leadership Systems Engineering', 4, 'Leadership frameworks engineered as working systems.'],
+    ['Delivery Systems Engineering', 4, 'Multi-team customer engagements built to scale.'],
+    ['Governance Systems Engineering', 4, 'Systems aligned to enterprise governance and security standards.'],
+    ['Government Systems Engineering', 4, 'Cloud systems engineered for federal-grade compliance.'],
+    ['A Solo-Operated Company Built on GrokBot', 3, 'A solo company with GrokBot as the foundation.'],
+    ['Priority Management Systems', 3, 'A personal operating system, one evidence-backed practice at a time.'],
+    ['Real Estate Development', 3, 'Learning the field by building it end to end.'],
+    ['Global Problem Systems Engineering', 3, 'Population-scale systems for civic and public-good outcomes.'],
+    ['Protecting Your Daily Life From AI, With AI', 2, 'Lock down the AI you use, then protect your family and clients.'],
+    ['From Scratch to Principal Full-Stack Engineer', 2, 'From your first line of code to a job, one small build at a time.'],
+    ['Residential Architecture', 1, 'Learning the field by building it end to end.'],
+    ['Quantitative Finance', 1, 'Learning the field by building it end to end.'],
+    ['Computational Neuroscience', 1, 'Learning the field by building it end to end.'],
+    ['Kinesiology & Human Movement', 1, 'Learning the field by building it end to end.'],
+    ['Biology of Aging & Geroscience', 1, 'Learning the field by building it end to end.']
+  ].map(l => ({ name: l[0], total: l[1], done: l[1], blurb: l[2], kind: kindFor(l[0]) }));
+  const SAMPLE_DONE = ['Set Up An AWS Account', 'Join the Cloud Beginner Challenge!', 'Host a Website on Amazon S3', 'Cloud Security with AWS IAM', 'Build a Virtual Private Cloud', 'VPC Traffic Flow and Security', 'Creating a Private Subnet', 'Aurora Database with EC2', 'Launch a Kubernetes Cluster', 'Set Up a Web App in the Cloud', 'Connect a GitHub Repo with AWS', 'Explore Claude.ai, Code, and Cowork', 'Claude Code Skills Basics', 'Welcome to the Lex Chatbot series!'];
+
+  Object.assign(NW, { SERIES, PROJECTS, CATALOGUE_XP, xpFor, KIND_NAME, ICON, kindFor, HUBS, ABOUT, TIERS, levelOf, tierOf, nextTier, START_HERE, SAMPLE_LISTS, SAMPLE_DONE });
+})();
+
+/* NextWorld · state: what you have built, and where it goes
+ * Pure: no DOM, no storage. The host (demo page or extension pane) hands in
+ * a saved object and gets back the same shape to save. Everything the map
+ * draws is derived from here, so production and dev share one code path. */
+(function () {
+  'use strict';
+  const { SERIES, PROJECTS, xpFor, kindFor, SAMPLE_LISTS, SAMPLE_DONE, lerp } = NW;
+  const SCHEMA = 1;
+  const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
+
+  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', done: [], lists: [], steps: {}, building: '', me: null, readAt: 0 }; }
+  function normalise(saved) {
+    const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {};
+    s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA;
+    s.lists = s.lists.map(l => ({ name: String(l.name || ''), total: +l.total || 0, done: +l.done || +l.total || 0, blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }));
+    return s;
+  }
+  /* dev seeds: how the land looks at 0, 5, 50 and 90 projects */
+  function seed(s, n, name) {
+    s.done = n >= 90 ? PROJECTS.map(p => p.title) : n >= 50 ? PROJECTS.slice(0, 50).map(p => p.title) : n >= 5 ? SAMPLE_DONE.slice(0, 14) : [];
+    s.lists = n > 0 ? SAMPLE_LISTS.map(l => Object.assign({}, l)) : []; s.name = name || 'Roy'; s.steps = {}; s.building = ''; s.me = null; return s;
+  }
+  const doneSet = s => new Set(s.done);
+  const doneIn = (s, sr) => sr.projects.filter(pr => s.done.includes(pr[0])).length;
+  const tierIn = (s, sr) => { const d = doneIn(s, sr), n = sr.projects.length; return d >= n ? 3 : d >= Math.ceil(n / 2) ? 2 : 1; };
+  const xpOf = s => { const d = doneSet(s); return PROJECTS.filter(p => d.has(p.title)).reduce((a, p) => a + p.xp, 0); };
+  const houseWord = s => { let w = HOUSE_WORDS[0]; HOUSE_WORDS.forEach(x => { if (s.done.length >= x[0]) w = x; }); return w; };
+  const nextHouseWord = s => HOUSE_WORDS.find(x => x[0] > s.done.length);
+  function nextProject(s) {
+    if (s.building && !s.done.includes(s.building)) { const sr = SERIES.find(x => x.projects.some(pr => pr[0] === s.building)); if (sr) { const pr = sr.projects.find(x => x[0] === s.building); return { title: pr[0], series: sr, xp: xpFor(pr[1], sr.hard) }; } }
+    const started = SERIES.filter(sr => doneIn(s, sr) > 0 && doneIn(s, sr) < sr.projects.length);
+    for (const sr of started) { const pr = sr.projects.find(x => !s.done.includes(x[0])); if (pr) return { title: pr[0], series: sr, xp: xpFor(pr[1], sr.hard) }; }
+    for (const sr of SERIES) { const pr = sr.projects.find(x => !s.done.includes(x[0])); if (pr) return { title: pr[0], series: sr, xp: xpFor(pr[1], sr.hard) }; }
+    return null;
+  }
+  function finish(s, title) { if (!s.done.includes(title)) s.done.push(title); delete s.steps[title]; if (s.building === title) s.building = ''; return s; }
+  /* a reading off a nextwork.ai page: which project, which steps are ticked */
+  function applyProjectReading(s, r) { if (!r || !r.title) return s; if (r.total > 0 && r.done >= r.total) finish(s, r.title); else s.steps[r.title] = { done: r.done | 0, total: r.total | 0 }; s.readAt = r.at || Date.now(); return s; }
+  function applyPortfolioReading(s, r) { if (!r || !Array.isArray(r.lists)) return s; s.lists = r.lists.map(l => ({ name: l.name, total: l.count | 0, done: l.count | 0, blurb: l.blurb || '', kind: kindFor(l.name) })); if (r.name) s.name = r.name; s.readAt = r.at || Date.now(); return s; }
+
+  /* ---- the land: where things stand ----
+   * Sixty-four tiles. West of the creek, one spread per started series;
+   * east of it, one spread per learn list. Spreads sit on a jittered grid so
+   * nothing lines up; lots inside a spread come from a per-spread jitter too. */
+  const LAND = 64, HOME = [15, 33];
+  const hash = (x, y) => { let h = (Math.floor(x * 1000) * 374761393 + Math.floor(y * 1000) * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967296; };
+  function noise(x, y) { const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return lerp(lerp(hash(x0, y0), hash(x0 + 1, y0), u), lerp(hash(x0, y0 + 1), hash(x0 + 1, y0 + 1), u), v); }
+  const height = (gx, gy) => noise(gx / 9, gy / 9) * 0.65 + noise(gx / 3.5, gy / 3.5) * 0.35;
+  const creekX = gy => 33 + Math.sin(gy / 7.5) * 5 + Math.sin(gy / 3.3 + 1) * 2;
+  const inCreek = (gx, gy) => Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 1.5;
+  const onBank = (gx, gy) => !inCreek(gx, gy) && Math.abs(gx + 0.5 - creekX(gy + 0.5)) < 2.6;
+  const CROSSINGS = [9, 21, 33, 45, 57];
+  function slots(x0, cols, rows, sx, sy) { const out = []; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) out.push([x0 + c * sx + (hash(c + 7, r + 3) - 0.5) * 2.4, 5 + r * sy + (hash(c + 1, r + 9) - 0.5) * 2.4]); return out; }
+  const WEST = slots(6, 4, 7, 6.2, 8.4).filter(a => Math.abs(a[0] - HOME[0]) > 2.2 || Math.abs(a[1] - HOME[1]) > 4);
+  const EAST = slots(42, 3, 8, 6.4, 7.5);
+  function lot(anchor, i) { /* the i-th lot of a spread: a loose spiral, jittered by the spread */ const a = i * 2.4 + hash(anchor[0], anchor[1]) * 6.3, r = i === 0 ? 0 : 2.3 + Math.floor((i - 1) / 5) * 2.4 + hash(anchor[1] + i, anchor[0]) * 0.6; return [anchor[0] + Math.cos(a) * r, anchor[1] + Math.sin(a) * r * 0.8]; }
+  function layout(s) {
+    const started = SERIES.filter(sr => doneIn(s, sr) > 0), buildings = [], spreads = [];
+    started.forEach((sr, i) => { const a = WEST[i]; const n = doneIn(s, sr); spreads.push({ id: sr.id, name: sr.name, at: a, n, of: sr.projects.length, whole: n === sr.projects.length, kind: sr.kind });
+      sr.projects.forEach((pr, pi) => { if (!s.done.includes(pr[0])) return; const q = lot(a, pi), xp = xpFor(pr[1], sr.hard); buildings.push({ series: sr, kind: sr.kind, title: pr[0], part: pi + 1, of: sr.projects.length, xp, tier: tierIn(s, sr), gx: q[0], gy: q[1], spread: a }); }); });
+    s.lists.forEach((ll, i) => { const a = EAST[i]; if (!a) return; spreads.push({ id: 'll' + i, name: ll.name, at: a, n: ll.done, of: ll.total, whole: ll.done >= ll.total, kind: ll.kind, list: ll });
+      for (let k = 0; k < ll.total; k++) { const q = lot(a, k); buildings.push({ list: ll, kind: ll.kind, title: ll.name, part: k + 1, of: ll.total, xp: 0, tier: k < ll.done ? 2 : 0, gx: q[0], gy: q[1], spread: a }); } });
+    return { buildings, spreads, paths: paths(spreads, buildings) };
+  }
+  /* desire lines: every new building is reached from the nearest worn tile,
+   * so later walks merge into trunks and the land grows a root system */
+  function paths(spreads, buildings) {
+    const worn = new Set(), tiles = [[HOME[0], HOME[1] + 2]]; worn.add(tiles[0].join(','));
+    const key = q => Math.floor(q[0]) + ',' + Math.floor(q[1]);
+    const nearest = to => { let best = tiles[0], bd = 1e9; tiles.forEach(t => { const d = Math.hypot(t[0] - to[0], t[1] - to[1]); if (d < bd) { bd = d; best = t; } }); return best; };
+    const walk = (from, to) => { const n = Math.ceil(Math.hypot(to[0] - from[0], to[1] - from[1]) * 2) + 1; for (let i = 0; i <= n; i++) { const t = i / n, w = Math.sin(t * Math.PI) * (hash(from[0] + to[0], from[1] + to[1]) - 0.5) * 3; const q = [lerp(from[0], to[0], t) + w * (to[1] - from[1]) / (n / 2 + 1), lerp(from[1], to[1], t) - w * (to[0] - from[0]) / (n / 2 + 1)]; const k = key(q); if (!worn.has(k)) { worn.add(k); tiles.push([Math.floor(q[0]) + 0.5, Math.floor(q[1]) + 0.5]); } } };
+    const targets = spreads.slice().sort((a, b) => Math.hypot(a.at[0] - HOME[0], a.at[1] - HOME[1]) - Math.hypot(b.at[0] - HOME[0], b.at[1] - HOME[1]));
+    targets.forEach(sp => { if (sp.n === 0) return; const to = [sp.at[0] + 0.5, sp.at[1] + 1.5]; let from = nearest(to); const east = to[0] > creekX(to[1]), fromEast = from[0] > creekX(from[1]); if (east !== fromEast) { const gy = CROSSINGS.reduce((a, c) => Math.abs(c - to[1]) < Math.abs(a - to[1]) ? c : a, CROSSINGS[0]); const cx = creekX(gy + 0.5); walk(from, [cx - 3, gy + 0.5]); walk([cx - 3, gy + 0.5], [cx + 3, gy + 0.5]); from = [cx + 3, gy + 0.5]; if (!east) { from = nearest(to); } } walk(from, to); });
+    buildings.forEach(b => { if (b.tier === 0) return; const to = [b.gx + 0.5, b.gy + 1.2]; walk(nearest(to), to); });
+    return worn;
+  }
+  NW.State = { SCHEMA, LAND, HOME, WEST, EAST, CROSSINGS, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, finish, applyProjectReading, applyPortfolioReading, layout, lot, hash, noise, height, creekX, inCreek, onBank };
+})();
+
+/* NextWorld · land: your world, drawn
+ * Hill Country. Grass that dries on the high ground, a creek, worn paths
+ * that appear where you have walked, and one figure on it: you. */
+(function () {
+  'use strict';
+  const { B, clamp, lerp, ease, rgb, reduce, TIERS, tierOf, KIND_NAME } = NW;
+  const S = NW.State, { LAND, HOME, CROSSINGS } = S;
+
+  const groundColour = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) return (gx + gy) % 2 ? '#d9d2b8' : '#cfc7aa'; const dry = clamp((h - 0.25) * 2.2, 0, 1); return rgb([lerp(0x7f, 0xb9, dry), lerp(0xb3, 0xb1, dry), lerp(0x5a, 0x62, dry)].map(Math.round)); };
+  const walkable = (gx, gy) => gx >= 0.5 && gy >= 0.5 && gx < LAND - 0.5 && gy < LAND - 0.5 && (!S.inCreek(Math.floor(gx), Math.floor(gy)) || CROSSINGS.includes(Math.floor(gy)));
+
+  /* you */
+  function makeMe(state) { const m = state.me && typeof state.me.gx === 'number' ? state.me : { gx: HOME[0] + 0.6, gy: HOME[1] + 1.6 }; return { gx: m.gx, gy: m.gy, target: null, moving: false, keys: {}, follow: true }; }
+  function stepMe(me, onBlocked) {
+    const k = me.keys; const dx = (k.ArrowRight || k.d ? 1 : 0) - (k.ArrowLeft || k.a ? 1 : 0), dy = (k.ArrowDown || k.s ? 1 : 0) - (k.ArrowUp || k.w ? 1 : 0);
+    if (dx || dy) { me.target = null; const gx = (dx + dy) * 0.5, gy = (dy - dx) * 0.5, n = Math.hypot(gx, gy) || 1; const nx = me.gx + gx / n * 0.06, ny = me.gy + gy / n * 0.06; if (walkable(nx, ny)) { me.gx = nx; me.gy = ny; } me.moving = true; me.follow = true; return; }
+    if (!me.target) { me.moving = false; return; }
+    const tx = me.target[0] - me.gx, ty = me.target[1] - me.gy, d = Math.hypot(tx, ty);
+    if (d < 0.05 || reduce) { me.gx = me.target[0]; me.gy = me.target[1]; me.target = null; me.moving = false; return; }
+    const step = Math.min(d, 0.055), nx = me.gx + tx / d * step, ny = me.gy + ty / d * step;
+    if (walkable(nx, ny)) { me.gx = nx; me.gy = ny; me.moving = true; } else { me.target = null; me.moving = false; if (onBlocked) onBlocked(); }
+  }
+
+  /* the build site: four stages tied to how many steps are ticked, trim after */
+  function siteFor(state) { const nx = S.nextProject(state); if (!nx) return null; const L = S.layout(state); const sp = L.spreads.find(x => x.id === nx.series.id); const a = sp ? sp.at : S.WEST[L.spreads.filter(x => !x.list).length]; const pi = nx.series.projects.findIndex(pr => pr[0] === nx.title); const q = S.lot(a, pi); return { title: nx.title, series: nx.series, xp: nx.xp, gx: q[0], gy: q[1], kind: nx.series.kind }; }
+  function drawSite(I, site, done, total, k, now) {
+    const { gx, gy } = site; const stage = total > 0 ? Math.min(4, Math.floor(done / total * 4 + 1e-9)) : 0; const z = (1 - k) * -60;
+    I.ctx.setLineDash([4, 4]); I.poly([I.p(gx - 0.2, gy - 0.2), I.p(gx + 1.2, gy - 0.2), I.p(gx + 1.2, gy + 1.2), I.p(gx - 0.2, gy + 1.2)], 'rgba(255,255,255,.1)', 'rgba(255,255,255,.8)', 1.2); I.ctx.setLineDash([]);
+    [[-0.2, -0.2], [1.2, -0.2], [-0.2, 1.2], [1.2, 1.2]].forEach(o => { const q = I.p(gx + o[0], gy + o[1]); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(q[0] - 1, q[1] - 9, 2, 9); I.ctx.fillStyle = '#e8552f'; I.ctx.fillRect(q[0] - 3, q[1] - 11, 6, 3); });
+    if (stage >= 1) I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 5, '#c9c2b0', stage === 1 ? -z : 0, { top: 0.1 });
+    if (stage >= 2) [[0.1, 0.1], [0.9, 0.1], [0.1, 0.9], [0.9, 0.9]].forEach(o => I.box(gx + o[0] - 0.04, gy + o[1] - 0.04, 0.08, 0.08, 34, '#b58a5a', 5 + (stage === 2 ? -z : 0), { noShadow: true }));
+    let b = null; if (stage >= 3) { b = I.box(gx + 0.1, gy + 0.1, 0.8, 0.8, 34, '#f3e6cc', 5 + (stage === 3 ? -z : 0), { noShadow: true, tex: 'siding' }); I.win(b.D, b.C, 0.12, 11, 0.24, 14, false); I.win(b.C, b.B, 0.2, 11, 0.28, 14, false); }
+    if (stage >= 4) { const zz = stage === 4 && done < total ? -z : 0; I.roof(gx + 0.1, gy + 0.1, 0.8, 0.8, 39 + zz, 24, '#d9563f'); if (b) I.door(b.D, b.C, 0.6, 0.24, 22, '#8b4a2b'); }
+    if (done >= total && total > 0) { I.chimney(gx + 0.62, gy + 0.22, 49); I.bush(gx - 0.05, gy + 0.95, true); }
+    if (done > 0 && done < total) I.puff(gx, gy, k);
+    return ['Pegged out', 'Foundation', 'Frame up', 'Walls up', done >= total ? 'Finished' : 'Roof on'][stage];
+  }
+
+  function drawLand(I, state, me, now, opts) {
+    const ctx = I.ctx, L = S.layout(state); opts = opts || {};
     for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) {
       if (!I.onScreen(gx, gy)) continue;
-      if (inCreek(gx, gy)) { I.tile(gx, gy, (Math.floor(now / 600) + gx + gy) % 5 === 0 ? '#5cc0f5' : '#3ea3e8'); continue; }
-      if (onBank(gx, gy)) { I.tile(gx, gy, '#d9c9a0'); continue; }
-      if (isTrack(gx, gy)) { I.tile(gx, gy, '#c8a877'); continue; }
+      if (S.inCreek(gx, gy)) { I.tile(gx, gy, (Math.floor(now / 600) + gx + gy) % 5 === 0 ? '#5cc0f5' : '#3ea3e8'); continue; }
+      if (S.onBank(gx, gy)) { I.tile(gx, gy, '#d9c9a0'); continue; }
+      if (L.paths.has(gx + ',' + gy)) { I.tile(gx, gy, '#c8a877'); continue; }
       I.tile(gx, gy, groundColour(gx, gy));
     }
-    /* wheel ruts on the tracks */
-    if (!opts.map) { ctx.strokeStyle = 'rgba(120,80,30,.35)'; ctx.lineWidth = 1; ctx.beginPath(); [[MAIN_X, 2, MAIN_X, LAND - 2], [EAST_X, 2, EAST_X, LAND - 2], [2, MAIN_Y, LAND - 2, MAIN_Y]].forEach(t => { [0.3, 0.7].forEach(o => { const a = I.p(t[0] + o, t[1] + o), b = I.p(t[2] + o, t[3] + o); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }); }); ctx.stroke(); }
     const items = []; const add = (d, fn) => items.push({ d, fn });
-    /* bridges over the creek */
-    CROSSINGS.forEach(gy => { const cx = Math.round(creekX(gy + 0.5)); for (let x = cx - 3; x <= cx + 2; x++) if (I.onScreen(x, gy)) add(x + gy + 0.4, () => { I.tile(x, gy, '#a88c5f', '#6b4a2b'); if (!opts.map) { const a = I.p(x, gy), b = I.p(x + 1, gy); I.line(I.up(a, 6), I.up(b, 6), '#8a6a3f', 1.5); const c = I.p(x, gy + 1), d = I.p(x + 1, gy + 1); I.line(I.up(c, 6), I.up(d, 6), '#8a6a3f', 1.5); } }); });
-    /* oaks and hay where the land is empty */
-    if (!opts.map) for (let gy = 0; gy < LAND; gy += 1) for (let gx = 0; gx < LAND; gx += 1) { const r = hash(gx * 3, gy * 5); if (r > 0.045 || !I.onScreen(gx, gy) || inCreek(gx, gy) || onBank(gx, gy) || isTrack(gx, gy)) continue; if (L.buildings.some(b => Math.abs(b.gx - gx) < 1.8 && Math.abs(b.gy - gy) < 1.8) || (Math.abs(gx - HOME[0]) < 3 && Math.abs(gy - HOME[1]) < 3)) continue; add(gx + gy + 0.5, r < 0.006 ? () => B.hay(I, gx, gy) : () => B.oak(I, gx, gy, 0.8 + hash(gy, gx) * 0.5)); }
-    /* the homestead: house, windmill, tank, a fence */
-    if (I.onScreen(HOME[0], HOME[1])) { const t = TIERS.indexOf(tierOf(xpOf())); add(HOME[0] + HOME[1] + 2.2, () => B.homestead(I, HOME[0] - 0.7, HOME[1] - 1.2, now, t)); add(HOME[0] + HOME[1] + 0.2, () => B.windmill(I, HOME[0] + 1.6, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] + 0.9, () => B.tank(I, HOME[0] + 2.3, HOME[1] - 1.6)); if (!opts.map) add(HOME[0] + HOME[1] - 1, () => { I.fence(HOME[0] - 2, HOME[1] - 3, HOME[0] + 3.5, HOME[1] - 3, 9); I.fence(HOME[0] - 2, HOME[1] - 3, HOME[0] - 2, HOME[1] + 1.4, 7); }); }
-    /* every spread: its buildings, a windmill once it has two, a fence once it is whole */
-    const spreadOf = b => b.series ? L.spreads[b.series.id] : b.list.at;
-    const seen = new Set();
-    L.buildings.forEach(b => { const a = spreadOf(b), key = b.series ? b.series.id : b.list.name; if (!seen.has(key)) { seen.add(key); const n = b.series ? doneIn(b.series) : b.list.total, whole = b.series ? n === b.series.projects.length : true; if (n >= 2 && I.onScreen(a[0], a[1])) add(a[0] + a[1] - 2.2, () => B.windmill(I, a[0] - 1.6, a[1] - 3.2, now)); if (!opts.map && whole && I.onScreen(a[0], a[1])) add(a[0] + a[1] - 2.6, () => { I.fence(a[0] - 4.2, a[1] - 4.0, a[0] + 6.2, a[1] - 4.0, 14); I.fence(a[0] - 4.2, a[1] - 4.0, a[0] - 4.2, a[1] + 6.4, 14); }); if (!opts.map && I.onScreen(a[0], a[1] + 6.5)) add(a[0] + a[1] + 8.5, () => I.label(a[0] + 1.2, a[1] + 7.0, (b.series ? b.series.name : b.list.name).toUpperCase(), b.series ? n + ' of ' + b.series.projects.length : n + (n === 1 ? ' project' : ' projects'), 8)); }
-      if (!I.onScreen(b.gx, b.gy)) return; let k = 1; if (baseAnim && baseAnim.title === b.title) k = reduce ? 1 : clamp((now - baseAnim.start) / 1600, 0, 1);
-      add(b.gx + b.gy + 0.5, () => { B[b.kind](I, b.gx, b.gy, k, now, b.level >= 4 ? 3 : b.level >= 2 ? 2 : 1); if (k >= 1 && !opts.quiet && b.series) { const q = I.p(b.gx + 0.85, b.gy + 0.15, 4); I.roundRect(q[0] - 12, q[1] - 8, 24, 11, 5, b.complete ? 'rgba(255,197,49,.9)' : 'rgba(16,24,44,.78)'); ctx.fillStyle = b.complete ? '#4a2b00' : '#fff'; ctx.font = '800 7px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('LV ' + b.level, q[0], q[1] - 0.5); ctx.textAlign = 'left'; } }); });
-    /* the site, the truck and the builders when something is going up */
-    if (opts.construction) {
-      const since = now - build.stepAt, k = reduce ? 1 : clamp((now - build.lastAt) / 900, 0, 1);
-      add(SG + SGY + 1.2, () => { ctx.setLineDash([4, 4]); I.poly([I.p(SG - 0.15, SGY - 0.15), I.p(SG + 1.6, SGY - 0.15), I.p(SG + 1.6, SGY + 1.6), I.p(SG - 0.15, SGY + 1.6)], 'rgba(255,255,255,.12)', 'rgba(255,255,255,.85)', 1.5); ctx.setLineDash([]); $('sitetier').innerHTML = SITE[build.mode](I, build.done, ease(k), now) + '<small>' + build.done + ' of 7</small>'; });
-      const tt = since / 1400; if (tt < 1 && build.done > 0) { const a = tt < 0.6 ? tt / 0.6 : 1, b2 = tt < 0.6 ? 0 : (tt - 0.6) / 0.4; const tx = lerp(SG + 5.5, SG + 1.6, b2), ty = lerp(SGY - 6, SGY + 0.4, a); add(tx + ty + 0.6, () => I.truck(tx, ty, '#f3e6cc')); }
-      if (since >= 1400 && since < 2000) add(SG + SGY + 2, () => I.puff(SG + 1.2, SGY + 0.3, (since - 1400) / 600));
-      if (since < 4200) for (let i = 0; i < 2; i++) { const sx = SG - 0.25 + i * 0.5, sy = SGY + 1.45; add(sx + sy, () => I.person(sx, sy, '#e8552f', since / 1000 + i, true, since > 900 && since < 3300 ? 'hammer' : null)); }
+    CROSSINGS.forEach(gy => { const cx = Math.round(S.creekX(gy + 0.5)); for (let x = cx - 3; x <= cx + 2; x++) if (I.onScreen(x, gy)) add(x + gy + 0.4, () => { I.tile(x, gy, '#a88c5f', '#6b4a2b'); if (!opts.map) { const a = I.p(x, gy), b = I.p(x + 1, gy); I.line(I.up(a, 6), I.up(b, 6), '#8a6a3f', 1.5); const c = I.p(x, gy + 1), d = I.p(x + 1, gy + 1); I.line(I.up(c, 6), I.up(d, 6), '#8a6a3f', 1.5); } }); });
+    if (!opts.map) for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { const r = S.hash(gx * 3, gy * 5); if (r > 0.045 || !I.onScreen(gx, gy) || S.inCreek(gx, gy) || S.onBank(gx, gy) || L.paths.has(gx + ',' + gy)) continue; if (L.buildings.some(b => Math.abs(b.gx - gx) < 1.8 && Math.abs(b.gy - gy) < 1.8) || (Math.abs(gx - HOME[0]) < 3 && Math.abs(gy - HOME[1]) < 3)) continue; add(gx + gy + 0.5, r < 0.006 ? () => B.hay(I, gx, gy) : () => B.oak(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
+    /* the ranch house, or a tent until the first project */
+    const word = S.houseWord(state);
+    if (I.onScreen(HOME[0], HOME[1])) {
+      if (state.done.length === 0) { add(HOME[0] + HOME[1] + 1, () => { const t = I.p(HOME[0] + 0.5, HOME[1] + 0.5); I.poly([[t[0] - 16, t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#e9e4d6'); I.poly([[t[0], t[1]], [t[0] + 16, t[1]], [t[0], t[1] - 26]], '#cfc7aa'); I.poly([[t[0] - 4, t[1]], [t[0] + 4, t[1]], [t[0], t[1] - 12]], '#6b4a2b'); }); }
+      else { const t = word[0] >= 60 ? 5 : word[0] >= 35 ? 4 : word[0] >= 15 ? 3 : 2; add(HOME[0] + HOME[1] + 2.2, () => B.homestead(I, HOME[0] - 0.7, HOME[1] - 1.2, now, t)); if (word[0] >= 5) { add(HOME[0] + HOME[1] + 0.2, () => B.windmill(I, HOME[0] + 1.6, HOME[1] - 2.4, now)); add(HOME[0] + HOME[1] + 0.9, () => B.tank(I, HOME[0] + 2.3, HOME[1] - 1.6)); } }
+      add(HOME[0] + HOME[1] + 3.6, () => B.board(I, HOME[0] - 1.6, HOME[1] + 1.8));
     }
-    /* you */
-    if (!opts.quiet) { add(me.gx + me.gy, () => I.person(me.gx, me.gy, '#2f7fd6', me.moving ? now / 1000 : 3, true)); if (me.target) { const q = I.p(me.target[0], me.target[1]); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(q[0], q[1], 9, 4.5, 0, 0, Math.PI * 2); ctx.stroke(); } }
-    fx.forEach(f => { const t = (now - f.start) / f.life; if (t >= 1 || t < 0) return;
-      if (f.type === 'float') add(999, () => { const q = I.p(f.gx, f.gy, 40 + t * 40); ctx.globalAlpha = 1 - t; ctx.font = '800 13px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.6)'; ctx.strokeText(f.text, q[0], q[1]); ctx.fillStyle = f.colour; ctx.fillText(f.text, q[0], q[1]); ctx.textAlign = 'left'; ctx.globalAlpha = 1; });
+    /* every spread: its buildings, a well at half, a fence and a gate sign when whole */
+    L.spreads.forEach(sp => { const a = sp.at; if (!I.onScreen(a[0], a[1]) && !I.onScreen(a[0] + 4, a[1] + 4)) return;
+      if (sp.n >= 2 && !sp.list) add(a[0] + a[1] - 2.2, () => B.windmill(I, a[0] - 1.6, a[1] - 3.2, now));
+      if (!opts.map && sp.whole && sp.n > 1) add(a[0] + a[1] - 4.6, () => { I.fence(a[0] - 4.2, a[1] - 4.4, a[0] + 5.6, a[1] - 4.4, 14); I.fence(a[0] - 4.2, a[1] - 4.4, a[0] - 4.2, a[1] + 5.2, 14); });
+      if (!opts.map) add(a[0] + a[1] + 7.5, () => I.label(a[0] + 0.5, a[1] + 6.4, sp.name, sp.list ? sp.n + (sp.n === 1 ? ' project' : ' projects') : sp.n + ' of ' + sp.of, 8)); });
+    L.buildings.forEach(b => { if (!I.onScreen(b.gx, b.gy)) return;
+      if (b.tier === 0) { add(b.gx + b.gy + 0.5, () => { const q = I.p(b.gx + 0.5, b.gy + 0.5); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(q[0] - 1, q[1] - 10, 2, 10); I.ctx.strokeStyle = 'rgba(255,255,255,.6)'; I.ctx.setLineDash([2, 3]); I.ctx.strokeRect(q[0] - 10, q[1] - 5, 20, 10); I.ctx.setLineDash([]); }); return; }
+      let k = 1; if (opts.anim && opts.anim.title === b.title) k = reduce ? 1 : clamp((now - opts.anim.start) / 1600, 0, 1);
+      add(b.gx + b.gy + 0.5, () => B[b.kind](I, b.gx, b.gy, k, now, b.tier)); });
+    if (opts.site) { const st = opts.site; add(st.gx + st.gy + 0.5, () => { opts.stage = drawSite(I, st, opts.stepsDone, opts.stepsTotal, opts.k == null ? 1 : opts.k, now); }); }
+    if (!opts.map && me) { add(me.gx + me.gy, () => I.person(me.gx, me.gy, '#2f7fd6', me.moving ? now / 1000 : 3, true)); if (me.target) { const q = I.p(me.target[0], me.target[1]); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(q[0], q[1], 9, 4.5, 0, 0, Math.PI * 2); ctx.stroke(); } }
+    (opts.fx || []).forEach(f => { const t = (now - f.start) / f.life; if (t >= 1 || t < 0) return;
+      if (f.type === 'float') add(999, () => { const q = I.p(f.gx, f.gy, 40 + t * 40); ctx.globalAlpha = 1 - t; ctx.font = '800 13px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.6)'; ctx.strokeText(f.text, q[0], q[1]); ctx.fillStyle = f.colour; ctx.fillText(f.text, q[0], q[1]); ctx.textAlign = 'left'; ctx.globalAlpha = 1; });
       if (f.type === 'sparkle') add(999, () => { const q = I.p(f.gx, f.gy, 20); for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + f.seed, r = ease(t) * 34; ctx.globalAlpha = 1 - t; I.blob(q[0] + Math.cos(a) * r, q[1] + Math.sin(a) * r * 0.55 - t * 18, 2.2 * (1 - t) + 0.5, ['#ffd54a', '#7cf0a4', '#4fc3ff', '#ff8fb1'][i % 4]); } ctx.globalAlpha = 1; }); });
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
     return L;
   }
-  function skyAndVignette(I, before) { const ctx = I.ctx; if (before) { const g = ctx.createLinearGradient(0, 0, 0, I.H); g.addColorStop(0, '#79c0ff'); g.addColorStop(0.5, '#bfe4ff'); g.addColorStop(1, '#e6f4ff'); ctx.fillStyle = g; ctx.fillRect(0, 0, I.W, I.H); } else { const vg = ctx.createRadialGradient(I.W / 2, I.H / 2, I.H * 0.4, I.W / 2, I.H / 2, I.H); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(10,20,40,.35)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, I.W, I.H); } }
+  function sky(I) { const g = I.ctx.createLinearGradient(0, 0, 0, I.H); g.addColorStop(0, '#9ccdf5'); g.addColorStop(1, '#dfeefb'); I.ctx.fillStyle = g; I.ctx.fillRect(0, 0, I.W, I.H); }
+  const hit = (L, g) => L.buildings.find(b => b.tier > 0 && Math.abs(b.gx + 0.5 - g[0]) < 0.75 && Math.abs(b.gy + 0.5 - g[1]) < 0.75);
+  const tierName = (state) => { const x = S.xpOf(state); return tierOf(x)[1]; };
+  NW.Land = { groundColour, walkable, makeMe, stepMe, siteFor, drawSite, drawLand, sky, hit, tierName, TIERS, KIND_NAME };
+})();
 
-  const fx = []; let baseAnim = null;
-  /* you: start on the porch, walk where you tap or steer with the arrow keys */
-  const me = { gx: HOME[0] + 0.6, gy: HOME[1] + 1.6, target: null, moving: false, keys: {} };
-  function camTo(gx, gy, H) { return { x: (gx - gy) * TW / 2, y: 60 + (gx + gy) * TH / 2 - (H || 310) / 2 - 10 }; }
-  const walkable = (gx, gy) => gx >= 0.5 && gy >= 0.5 && gx < LAND - 0.5 && gy < LAND - 0.5 && (!inCreek(Math.floor(gx), Math.floor(gy)) || CROSSINGS.includes(Math.floor(gy)));
-  function stepMe(now) {
-    const k = me.keys; let dx = (k.ArrowRight || k.d ? 1 : 0) - (k.ArrowLeft || k.a ? 1 : 0), dy = (k.ArrowDown || k.s ? 1 : 0) - (k.ArrowUp || k.w ? 1 : 0);
-    if (dx || dy) { me.target = null; const gx = (dx + dy) * 0.5, gy = (dy - dx) * 0.5, n = Math.hypot(gx, gy) || 1; const nx = me.gx + gx / n * 0.06, ny = me.gy + gy / n * 0.06; if (walkable(nx, ny)) { me.gx = nx; me.gy = ny; } me.moving = true; follow = true; return; }
-    if (!me.target) { me.moving = false; return; }
-    const tx = me.target[0] - me.gx, ty = me.target[1] - me.gy, d = Math.hypot(tx, ty);
-    if (d < 0.05 || reduce) { me.gx = me.target[0]; me.gy = me.target[1]; me.target = null; me.moving = false; return; }
-    const step = Math.min(d, 0.055), nx = me.gx + tx / d * step, ny = me.gy + ty / d * step; if (walkable(nx, ny)) { me.gx = nx; me.gy = ny; me.moving = true; } else { me.target = null; me.moving = false; baseSay('The creek', 'Cross at a bridge.'); }
-  }
+/* NextWorld · HQ: the NextWork World map
+ * The ranch in the middle is NextWork: the tower with the cafe at its foot,
+ * eight hubs round it for the roadmaps, a lake, a paddock, and the eight
+ * staff in black T-shirts going about their day. Learners' plots sit on
+ * the outer ring, joined to the ranch by worn footpaths. No roads. */
+(function () {
+  'use strict';
+  const { B, lerp, HUBS, reduce } = NW;
+  const S = NW.State, MAP = 72, C = [36, 36], STAFF_TEE = '#1c1f26';
+  const ground = (gx, gy) => NW.Land.groundColour(gx + 120, gy + 40);
+  const HUB_AT = HUBS.map((h, i) => { const a = i / HUBS.length * Math.PI * 2 - Math.PI / 2; return [C[0] + Math.cos(a) * 11 - 1, C[1] + Math.sin(a) * 9 - 1]; });
+  const LAKE = [22, 38, 8, 9], PADDOCK = [42, 26, 7, 5];
+  const PLOTS = []; for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + 0.2 + (S.hash(i, 3) - 0.5) * 0.25, r = 23 + (S.hash(i, 5) - 0.5) * 3; PLOTS.push([C[0] + Math.cos(a) * r * 1.15, C[1] + Math.sin(a) * r * 0.95]); }
+  const MINE = 3;
+  /* who is on the ring: you, and in dev a few sample neighbours */
+  function owners(state) { return PLOTS.map((p, i) => i === MINE ? { at: p, mine: true, name: state.name, built: state.done.length } : state.mode === 'dev' && [7, 11, 14].includes(i) ? { at: p, name: 'A learner', built: [4, 22, 9][[7, 11, 14].indexOf(i)] } : { at: p, name: '', built: 0 }); }
+  /* footpaths: from every built plot to the nearest worn tile, like the land */
+  function paths(os) { const worn = new Set(), tiles = [[C[0], C[1] + 6]]; const key = q => Math.floor(q[0]) + ',' + Math.floor(q[1]); worn.add(key(tiles[0]));
+    const walk = (from, to) => { const n = Math.ceil(Math.hypot(to[0] - from[0], to[1] - from[1]) * 2) + 1; for (let i = 0; i <= n; i++) { const t = i / n, w = Math.sin(t * Math.PI) * (S.hash(from[0] + to[0], from[1] + to[1]) - 0.5) * 4; const q = [lerp(from[0], to[0], t) + w * (to[1] - from[1]) / (n / 2 + 1), lerp(from[1], to[1], t) - w * (to[0] - from[0]) / (n / 2 + 1)]; const k = key(q); if (!worn.has(k)) { worn.add(k); tiles.push([Math.floor(q[0]) + 0.5, Math.floor(q[1]) + 0.5]); } } };
+    HUB_AT.forEach(h => walk([C[0], C[1] + 6], [h[0] + 1, h[1] + 2.5]));
+    os.forEach(o => { if (!o.built) return; const to = [o.at[0] + 0.6, o.at[1] + 2]; let best = tiles[0], bd = 1e9; tiles.forEach(t => { const d = Math.hypot(t[0] - to[0], t[1] - to[1]); if (d < bd) { bd = d; best = t; } }); walk(best, to); });
+    return worn; }
+  /* the staff: each has one loop and a thing they do */
+  const STAFF = [
+    { name: 'Amber', pts: [[34.5, 37.2], [36.8, 37.2], [36.8, 39.5], [34.5, 39.5]], says: 'Show them what you built. That is the whole idea.' },
+    { name: 'Barista', pts: [[33.6, 36.6], [34.4, 36.6]], says: 'Flat white. Or a project. Both take about ten minutes.' },
+    { name: 'Guide', pts: HUB_AT.map(h => [h[0] + 1, h[1] + 2.6]), says: 'Every hub is a roadmap. Pick the one you keep thinking about.' },
+    { name: 'Wrangler', pts: [[PADDOCK[0] + 1, PADDOCK[1] + 4], [PADDOCK[0] + 5, PADDOCK[1] + 2]], says: 'They belong to no one. Like the free tier.' },
+    { name: 'Docs', pts: [[36, 40.4]], says: 'Write it down while it is fresh. Future you will read it.' },
+    { name: 'Support', pts: [[HUB_AT[1][0] + 1, HUB_AT[1][1] + 2.6], [HUB_AT[2][0] + 1, HUB_AT[2][1] + 2.6]], says: 'Stuck on a step? The chat is on every project page.' },
+    { name: 'Jetty', pts: [[LAKE[0] + 6.2, LAKE[1] + 7.9]], says: 'Nothing to say. Nice out here though.' },
+    { name: 'Runner', pts: [[HUB_AT[5][0] + 1, HUB_AT[5][1] + 2.6], [HUB_AT[6][0] + 1, HUB_AT[6][1] + 2.6], [HUB_AT[7][0] + 1, HUB_AT[7][1] + 2.6]], says: 'New projects land every week. The gazette is on the board.' }
+  ];
+  function along(pts, t) { if (pts.length === 1) return { q: pts[0], moving: false }; const n = pts.length, seg = Math.floor(t * n) % n, f = (t * n) % 1; const a = pts[seg], b = pts[(seg + 1) % n]; const walkPart = 0.65; if (f > walkPart) return { q: b, moving: false }; const u = f / walkPart; return { q: [lerp(a[0], b[0], u), lerp(a[1], b[1], u)], moving: true }; }
+  const HORSES = [{ pts: [[43, 27.5], [47.5, 28.5], [46, 30], [43.5, 29.5]], colour: '#8a5a3a' }, { pts: [[44, 30], [47, 27.5]], colour: '#3b2a1e' }];
 
-  /* ---- My World ---- */
-  const base = makeIso($('base'), 440, 310); let follow = true;
-  Object.assign(base.cam, camTo(me.gx, me.gy));
-  function drawBase(now) {
-    stepMe(now);
-    if (follow) { const c = camTo(me.gx, me.gy); base.cam.x = lerp(base.cam.x, c.x, reduce ? 1 : 0.08); base.cam.y = lerp(base.cam.y, c.y, reduce ? 1 : 0.08); }
-    skyAndVignette(base, true); const L = drawLand(base, now, {}); skyAndVignette(base, false);
-    const t = tierOf(xpOf()), nt = nextTier(xpOf()), xp = xpOf();
-    $('hud-lv').textContent = TIERS.indexOf(t) + 1; $('hud-tier').textContent = t[1] + ' · ' + L.buildings.filter(b => b.series).length + ' built';
-    $('hud-xp').style.width = (nt ? (xp - t[0]) / (nt[0] - t[0]) * 100 : 100) + '%';
-    const coins = Math.round(xp * 0.45), gems = SERIES.filter(sr => doneIn(sr) === sr.projects.length).length;
-    $('hud-coins').textContent = coins.toLocaleString(); $('hud-coins-bar').style.width = clamp(coins / 5000 * 100, 0, 100) + '%';
-    $('hud-gems').textContent = gems; $('hud-gems-bar').style.width = (gems / SERIES.length * 100) + '%';
-    $('hud-xpv').textContent = xp.toLocaleString(); $('hud-xp-bar').style.width = (xp / CATALOGUE_XP * 100) + '%';
-    if (baseAnim && now - baseAnim.start > 1700) baseAnim = null;
-    while (fx.length && now - fx[0].start > fx[0].life) fx.shift();
+  function drawHQ(I, state, now, opts) {
+    const ctx = I.ctx, os = owners(state), worn = paths(os); opts = opts || {};
+    for (let gy = 0; gy < MAP; gy++) for (let gx = 0; gx < MAP; gx++) { if (!I.onScreen(gx, gy)) continue; if (Math.abs(gx - C[0]) < 6 && Math.abs(gy - C[1]) < 6) { I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc'); continue; } I.tile(gx, gy, worn.has(gx + ',' + gy) ? '#c8a877' : ground(gx, gy)); }
+    const items = []; const add = (d, fn) => items.push({ d, fn });
+    add(LAKE[0] + LAKE[1] + 2, () => B.lake(I, LAKE[0], LAKE[1], LAKE[2], LAKE[3], now));
+    add(PADDOCK[0] + PADDOCK[1] - 1, () => B.paddock(I, PADDOCK[0], PADDOCK[1], PADDOCK[2], PADDOCK[3]));
+    HORSES.forEach((h, i) => { const s = along(h.pts, ((now / 26000) + i * 0.4) % 1); add(s.q[0] + s.q[1] + 0.2, () => B.horse(I, s.q[0], s.q[1], h.colour, s.moving ? now / 1000 : 0)); });
+    add(C[0] + C[1] + 1.2, () => B.tower_hq(I, C[0] - 1, C[1] - 2, now));
+    [[33.2, 40.2, '#2f7fd6'], [35.4, 40.6, STAFF_TEE], [37.6, 40.2, '#e8552f'], [39.6, 39.6, '#3fa66b']].forEach(b => add(b[0] + b[1] + 0.3, () => B.bench(I, b[0], b[1], b[2], now)));
+    HUBS.forEach((h, i) => { const q = HUB_AT[i]; if (I.onScreen(q[0], q[1])) add(q[0] + q[1] + 2.4, () => B.hub(I, q[0], q[1], now, h)); });
+    if (!opts.map) for (let gy = 0; gy < MAP; gy += 1) for (let gx = 0; gx < MAP; gx += 1) { const r = S.hash(gx * 7 + 1, gy * 3 + 2); if (r > 0.03 || !I.onScreen(gx, gy) || worn.has(gx + ',' + gy) || (Math.abs(gx - C[0]) < 15 && Math.abs(gy - C[1]) < 13)) continue; if (os.some(o => Math.abs(o.at[0] - gx) < 2.5 && Math.abs(o.at[1] - gy) < 2.5)) continue; add(gx + gy + 0.5, () => B.oak(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
+    os.forEach((o, i) => { if (!I.onScreen(o.at[0], o.at[1])) return; add(o.at[0] + o.at[1] + 1.2, () => { B.plot(I, o.at[0], o.at[1], o, now); if (!opts.map) I.label(o.at[0] + 0.6, o.at[1] + 2.6, o.mine ? o.name + ' · your land' : o.name || 'Open slot', o.built ? o.built + ' built' : o.mine ? 'start here' : 'pick it and build', 8); }); });
+    STAFF.forEach((st, i) => { const s = along(st.pts, ((now / (18000 + i * 2300)) + i * 0.13) % 1); add(s.q[0] + s.q[1] + 0.05, () => I.person(s.q[0], s.q[1], STAFF_TEE, s.moving && !reduce ? now / 1000 + i : 3 + i, false)); });
+    if (state.mode === 'dev') [[7, 0], [11, 1], [14, 4]].forEach((v, i) => { const o = os[v[0]], h = HUB_AT[v[1]]; const pts = [[o.at[0] + 0.6, o.at[1] + 2.2], [h[0] + 1, h[1] + 2.8]]; const s = along(pts, ((now / 22000) + i * 0.33) % 1); add(s.q[0] + s.q[1] + 0.1, () => s.moving ? B.bike(I, s.q[0], s.q[1], ['#3fa66b', '#8f5fd1', '#f2b42a'][i], now / 1000) : I.person(s.q[0], s.q[1], ['#3fa66b', '#8f5fd1', '#f2b42a'][i], 3, false)); });
+    add(C[0] + C[1] + 8.5, () => I.label(C[0], C[1] + 7.6, 'NextWork HQ Ranch', 'the tower, the cafe, eight hubs, one lake', 11));
+    items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
+    return { owners: os, hubs: HUB_AT, staff: STAFF };
   }
-  const bcv = $('base'); let bdrag = null;
-  const toGrid = (I, cv, e, W, H) => { const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) * W / r.width + I.cam.x - W / 2, y = (e.clientY - r.top) * H / r.height + I.cam.y - 60; return [(x / (TW / 2) + y / (TH / 2)) / 2, (y / (TH / 2) - x / (TW / 2)) / 2]; };
-  bcv.addEventListener('pointerdown', e => { bdrag = { x: e.clientX, y: e.clientY, cx: base.cam.x, cy: base.cam.y, moved: false }; bcv.setPointerCapture(e.pointerId); });
-  bcv.addEventListener('pointermove', e => { if (!bdrag) return; const dx = e.clientX - bdrag.x, dy = e.clientY - bdrag.y; if (Math.hypot(dx, dy) > 4) bdrag.moved = true; if (bdrag.moved) { follow = false; const r = bcv.getBoundingClientRect(); base.cam.x = bdrag.cx - dx * 440 / r.width; base.cam.y = bdrag.cy - dy * 310 / r.height; } });
-  bcv.addEventListener('pointerup', e => { const was = bdrag; bdrag = null; if (!was || was.moved) return;
-    const g = toGrid(base, bcv, e, 440, 310);
-    const L = landLayout(); const hit = L.buildings.find(b => Math.abs(b.gx + 0.5 - g[0]) < 0.75 && Math.abs(b.gy + 0.5 - g[1]) < 0.75);
-    if (hit) { showCard(hit); return; }
-    $('bcard').hidden = true;
-    if (Math.abs(g[0] - HOME[0]) < 1.6 && Math.abs(g[1] - HOME[1]) < 1.6) { const t = tierOf(xpOf()), nt = nextTier(xpOf()); baseSay('The ranch house · ' + t[1], nt ? (nt[0] - xpOf()) + ' XP to ' + nt[1] + '. It grows with you.' : 'Top tier.'); me.target = [HOME[0] + 0.6, HOME[1] + 1.6]; follow = true; return; }
-    if (g[0] >= 0 && g[1] >= 0 && g[0] < LAND && g[1] < LAND) { me.target = [g[0], g[1]]; follow = true; baseSay('On my way', g[0] > creekX(g[1]) ? 'Over the creek, into learn-list country.' : 'Across the spread.'); } });
-  bcv.addEventListener('keydown', e => { if (e.key in { ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1, w: 1, a: 1, s: 1, d: 1 }) { me.keys[e.key] = true; e.preventDefault(); } });
-  bcv.addEventListener('keyup', e => { delete me.keys[e.key]; });
-  bcv.addEventListener('blur', () => { me.keys = {}; });
-  function showCard(b) {
-    const c = $('bcard'); c.hidden = false; $('bc-ic').textContent = ICON[b.kind]; $('bc-name').textContent = b.series ? b.title : b.list.name;
-    $('bc-sub').textContent = b.series ? b.series.name + ' · part ' + b.part + ' of ' + b.of + ' · ' + KIND_NAME[b.kind] + ' · Level ' + b.level + ' · ' + b.xp + ' XP' : 'Learn list · project ' + b.part + ' of ' + b.of + ' · ' + KIND_NAME[b.kind];
-    const nxt = b.series ? b.series.projects.find(pr => !DONE.has(pr[0])) : null;
-    $('bc-up').disabled = !nxt; $('bc-up').textContent = nxt ? 'Next part' : b.series ? 'Series done' : 'Yours';
-    $('bc-up').onclick = () => { if (!nxt) return; finishProject(nxt[0], b.series); c.hidden = true; };
-    $('bc-info').onclick = () => baseSay(b.series ? b.title : b.list.name, b.series ? 'Part ' + b.part + ' of ' + b.of + ' in ' + b.series.name + '. Level ' + b.level + ' because ' + (b.level >= 4 ? 'few people have finished it' : b.level >= 2 ? 'a fair number have' : 'thousands have') + '. Worth ' + b.xp + ' XP.' : b.list.blurb);
-    $('bc-go').onclick = () => baseSay('Open project', 'In the real thing this opens the project on nextwork.ai in the tab. Here it is a sentence.');
-    me.target = [b.gx + 0.5, b.gy + 1.4]; follow = true; baseSay(b.series ? b.title : b.list.name, 'Level ' + b.level + ' ' + KIND_NAME[b.kind].toLowerCase() + ' on the ' + (b.series ? b.series.name : b.list.name) + ' spread.');
+  function hitHQ(state, g) {
+    if (Math.abs(g[0] - C[0]) < 2.2 && Math.abs(g[1] - C[1] - 0.2) < 2.4) return { kind: 'tower' };
+    if (g[1] > C[1] + 1.6 && g[1] < C[1] + 4.6 && Math.abs(g[0] - C[0]) < 2.6) return { kind: 'cafe' };
+    const hi = HUB_AT.findIndex(h => g[0] >= h[0] - 0.5 && g[0] <= h[0] + 2.2 && g[1] >= h[1] - 0.5 && g[1] <= h[1] + 2.4); if (hi >= 0) return { kind: 'hub', hub: HUBS[hi] };
+    const os = owners(state); const pi = os.findIndex(o => g[0] >= o.at[0] - 0.6 && g[0] <= o.at[0] + 1.8 && g[1] >= o.at[1] - 0.6 && g[1] <= o.at[1] + 1.8); if (pi >= 0) return { kind: 'plot', owner: os[pi], index: pi };
+    if (g[0] >= LAKE[0] && g[0] <= LAKE[0] + LAKE[2] && g[1] >= LAKE[1] && g[1] <= LAKE[1] + LAKE[3]) return { kind: 'lake' };
+    if (g[0] >= PADDOCK[0] && g[0] <= PADDOCK[0] + PADDOCK[2] && g[1] >= PADDOCK[1] && g[1] <= PADDOCK[1] + PADDOCK[3]) return { kind: 'paddock' };
+    const si = STAFF.findIndex(st => st.pts.some(p => Math.hypot(p[0] - g[0], p[1] - g[1]) < 1.2)); if (si >= 0) return { kind: 'staff', staff: STAFF[si] };
+    return { kind: 'grass' };
   }
-  function baseSay(title, body) { const el = $('basesay').lastElementChild; el.innerHTML = '<b></b>'; el.querySelector('b').textContent = title; el.appendChild(document.createTextNode(body)); }
-  function wSay(title, body) { const el = $('wsay').lastElementChild; el.innerHTML = '<b></b>'; el.querySelector('b').textContent = title; el.appendChild(document.createTextNode(body)); }
-  let btoastTimer = null; function baseToast(text) { const t = $('basetoast'); t.innerHTML = text; t.classList.add('on'); clearTimeout(btoastTimer); btoastTimer = setTimeout(() => t.classList.remove('on'), 2800); }
-  function finishProject(title, sr) {
-    const xp = xpFor(sr.projects.find(pr => pr[0] === title)[1], sr.hard);
-    DONE.add(title); const finished = doneIn(sr) === sr.projects.length;
-    baseAnim = { title, start: performance.now() };
-    baseToast('+' + xp + ' XP · +' + Math.round(xp * 0.45) + ' coins' + (finished ? ' · +1 gem: series complete' : ''));
-    baseSay(title, 'Level ' + levelOf(xp) + ' ' + KIND_NAME[sr.kind].toLowerCase() + ' on the ' + sr.name + ' spread.' + (finished ? ' The spread is fenced: series complete.' : ''));
-    const b = landLayout().buildings.find(x => x.title === title); if (b) { fx.push({ type: 'sparkle', gx: b.gx + 0.5, gy: b.gy + 0.5, seed: Math.random() * 6, start: performance.now() + 1500, life: 900 }); me.target = [b.gx + 0.5, b.gy + 1.6]; follow = true; }
-    paintDash();
-  }
-  $('toworld').addEventListener('click', () => show('world'));
-  $('toprojects').addEventListener('click', () => show('projects'));
+  NW.HQ = { MAP, C, PLOTS, MINE, owners, drawHQ, hitHQ, HUB_AT };
+})();
 
-  /* ---- NextWorld: your state, and the outline of the ones next to it ---- */
-  const WS = 0.24, WW = 880 / (2 * WS), WH = 620 / (2 * WS);
-  const world = makeIso($('world'), WW, WH, WS);
-  Object.assign(world.cam, camTo(LAND / 2, LAND / 2, WH)); world.cam.y += 30;
-  const STATES = [['NORTH', LAND / 2, -22], ['EAST', LAND + 22, LAND / 2], ['SOUTH', LAND / 2, LAND + 22], ['WEST', -22, LAND / 2]];
-  function drawWorld(now) {
-    const I = world, ctx = I.ctx;
-    ctx.setTransform(1, 0, 0, 1, 0, 0); const g = ctx.createLinearGradient(0, 0, 0, 620); g.addColorStop(0, '#e9dfc4'); g.addColorStop(1, '#d9ccab'); ctx.fillStyle = g; ctx.fillRect(0, 0, 880, 620); I.reset();
-    /* the states next to yours: outlines until they open */
-    STATES.forEach(s => { ctx.setLineDash([8, 8]); I.poly([I.p(s[1] - 30, s[2] - 30), I.p(s[1] + 30, s[2] - 30), I.p(s[1] + 30, s[2] + 30), I.p(s[1] - 30, s[2] + 30)], 'rgba(255,255,255,.18)', 'rgba(90,70,40,.5)', 2); ctx.setLineDash([]); I.label(s[1], s[2], s[0], 'another learner, one day', 11); });
-    I.poly([I.p(-1, -1), I.p(LAND + 1, -1), I.p(LAND + 1, LAND + 1), I.p(-1, LAND + 1)], null, 'rgba(90,70,40,.8)', 3);
-    drawLand(I, now, { quiet: true, map: true });
-    I.label(LAND / 2, LAND + 3.5, "ROY'S LAND", tierOf(xpOf())[1] + ' · ' + PROJECTS.filter(p => DONE.has(p.title)).length + ' of 90 · ' + LEARNLISTS.length + ' learn lists', 13);
-    $('wtier').innerHTML = 'NextWorld<small>your state</small>';
+/* NextWorld · global: the whole map, and where learners are
+ * The same isometric ground, at world scale. Continents are painted from a
+ * few ellipses so nothing is loaded. Population needs a count NextWork
+ * publishes; until then production says so and dev shows sample dots. */
+(function () {
+  'use strict';
+  const S = NW.State, W = 52, H = 26;
+  const LANDS = [[10, 7, 7, 5], [6, 4, 3, 1.6], [14, 16, 3.5, 5.2], [25, 6, 4.2, 2.6], [22.5, 4.6, 1.1, 1], [26.5, 13, 4.2, 5.6], [35, 7, 9.5, 5], [33.5, 12, 2.2, 2.6], [41, 18.5, 3.6, 2.4], [45, 8.5, 1.4, 2.2]];
+  const isLand = (gx, gy) => LANDS.some(e => { const dx = (gx - e[0]) / e[2], dy = (gy - e[1]) / e[3]; return dx * dx + dy * dy < 1 + (S.hash(gx * 3, gy * 5) - 0.5) * 0.35; });
+  const SAMPLE = [['Texas', 8, 10, 140], ['California', 4.5, 8.5, 90], ['New York', 14, 7, 70], ['UK', 22.5, 4.6, 80], ['Germany', 26, 6, 40], ['Nigeria', 24.5, 11.5, 110], ['Kenya', 28.5, 14, 45], ['India', 33.5, 12, 160], ['Singapore', 37.5, 13.5, 30], ['Philippines', 40.5, 12, 60], ['Brazil', 15, 15, 50], ['Australia', 41.5, 18.5, 35]];
+  function drawGlobal(I, state, now) {
+    const ctx = I.ctx;
+    for (let gy = 0; gy < H; gy++) for (let gx = 0; gx < W; gx++) { if (!I.onScreen(gx, gy)) continue; I.tile(gx, gy, isLand(gx, gy) ? NW.Land.groundColour(gx * 2 + 300, gy * 2) : ((Math.floor(now / 700) + gx + gy) % 7 === 0 ? '#4fb3f0' : '#3ea3e8')); }
+    if (state.mode === 'dev') SAMPLE.forEach((d, i) => { const q = I.p(d[1], d[2]); const r = 4 + Math.sqrt(d[3]) * 1.1, pulse = 1 + Math.sin(now / 900 + i) * 0.08; ctx.fillStyle = 'rgba(255,197,49,.22)'; ctx.beginPath(); ctx.ellipse(q[0], q[1], r * 2 * pulse, r * pulse, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#ffc531'; ctx.beginPath(); ctx.ellipse(q[0], q[1], r * 0.55, r * 0.3, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = 'rgba(74,43,0,.6)'; ctx.lineWidth = 1; ctx.stroke(); I.label(d[1], d[2] + 1.1, d[0], d[3] + ' building', 8); });
+    const hq = I.p(43.5, 20.5); NW.B.tower_hq(I, 42.5, 19.5, now); I.label(43.5, 23.2, 'NextWork', 'everywhere', 9);
+    return hq;
   }
-  const wcv = $('world'); let wdrag = null;
-  wcv.addEventListener('pointerdown', e => { wdrag = { x: e.clientX, y: e.clientY, cx: world.cam.x, cy: world.cam.y, moved: false }; wcv.setPointerCapture(e.pointerId); });
-  wcv.addEventListener('pointermove', e => { if (!wdrag) return; const dx = e.clientX - wdrag.x, dy = e.clientY - wdrag.y; if (Math.hypot(dx, dy) > 4) wdrag.moved = true; if (wdrag.moved) { const r = wcv.getBoundingClientRect(); world.cam.x = clamp(wdrag.cx - dx * WW / r.width, -2600, 2600); world.cam.y = clamp(wdrag.cy - dy * WH / r.height, -1200, 2600); } });
-  wcv.addEventListener('pointerup', e => { const was = wdrag; wdrag = null; if (!was || was.moved) return;
-    const g = toGrid(world, wcv, e, WW, WH);
-    if (g[0] >= 0 && g[1] >= 0 && g[0] < LAND && g[1] < LAND) { me.target = [clamp(g[0], 1, LAND - 1), clamp(g[1], 1, LAND - 1)]; follow = true; show('base'); baseSay('On my way', 'Walking there now. Arrow keys steer too.'); return; }
-    const st = STATES.find(s => Math.abs(g[0] - s[1]) < 30 && Math.abs(g[1] - s[2]) < 30);
-    if (st) { wSay('Another state', 'When another learner shares their world it sits next to yours, like Texas next to its neighbours. Not yet: this is about you.'); return; }
-    wSay('Open country', 'Nothing here yet.'); });
-  const wnav = $('wnav'); const aim = (gx, gy) => { const c = camTo(gx, gy, WH); world.cam.x = c.x; world.cam.y = c.y + 30; };
-  [['My land', () => aim(LAND / 2, LAND / 2)], ['Home', () => aim(HOME[0], HOME[1])], ['The creek', () => aim(33, LAND / 2)], ['Learn lists', () => aim(50, LAND / 2)]].forEach(([t, fn]) => { const b = document.createElement('button'); b.textContent = t; b.addEventListener('click', fn); wnav.appendChild(b); });
+  NW.Global = { W, H, drawGlobal, SAMPLE };
+})();
 
-  /* ---- Projects: the dashboard and the build ---- */
-  const STEPS = ['Create the bot', 'Add an intent', 'Add sample utterances', 'Build and test the bot', 'Add a fallback intent', 'Publish an alias', 'Clean up your resources'];
-  const STEP_XP = [8, 8, 10, 12, 8, 8, 6];
-  const PIECES = { waterfall: ['Foundation', 'Frame', 'Walls', 'Roof', 'Windows', 'Door', 'Garden'], agile: ['Shed', 'Cabin', 'Cottage', 'House', 'House + garden', 'House + garage', 'Two storeys'] };
-  const build = { mode: 'agile', done: 3, lastAt: -5000, stepAt: -9000 };
-  const SITE = {
-    waterfall(I, s, k, now) {
-      const z = (1 - k) * -80, Z = i => (s === i ? -z : 0);
-      if (s >= 1) I.box(SG, SGY, 1.2, 1.2, 5, '#c9c2b0', 0, { top: 0.1 });
-      if (s >= 2) [[0.05, 0.05], [1.05, 0.05], [0.05, 1.05], [1.05, 1.05]].forEach(o => I.box(SG + o[0], SGY + o[1], 0.1, 0.1, 44, '#b58a5a', 5 + Z(2), { noShadow: true }));
-      let b = null; if (s >= 3) b = I.box(SG + 0.05, SGY + 0.05, 1.1, 1.1, 44, '#f3e6cc', 5 + Z(3), { noShadow: true, tex: 'siding' });
-      if (s >= 4) { I.roof(SG + 0.05, SGY + 0.05, 1.1, 1.1, 49 + Z(4), 28, '#d9563f'); I.chimney(SG + 0.8, SGY + 0.2, 60 + Z(4)); }
-      if (s >= 5 && b) { I.win(b.D, b.C, 0.1, 12, 0.2, 14, true); I.win(b.D, b.C, 0.72, 12, 0.2, 14, true); I.win(b.C, b.B, 0.15, 12, 0.25, 14, false); I.win(b.C, b.B, 0.6, 12, 0.25, 14, true); }
-      if (s >= 6 && b) I.door(b.D, b.C, 0.4, 0.2, 22, '#8b4a2b');
-      if (s >= 7) { I.bush(SG - 0.35, SGY + 1.3, true); I.bush(SG + 1.3, SGY - 0.25, true); I.fence(SG - 0.1, SGY + 1.35, SG + 0.7, SGY + 1.35, 5); }
-      if (s < 7) I.puff(SG, SGY, k);
-      return ['Nothing yet', 'Foundation', 'Frame up', 'Walls up', 'Roofed', 'Windows in', 'Door on', 'Complete'][s];
-    },
-    agile(I, s, k, now) {
-      const z = (1 - k) * -60;
-      if (s === 1) { const b = I.box(SG + 0.35, SGY + 0.35, 0.5, 0.5, 24, '#b58a5a', -z, { tex: 'siding' }); I.door(b.D, b.C, 0.3, 0.4, 20, '#6b4a2b'); I.flatRoof(SG + 0.35, SGY + 0.35, 0.5, 0.5, 24 - z, '#6b7280'); }
-      if (s === 2) { const b = I.box(SG + 0.25, SGY + 0.25, 0.7, 0.7, 30, '#c9a06a', -z, { tex: 'siding' }); I.win(b.D, b.C, 0.15, 9, 0.28, 12, true); I.door(b.C, b.B, 0.3, 0.3, 21, '#6b4a2b'); I.roof(SG + 0.25, SGY + 0.25, 0.7, 0.7, 30 - z, 16, '#8b4a2b'); }
-      if (s === 3) { const b = I.box(SG + 0.15, SGY + 0.15, 0.9, 0.9, 34, '#f3e6cc', -z, { tex: 'siding' }); I.win(b.D, b.C, 0.1, 11, 0.22, 14, true); I.door(b.D, b.C, 0.55, 0.22, 22); I.win(b.C, b.B, 0.3, 11, 0.3, 14, true); I.roof(SG + 0.15, SGY + 0.15, 0.9, 0.9, 34 - z, 20, '#d9563f'); I.chimney(SG + 0.8, SGY + 0.25, 46 - z); }
-      if (s >= 4) { const two = s >= 7, H = two ? 64 : 36, zz = (s === 4 || s === 7) ? -z : 0; const b = I.box(SG + 0.05, SGY + 0.05, 1.1, 1.1, H, '#f3e6cc', zz, { tex: 'brick' }); I.win(b.D, b.C, 0.1, 12, 0.2, 14, true); I.win(b.D, b.C, 0.72, 12, 0.2, 14, true); I.door(b.D, b.C, 0.4, 0.2, 22, '#8b4a2b'); I.win(b.C, b.B, 0.15, 12, 0.25, 14, false); I.win(b.C, b.B, 0.6, 12, 0.25, 14, true); if (two) { I.win(b.D, b.C, 0.1, 42, 0.2, 14, false); I.win(b.D, b.C, 0.72, 42, 0.2, 14, true); I.win(b.C, b.B, 0.6, 42, 0.25, 14, true); } I.line(I.up(b.D, H), I.up(b.C, H), '#c9c2b0', 2); I.roof(SG + 0.05, SGY + 0.05, 1.1, 1.1, H + zz, 28, '#d9563f'); I.chimney(SG + 0.8, SGY + 0.2, H + 12 + zz); const c = I.p(SG + 0.86, SGY + 0.26, H + 30 + zz); I.smoke(c[0], c[1], now); }
-      if (s >= 5) { I.bush(SG - 0.35, SGY + 1.3, true); I.bush(SG + 1.3, SGY - 0.25, true); I.fence(SG - 0.1, SGY + 1.35, SG + 0.7, SGY + 1.35, 5); }
-      if (s >= 6) { const zz = s === 6 ? -z : 0; const g = I.box(SG + 1.25, SGY + 0.35, 0.65, 0.7, 28, '#e9e4d6', zz, { tex: 'siding' }); const a = I.P(g.D, g.C, 0.15), c = I.P(g.D, g.C, 0.85); I.poly([a, c, I.up(c, 22), I.up(a, 22)], '#6b7280'); for (let v = 4; v < 22; v += 4) I.line(I.up(a, v), I.up(c, v), '#4b5563', 1); I.flatRoof(SG + 1.25, SGY + 0.35, 0.65, 0.7, 28 + zz, '#8a95a6'); I.car(SG + 1.15, SGY + 1.1, '#3b7dd8'); }
-      I.puff(SG, SGY, k);
-      return ['Empty lot', 'Shed', 'Cabin', 'Cottage', 'House', 'House + garden', 'House + garage', 'Two storeys'][s];
+/* NextWorld · views: the panel itself
+ * mount(root, host) builds the five tabs inside root (an element or a
+ * shadow root) and draws only the tab that is showing. The host supplies
+ * storage and what "open this project" means; nothing here touches the page. */
+(function () {
+  'use strict';
+  const { makeIso, B, clamp, lerp, ease, reduce, SERIES, START_HERE, HUBS, ABOUT, KIND_NAME, ICON, TW, TH } = NW;
+  const S = NW.State, Land = NW.Land, HQ = NW.HQ, G = NW.Global;
+  const TABS = [['world', 'NextWork World'], ['hq', 'NextWork'], ['base', 'My World'], ['build', 'My Build'], ['global', 'NextWork Global']];
+
+  const CSS = `
+    :host, .nww { all: initial; }
+    .nww { display: block; font: 14px/1.45 Nunito, "Segoe UI", system-ui, sans-serif; color: #f2f5fb; background: #172033; border-radius: 14px; overflow: hidden; --gold: #ffc531; --ink: #4a2b00; --dim: #9aa6c0; --line: rgba(255,255,255,.12); --card: #1f2a42; --ok: #47d16c; --xp: #4fc3ff; }
+    .nww * { box-sizing: border-box; } .nww button { font: inherit; cursor: pointer; } .nww button:focus-visible, .nww canvas:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+    .bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px 8px; background: linear-gradient(180deg, #223052, #182339); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .brand { font: 800 16px/1 "Baloo 2", "Segoe UI", system-ui, sans-serif; color: #fff; white-space: nowrap; } .brand span { color: var(--gold); }
+    .mode { margin-left: auto; font: 700 11px/1 "Baloo 2", system-ui, sans-serif; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: rgba(0,0,0,.25); color: var(--dim); }
+    .mode[data-on="dev"] { color: #0b3d1b; background: #8fe3a4; border-color: transparent; }
+    .tabs { display: flex; gap: 3px; background: rgba(0,0,0,.25); border-radius: 12px; padding: 3px; width: 100%; }
+    .tabs button { flex: 1; font: 700 11.5px/1.1 "Baloo 2", system-ui, sans-serif; padding: 7px 4px; border: 0; border-radius: 9px; background: transparent; color: var(--dim); white-space: nowrap; }
+    .tabs button[aria-selected="true"] { background: #fff; color: #172033; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+    .view { padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 10px; } .view[hidden] { display: none; }
+    .scene { position: relative; border-radius: 12px; overflow: hidden; background: #8fd0ff; box-shadow: 0 10px 30px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.15); line-height: 0; }
+    .scene canvas { width: 100%; height: auto; display: block; touch-action: none; cursor: grab; }
+    .badge { position: absolute; left: 8px; top: 8px; font: 800 12px/1.2 "Baloo 2", system-ui, sans-serif; color: #fff; background: rgba(16,24,44,.72); padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); } .badge small { font-weight: 700; color: var(--dim); margin-left: 6px; }
+    .nav { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; max-width: 75%; }
+    .nav button, .devbar button { font: 700 11px/1 "Baloo 2", system-ui, sans-serif; padding: 6px 9px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(16,24,44,.72); color: #fff; } .nav button:hover, .devbar button:hover { background: rgba(30,40,70,.9); }
+    .hud { position: absolute; left: 8px; top: 8px; display: flex; align-items: center; gap: 7px; pointer-events: none; }
+    .shield { width: 36px; height: 40px; background: linear-gradient(180deg, #5db2ff, #1f6fd1); clip-path: polygon(50% 0, 100% 15%, 92% 72%, 50% 100%, 8% 72%, 0 15%); display: flex; align-items: center; justify-content: center; font: 800 15px/1 "Baloo 2", system-ui, sans-serif; color: #fff; }
+    .who { background: rgba(16,24,44,.72); border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 4px 9px 5px; min-width: 120px; } .who b { font: 800 12px/1.1 "Baloo 2", system-ui, sans-serif; color: #fff; display: block; } .who small { display: block; font-size: 10px; color: var(--dim); font-weight: 700; white-space: nowrap; }
+    .say { background: #fff; color: #172033; border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); font-size: 13.5px; line-height: 1.4; } .say b { font: 800 14px/1.2 "Baloo 2", system-ui, sans-serif; display: block; margin-bottom: 2px; color: #0f5fc6; }
+    .cap { font-size: 12px; color: var(--dim); line-height: 1.45; } .cap b { color: #f2f5fb; }
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; } .tile.wide { grid-column: 1 / -1; }
+    .tile small { display: block; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); } .tile b { font: 800 17px/1.1 "Baloo 2", system-ui, sans-serif; display: block; margin-top: 2px; } .tile span { font-size: 12px; color: var(--dim); }
+    .barx { height: 7px; border-radius: 6px; background: rgba(0,0,0,.35); margin-top: 7px; overflow: hidden; } .barx i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #2c8fe8, var(--xp)); border-radius: 6px; }
+    h3 { font: 800 14px/1.2 "Baloo 2", system-ui, sans-serif; margin: 4px 0 0; color: #fff; } h3 small { font: 600 12px/1 Nunito, system-ui, sans-serif; color: var(--dim); margin-left: 6px; }
+    .list { display: flex; flex-direction: column; gap: 4px; }
+    .row { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; background: rgba(0,0,0,.22); border: 1px solid var(--line); border-radius: 10px; } .row.full { border-color: rgba(124,240,164,.5); } .row.going { border-color: rgba(255,197,49,.45); }
+    .row i { width: 28px; height: 28px; border-radius: 8px; background: var(--card); display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 14px; }
+    .row .n { min-width: 0; } .row .n b { display: block; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .row .n small { display: block; font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row .n .barx { height: 4px; margin-top: 4px; } .row .v { text-align: right; font: 800 12px/1.2 "Baloo 2", system-ui, sans-serif; white-space: nowrap; } .row .v small { display: block; font: 600 10px/1.2 Nunito, system-ui, sans-serif; color: var(--dim); }
+    .row button, .board button { grid-column: 1 / -1; font: 800 11px/1 "Baloo 2", system-ui, sans-serif; padding: 7px; border: 0; border-radius: 8px; background: rgba(255,255,255,.08); color: #f2f5fb; } .row button:hover, .board button:hover { background: rgba(255,255,255,.14); }
+    .board { display: flex; flex-direction: column; gap: 6px; background: #c9a06a; color: #3a2a12; border-radius: 12px; padding: 10px 12px; box-shadow: inset 0 0 0 4px #b58a5a; } .board h3 { color: #3a2a12; } .board p { margin: 0; font-size: 12.5px; }
+    .pin { background: #fff8e0; border-radius: 6px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; box-shadow: 0 2px 0 rgba(0,0,0,.15); } .pin b { display: block; font-size: 13px; } .pin small { display: block; font-size: 11.5px; color: #6b5a3a; }
+    .pin button { grid-column: auto; background: var(--gold); color: var(--ink); } .pin button:hover { background: #ffd35a; }
+    .btn { font: 700 13px/1.2 "Baloo 2", system-ui, sans-serif; padding: 10px; border: 0; border-radius: 11px; background: var(--card); color: #f2f5fb; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35); } .btn:hover { background: #283555; }
+    .btn.go { color: var(--ink); background: linear-gradient(180deg, #ffe27a, var(--gold) 55%, #ff9d1c); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); } .btn:disabled { opacity: .45; cursor: default; }
+    .steps { display: flex; flex-direction: column; } .step { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: center; padding: 5px 4px; } .step i { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--card); border: 2px solid var(--line); font: 800 12px/1 "Baloo 2", system-ui, sans-serif; color: var(--dim); font-style: normal; }
+    .step.done i { background: var(--ok); border-color: var(--ok); color: #fff; } .step.now i { border-color: var(--gold); color: var(--gold); } .step.done b { color: var(--dim); text-decoration: line-through; } .step b { font-size: 13px; font-weight: 700; }
+    .card { background: #fff; color: #172033; border-radius: 12px; padding: 10px 12px; display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,.4); } .card[hidden] { display: none; }
+    .card .ic { width: 40px; height: 40px; border-radius: 10px; background: #eef2f8; display: flex; align-items: center; justify-content: center; font-size: 20px; } .card b { font: 800 13.5px/1.15 "Baloo 2", system-ui, sans-serif; display: block; } .card small { font-size: 12px; color: #5b6478; display: block; }
+    .card .acts { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .card .acts button { font: 800 11.5px/1 "Baloo 2", system-ui, sans-serif; padding: 8px 4px; border: 0; border-radius: 10px; background: #eef2f8; color: #172033; } .card .acts button.up { background: linear-gradient(180deg, #8fe3a4, #47d16c); color: #0b3d1b; } .card .acts button:disabled { opacity: .45; }
+    .devbar { display: flex; gap: 5px; flex-wrap: wrap; padding: 8px 12px; background: rgba(143,227,164,.1); border-bottom: 1px solid rgba(143,227,164,.3); } .devbar[hidden] { display: none; } .devbar span { font: 700 11px/2 "Baloo 2", system-ui, sans-serif; color: #8fe3a4; margin-right: 4px; }
+    .about p { margin: 0; font-size: 13.5px; line-height: 1.5; } .about .tag { font: 800 22px/1.1 "Baloo 2", system-ui, sans-serif; color: #fff; } .about .mission { font-size: 15px; color: var(--gold); font-weight: 700; }
+    .about a { color: var(--xp); font-weight: 700; text-decoration: none; } .about a:hover { text-decoration: underline; }
+    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } .fact { background: var(--card); border-radius: 10px; padding: 8px 10px; } .fact b { font: 800 18px/1.1 "Baloo 2", system-ui, sans-serif; display: block; } .fact small { font-size: 11.5px; color: var(--dim); }
+    .toast { position: absolute; right: 8px; top: 56px; font: 800 12.5px/1.25 "Baloo 2", system-ui, sans-serif; color: var(--ink); background: linear-gradient(180deg, #ffe27a, var(--gold)); padding: 7px 11px; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.35); opacity: 0; transform: translateY(-8px); transition: opacity .25s, transform .25s; pointer-events: none; } .toast.on { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+  `;
+
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const put = (parent, ...kids) => { kids.forEach(k => parent.appendChild(k)); return parent; };
+  const camTo = (gx, gy, H) => ({ x: (gx - gy) * TW / 2, y: 60 + (gx + gy) * TH / 2 - H / 2 - 10 });
+
+  function mount(root, host) {
+    const state = S.normalise(host.load()); const save = () => host.save(state);
+    const wrap = el('div', 'nww'); const style = el('style'); style.textContent = CSS; put(root, style, wrap);
+    /* bar */
+    const bar = el('div', 'bar'); const brand = el('div', 'brand', 'Next'); brand.appendChild(el('span', null, 'World'));
+    const mode = el('button', 'mode'); mode.type = 'button'; const tabs = el('div', 'tabs'); tabs.setAttribute('role', 'tablist');
+    put(bar, brand, mode, tabs); wrap.appendChild(bar);
+    const devbar = el('div', 'devbar'); devbar.hidden = true; wrap.appendChild(devbar);
+    const views = {}, tabBtns = {};
+    TABS.forEach(([id, name]) => { const b = el('button', null, name); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.view = id; b.addEventListener('click', () => show(id)); tabs.appendChild(b); tabBtns[id] = b; const v = el('section', 'view'); v.hidden = true; views[id] = v; wrap.appendChild(v); });
+    let current = 'world';
+    function show(id) { current = id; TABS.forEach(([k]) => { tabBtns[k].setAttribute('aria-selected', String(k === id)); views[k].hidden = k !== id; }); if (id === 'build') paintBuild(); if (id === 'base') paintBoard(); host.remember && host.remember('tab', id); }
+    function scene(w, h, label) { const sc = el('div', 'scene'); const cv = el('canvas'); cv.width = w; cv.height = h; cv.tabIndex = 0; cv.setAttribute('aria-label', label); sc.appendChild(cv); return { sc, cv }; }
+    function drag(cv, I, W, H, onTap, onDrag) { let d = null; cv.addEventListener('pointerdown', e => { d = { x: e.clientX, y: e.clientY, cx: I.cam.x, cy: I.cam.y, moved: false }; cv.setPointerCapture(e.pointerId); }); cv.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; if (Math.hypot(dx, dy) > 4) d.moved = true; if (d.moved) { const r = cv.getBoundingClientRect(); I.cam.x = d.cx - dx * W / r.width; I.cam.y = d.cy - dy * H / r.height; if (onDrag) onDrag(); } }); cv.addEventListener('pointerup', e => { const was = d; d = null; if (!was || was.moved) return; const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) * W / r.width + I.cam.x - W / 2, y = (e.clientY - r.top) * H / r.height + I.cam.y - 60; onTap([(x / (TW / 2) + y / (TH / 2)) / 2, (y / (TH / 2) - x / (TW / 2)) / 2]); }); }
+    function sayer(parent) { const s = el('div', 'say'); const b = el('b'); const t = document.createTextNode(''); put(s, b, t); parent.appendChild(s); return (title, body) => { b.textContent = title; t.textContent = body; }; }
+    function toast(sc) { const t = el('div', 'toast'); sc.appendChild(t); let timer = null; return text => { t.textContent = text; t.classList.add('on'); clearTimeout(timer); timer = setTimeout(() => t.classList.remove('on'), 2800); }; }
+
+    /* ---- 1. NextWork World ---- */
+    const WS = 0.5, W1 = 880 / (2 * WS), H1 = 620 / (2 * WS);
+    const w1 = scene(880, 620, 'NextWork World: the NextWork ranch in the middle, learners’ plots round it. Tap your plot to enter your world.');
+    const world = makeIso(w1.cv, W1, H1, WS); const wc = camTo(HQ.C[0], HQ.C[1] + 2, H1); world.cam.x = wc.x; world.cam.y = wc.y;
+    const wbadge = el('div', 'badge', 'NextWork World'); wbadge.appendChild(el('small', null, 'the ranch and everyone round it')); w1.sc.appendChild(wbadge);
+    const wnav = el('div', 'nav'); [['The ranch', HQ.C[0], HQ.C[1] + 2], ['My plot', HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1]], ['The hubs', HQ.HUB_AT[0][0], HQ.HUB_AT[0][1] + 6]].forEach(([t, gx, gy]) => { const b = el('button', null, t); b.type = 'button'; b.addEventListener('click', () => { const c = camTo(gx, gy, H1); world.cam.x = c.x; world.cam.y = c.y; }); wnav.appendChild(b); }); w1.sc.appendChild(wnav);
+    views.world.appendChild(w1.sc); const wsay = sayer(views.world);
+    wsay('NextWork World', 'The ranch in the middle is NextWork: the tower, the cafe under it, eight hubs for the roadmaps, the lake, the paddock, and the eight of them in black T-shirts. The plots round the outside are learners. Yours has the flag. Tap it to go home.');
+    views.world.appendChild(el('div', 'cap', 'No roads, only the paths people have worn. Tap a hub for its roadmap, a staff member for a word, an open slot to see how a world begins.'));
+    drag(w1.cv, world, W1, H1, g => { const h = HQ.hitHQ(state, g);
+      if (h.kind === 'tower') { show('hq'); return; }
+      if (h.kind === 'cafe') { wsay('The cafe', 'Where people ask questions. In the real thing, the chat is on every project page.'); return; }
+      if (h.kind === 'hub') { const n = SERIES.filter(sr => sr.kind === h.hub.kind).reduce((a, sr) => a + S.doneIn(state, sr), 0); wsay(h.hub.name + ' hub', h.hub.sub + '. You have built ' + n + ' here. Every ' + KIND_NAME[h.hub.kind].toLowerCase() + ' on your land came from this hub.'); return; }
+      if (h.kind === 'plot' && h.owner.mine) { show('base'); return; }
+      if (h.kind === 'plot' && h.owner.built) { wsay(h.owner.name, h.owner.built + ' built. When they share their portfolio you can walk it. Not yet: this is about you.'); return; }
+      if (h.kind === 'plot') { wsay('Open slot', 'A new learner picks a slot, and it does not touch anyone else’s. Their world opens with a tent, a board, and one oak.'); return; }
+      if (h.kind === 'staff') { wsay(h.staff.name, h.staff.says); return; }
+      if (h.kind === 'paddock') { wsay('The paddock', 'They belong to no one. Like the free tier.'); return; }
+      if (h.kind === 'lake') { wsay('The lake', 'Ripples.'); return; }
+      wsay('Grass', 'Nothing here. Which is the point of a ranch.'); });
+
+    /* ---- 2. NextWork ---- */
+    const about = el('div', 'about view'); about.className = 'about'; views.hq.appendChild(about);
+    put(about, el('p', 'tag', ABOUT.tagline), el('p', 'mission', ABOUT.mission), el('p', null, ABOUT.story));
+    const facts = el('div', 'facts'); ABOUT.facts.forEach(f => { const d = el('div', 'fact'); put(d, el('b', null, f[0]), el('small', null, f[1])); facts.appendChild(d); }); about.appendChild(facts);
+    about.appendChild(el('h3', null, 'Roadmaps, as hubs'));
+    const rl = el('div', 'list'); ABOUT.roadmaps.forEach(r => { const row = el('div', 'row'); const n = el('div', 'n'); put(n, el('b', null, r[0]), el('small', null, r[1] + ' projects')); const v = el('div', 'v', String(r[1])); put(row, el('i', null, '🗺️'), n, v); rl.appendChild(row); }); about.appendChild(rl);
+    const links = el('p'); ABOUT.links.forEach((l, i) => { if (i) links.appendChild(document.createTextNode(' · ')); const a = el('a', null, l[0]); a.href = l[1]; a.target = '_blank'; a.rel = 'noopener'; links.appendChild(a); }); about.appendChild(links);
+    about.appendChild(el('div', 'cap', 'In NextWork’s own words, read from nextwork.ai and the NextWork story. The tower on the map is this page.'));
+
+    /* ---- 3. My World ---- */
+    const me = Land.makeMe(state); let anim = null; const fx = [];
+    const b1 = scene(880, 620, 'Your land. Tap the ground or use the arrow keys to walk; tap a building for its project; drag to look around.');
+    const base = makeIso(b1.cv, 440, 310); Object.assign(base.cam, camTo(me.gx, me.gy, 310));
+    const hud = el('div', 'hud'); const shield = el('div', 'shield', '1'); const who = el('div', 'who'); const whoB = el('b', null, state.name); const whoS = el('small', null, ''); put(who, whoB, whoS); put(hud, shield, who); b1.sc.appendChild(hud);
+    const bnav = el('div', 'nav'); [['Home', () => { me.target = [S.HOME[0] + 0.6, S.HOME[1] + 1.6]; me.follow = true; }], ['World', () => show('world')], ['Build', () => show('build')]].forEach(([t, fn]) => { const b = el('button', null, t); b.type = 'button'; b.addEventListener('click', fn); bnav.appendChild(b); }); b1.sc.appendChild(bnav);
+    const btoast = toast(b1.sc); views.base.appendChild(b1.sc);
+    const card = el('div', 'card'); card.hidden = true; const cIc = el('div', 'ic'); const cT = el('div'); const cB = el('b'); const cS = el('small'); put(cT, cB, cS); const acts = el('div', 'acts'); const cOpen = el('button', null, 'Open project'); cOpen.type = 'button'; const cNext = el('button', 'up', 'Next part'); cNext.type = 'button'; put(acts, cOpen, cNext); put(card, cIc, cT, acts); views.base.appendChild(card);
+    const bsay = sayer(views.base); const board = el('div', 'board'); views.base.appendChild(board);
+    views.base.appendChild(el('div', 'cap', 'Spreads are series. A windmill once a spread has two buildings, a fence once it is whole, oaks where nothing is built yet. Over the creek, your learn lists. Paths appear where you have walked.'));
+    function paintBoard() {
+      while (board.firstChild) board.removeChild(board.firstChild);
+      const empty = state.done.length === 0; const h = el('h3', null, empty ? 'Start here' : 'Next on the board'); board.appendChild(h);
+      board.appendChild(el('p', null, empty ? 'Pick one. The land fills in as you go.' : 'Where you left off, and one or two worth a look.'));
+      const picks = []; const nx = S.nextProject(state); if (nx && !empty) picks.push([nx.title, nx.series.id, 'Part ' + (S.doneIn(state, nx.series) + 1) + ' of ' + nx.series.projects.length + ' in ' + nx.series.name + '.']);
+      START_HERE.forEach(p => { if (picks.length < 5 && !state.done.includes(p[0]) && !picks.some(x => x[0] === p[0])) picks.push(p); });
+      picks.forEach(p => { const sr = SERIES.find(x => x.id === p[1]); const pin = el('div', 'pin'); const t = el('div'); put(t, el('b', null, p[0]), el('small', null, p[2])); const b = el('button', null, empty ? 'Start' : 'Open'); b.type = 'button'; b.addEventListener('click', () => host.openProject(p[0], sr)); put(pin, t, b); board.appendChild(pin); });
+      if (!picks.length) board.appendChild(el('p', null, 'Every project is built. The land is yours.'));
     }
-  };
-  /* the site is the next open lot on the block of the series being built */
-  let SG = 0, SGY = 0;
-  function siteLot() { const nx = nextProject(); const L = landLayout(); const a = nx ? (L.spreads[nx.series.id] || WEST[L.used]) : WEST[L.used]; const pi = nx ? nx.series.projects.findIndex(pr => pr[0] === nx.title) : 0; const o = CLUSTER[pi % CLUSTER.length]; SG = a[0] + o[0]; SGY = a[1] + o[1]; }
-  const site = makeIso($('site'), 440, 250);
-  function drawSite(now) { skyAndVignette(site, true); drawLand(site, now, { construction: true, quiet: true }); skyAndVignette(site, false); }
-  function aimSite() { siteLot(); const c = camTo(SG + 0.8, SGY + 0.8, 250); site.cam.x = c.x; site.cam.y = c.y + 20; }
-  function paintBubbles() {
-    const host = $('bubbles'); host.innerHTML = ''; const pieces = PIECES[build.mode];
-    STEPS.forEach((t, i) => { const d = document.createElement('div'); d.className = 'bubble' + (i < build.done ? ' done' : i === build.done ? ' now' : ''); const ic = document.createElement('i'); ic.textContent = i < build.done ? '✓' : String(i + 1); const tx = document.createElement('div'); tx.className = 't'; const b = document.createElement('b'); b.textContent = t; const s = document.createElement('small'); s.textContent = (build.mode === 'agile' ? 'delivers: ' : 'adds: ') + pieces[i]; tx.appendChild(b); tx.appendChild(s); const xp = document.createElement('span'); xp.className = 'xp'; xp.textContent = '+' + STEP_XP[i] + ' XP'; d.appendChild(ic); d.appendChild(tx); d.appendChild(xp); host.appendChild(d); });
-    const btn = $('step'); btn.disabled = build.done >= STEPS.length; btn.textContent = build.done >= STEPS.length ? 'All steps complete' : 'Complete step ' + (build.done + 1) + ' of 7  ·  +' + STEP_XP[build.done] + ' XP';
-    $('reward').hidden = build.done < STEPS.length;
-    document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === build.mode)));
+    function showCard(b) { card.hidden = false; cIc.textContent = ICON[b.kind]; cB.textContent = b.series ? b.title : b.list.name; cS.textContent = b.series ? b.series.name + ' · part ' + b.part + ' of ' + b.of + ' · ' + KIND_NAME[b.kind] : 'Learn list · project ' + b.part + ' of ' + b.of + ' · ' + KIND_NAME[b.kind]; const nxt = b.series ? b.series.projects.find(pr => !state.done.includes(pr[0])) : null; cNext.disabled = !nxt; cNext.textContent = nxt ? 'Next: ' + nxt[0] : b.series ? 'Series complete' : 'Yours'; cNext.onclick = () => { if (nxt) host.openProject(nxt[0], b.series); }; cOpen.onclick = () => host.openProject(b.series ? b.title : b.list.name, b.series); me.target = [b.gx + 0.5, b.gy + 1.4]; me.follow = true; bsay(b.series ? b.title : b.list.name, (b.series ? 'Tier ' + b.tier + ' ' : '') + KIND_NAME[b.kind].toLowerCase() + ' on the ' + (b.series ? b.series.name : b.list.name) + ' spread.'); }
+    drag(b1.cv, base, 440, 310, g => { const L = S.layout(state); const hit = Land.hit(L, g); if (hit) { showCard(hit); return; } card.hidden = true;
+      if (Math.abs(g[0] - S.HOME[0]) < 1.6 && Math.abs(g[1] - S.HOME[1]) < 1.6) { const w = S.houseWord(state), n = S.nextHouseWord(state); bsay('The ' + w[1].toLowerCase(), n ? (n[0] - state.done.length) + ' more and it is a ' + n[1].toLowerCase() + '.' : 'The whole valley.'); me.target = [S.HOME[0] + 0.6, S.HOME[1] + 1.6]; me.follow = true; return; }
+      if (g[0] >= 0 && g[1] >= 0 && g[0] < S.LAND && g[1] < S.LAND) { me.target = [g[0], g[1]]; me.follow = true; } }, () => { me.follow = false; });
+    b1.cv.addEventListener('keydown', e => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) { me.keys[e.key] = true; e.preventDefault(); } });
+    b1.cv.addEventListener('keyup', e => { delete me.keys[e.key]; }); b1.cv.addEventListener('blur', () => { me.keys = {}; });
+    bsay('Your land', state.done.length ? 'Every finished project is a building on its series’ spread. The ranch house is your total. Tap the ground or use the arrow keys to walk.' : 'A tent, a board, and one oak. Pick a project on the board and the first cabin goes up here.');
+    function finish(title, sr) { S.finish(state, title); save(); const b = S.layout(state).buildings.find(x => x.title === title); anim = { title, start: performance.now() }; btoast('Built: ' + title); bsay(title, KIND_NAME[sr.kind] + ' on the ' + sr.name + ' spread.' + (S.doneIn(state, sr) === sr.projects.length ? ' The spread is fenced: series complete.' : '')); if (b) { fx.push({ type: 'sparkle', gx: b.gx + 0.5, gy: b.gy + 0.5, seed: Math.random() * 6, start: performance.now() + 1500, life: 900 }); me.target = [b.gx + 0.5, b.gy + 1.6]; me.follow = true; } paintBoard(); paintBuild(); paintDev(); }
+
+    /* ---- 4. My Build ---- */
+    const bt = el('div', 'tiles'); const tWhere = el('div', 'tile wide'); const tWb = el('b'); const tWs = el('span'); const tWbar = el('div', 'barx'); const tWi = el('i'); tWbar.appendChild(tWi); put(tWhere, el('small', null, 'Where you are'), tWb, tWs, tWbar);
+    const tDone = el('div', 'tile'); const tDb = el('b'); put(tDone, el('small', null, 'Built'), tDb, el('span', null, 'of 90 NextWork projects'));
+    const tLib = el('div', 'tile'); const tLb = el('b'); const tLs = el('span'); put(tLib, el('small', null, 'Library'), tLb, tLs); put(bt, tWhere, tDone, tLib); views.build.appendChild(bt);
+    const pName = el('h3'); const pSub = el('div', 'cap'); put(views.build, pName, pSub);
+    const s1 = scene(880, 500, 'The building site, on its spread'); const site = makeIso(s1.cv, 440, 250); const sbadge = el('div', 'badge', ''); s1.sc.appendChild(sbadge); views.build.appendChild(s1.sc);
+    const steps = el('div', 'steps'); views.build.appendChild(steps);
+    const openBtn = el('button', 'btn go', 'Open the project'); openBtn.type = 'button'; views.build.appendChild(openBtn);
+    const stepBtn = el('button', 'btn', 'Complete the next step'); stepBtn.type = 'button'; views.build.appendChild(stepBtn);
+    views.build.appendChild(el('h3', null, 'The catalogue')); const catList = el('div', 'list'); views.build.appendChild(catList);
+    views.build.appendChild(el('h3', null, 'Your library')); const libList = el('div', 'list'); views.build.appendChild(libList);
+    views.build.appendChild(el('div', 'cap', 'Steps are read from the project page as you tick them. Four stages go up with them; the roof goes on with the last step, and the building is yours.'));
+    let current_site = null; const bs = { k: 1, lastAt: -9000 };
+    function stepsOf(title) { const st = state.steps[title]; return st ? { done: st.done, total: st.total } : { done: 0, total: 7 }; }
+    function paintBuild() {
+      const xp = S.xpOf(state), w = S.houseWord(state), nw = S.nextHouseWord(state);
+      tWb.textContent = w[1] + ' · ' + state.done.length + ' built'; tWs.textContent = nw ? (nw[0] - state.done.length) + ' more to ' + nw[1].toLowerCase() : 'The whole valley'; tWi.style.width = (nw ? (state.done.length - w[0]) / (nw[0] - w[0]) * 100 : 100) + '%';
+      tDb.textContent = state.done.length + ' / 90'; const lt = state.lists.reduce((a, l) => a + l.total, 0); tLb.textContent = state.lists.length + (state.lists.length === 1 ? ' list' : ' lists'); tLs.textContent = lt + ' projects of your own';
+      current_site = Land.siteFor(state); const st = current_site ? stepsOf(current_site.title) : { done: 0, total: 0 };
+      pName.textContent = current_site ? current_site.title : 'Every project is built'; pSub.textContent = current_site ? current_site.series.name + ' · part ' + (S.doneIn(state, current_site.series) + 1) + ' of ' + current_site.series.projects.length + ' · becomes a ' + KIND_NAME[current_site.kind].toLowerCase() : '';
+      if (current_site) { const c = camTo(current_site.gx + 0.5, current_site.gy + 0.5, 250); site.cam.x = c.x; site.cam.y = c.y + 20; }
+      while (steps.firstChild) steps.removeChild(steps.firstChild);
+      const names = state.mode === 'dev' && !state.steps[current_site && current_site.title] ? ['Set up', 'Build it', 'Connect it', 'Test it', 'Secure it', 'Document it', 'Clean up'] : null;
+      for (let i = 0; i < st.total; i++) { const d = el('div', 'step' + (i < st.done ? ' done' : i === st.done ? ' now' : '')); put(d, el('i', null, i < st.done ? '✓' : String(i + 1)), el('b', null, names ? names[i] || 'Step ' + (i + 1) : 'Step ' + (i + 1))); steps.appendChild(d); }
+      if (!st.total) steps.appendChild(el('div', 'cap', state.mode === 'dev' ? 'No steps yet.' : 'Open the project and the steps appear here as you tick them.'));
+      stepBtn.hidden = state.mode !== 'dev' || !current_site; stepBtn.disabled = !current_site || st.done >= st.total; stepBtn.textContent = st.done >= st.total && st.total ? 'All steps done' : 'Complete step ' + (st.done + 1) + ' of ' + st.total;
+      openBtn.disabled = !current_site; openBtn.onclick = () => current_site && host.openProject(current_site.title, current_site.series);
+      while (catList.firstChild) catList.removeChild(catList.firstChild);
+      SERIES.forEach(sr => { const d = S.doneIn(state, sr), n = sr.projects.length; const row = el('div', 'row' + (d === n ? ' full' : d ? ' going' : '')); const nn = el('div', 'n'); const bar = el('div', 'barx'); const bi = el('i'); bi.style.width = (d / n * 100) + '%'; bar.appendChild(bi); put(nn, el('b', null, sr.name), el('small', null, KIND_NAME[sr.kind] + (d ? ' · tier ' + S.tierIn(state, sr) : ' · not started')), bar); const v = el('div', 'v', d + ' / ' + n); put(row, el('i', null, ICON[sr.kind]), nn, v); const nxt = sr.projects.find(pr => !state.done.includes(pr[0])); if (nxt) { const b = el('button', null, (d ? 'Next: ' : 'Start: ') + nxt[0]); b.type = 'button'; b.addEventListener('click', () => host.openProject(nxt[0], sr)); row.appendChild(b); } catList.appendChild(row); });
+      while (libList.firstChild) libList.removeChild(libList.firstChild);
+      if (!state.lists.length) libList.appendChild(el('div', 'cap', state.mode === 'dev' ? 'No learn lists in this seed.' : 'Open your portfolio on nextwork.ai and your learn lists appear here, each as a spread over the creek.'));
+      state.lists.forEach(l => { const row = el('div', 'row full'); const nn = el('div', 'n'); put(nn, el('b', null, l.name), el('small', null, l.blurb || KIND_NAME[l.kind] + ' spread')); const v = el('div', 'v', String(l.total)); v.appendChild(el('small', null, KIND_NAME[l.kind].toLowerCase() + ' spread')); put(row, el('i', null, '🌉'), nn, v); libList.appendChild(row); });
+    }
+    stepBtn.addEventListener('click', () => { if (!current_site) return; const st = stepsOf(current_site.title); if (st.done >= st.total) return; state.steps[current_site.title] = { done: st.done + 1, total: st.total }; bs.lastAt = performance.now(); save(); if (st.done + 1 >= st.total) { const t = current_site.title, sr = current_site.series; setTimeout(() => finish(t, sr), 900); } paintBuild(); });
+
+    /* ---- 5. NextWork Global ---- */
+    const GS = 0.24, W5 = 880 / (2 * GS), H5 = 620 / (2 * GS); const g1 = scene(880, 620, 'NextWork Global: the map, and where learners are building.'); const glob = makeIso(g1.cv, W5, H5, GS); const gc = camTo(G.W / 2, G.H / 2, H5); glob.cam.x = gc.x; glob.cam.y = gc.y;
+    const gbadge = el('div', 'badge', 'NextWork Global'); const gsmall = el('small'); gbadge.appendChild(gsmall); g1.sc.appendChild(gbadge); views.global.appendChild(g1.sc);
+    const gsay = sayer(views.global); gsay('NextWork Global', 'Where people are building. Same land, whole world.'); views.global.appendChild(el('div', 'cap', 'Same land, whole world. Each dot is how many are building there. The extension cannot know this on its own; it needs a count NextWork publishes, so production says so until then.'));
+    drag(g1.cv, glob, W5, H5, g => { const d = G.SAMPLE.find(x => Math.hypot(x[1] - g[0], x[2] - g[1]) < 1.6); if (d && state.mode === 'dev') gsay(d[0], d[3] + ' learners building. Sample numbers: the real count needs NextWork to publish it.'); else gsay('Open water', 'Drag to look around.'); });
+
+    /* ---- mode, dev controls ---- */
+    function paintMode() { mode.textContent = state.mode === 'dev' ? 'Dev · simulate and reset' : 'Production · real data only'; mode.dataset.on = state.mode; devbar.hidden = state.mode !== 'dev'; }
+    mode.addEventListener('click', () => { state.mode = state.mode === 'dev' ? 'prod' : 'dev'; if (state.mode === 'prod' && host.production) { const p = S.normalise(host.production()); state.done = p.done; state.lists = p.lists; state.steps = p.steps; state.name = p.name; } save(); paintMode(); paintDev(); paintBuild(); paintBoard(); });
+    function paintDev() { while (devbar.firstChild) devbar.removeChild(devbar.firstChild); devbar.appendChild(el('span', null, 'Seed'));
+      [[0, 'Empty'], [5, '5 built'], [50, '50 built'], [90, 'All 90']].forEach(([n, t]) => { const b = el('button', null, t); b.type = 'button'; b.addEventListener('click', () => { S.seed(state, n, state.name === 'You' ? 'Roy' : state.name); save(); anim = null; paintBuild(); paintBoard(); paintDev(); bsay('Seeded', t + '.'); }); devbar.appendChild(b); });
+      const nx = S.nextProject(state); const f = el('button', null, nx ? 'Finish: ' + nx.title : 'Nothing left'); f.type = 'button'; f.disabled = !nx; f.addEventListener('click', () => nx && finish(nx.title, nx.series)); devbar.appendChild(f);
+      const r = el('button', null, 'Reset'); r.type = 'button'; r.addEventListener('click', () => { const m = state.mode; Object.assign(state, S.fresh()); state.mode = m; save(); paintBuild(); paintBoard(); paintDev(); bsay('Reset', 'A tent, a board, and one oak.'); }); devbar.appendChild(r); }
+
+    /* ---- the loop: draw only what is showing ---- */
+    let running = true;
+    function frame(now) {
+      if (!running) return;
+      if (current === 'world') { world.ctx.setTransform(1, 0, 0, 1, 0, 0); Land.sky({ ctx: world.ctx, W: 880, H: 620 }); world.reset(); HQ.drawHQ(world, state, now, {}); }
+      else if (current === 'base') { Land.stepMe(me, () => bsay('The creek', 'Cross at a bridge.')); if (me.follow) { const c = camTo(me.gx, me.gy, 310); base.cam.x = lerp(base.cam.x, c.x, reduce ? 1 : 0.08); base.cam.y = lerp(base.cam.y, c.y, reduce ? 1 : 0.08); } Land.sky(base); Land.drawLand(base, state, me, now, { anim, fx }); const w = S.houseWord(state); shield.textContent = String(NW.TIERS.indexOf(NW.tierOf(S.xpOf(state))) + 1); whoS.textContent = w[1] + ' · ' + state.done.length + ' built · ' + state.lists.length + ' lists'; whoB.textContent = state.name; if (anim && now - anim.start > 1700) anim = null; while (fx.length && now - fx[0].start > fx[0].life) fx.shift(); if (!reduce && (me.moving || me.target)) { state.me = { gx: me.gx, gy: me.gy }; } }
+      else if (current === 'build') { Land.sky(site); const st = current_site ? stepsOf(current_site.title) : { done: 0, total: 0 }; const o = { site: current_site, stepsDone: st.done, stepsTotal: st.total, k: reduce ? 1 : clamp((now - bs.lastAt) / 900, 0, 1), anim }; Land.drawLand(site, state, null, now, o); sbadge.textContent = o.stage ? o.stage + ' · ' + st.done + ' of ' + st.total : ''; }
+      else if (current === 'global') { glob.ctx.setTransform(1, 0, 0, 1, 0, 0); const g = glob.ctx.createLinearGradient(0, 0, 0, 620); g.addColorStop(0, '#1d5f9a'); g.addColorStop(1, '#2f8fd6'); glob.ctx.fillStyle = g; glob.ctx.fillRect(0, 0, 880, 620); glob.reset(); G.drawGlobal(glob, state, now); gsmall.textContent = state.mode === 'dev' ? 'sample counts' : 'population appears when NextWork publishes it'; }
+      if (!reduce) requestAnimationFrame(frame);
+    }
+    paintMode(); paintDev(); paintBuild(); paintBoard();
+    show(host.remember && host.remember('tab') || 'world');
+    requestAnimationFrame(frame); if (reduce) { ['world', 'base', 'build', 'global'].forEach(v => { current = v; frame(0); }); current = host.remember && host.remember('tab') || 'world'; }
+    return { state, show, finish, repaint() { paintBuild(); paintBoard(); paintDev(); }, applyProject(r) { S.applyProjectReading(state, r); save(); paintBuild(); paintBoard(); }, applyPortfolio(r) { S.applyPortfolioReading(state, r); save(); paintBuild(); }, pause() { running = false; }, resume() { if (!running) { running = true; requestAnimationFrame(frame); } } };
   }
-  $('step').addEventListener('click', () => { if (build.done >= STEPS.length) return; const gained = STEP_XP[build.done]; build.done++; const now = performance.now(); build.stepAt = now; build.lastAt = now + 1400;
-    fx.push({ type: 'float', gx: SG + 0.7, gy: SGY + 0.5, text: '+' + gained + ' XP', colour: '#4fc3ff', start: now + 1500, life: 1600 }); fx.push({ type: 'sparkle', gx: SG + 0.7, gy: SGY + 0.7, seed: Math.random() * 6, start: now + 1450, life: 900 }); paintBubbles(); });
-  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { build.mode = b.dataset.mode; build.lastAt = performance.now(); paintBubbles(); }));
-  $('placeit').addEventListener('click', () => { const nx = nextProject(); if (nx) finishProject(nx.title, nx.series); build.done = 0; build.lastAt = performance.now(); build.stepAt = -9000; aimSite(); paintBubbles(); paintDash(); show('base'); });
+  NW.mount = mount;
+})();
 
-  function paintDash() {
-    const xp = xpOf(), t = tierOf(xp), nt = nextTier(xp), nDone = PROJECTS.filter(p => DONE.has(p.title)).length, nx = nextProject();
-    $('d-tier').textContent = t[1] + ' · ' + xp.toLocaleString() + ' XP'; $('d-next-tier').textContent = nt ? (nt[0] - xp) + ' XP to ' + nt[1] : 'Top tier'; $('d-bar').style.width = (nt ? (xp - t[0]) / (nt[0] - t[0]) * 100 : 100) + '%';
-    $('d-done').textContent = nDone + ' / ' + PROJECTS.length;
-    $('d-ll').textContent = LEARNLISTS.length + ' lists'; $('d-ll-sub').textContent = LL_TOTAL + ' projects you authored \u00b7 ' + LEARNLISTS.length + ' spreads';
-    $('d-next').textContent = nx ? nx.title : 'Every project is built'; $('d-next-sub').textContent = nx ? nx.series.name + ' · part ' + (doneIn(nx.series) + 1) + ' of ' + nx.series.projects.length + ' · +' + nx.xp + ' XP' : '';
-    if (nx) { $('p-name').textContent = nx.title; $('p-series').textContent = nx.series.name + ' · part ' + (doneIn(nx.series) + 1) + ' of ' + nx.series.projects.length; $('p-xp').textContent = '+' + nx.xp + ' XP'; $('r-xp').textContent = '+' + nx.xp + ' XP'; $('r-coins').textContent = '+' + Math.round(nx.xp * 0.45) + ' coins'; }
-    const host = $('series'); host.innerHTML = '';
-    SERIES.forEach(sr => { const d = doneIn(sr), n = sr.projects.length, sxp = sr.projects.filter(pr => DONE.has(pr[0])).reduce((a, pr) => a + xpFor(pr[1], sr.hard), 0); const row = document.createElement('div'); row.className = 'srow' + (d === n ? ' full' : d ? ' going' : ''); row.innerHTML = '<i></i><div class="n"><b></b><small></small><div class="bar"><i></i></div></div><div class="v"></div>'; row.querySelector('i').textContent = ICON[sr.kind]; row.querySelector('b').textContent = sr.name; row.querySelector('small').textContent = KIND_NAME[sr.kind] + ' spread' + (d ? ' · tier ' + tierIn(sr) : ' · not started'); row.querySelector('.bar i').style.width = (d / n * 100) + '%'; row.querySelector('.v').innerHTML = d + ' / ' + n + '<small>' + sxp + ' XP</small>'; const nxt = sr.projects.find(pr => !DONE.has(pr[0])); if (nxt) { const btn = document.createElement('button'); btn.textContent = (d ? 'Next: ' : 'Start: ') + nxt[0] + ' · +' + xpFor(nxt[1], sr.hard) + ' XP'; btn.onclick = () => { finishProject(nxt[0], sr); aimSite(); }; row.appendChild(btn); } host.appendChild(row); });
-    $('cat-summary').textContent = PROJECTS.length + ' projects · ' + SERIES.length + ' spreads · ' + xp + ' of ' + CATALOGUE_XP + ' XP';
-    const lh = $('lls'); lh.innerHTML = '';
-    LEARNLISTS.forEach(ll => { const row = document.createElement('div'); row.className = 'srow ll full'; row.innerHTML = '<i></i><div class="n"><b></b><small></small><div class="bar"><i></i></div></div><div class="v"></div>'; row.querySelector('i').textContent = '\ud83c\udf09'; row.querySelector('b').textContent = ll.name; row.querySelector('small').textContent = ll.blurb; row.querySelector('.bar i').style.width = '100%'; row.querySelector('.v').innerHTML = ll.total + '<small>' + KIND_NAME[ll.kind].toLowerCase() + ' spread</small>'; lh.appendChild(row); });
-  }
-
-  /* ---- guide portraits ---- */
-  ['guide1', 'guide2'].forEach(id => { const g = $(id).getContext('2d'); g.scale(2, 2); g.fillStyle = '#dfe9f7'; g.fillRect(0, 0, 46, 46); g.fillStyle = '#e8552f'; g.beginPath(); g.ellipse(23, 44, 16, 14, 0, Math.PI, 0); g.fill(); g.fillStyle = '#ffd6ad'; g.beginPath(); g.arc(23, 24, 11, 0, Math.PI * 2); g.fill(); g.fillStyle = '#ffc531'; g.beginPath(); g.ellipse(23, 15, 13, 5, 0, Math.PI, 0); g.fill(); g.fillRect(10, 13, 26, 4); g.beginPath(); g.ellipse(23, 12, 9, 6, 0, Math.PI, 0); g.fill(); g.fillStyle = '#4a2e1a'; g.fillRect(17, 22, 3, 3); g.fillRect(26, 22, 3, 3); g.strokeStyle = '#a05a3a'; g.lineWidth = 1.5; g.beginPath(); g.arc(23, 27, 4, 0.2, Math.PI - 0.2); g.stroke(); });
-
-  /* ---- tabs and boot ---- */
-  function show(view) { ['world', 'base', 'projects'].forEach(v => { $('tab-' + v).setAttribute('aria-selected', String(v === view)); $('view-' + v).hidden = v !== view; }); try { localStorage.setItem('nww-tab', view); } catch (e) { /* fine */ } }
-  document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => show(b.dataset.view)));
-  let opening = 'world'; try { opening = localStorage.getItem('nww-tab') || 'world'; } catch (e) { /* fine */ }
-  show(['world', 'base', 'projects'].includes(opening) ? opening : 'world');
-  aimSite(); paintBubbles(); paintDash();
-  function frame(now) { drawWorld(now); drawBase(now); drawSite(now); requestAnimationFrame(frame); }
-  if (reduce) { drawWorld(0); drawBase(0); drawSite(0); } else requestAnimationFrame(frame);
+</script>
+<script>
+(function () {
+  'use strict';
+  const KEY = 'nww-state-v1';
+  const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
+  const first = read() || NW.State.seed(NW.State.fresh(), 5, 'Roy');
+  if (!read()) first.mode = 'dev';
+  const api = NW.mount(document.getElementById('panel').attachShadow({ mode: 'open' }), {
+    load: () => first,
+    save: s => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* fine */ } },
+    remember: (k, v) => { try { if (v === undefined) return localStorage.getItem('nww-' + k); localStorage.setItem('nww-' + k, v); } catch (e) { return null; } },
+    production: () => NW.State.fresh(),
+    openProject: (title, series) => {
+      /* in the extension this opens the project on nextwork.ai; here, in dev
+       * mode, it starts the build so you can see the stages go up */
+      const s = api.state; s.building = title; if (s.mode === 'dev' && !s.steps[title]) s.steps[title] = { done: 0, total: 7 }; api.repaint(); api.show('build');
+    }
+  });
 })();
 </script>

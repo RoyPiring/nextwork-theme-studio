@@ -1,0 +1,62 @@
+<meta charset="utf-8">
+<title>NextWorld</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap">
+<style>
+  :root { --bg: #0e1424; --text: #f2f5fb; --dim: #9aa6c0; --site-bg: #f6f5f2; --site-ink: #2a2a2a; --site-line: #e2dfd8; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Nunito, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.45; padding-block: 18px; padding-inline: 16px; box-sizing: border-box; }
+  * { box-sizing: border-box; }
+  .browser { max-width: 1200px; margin: 0 auto; border-radius: 14px; overflow: hidden; border: 1px solid #263149; background: #131a2b; box-shadow: 0 40px 100px rgba(0,0,0,.6); }
+  .chrome { display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: #1a2236; border-bottom: 1px solid #263149; font-size: 12px; color: #8f9bb8; }
+  .chrome .dots { display: flex; gap: 6px; } .chrome .dots i { width: 11px; height: 11px; border-radius: 50%; background: #34405c; display: block; }
+  .chrome .url { flex: 1; background: #111828; border-radius: 8px; padding: 6px 11px; color: #c4cde0; }
+  .chrome .tag { font: 700 12px/1 "Baloo 2", system-ui, sans-serif; color: #ffc531; }
+  .stage { display: grid; grid-template-columns: 1fr 460px; min-height: 780px; }
+  @media (max-width: 920px) { .stage { grid-template-columns: 1fr; } .site { display: none; } }
+  .site { background: var(--site-bg); color: var(--site-ink); padding: 28px 34px; font-size: 14px; line-height: 1.55; position: relative; }
+  .site::after { content: ''; position: absolute; inset: 0; background: rgba(14,20,36,.5); pointer-events: none; }
+  .site h1 { font-size: 24px; margin: 0 0 6px; font-weight: 700; } .site .crumb { font-size: 12px; color: #7a7a7a; margin-bottom: 18px; }
+  .site .pill { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #e8f0ff; color: #2b56b8; margin-right: 6px; font-weight: 700; }
+  .site .block { height: 12px; border-radius: 4px; background: var(--site-line); margin: 10px 0; } .site .block.w60 { width: 60%; } .site .block.w80 { width: 80%; } .site .block.w40 { width: 40%; }
+  .site .card { border: 1px solid var(--site-line); border-radius: 10px; padding: 16px; margin: 18px 0; background: #fff; } .site .card h3 { margin: 0 0 8px; font-size: 14px; }
+  .site .step { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--site-line); } .site .step i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #b9c7e6; display: inline-block; flex: none; } .site .step i.done { background: #2b56b8; border-color: #2b56b8; }
+  .panel { background: #172033; border-left: 1px solid #263149; min-width: 0; }
+  .foot { max-width: 1200px; margin: 12px auto 0; font-size: 12px; color: #6f7b98; text-align: center; }
+</style>
+<div class="browser">
+  <div class="chrome"><div class="dots"><i></i><i></i><i></i></div><div class="url">nextwork.ai/projects/build-a-chatbot-with-amazon-lex</div><div class="tag">NextWorld · concept</div></div>
+  <div class="stage">
+    <div class="site" aria-hidden="true">
+      <div class="crumb">Projects › Amazon Lex Chatbot › Build a Chatbot with Amazon Lex</div>
+      <h1>Build a Chatbot with Amazon Lex</h1>
+      <span class="pill">Amazon Lex</span><span class="pill">AI</span><span class="pill">Beginner</span>
+      <div class="block w80" style="margin-top:18px"></div><div class="block w60"></div><div class="block w40"></div>
+      <div class="card"><h3>30 Second Summary</h3><div class="block w80"></div><div class="block"></div><div class="block w60"></div></div>
+      <div class="card"><h3>Steps</h3><div class="step"><i class="done"></i>Create the bot</div><div class="step"><i class="done"></i>Add an intent</div><div class="step"><i class="done"></i>Add sample utterances</div><div class="step"><i></i>Build and test the bot</div><div class="step"><i></i>Add a fallback intent</div><div class="step"><i></i>Publish an alias</div><div class="step"><i></i>Clean up your resources</div></div>
+      <div class="block w80"></div><div class="block w60"></div><div class="block"></div><div class="block w40"></div>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>
+</div>
+<div class="foot">Concept demo. Nothing here is wired to nextwork.ai; Dev mode simulates, Production shows only what the extension would read.</div>
+<!-- WORLD -->
+<script>
+(function () {
+  'use strict';
+  const KEY = 'nww-state-v1';
+  const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
+  const first = read() || NW.State.seed(NW.State.fresh(), 5, 'Roy');
+  if (!read()) first.mode = 'dev';
+  const api = NW.mount(document.getElementById('panel').attachShadow({ mode: 'open' }), {
+    load: () => first,
+    save: s => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* fine */ } },
+    remember: (k, v) => { try { if (v === undefined) return localStorage.getItem('nww-' + k); localStorage.setItem('nww-' + k, v); } catch (e) { return null; } },
+    production: () => NW.State.fresh(),
+    openProject: (title, series) => {
+      /* in the extension this opens the project on nextwork.ai; here, in dev
+       * mode, it starts the build so you can see the stages go up */
+      const s = api.state; s.building = title; if (s.mode === 'dev' && !s.steps[title]) s.steps[title] = { done: 0, total: 7 }; api.repaint(); api.show('build');
+    }
+  });
+})();
+</script>
