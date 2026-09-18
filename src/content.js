@@ -2347,9 +2347,10 @@
       });
     }); }).catch(function () { /* never break the page */ });
   }
-  function openExplore() {
-    /* the catalogue, in a new tab, so the world stays where it is */
-    window.open(location.origin + '/projects', '_blank', 'noopener');
+  function openExplore(title) {
+    /* the project itself, in this tab: the pane and the pineapple come with you */
+    const slug = String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    location.assign(location.origin + (slug ? '/projects/' + slug : '/projects'));
   }
   function renderWorld(settings) {
     worldSettings = settings;

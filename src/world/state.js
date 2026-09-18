@@ -113,14 +113,14 @@
   function nearestRoad(set, q) { let best = null, bd = 1e9; set.forEach(k => { const t = k.split(',').map(Number); const d = Math.hypot(t[0] + 0.5 - q[0], t[1] + 0.5 - q[1]); if (d < bd) { bd = d; best = t; } }); return best; }
   /* the hour: yours, unless dev has set one */
   /* the life of the place. Days pass fast: one every 40 seconds, a season in twenty minutes, so crops grow and trees fill in while you watch.
-   * Power is the real thing: a project done today powers the world for the day. Every real day without one it loses a quarter,
-   * and the lights, the mill, the fire and the fields go with it. Do a project and it all comes back on. */
   /* ---- the economy: three things and three rules ----
-   * POWER is a battery. A step ticked adds 5%; a project finished fills it. It holds for a day, then loses 20% a real day down to an
+   * POWER is a battery. A step ticked adds 8%; a project finished fills it. It holds for a day, then loses 15% a real day down to an
    * ember (10%): the lights, the mill, the fields and the fire follow it. CITIZENS move in one per step while the power is at least
    * half, up to the homes' capacity, and leave one a day once the place has stood idle five days. SPARKS are the currency: one a
    * step, ten a project, spent in the avatar shop, never lost. Everything comes from the page: a step ticked, a project finished. */
   const DAY_MS = 40000, REAL_DAY = 86400000, GRACE = 1, DECAY = 0.15, EMBER = 0.1, STEP_POWER = 0.08, SPARK = { step: 1, project: 10 };
+  /* the clock: real time, unless dev has moved it */
+  const now = s => Date.now() + ((s && s.mode === 'dev' && typeof s.clockOffset === 'number') ? s.clockOffset : 0);
   const dayMs = s => (s.mode === 'dev' && typeof s.dayMs === 'number' && s.dayMs > 0) ? s.dayMs : DAY_MS;
   const dayOf = (s, now) => Math.max(0, Math.floor((now - s.life.founded) / dayMs(s)));
   const hourOfDay = (now, s) => ((now / (s ? dayMs(s) : DAY_MS)) % 1) * 24;
@@ -147,5 +147,5 @@
   const hourOf = s => (s.mode === 'dev' && typeof s.hour === 'number') ? s.hour : (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   const nightOf = h => h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0;
   const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
-  NW.State = { SCHEMA, AVATAR, landName, hourOf, DAY_MS, REAL_DAY, EMBER, dayMs, dayOf, hourOfDay, idleDays, power, citizens, population, contract, CONTRACT, event, crew, PRICES, owns, buy, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
+  NW.State = { SCHEMA, AVATAR, landName, hourOf, now, DAY_MS, REAL_DAY, EMBER, dayMs, dayOf, hourOfDay, idleDays, power, citizens, population, contract, CONTRACT, event, crew, PRICES, owns, buy, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
 })();

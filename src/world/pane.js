@@ -60,6 +60,7 @@
       production: () => world(tools.current()).read || NW.State.fresh(),
       palette: () => palette(settings),
       openProject: (title) => { api.state.building = title; api.repaint(); tools.openExplore(title); },
+      onProject: title => slugOf(location.pathname.split('/')[2] || '') === slugOf(title),
       pageBadge: on => { if (on === undefined) return !world(tools.current()).badgeOff; tools.saveWorld({ badgeOff: !on }); return on; }
     });
     return body;
@@ -74,6 +75,7 @@
     dress(palette(settings)); place(w);
     if (api) api.theme(palette(settings));
     if (api && w.mode !== lastMode) { lastMode = w.mode; if (api.state.mode !== w.mode) { api.state.mode = w.mode; api.repaint(); } }
+    if (api && w.state && typeof w.state.savedAt === 'number' && w.state.savedAt > (api.state.savedAt || 0)) api.adopt(w.state);   /* another tab moved the world on: take its word */
     if (!api) return;   /* still mounting: a save from inside mount comes back through here */
     if (settings.peek || w.collapsed || document.hidden) api.pause(); else api.resume();
   }
@@ -86,9 +88,10 @@
     const f = NW.Readers.readPortfolioPage(doc, pathname); if (f) { const k = 'f|' + pathname + '|' + f.lists.map(l => l.name + l.count).join(); if (k === lastRead) { badge(pathname); return f; } lastRead = k; if (api) api.applyPortfolio(f); const cur = world(tools.current()); const r = NW.State.applyPortfolioReading(NW.State.normalise(cur.read || {}), f); tools.saveWorld({ read: r }); badge(pathname); return f; }
     badge(pathname); return null;
   }
+  const slugOf = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   /* ---- the pineapple on the project page: what this project builds, the step you are on, and a way back to the land ---- */
   const BADGE_ID = 'nwp-badge'; let badgeEl = null, badgeRoot = null, badgeParts = null;
-  const BADGE_CSS = '.b { position: fixed; right: 18px; bottom: 18px; z-index: 2147483000; display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; width: 300px; padding: 10px 12px; border-radius: 14px; background: #fff; color: #172033; font: 13px/1.35 Nunito, "Segoe UI", system-ui, sans-serif; box-shadow: 0 12px 34px rgba(0,0,0,.28); border: 1px solid rgba(0,0,0,.08); } .b canvas { width: 44px; height: 60px; display: block; } .b b { display: block; font: 800 13.5px/1.2 "Baloo 2", "Segoe UI", system-ui, sans-serif; } .b small { display: block; color: #5b6478; font-size: 12px; } .b .acts { grid-column: 1 / -1; display: flex; gap: 6px; } .b button { flex: 1; font: 800 12px/1 "Baloo 2", "Segoe UI", system-ui, sans-serif; padding: 9px 6px; border: 0; border-radius: 10px; background: #eef2f8; color: #172033; cursor: pointer; } .b button.go { background: linear-gradient(180deg, #ffe27a, #ffc531 55%, #ff9d1c); color: #4a2b00; } .b button.x { flex: 0 0 34px; background: transparent; color: #9aa6c0; } .b button:hover { filter: brightness(1.05); }';
+  const BADGE_CSS = '.b { position: fixed; left: 18px; bottom: 18px; z-index: 2147483000; display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; width: 300px; padding: 10px 12px; border-radius: 14px; background: #fff; color: #172033; font: 13px/1.35 Nunito, "Segoe UI", system-ui, sans-serif; box-shadow: 0 12px 34px rgba(0,0,0,.28); border: 1px solid rgba(0,0,0,.08); } .b canvas { width: 44px; height: 60px; display: block; } .b b { display: block; font: 800 13.5px/1.2 "Baloo 2", "Segoe UI", system-ui, sans-serif; } .b small { display: block; color: #5b6478; font-size: 12px; } .b .acts { grid-column: 1 / -1; display: flex; gap: 6px; } .b button { flex: 1; font: 800 12px/1 "Baloo 2", "Segoe UI", system-ui, sans-serif; padding: 9px 6px; border: 0; border-radius: 10px; background: #eef2f8; color: #172033; cursor: pointer; } .b button.go { background: linear-gradient(180deg, #ffe27a, #ffc531 55%, #ff9d1c); color: #4a2b00; } .b button.x { flex: 0 0 34px; background: transparent; color: #9aa6c0; } .b button:hover { filter: brightness(1.05); }';
   function pineapple(cv) { const I = NW.makeIso(cv, 22, 30, 2); I.cam.x = 0; I.cam.y = 29; NW.B.avatar(I, 0, 0, { body: 'pineapple', shirt: '#2f7fd6', hat: 'none' }, 0, false); }
   function badge(pathname) {
     const w = tools && tools.current ? world(tools.current()) : null; const st = api ? api.state : NW.State.normalise(w && (w.state || w.read) || {});
@@ -106,8 +109,9 @@
     }
     const title = NW.Readers.titleOf(document); badgeParts.title = title; if (!title) { badgeEl.remove(); badgeEl = null; return; }
     const known = NW.PROJECTS.find(p => p.title.toLowerCase() === title.toLowerCase()); const sr = known ? NW.SERIES.find(x => x.id === known.series) : null; const step = st.steps[title] || { done: 0, total: 0 }; const built = st.done.includes(title);
-    if (built) { badgeParts.b.textContent = 'Built: ' + title; badgeParts.s1.textContent = (NW.KIND_NAME[sr ? sr.kind : 'home'] || 'A home') + ' on your land. ' + (function (n) { return n + (n === 1 ? ' lives' : ' live'); })(NW.State.citizens(st, Date.now())) + ' there now.'; badgeParts.s2.textContent = 'Next project, next building.'; badgeParts.tick.hidden = true; }
-    else { badgeParts.b.textContent = (known ? 'Building: ' : 'Not on the map yet: ') + title; badgeParts.s1.textContent = step.total ? 'Step ' + Math.min(step.done + 1, step.total) + ' of ' + step.total + ' \u00b7 a spark each \u00b7 power ' + Math.round(NW.State.power(st, Date.now()) * 100) + '%' : 'Tick a step below; a wall goes up.'; badgeParts.s2.textContent = known ? (step.done ? NW.LESSONS[step.done % NW.LESSONS.length] : 'Every step is a brick. Start with one.') : 'Finish it and it still counts: it is yours.'; badgeParts.tick.hidden = !known && !step.total; }
+    const now = NW.State.now(st);
+    if (built) { badgeParts.b.textContent = 'Built: ' + title; badgeParts.s1.textContent = 'It stands on your land. ' + (function (n) { return n + (n === 1 ? ' person lives' : ' people live'); })(NW.State.citizens(st, now)) + ' there now.'; badgeParts.s2.textContent = 'Next project, next building.'; badgeParts.tick.hidden = true; }
+    else { badgeParts.b.textContent = (known ? 'Building: ' : 'Not on the map yet: ') + title; badgeParts.s1.textContent = step.total ? (step.done ? 'Step ' + step.done + ' of ' + step.total + ' done' : 'Step 1 of ' + step.total) + ' \u00b7 a spark each \u00b7 power ' + Math.round(NW.State.power(st, now) * 100) + '%' : 'Tick a step below; a wall goes up.'; badgeParts.s2.textContent = known ? (step.done ? NW.LESSONS[step.done % NW.LESSONS.length] : 'Every step is a brick. Start with one.') : 'Finish it and it still counts: it is yours.'; badgeParts.tick.hidden = !(st.mode === 'dev' || step.total > 0); }
   }
   function setup(t) { tools = t; }
   /* the browser changed size: the pane keeps its place and its share of it */

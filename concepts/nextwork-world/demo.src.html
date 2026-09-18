@@ -53,7 +53,7 @@
     remember: (k, v) => { try { if (v === undefined) return localStorage.getItem('nww-' + k); localStorage.setItem('nww-' + k, v); } catch (e) { return null; } },
     production: () => NW.State.fresh(),
     openProject: (title, series) => {
-      /* in the extension this opens the project on nextwork.ai; here, in dev
+      /* in the extension this would open the project on nextwork.ai; here, in dev
        * mode, it starts the build so you can see the stages go up */
       const s = api.state; s.building = title; if (s.mode === 'dev' && !s.steps[title]) s.steps[title] = { done: 0, total: 7 }; api.repaint(); api.show('build');
     }
