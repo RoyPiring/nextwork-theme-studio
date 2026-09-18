@@ -12,7 +12,7 @@
   function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: '', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
   function normalise(saved) {
     const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
-    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['forest', 'sandy', 'island', 'plains', 'mountains'].includes(s.biome) ? s.biome : (s.biome === 'hill' ? 'plains' : s.biome === 'desert' ? 'sandy' : '');
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['forest', 'sandy', 'island', 'plains', 'mountains', 'snow', 'rain', 'zen', 'savanna'].includes(s.biome) ? s.biome : (s.biome === 'hill' ? 'plains' : s.biome === 'desert' ? 'sandy' : '');
     s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA; s.avatar = Object.assign({}, AVATAR, s.avatar && typeof s.avatar === 'object' ? s.avatar : {});
     s.lists = s.lists.map(l => ({ name: String(l.name || ''), total: +l.total || 0, done: +l.done || +l.total || 0, blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }));
     return s;
@@ -49,7 +49,7 @@
    * era changes the whole place re-lays itself and everything moves into
    * the new plan. Learn lists take rows on the east bank, over the bridge. */
   const LAND = 68;
-  const hash = (x, y) => { let h = (Math.floor(x * 1000) * 374761393 + Math.floor(y * 1000) * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967296; };
+  const hash = (x, y) => { let h = (Math.imul(Math.floor(x * 1000), 374761393) + Math.imul(Math.floor(y * 1000), 668265263)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; };   /* uniform on [0, 1): the old one never passed 0.5, so no height ever reached a peak */
   function noise(x, y) { const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return lerp(lerp(hash(x0, y0), hash(x0 + 1, y0), u), lerp(hash(x0, y0 + 1), hash(x0 + 1, y0 + 1), u), v); }
   const height = (gx, gy) => noise(gx / 9, gy / 9) * 0.65 + noise(gx / 3.5, gy / 3.5) * 0.35;
   const score = s => s.done.length + s.lists.reduce((a, l) => a + (l.done | 0), 0);

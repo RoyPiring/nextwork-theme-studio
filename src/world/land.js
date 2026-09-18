@@ -1,59 +1,97 @@
 /* NextWorld · land: your world, drawn
  * The plan for your era, on the terrain you chose, with every project
  * built in the era's material and the people your work has drawn in.
- * The ground is classified once per plan and terrain into a byte grid;
- * the trees and lamps are placed once; only what moves is worked out
+ * Five terrains, five different maps: the plains have the one river;
+ * the forest a wooded belt and a pond; the desert dunes, flat-topped
+ * mesas and a dry wash; the island a plateau stepping down to the sea;
+ * the mountains rock terraces climbing to snow. The ground and its
+ * elevation are classified once per plan and terrain into byte grids;
+ * the trees and rocks are placed once; only what moves is worked out
  * each frame. */
 'use strict';
 (function () {
-  const { B, clamp, lerp, ease, rgb, reduce } = NW;
+  const { B, clamp, lerp, rgb, ease, reduce } = NW;
   const S = NW.State, { LAND, HOME } = S, Homes = NW.Homes;
 
   /* ---- terrain ---- */
   const TERRAINS = {
-    forest: { name: 'Forest', grass: ['#5f8a4b', '#4e7440'], stone: '#8a8f86', water: '#3f7d9c', sand: '#c9b98a', tree: 'pine', edge: 'dense' },
-    sandy: { name: 'Sandy', grass: ['#d9c290', '#c8ad76'], stone: '#b58e5c', water: '#3aa5a0', sand: '#eedaa8', tree: 'cactus', edge: 'mesa' },
-    island: { name: 'Ocean Island', grass: ['#6aa35a', '#579248'], stone: '#7d8a8c', water: '#2f8fb8', sand: '#f0e2b6', tree: 'palm', edge: 'ocean' },
-    plains: { name: 'Plains', grass: ['#8fb35c', '#7da34e'], stone: '#9a9a90', water: '#4b8fb0', sand: '#d3c49a', tree: 'oak', edge: 'open' },
-    mountains: { name: 'Rocky Mountains', grass: ['#6f8f5a', '#5b7a4a'], stone: '#8c8a85', water: '#3b7fa8', sand: '#b8b09a', tree: 'pine', edge: 'peaks' }
+    forest: { name: 'Forest', grass: ['#5f8a4b', '#4e7440'], stone: '#8a8f86', water: '#3f7d9c', sand: '#c9b98a', tree: 'pine', edge: 'dense', corridor: 'wood', relief: 'none', blurb: 'Deep pines, a wooded belt down the east side and a still pond. No river.' },
+    sandy: { name: 'Sandy', grass: ['#d9c290', '#c8ad76'], stone: '#b58e5c', water: '#3aa5a0', sand: '#eedaa8', tree: 'cactus', edge: 'mesa', corridor: 'wash', relief: 'mesa', blurb: 'Dunes, flat-topped mesas, cactus, and a dry wash where a river once ran.' },
+    island: { name: 'Ocean Island', grass: ['#6aa35a', '#579248'], stone: '#7d8a8c', water: '#2f8fb8', sand: '#f0e2b6', tree: 'palm', edge: 'ocean', corridor: 'spine', relief: 'shore', blurb: 'A plateau stepping down in terraces to beaches and open sea, a green spine down the east.' },
+    plains: { name: 'Plains', grass: ['#8fb35c', '#7da34e'], stone: '#9a9a90', water: '#4b8fb0', sand: '#d3c49a', tree: 'oak', edge: 'open', corridor: 'river', relief: 'none', blurb: 'Open grass, oaks, and the one river: it meanders until the city channels it.' },
+    mountains: { name: 'Rocky Mountains', grass: ['#6f8f5a', '#5b7a4a'], stone: '#8c8a85', water: '#3b7fa8', sand: '#b8b09a', tree: 'pine', edge: 'peaks', corridor: 'scree', relief: 'peaks', blurb: 'Rock terraces climbing to snow, a scree slope where the river would be.' },
+    snow: { name: 'Snowfield', grass: ['#eef3f7', '#dde6ee'], stone: '#9aa3ad', water: '#5b9ec4', sand: '#d7dde3', tree: 'snowpine', edge: 'peaks', corridor: 'drift', relief: 'peaks', weather: 'snow', sky: ['#c7d6e6', '#eef3f8'], blurb: 'Snow to every edge, white terraces, a long drift down the east, and it keeps falling.' },
+    rain: { name: 'Rainy Moor', grass: ['#5f7f52', '#4f6e46'], stone: '#6f7a72', water: '#4a7f92', sand: '#8f8a70', tree: 'willow', edge: 'open', corridor: 'bog', relief: 'none', weather: 'rain', sky: ['#7f8c99', '#b9c3cc'], blurb: 'Wet dark grass, willows, a bog of puddles and reeds, and rain that does not stop.' },
+    zen: { name: 'Zen Garden', grass: ['#b9c4a0', '#a9b592'], stone: '#8f8f88', water: '#4f8fa8', sand: '#e6e0cc', tree: 'cherry', edge: 'gravel', corridor: 'kare', relief: 'none', blurb: 'Moss, cherry trees, stone lanterns, a ring of raked gravel and a dry stream of stones.' },
+    savanna: { name: 'Savanna', grass: ['#c9b45a', '#b89e48'], stone: '#8a7a5a', water: '#5a95a8', sand: '#d9c48a', tree: 'acacia', edge: 'open', corridor: 'kopje', relief: 'none', blurb: 'Gold grass, flat-topped acacias, and a line of rocky kopjes where the river would be.' }
   };
+  const TERRAIN_KEYS = ['plains', 'forest', 'sandy', 'island', 'mountains', 'snow', 'rain', 'zen', 'savanna'];
   TERRAINS.hill = TERRAINS.plains; TERRAINS.desert = TERRAINS.sandy;
   const terrainOf = s => TERRAINS[s.biome] || TERRAINS.plains;
   let T = TERRAINS.plains;
   /* the ground as [r,g,b], so it can be darkened without going through a hex string */
-  const groundRGB = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.68) { const st = NW.hex(T.stone); return (gx + gy) % 2 ? st : st.map(v => Math.round(v * 0.94)); } const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(T.grass[0]), b = NW.hex(T.grass[1]); return a.map((v, i) => Math.round(lerp(v, b[i], dry))); };
+  const groundRGB = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.8 && T.relief === 'peaks') { const st = NW.hex(T.stone); return (gx + gy) % 2 ? st : st.map(v => Math.round(v * 0.94)); } const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(T.grass[0]), b = NW.hex(T.grass[1]); const c = a.map((v, i) => Math.round(lerp(v, b[i], dry))); if (T.relief === 'mesa') { const d = Math.sin(gx * 0.5 + gy * 0.75 + S.noise(gx / 6, gy / 6) * 5); return c.map(v => Math.round(v * (0.94 + d * 0.07))); } return c; };   /* the desert: dune ridges of lighter and darker sand */
   const groundColour = (gx, gy) => rgb(groundRGB(gx, gy));
-  const treeOf = (I, gx, gy, size) => { const t = T.tree; if (t === 'cactus') B.cactus(I, gx, gy, size); else if (t === 'pine') B.pine(I, gx, gy, size); else if (t === 'palm') B.palm(I, gx, gy, size); else B.oak(I, gx, gy, size); };
-  /* the edge of the world, by terrain: ocean round an island, peaks round the mountains, mesas in the desert */
-  const edgeOf = (gx, gy) => { const dx = (gx - 34) / 33, dy = (gy - 34) / 33, r = dx * dx + dy * dy; if (T.edge === 'ocean') return r > 1 ? 'ocean' : r > 0.86 ? 'beach' : null; if (T.edge === 'peaks') { const h = S.height(gx * 1.7, gy * 1.7); if (r > 0.92 || (r > 0.7 && h > 0.55)) return h > 0.62 ? 'snow' : 'rock'; return null; } if (T.edge === 'mesa') { const h = S.height(gx * 1.3 + 50, gy * 1.3); return r > 0.8 && h > 0.6 ? 'rock' : null; } return null; };
+  const treeOf = (I, gx, gy, size) => { const d = B[T.tree] || B.oak; d(I, gx, gy, size); };
+  /* the island's shore, as a rounded square so the plan's far lots stay on land */
+  const shoreR = (gx, gy) => { const dx = (gx - 34) / 32, dy = (gy - 34) / 32; return dx * dx * dx * dx + dy * dy * dy * dy + (S.noise(gx / 4, gy / 4) - 0.5) * 0.14; };
+  const mesaH = (gx, gy) => S.noise((gx + 50) / 7, gy / 7);   /* the mesas: broad, so they stand as tables, not scattered blocks */
+  /* the edge of the world, by terrain: ocean round an island, peaks round the mountains, mesas across the desert */
+  const edgeOf = (gx, gy) => {
+    const dx = (gx - 34) / 33, dy = (gy - 34) / 33, r = dx * dx + dy * dy;
+    if (T.edge === 'ocean') { const q = shoreR(gx, gy); return q > 1 ? 'ocean' : q > 0.8 ? 'beach' : null; }
+    if (T.edge === 'peaks') { const h = S.height(gx * 1.2, gy * 1.2); if (r > 0.92 || (r > 0.7 && h > 0.55)) return h > 0.66 ? 'snow' : 'rock'; return null; }
+    if (T.edge === 'mesa') return r > 0.4 && mesaH(gx, gy) > 0.74 ? 'rock' : null;
+    if (T.edge === 'gravel') return r > 0.78 ? 'gravel' : null;
+    return null;
+  };
 
   /* ---- the ground, classified once ---- */
-  const G = { WATER: 1, BANK: 2, ROAD: 3, PAVED: 4, BRIDGE: 5, EMBANK: 6, PROM: 7, PLAZA: 8, PARK: 9, FIELD: 10, MANAGED: 11, WILD: 12, OCEAN: 13, BEACH: 14, ROCK: 15, SNOW: 16 };
-  let groundKey = '', ground = null, decor = null;
+  const G = { WATER: 1, BANK: 2, ROAD: 3, PAVED: 4, BRIDGE: 5, EMBANK: 6, PROM: 7, PLAZA: 8, PARK: 9, FIELD: 10, MANAGED: 11, WILD: 12, OCEAN: 13, BEACH: 14, ROCK: 15, SNOW: 16, WASH: 17, SCREE: 18, RIDGE: 19, WOOD: 20, GRAVEL: 21, BOG: 22, DRIFT: 23 };
+  const STEP = 7;   /* one terrace, in pixels */
+  const POND = [43, 9, 5, 4];   /* the forest's pond */
+  let groundKey = '', ground = null, elev = null, decor = null;
   function classify(L) {
-    const plan = L.plan, W = plan.water, g = new Uint8Array(LAND * LAND);
+    const plan = L.plan, W = plan.water, g = new Uint8Array(LAND * LAND), el = new Int8Array(LAND * LAND), wet = T.corridor === 'river';
     const inRect = (x, y, r) => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3];
     const road = (x, y) => L.paths.has(x + ',' + y), paved = (x, y) => plan.pavedSet.has(x + ',' + y) || (x >= S.EAST_TRUNK - 1 && road(x, y) && plan.pavedSet.size > 0);
     const prom = (x, y) => W.promenade && x >= W.promenade.x0 && x <= W.promenade.x1 && y >= W.promenade.y0 && y <= W.promenade.y1;
     const managed = (x, y) => { const c = plan.clearing; const dx = (x - c.cx) / c.rx, dy = (y - c.cy) / c.ry; return dx * dx + dy * dy < 1; };
+    /* where the river runs on the plains, every other terrain has its own thing: a wooded belt, a dry wash, a green spine, a scree slope */
+    const corr = (x, y) => Math.abs(x + 0.5 - S.creekX(y + 0.5, plan)), inCorr = (x, y) => corr(x, y) < W.width / 2 + 0.55, nearCorr = (x, y) => corr(x, y) < W.width / 2 + 1.6;
+    const CORR = { wood: G.WOOD, wash: G.WASH, spine: G.RIDGE, scree: G.SCREE, kare: G.GRAVEL, bog: G.BOG, drift: G.DRIFT, kopje: G.SCREE };
+    /* the ground near anything built stays flat, so nothing stands in a pit or on a shelf */
+    const nearBuilt = (x, y) => L.buildings.some(b => Math.abs(b.gx - x) < 1.8 && Math.abs(b.gy - y) < 1.8) || (Math.abs(x - HOME[0] - 1) < 3 && Math.abs(y - HOME[1] - 1) < 3) || (L.next && Math.abs(L.next[0] - x) < 2 && Math.abs(L.next[1] - y) < 2) || plan.civic.concat(L.infra, L.nextBuild ? [L.nextBuild] : []).some(c => c.rect ? inRect(x, y, [c.rect[0] - 1, c.rect[1] - 1, c.rect[2] + 2, c.rect[3] + 2]) : c.at && Math.abs(c.at[0] - x) < 4 && Math.abs(c.at[1] - y) < 3);
     for (let y = 0; y < LAND; y++) for (let x = 0; x < LAND; x++) {
-      let k; const r = road(x, y), e = edgeOf(x, y);
-      if (r) k = S.inWater(x, y, plan) ? G.BRIDGE : paved(x, y) ? G.PAVED : G.ROAD;
-      else if (e === 'ocean') k = G.OCEAN; else if (e === 'snow') k = G.SNOW; else if (e === 'rock') k = G.ROCK;
-      else if (S.inWater(x, y, plan)) k = G.WATER;
-      else if (S.onBank(x, y, plan)) k = W.channelled ? (prom(x, y) ? G.PROM : G.EMBANK) : G.BANK;
+      let k; const r = road(x, y), e = edgeOf(x, y), m = managed(x, y);
+      if (r) k = wet && S.inWater(x, y, plan) ? G.BRIDGE : paved(x, y) ? G.PAVED : G.ROAD;
+      else if (e === 'ocean') k = G.OCEAN; else if (e === 'snow') k = G.SNOW; else if (e === 'rock') k = G.ROCK; else if (e === 'gravel') k = G.GRAVEL;
+      else if (wet && S.inWater(x, y, plan)) k = G.WATER;
+      else if (wet && S.onBank(x, y, plan)) k = W.channelled ? (prom(x, y) ? G.PROM : G.EMBANK) : G.BANK;
       else if (e === 'beach') k = G.BEACH;
-      else { const z = plan.zones.find(zz => inRect(x, y, zz.rect)); k = z ? (z.kind === 'park' ? G.PARK : G.PLAZA) : plan.landscape.fields.some(f => inRect(x, y, f)) ? G.FIELD : managed(x, y) ? G.MANAGED : G.WILD; }
+      else if (T.corridor === 'wood' && inRect(x, y, POND) && !m) k = G.WATER;
+      else if (!wet && !m && (inCorr(x, y) || (T.corridor === 'wood' && nearCorr(x, y)))) k = CORR[T.corridor];
+      else { const z = plan.zones.find(zz => inRect(x, y, zz.rect)); k = z ? (z.kind === 'park' ? G.PARK : G.PLAZA) : plan.landscape.fields.some(f => inRect(x, y, f)) ? G.FIELD : m ? G.MANAGED : G.WILD; }
       g[y * LAND + x] = k;
     }
-    /* what stands still: trees, hay, lamps, bridge rails; placed once */
-    const d = { trees: [], lamps: [], rails: [] }; const dens = plan.landscape.treeline === 'dense' ? 0.035 : plan.landscape.treeline === 'thin' ? 0.018 : 0; const rail = plan.civic.find(c => c.kind === 'rail');
-    for (let y = 0; y < LAND; y++) for (let x = 0; x < LAND; x++) { const k = g[y * LAND + x]; if (k !== G.MANAGED && k !== G.WILD) continue; const r = S.hash(x * 3, y * 5); const dd = k === G.MANAGED ? 0.006 : dens; if (r > dd || (rail && y === rail.from[1] && x <= rail.to[0])) continue; if (L.buildings.some(b => Math.abs(b.gx - x) < 1.6 && Math.abs(b.gy - y) < 1.6) || (Math.abs(x - HOME[0] - 1) < 3 && Math.abs(y - HOME[1] - 1) < 3) || (L.next && Math.abs(L.next[0] - x) < 2 && Math.abs(L.next[1] - y) < 2)) continue; if (plan.civic.some(c => c.rect ? inRect(x, y, [c.rect[0] - 1, c.rect[1] - 1, c.rect[2] + 2, c.rect[3] + 2]) : c.at && Math.abs(c.at[0] - x) < 4 && Math.abs(c.at[1] - y) < 3)) continue; d.trees.push([x, y, r < 0.004 && k === G.MANAGED ? 'hay' : 'tree', 0.8 + S.hash(y, x) * 0.5]); }
+    /* the relief: terraces up into the mountains and onto the mesas, down from the island's plateau to the sea */
+    const OPEN = [G.WILD, G.WOOD, G.ROCK, G.SNOW, G.OCEAN, G.BEACH, G.WASH, G.SCREE, G.RIDGE, G.DRIFT];
+    if (T.relief !== 'none') for (let y = 0; y < LAND; y++) for (let x = 0; x < LAND; x++) {
+      const i = y * LAND + x, k = g[i]; if (!OPEN.includes(k) || nearBuilt(x, y)) continue; let z = 0;
+      if (T.relief === 'shore') { const q = shoreR(x, y); z = k === G.OCEAN ? -4 : k === G.BEACH ? -3 : clamp(Math.floor((0.8 - q) * 12) - 3, -3, 0); if (z === 0) { const h = S.height(x * 1.5, y * 1.5); if (h > 0.72) z = 2; else if (h > 0.62) z = 1; } if (k === G.RIDGE) z = Math.max(z, 0) + 1; }
+      else if (T.relief === 'peaks') { const h = S.height(x * 1.2, y * 1.2), far = (x - 34) * (x - 34) + (y - 34) * (y - 34) > 600; z = h > 0.72 ? 3 : h > 0.62 ? 2 : h > 0.52 ? 1 : 0; if (k === G.SCREE || k === G.DRIFT) z = 1; else if (z === 3) g[i] = far || T.weather === 'snow' ? G.SNOW : G.ROCK; else if (z === 2 && k === G.WILD && T.weather !== 'snow') g[i] = G.ROCK; }   /* the snowline: only the far peaks keep snow */
+      else if (T.relief === 'mesa') { z = k === G.ROCK ? 3 : k === G.WASH ? -1 : mesaH(x, y) > 0.66 && (x - 34) * (x - 34) + (y - 34) * (y - 34) > 435 ? 1 : 0; }
+      el[i] = z;
+    }
+    /* what stands still: trees, rocks, hay, lamps, bridge rails; placed once */
+    const d = { trees: [], lamps: [], rails: [] }; const dens = plan.landscape.treeline === 'dense' ? (T.tree === 'pine' && T.corridor === 'wood' ? 0.12 : 0.07) : plan.landscape.treeline === 'thin' ? 0.036 : 0; const rail = plan.civic.find(c => c.kind === 'rail');
+    const DENS = { [G.WOOD]: 0.4, [G.RIDGE]: 0.14, [G.SCREE]: 0.28, [G.ROCK]: 0.12, [G.WASH]: 0.06, [G.BEACH]: 0.025, [G.BOG]: 0.3, [G.GRAVEL]: 0.05 };
+    for (let y = 0; y < LAND; y++) for (let x = 0; x < LAND; x++) { const i = y * LAND + x, k = g[i]; if (k !== G.MANAGED && k !== G.WILD && DENS[k] == null) continue; const r = S.hash(x * 3, y * 5); const dd = k === G.MANAGED ? 0.012 : k === G.WILD ? dens : DENS[k]; if (r > dd || (rail && y === rail.from[1] && x <= rail.to[0])) continue; if (nearBuilt(x, y)) continue; const what = k === G.BOG ? 'reeds' : k === G.GRAVEL || (T.corridor === 'kare' && k === G.WILD && r < dd * 0.35) ? (S.hash(x, y * 2) < 0.4 ? 'lantern' : 'rock') : k === G.SCREE || k === G.ROCK || k === G.WASH ? 'rock' : r < 0.008 && k === G.MANAGED ? 'hay' : 'tree'; d.trees.push([x, y, what, 0.8 + S.hash(y, x) * 0.5, el[i] * STEP]); }
     if (plan.landscape.lamps !== 'none') L.paths.forEach(key => { const [x, y] = key.split(',').map(Number); const k = g[y * LAND + x]; if (k !== G.PAVED) return; if (plan.landscape.lamps === 'main' && y !== 33) return; if ((x + y * 3) % 7 === 0) d.lamps.push([x, y]); });
     L.paths.forEach(key => { const [x, y] = key.split(',').map(Number); if (g[y * LAND + x] === G.BRIDGE) d.rails.push([x, y]); });
-    return { g, d };
+    return { g, el, d };
   }
-  function groundFor(L, state) { const k = L.plan.id + '|' + state.biome + '|' + L.buildings.length + '|' + (L.next || []).join(); if (k !== groundKey) { const c = classify(L); ground = c.g; decor = c.d; groundKey = k; } return ground; }
+  function groundFor(L, state) { const k = L.plan.id + '|' + state.biome + '|' + L.buildings.length + '|' + (L.next || []).join() + '|' + (L.nextBuild ? L.nextBuild.kind : ''); if (k !== groundKey) { const c = classify(L); ground = c.g; elev = c.el; decor = c.d; groundKey = k; } return ground; }
   const colourOf = (k, gx, gy) => {
     switch (k) {
       case G.WATER: return (gx + gy) % 5 === 0 ? NW.shade(T.water, 0.2) : T.water;
@@ -64,11 +102,30 @@
       case G.PLAZA: return (gx + gy) % 2 ? '#e9e2d0' : '#dfd7c3'; case G.PARK: return (gx + gy) % 2 ? '#7fc55a' : '#86cc60';
       case G.FIELD: return gy % 2 ? '#a8783f' : '#c8a06a';
       case G.ROCK: return (gx + gy) % 2 ? T.stone : NW.shade(T.stone, -0.12); case G.SNOW: return (gx + gy) % 2 ? '#f4f7fa' : '#e6ecf2';
+      case G.WASH: return (gx * 3 + gy) % 5 === 0 ? '#cdb07c' : '#e6d3a4';   /* a dry bed: pale sand and pebbles */
+      case G.SCREE: return (gx + gy) % 2 ? '#6f6d68' : '#7c7a74';
+      case G.RIDGE: return rgb(groundRGB(gx, gy).map(v => Math.min(255, Math.round(v * 1.08))));
+      case G.WOOD: return rgb(groundRGB(gx, gy).map(v => Math.round(v * 0.78)));
+      case G.GRAVEL: return (gx + gy) % 3 === 0 ? '#d6d0ba' : '#e8e2cd';   /* raked: a line every third tile */
+      case G.BOG: return (gx * 3 + gy * 5) % 7 === 0 ? NW.shade(T.water, -0.15) : rgb(groundRGB(gx, gy).map(v => Math.round(v * 0.82)));   /* puddles in wet ground */
+      case G.DRIFT: return (gx + gy) % 2 ? '#f7f9fc' : '#eaf0f5';
       case G.MANAGED: return groundColour(gx, gy);
       default: return rgb(groundRGB(gx, gy).map(v => Math.round(v * 0.92)));   /* the wild: the same ground, a shade quieter */
     }
   };
+  /* the side of a terrace: the ground colour, in shadow; rock where it climbs */
+  const faceRGB = (k, gx, gy) => { if (k === G.WILD || k === G.WOOD || k === G.RIDGE || k === G.MANAGED) return groundRGB(gx, gy).map(v => Math.round(v * 0.62)); const c = colourOf(k, gx, gy); return (c[0] === '#' ? NW.hex(c) : [110, 108, 100]).map(v => Math.round(v * 0.7)); };
   const edgeStroke = k => k === G.ROAD ? 'rgba(110,75,30,.35)' : k === G.PAVED || k === G.PROM ? 'rgba(0,0,0,.08)' : k === G.BRIDGE ? '#6b4a2b' : k === G.EMBANK ? 'rgba(0,0,0,.12)' : k === G.PLAZA ? 'rgba(0,0,0,.05)' : k === G.FIELD ? 'rgba(90,50,10,.35)' : null;
+  /* one tile of ground at its terrace, with a face down to any lower neighbour to the south or east */
+  function groundTile(I, gx, gy, k) {
+    const i = gy * LAND + gx, e = elev ? elev[i] : 0, z = e * STEP;
+    if (!e) I.tile(gx, gy, colourOf(k, gx, gy), edgeStroke(k));
+    else I.poly([I.p(gx, gy, z), I.p(gx + 1, gy, z), I.p(gx + 1, gy + 1, z), I.p(gx, gy + 1, z)], colourOf(k, gx, gy), edgeStroke(k));
+    const eS = gy + 1 < LAND ? elev[i + LAND] : e, eE = gx + 1 < LAND ? elev[i + 1] : e; if (eS >= e && eE >= e) return;
+    const f = faceRGB(k, gx, gy);
+    if (eS < e) I.poly([I.p(gx, gy + 1, z), I.p(gx + 1, gy + 1, z), I.p(gx + 1, gy + 1, eS * STEP), I.p(gx, gy + 1, eS * STEP)], rgb(f));
+    if (eE < e) I.poly([I.p(gx + 1, gy, z), I.p(gx + 1, gy + 1, z), I.p(gx + 1, gy + 1, eE * STEP), I.p(gx + 1, gy, eE * STEP)], rgb(f.map(v => Math.round(v * 0.85))));
+  }
 
   /* ---- you: always on a road ---- */
   const onRoad = (roads, gx, gy) => roads.has(Math.floor(gx) + ',' + Math.floor(gy));
@@ -98,12 +155,12 @@
   function drawLand(I, state, me, now, opts) {
     const ctx = I.ctx, L = S.layout(state), plan = L.plan; opts = opts || {}; T = terrainOf(state);
     const g = groundFor(L, state), lvl = NW.Eras.level(state), era = NW.Eras.eraOf(state);
-    for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) { if (!I.onScreen(gx, gy)) continue; const k = g[gy * LAND + gx]; I.tile(gx, gy, colourOf(k, gx, gy), edgeStroke(k)); }
+    for (let d = 0; d <= 2 * (LAND - 1); d++) for (let gx = Math.max(0, d - LAND + 1); gx <= Math.min(LAND - 1, d); gx++) { const gy = d - gx; if (!I.onScreen(gx, gy)) continue; groundTile(I, gx, gy, g[gy * LAND + gx]); }
     const rail = plan.civic.find(c => c.kind === 'rail');
     if (rail && !opts.map) { ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 1.2; for (let x = rail.from[0]; x <= rail.to[0]; x += 0.5) { const a = I.p(x, rail.from[1] + 0.15), b = I.p(x, rail.from[1] + 0.85); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); } [0.3, 0.7].forEach(o => { const a = I.p(rail.from[0], rail.from[1] + o), b = I.p(rail.to[0] + 1, rail.to[1] + o); ctx.strokeStyle = '#9aa3b0'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }); }
     const items = []; const add = (d, fn) => items.push({ d, fn });
     if (!opts.map) { decor.rails.forEach(([x, y]) => { if (!I.onScreen(x, y)) return; add(x + y + 0.4, () => { const a = I.p(x, y), b = I.p(x + 1, y), c = I.p(x, y + 1), d = I.p(x + 1, y + 1); I.line(I.up(a, 6), I.up(b, 6), '#8a6a3f', 1.5); I.line(I.up(c, 6), I.up(d, 6), '#8a6a3f', 1.5); }); });
-      decor.trees.forEach(([x, y, what, size]) => { if (!I.onScreen(x, y)) return; add(x + y + 0.5, what === 'hay' ? () => B.hay(I, x, y) : () => treeOf(I, x, y, size)); });
+      decor.trees.forEach(([x, y, what, size, z]) => { if (!I.onScreen(x, y)) return; add(x + y + 0.5, () => { I.cam.y += z; if (what === 'hay') B.hay(I, x, y); else if (what === 'rock') B.boulder(I, x, y, size); else if (what === 'reeds') B.reeds(I, x, y, size); else if (what === 'lantern') B.stonelantern(I, x, y); else treeOf(I, x, y, size); I.cam.y -= z; }); });
       decor.lamps.forEach(([x, y]) => { if (I.onScreen(x, y)) add(x + y + 0.35, () => I.lamp(x + 0.15, y + 0.15)); }); }
     /* the home: a tent at the campground, the cabin from the fort on, growing with the eras */
     if (I.onScreen(HOME[0], HOME[1])) {
@@ -138,9 +195,17 @@
       if (f.type === 'sparkle') add(999, () => { const q = I.p(f.gx, f.gy, 20); for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + f.seed, r = ease(t) * 34; ctx.globalAlpha = 1 - t; I.blob(q[0] + Math.cos(a) * r, q[1] + Math.sin(a) * r * 0.55 - t * 18, 2.2 * (1 - t) + 0.5, ['#ffd54a', '#7cf0a4', '#4fc3ff', '#ff8fb1'][i % 4]); } ctx.globalAlpha = 1; }); });
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
     I.nightfall(I.night);
+    if (T.weather && !opts.map && !reduce) weather(I, now);
     return L;
   }
-  function sky(I, n) { n = n || 0; const g = I.ctx.createLinearGradient(0, 0, 0, I.H || 620); const mix = (a, b) => { const A = NW.hex(a), B2 = NW.hex(b); return NW.rgb(A.map((v, i) => Math.round(v + (B2[i] - v) * n))); }; g.addColorStop(0, mix('#9ccdf5', '#0b1730')); g.addColorStop(1, mix('#dfeefb', '#16325a')); I.ctx.fillStyle = g; I.ctx.fillRect(0, 0, I.W || 880, I.H || 620); }
+  /* rain or snow, falling over the whole view; the drops are placed by hash so they need no state */
+  function weather(I, now) { const ctx = I.ctx, W = I.W || 880, H = I.H || 620, t = now / 1000, cx = I.cam.x, cy = I.cam.y; ctx.save(); ctx.setTransform(2 * I.S, 0, 0, 2 * I.S, 0, 0);
+    if (T.weather === 'rain') { ctx.strokeStyle = 'rgba(200,220,240,.45)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 160; i++) { const x = (S.hash(i, 1) * W * 1.2 - t * 40 + cx * 0.2) % (W * 1.2), y = (S.hash(i, 2) * H + t * 520 + i * 7 + cy * 0.2) % (H + 40) - 20; ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 14); } ctx.stroke(); ctx.fillStyle = 'rgba(120,140,160,.12)'; ctx.fillRect(0, 0, W, H); }
+    else { ctx.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 110; i++) { const s = 1 + S.hash(i, 9) * 1.6, x = (S.hash(i, 1) * W + Math.sin(t * 0.8 + i) * 12 + t * 8) % W, y = (S.hash(i, 2) * H + t * (40 + s * 25) + i * 3) % (H + 20) - 10; ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill(); } }
+    ctx.restore(); }
+  function sky(I, n) { n = n || 0; const g = I.ctx.createLinearGradient(0, 0, 0, I.H || 620); const mix = (a, b) => { const A = NW.hex(a), B2 = NW.hex(b); return NW.rgb(A.map((v, i) => Math.round(v + (B2[i] - v) * n))); }; const day = T.sky || ['#9ccdf5', '#dfeefb']; g.addColorStop(0, mix(day[0], '#0b1730')); g.addColorStop(1, mix(day[1], '#16325a')); I.ctx.fillStyle = g; I.ctx.fillRect(0, 0, I.W || 880, I.H || 620); }
+  /* the classified ground for a state, for anything that wants to ask what is where */
+  const groundOf = state => { T = terrainOf(state); const L = S.layout(state); groundFor(L, state); return { g: ground, el: elev, G, T }; };
   const hit = (L, g) => L.buildings.find(b => b.tier > 0 && Math.abs(b.gx + 0.5 - g[0]) < 0.75 && Math.abs(b.gy + 0.5 - g[1]) < 0.75);
-  NW.Land = { TERRAINS, terrainOf, groundColour, treeOf, onRoad, makeMe, goTo, stepMe, siteFor, drawLand, sky, hit };
+  NW.Land = { TERRAINS, TERRAIN_KEYS, terrainOf, groundColour, treeOf, onRoad, makeMe, goTo, stepMe, siteFor, drawLand, sky, hit, groundOf };
 })();

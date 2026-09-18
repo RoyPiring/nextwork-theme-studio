@@ -53,6 +53,22 @@ test('the first projects build what the camp needs; a tent only once it has them
   assert.equal(s.done.length, 5, 'finishing twice counts once');
 });
 
+test('nine terrains, nine different maps: only the plains have a river', () => {
+  const Land = NW.Land; assert.equal(Land.TERRAIN_KEYS.length, 9);
+  const count = (biome, k) => { const s = S.normalise({ biome, mode: 'dev' }); const { g, G } = Land.groundOf(s); let n = 0; for (let i = 0; i < g.length; i++) if (g[i] === G[k]) n++; return n; };
+  assert.ok(count('plains', 'WATER') > 60, 'the plains have the river');
+  ['sandy', 'island', 'mountains', 'snow', 'rain', 'zen', 'savanna'].forEach(b => assert.equal(count(b, 'WATER'), 0, b + ' has no river'));
+  const pond = count('forest', 'WATER'); assert.ok(pond > 0 && pond <= 20, 'the forest has a pond, not a river');
+  [['sandy', 'WASH'], ['sandy', 'ROCK'], ['island', 'OCEAN'], ['island', 'BEACH'], ['island', 'RIDGE'], ['mountains', 'SNOW'], ['mountains', 'SCREE'], ['snow', 'DRIFT'], ['rain', 'BOG'], ['zen', 'GRAVEL'], ['savanna', 'SCREE'], ['forest', 'WOOD']].forEach(([b, k]) => assert.ok(count(b, k) > 0, b + ' has its ' + k.toLowerCase()));
+  const { el } = Land.groundOf(S.normalise({ biome: 'island', mode: 'dev' })); let up = 0, down = 0; for (let i = 0; i < el.length; i++) { if (el[i] > 0) up++; if (el[i] < 0) down++; }
+  assert.ok(down > 200 && up > 20, 'the island steps down to the sea and has hills');
+});
+
+test('the hash is uniform on [0, 1), so heights reach the peaks', () => {
+  let max = 0, sum = 0; for (let i = 0; i < 2000; i++) { const v = S.hash(i * 3, i * 5 + 1); max = Math.max(max, v); sum += v; }
+  assert.ok(max > 0.95 && sum / 2000 > 0.45 && sum / 2000 < 0.55);
+});
+
 test('the ranch house grows by count, not by rarity', () => {
   const s = S.seed(S.fresh(), 50);
   assert.equal(s.done.length, 50);
