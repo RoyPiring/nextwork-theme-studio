@@ -232,7 +232,7 @@
     /* a learner's plot on the NextWork World map: a little home if they have
      * built, a stake and a name if they are just starting */
     I.poly([I.p(gx - 0.6, gy - 0.6), I.p(gx + 1.8, gy - 0.6), I.p(gx + 1.8, gy + 1.8), I.p(gx - 0.6, gy + 1.8)], owner.mine ? 'rgba(255,197,49,.28)' : 'rgba(255,255,255,.14)', owner.mine ? '#ffc531' : 'rgba(255,255,255,.55)', owner.mine ? 2 : 1);
-    if (owner.built > 0) B.house(I, gx + 0.1, gy + 0.1, 1, now, owner.built >= 20 ? 3 : owner.built >= 5 ? 2 : 1); else { const s = I.p(gx + 0.6, gy + 0.6); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(s[0] - 1, s[1] - 16, 2, 16); I.roundRect(s[0] - 8, s[1] - 20, 16, 7, 1.5, '#f4f1e8'); }
+    if (owner.built > 0) B.house(I, gx + 0.1, gy + 0.1, 1, now, owner.built >= 20 ? 3 : owner.built >= 5 ? 2 : 1); else { const a = I.p(gx + 0.1, gy + 0.1), c = I.p(gx + 1.1, gy + 1.1), d = I.p(gx + 1.1, gy + 0.1), e = I.p(gx + 0.1, gy + 1.1); I.line(a, c, 'rgba(255,255,255,.5)', 1); I.line(d, e, 'rgba(255,255,255,.5)', 1); }
   };
 
   /* ---- the avatar: you, as you built yourself ---- */

@@ -48,7 +48,7 @@
     const n = Math.max(1, total | 0), reached = Math.round(Math.min(done, n) / n * STAGES.length), z = (1 - k) * -50;
     const has = s => reached >= STAGES.indexOf(s) + 1, lift = s => reached === STAGES.indexOf(s) + 1 ? -z : 0;
     I.ctx.setLineDash([4, 4]); I.poly([I.p(gx - 0.2, gy - 0.2), I.p(gx + 1.2, gy - 0.2), I.p(gx + 1.2, gy + 1.2), I.p(gx - 0.2, gy + 1.2)], 'rgba(255,255,255,.1)', 'rgba(255,255,255,.8)', 1.2); I.ctx.setLineDash([]);
-    [[-0.2, -0.2], [1.2, -0.2], [-0.2, 1.2], [1.2, 1.2]].forEach(o => { const q = I.p(gx + o[0], gy + o[1]); I.ctx.fillStyle = '#8b5a2b'; I.ctx.fillRect(q[0] - 1, q[1] - 9, 2, 9); I.ctx.fillStyle = '#e8552f'; I.ctx.fillRect(q[0] - 3, q[1] - 11, 6, 3); });
+    [[-0.2, -0.2], [1.2, -0.2], [-0.2, 1.2], [1.2, 1.2]].forEach(o => { const q = I.p(gx + o[0], gy + o[1]); I.ctx.fillStyle = '#f4f1e8'; I.ctx.fillRect(q[0] - 1, q[1] - 9, 2, 9); I.ctx.fillStyle = '#ffc531'; I.ctx.fillRect(q[0] - 3, q[1] - 11, 6, 3); });
     if (done >= n && n > 0) { ERA_HOME[era](I, gx, gy, 1, now, kind); return 'Finished'; }
     const wall = era <= 1 ? '#a8763f' : era === 2 ? '#f3e6cc' : era === 3 ? '#b8553f' : era === 4 ? '#3b6fb5' : '#f4f1e8', tex = era <= 1 ? 'siding' : era === 2 ? 'siding' : era === 3 ? 'brick' : era === 4 ? 'glass' : 'stone', H = era <= 2 ? 34 : era === 3 ? 56 : era === 4 ? 78 : 64;
     if (has('slab')) I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 5, era >= 2 ? '#c9c2b0' : '#8a6a3f', lift('slab'), { top: 0.1 });
