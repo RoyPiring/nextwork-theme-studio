@@ -79,6 +79,16 @@ test('the place is never empty on the day it levels up: every finished project s
   const K = S.layout(k); assert.equal(K.plan.id, 'kingdom'); assert.equal(K.infra.map(b => b.kind).join(), 'skypad,hoverport,skyisland,skyisland,skyisland');
 });
 
+test('a project a day powers the world; a real day without one costs a quarter', () => {
+  const day = 86400000, now = Date.now(); const s = S.normalise({ mode: 'prod', done: ['Set Up An AWS Account'], life: { founded: now - 10 * S.DAY_MS, lastDone: now } });
+  assert.equal(S.power(s, now), 1, 'built today: full power');
+  assert.equal(S.power(s, now + 2 * day), 0.75); assert.equal(S.power(s, now + 3 * day), 0.5); assert.equal(S.power(s, now + 5 * day), 0);
+  assert.equal(S.dayOf(s, now), 10, 'ten fast days have passed'); assert.ok(S.hourOfDay(now) >= 0 && S.hourOfDay(now) < 24);
+  S.finish(s, 'Host a Website on Amazon S3'); assert.ok(s.life.lastDone >= now, 'finishing a project powers it again');
+  s.life.founded = now - 5000 * S.DAY_MS; const full = S.population(s, now, 20), low = S.population(s, now + 6 * day, 20); assert.equal(full, 20, 'a settled place fills up while the power is on'); assert.equal(low, 8, 'people drift off without power');
+  const fresh = S.normalise({ mode: 'prod' }); assert.equal(S.power(fresh, now), 1, 'nothing built yet: no penalty');
+});
+
 test('the ranch house grows by count, not by rarity', () => {
   const s = S.seed(S.fresh(), 50);
   assert.equal(s.done.length, 50);
