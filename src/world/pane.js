@@ -53,6 +53,7 @@
     (document.body || document.documentElement).appendChild(el);
     const w = world(settings);
     api = NW.mount(body, {
+      chrome: true,
       load: () => Object.assign({}, w.state || w.read || NW.State.fresh(), { mode: w.mode }),
       save: s => tools.saveWorld({ state: s, mode: s.mode }),
       remember: (k, v) => { if (v === undefined) return w.tab || ''; tools.saveWorld({ tab: v }); },
@@ -75,15 +76,40 @@
     if (!api) return;   /* still mounting: a save from inside mount comes back through here */
     if (settings.peek || w.collapsed || document.hidden) api.pause(); else api.resume();
   }
-  function remove() { if (el) el.remove(); if (api) api.pause(); el = null; root = null; api = null; lastMode = ''; }
+  function remove() { if (el) el.remove(); if (api) api.pause(); el = null; root = null; api = null; lastMode = ''; lastRead = ''; if (badgeEl) badgeEl.remove(); badgeEl = null; }
   /* readings from the page, handed in by the content script once the page has settled */
+  /* a reading is applied once: the same page read again changes nothing and saves nothing, so a save never triggers a read that triggers a save */
+  let lastRead = '';
   function read(doc, pathname) {
-    const p = NW.Readers.readProjectPage(doc, pathname); if (p) { if (api) api.applyProject(p); const cur = world(tools.current()); const r = NW.State.applyProjectReading(NW.State.normalise(cur.read || {}), p); tools.saveWorld({ read: r }); return p; }
-    const f = NW.Readers.readPortfolioPage(doc, pathname); if (f) { if (api) api.applyPortfolio(f); const cur = world(tools.current()); const r = NW.State.applyPortfolioReading(NW.State.normalise(cur.read || {}), f); tools.saveWorld({ read: r }); return f; }
-    return null;
+    const p = NW.Readers.readProjectPage(doc, pathname); if (p) { const k = 'p|' + pathname + '|' + p.title + '|' + p.done + '/' + p.total; if (k === lastRead) return p; lastRead = k; if (api) api.applyProject(p); const cur = world(tools.current()); const r = NW.State.applyProjectReading(NW.State.normalise(cur.read || {}), p); tools.saveWorld({ read: r }); badge(pathname); return p; }
+    const f = NW.Readers.readPortfolioPage(doc, pathname); if (f) { const k = 'f|' + pathname + '|' + f.lists.map(l => l.name + l.count).join(); if (k === lastRead) return f; lastRead = k; if (api) api.applyPortfolio(f); const cur = world(tools.current()); const r = NW.State.applyPortfolioReading(NW.State.normalise(cur.read || {}), f); tools.saveWorld({ read: r }); return f; }
+    badge(pathname); return null;
+  }
+  /* ---- the pineapple on the project page: what this project builds, the step you are on, and a way back to the land ---- */
+  const BADGE_ID = 'nwp-badge'; let badgeEl = null, badgeRoot = null, badgeParts = null;
+  const BADGE_CSS = '.b { position: fixed; right: 18px; bottom: 18px; z-index: 2147483000; display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; width: 300px; padding: 10px 12px; border-radius: 14px; background: #fff; color: #172033; font: 13px/1.35 Nunito, "Segoe UI", system-ui, sans-serif; box-shadow: 0 12px 34px rgba(0,0,0,.28); border: 1px solid rgba(0,0,0,.08); } .b canvas { width: 44px; height: 60px; display: block; } .b b { display: block; font: 800 13.5px/1.2 "Baloo 2", "Segoe UI", system-ui, sans-serif; } .b small { display: block; color: #5b6478; font-size: 12px; } .b .acts { grid-column: 1 / -1; display: flex; gap: 6px; } .b button { flex: 1; font: 800 12px/1 "Baloo 2", "Segoe UI", system-ui, sans-serif; padding: 9px 6px; border: 0; border-radius: 10px; background: #eef2f8; color: #172033; cursor: pointer; } .b button.go { background: linear-gradient(180deg, #ffe27a, #ffc531 55%, #ff9d1c); color: #4a2b00; } .b button.x { flex: 0 0 34px; background: transparent; color: #9aa6c0; } .b button:hover { filter: brightness(1.05); }';
+  function pineapple(cv) { const I = NW.makeIso(cv, 22, 30, 2); I.cam.x = 0; I.cam.y = 29; NW.B.avatar(I, 0, 0, { body: 'pineapple', shirt: '#2f7fd6', hat: 'none' }, 0, false); }
+  function badge(pathname) {
+    const w = tools && tools.current ? world(tools.current()) : null; const st = api ? api.state : NW.State.normalise(w && (w.state || w.read) || {});
+    const onProject = /^\/projects?\/[^/]+/.test(pathname || ''); if (!onProject || !w || !w.enabled || w.badgeOff) { if (badgeEl) badgeEl.remove(); badgeEl = null; return; }
+    if (!badgeEl || !badgeEl.isConnected) {
+      badgeEl = document.createElement('div'); badgeEl.id = BADGE_ID; badgeEl.setAttribute('data-nwt-own', '1'); badgeRoot = badgeEl.attachShadow({ mode: 'closed' });
+      const style = document.createElement('style'); style.textContent = BADGE_CSS; const box = document.createElement('div'); box.className = 'b'; const cv = document.createElement('canvas'); cv.width = 88; cv.height = 120; pineapple(cv);
+      const t = document.createElement('div'); const b = document.createElement('b'); const s1 = document.createElement('small'); const s2 = document.createElement('small'); t.appendChild(b); t.appendChild(s1); t.appendChild(s2);
+      const acts = document.createElement('div'); acts.className = 'acts'; const tick = document.createElement('button'); tick.type = 'button'; tick.textContent = 'I did this step'; const see = document.createElement('button'); see.type = 'button'; see.className = 'go'; see.textContent = 'See it on my land'; const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Hide the pineapple on project pages');
+      acts.appendChild(tick); acts.appendChild(see); acts.appendChild(x); box.appendChild(cv); box.appendChild(t); box.appendChild(acts); badgeRoot.appendChild(style); badgeRoot.appendChild(box); (document.body || document.documentElement).appendChild(badgeEl);
+      badgeParts = { b, s1, s2, tick, see };
+      see.addEventListener('click', () => { tools.saveWorld({ enabled: true, collapsed: false, tab: 'build' }); if (api) api.show('build'); });
+      x.addEventListener('click', () => { tools.saveWorld({ badgeOff: true }); badgeEl.remove(); badgeEl = null; });
+      tick.addEventListener('click', () => { const title = badgeParts.title; if (!title || !api) return; const st2 = api.state.steps[title] || { done: 0, total: 7 }; api.applyProject({ title, done: st2.done + 1, total: st2.total, at: Date.now() }); badge(pathname); });
+    }
+    const h1 = document.querySelector('h1'); const title = (h1 && h1.textContent || '').replace(/\s+/g, ' ').trim(); badgeParts.title = title;
+    const known = NW.PROJECTS.find(p => p.title.toLowerCase() === title.toLowerCase()); const sr = known ? NW.SERIES.find(x => x.id === known.series) : null; const step = st.steps[title] || { done: 0, total: 0 }; const built = st.done.includes(title);
+    if (built) { badgeParts.b.textContent = 'Built: ' + title; badgeParts.s1.textContent = (NW.KIND_NAME[sr ? sr.kind : 'home'] || 'A home') + ' on your land. ' + NW.State.citizens(st, Date.now()) + ' live there now.'; badgeParts.s2.textContent = 'Next project, next building.'; badgeParts.tick.hidden = true; }
+    else { badgeParts.b.textContent = (known ? 'Building: ' : 'Not on the map yet: ') + title; badgeParts.s1.textContent = step.total ? 'Step ' + Math.min(step.done + 1, step.total) + ' of ' + step.total + ' \u00b7 a spark each \u00b7 power ' + Math.round(NW.State.power(st, Date.now()) * 100) + '%' : 'Tick a step below; a wall goes up.'; badgeParts.s2.textContent = known ? (step.done ? NW.LESSONS[step.done % NW.LESSONS.length] : 'Every step is a brick. Start with one.') : 'Finish it and it still counts: it is yours.'; badgeParts.tick.hidden = !known && !step.total; }
   }
   function setup(t) { tools = t; }
   /* the browser changed size: the pane keeps its place and its share of it */
   window.addEventListener('resize', () => { if (el && tools) place(world(tools.current())); });
-  self.NWT_WORLD = { ID, setup, render, remove, read, isOpen: () => !!el };
+  self.NWT_WORLD = { ID, setup, render, remove, read, badge, isOpen: () => !!el };
 })();

@@ -16,7 +16,7 @@
     const marked = e => attr(e, 'aria-checked') === 'true' || /^(complete|checked|done)$/.test(attr(e, 'data-state')) || /complete|checked|done/i.test(attr(e, 'aria-label')) || /(^|\s)(done|complete|completed)(\s|$)/.test(attr(e, 'class'));
     if (marked(el)) return true;
     if (all(el, 'input').some(i => i.checked)) return true;
-    if (all(el, '*').some(marked)) return true;
+    if (all(el, '[aria-checked], [data-state]').some(e => attr(e, 'aria-checked') === 'true' || /^(complete|checked|done)$/.test(attr(e, 'data-state')))) return true;   /* a 'Mark complete' button inside a step is not a tick */
     try { const cs = el.ownerDocument && el.ownerDocument.defaultView && el.ownerDocument.defaultView.getComputedStyle(el); if (cs && /line-through/.test(cs.textDecorationLine || cs.textDecoration || '')) return true; } catch (e) { /* a stand-in document */ }
     return false;
   }

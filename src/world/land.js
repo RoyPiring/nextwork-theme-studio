@@ -152,7 +152,7 @@
     const lvl = NW.Eras.level(state), pw = S.power(state, Date.now()), pop = S.population(state, Date.now(), L.capacity), want = Math.max(pw < 0.25 ? 1 : 2, Math.min(CAP[lvl], pop, Math.round(pop * (0.3 + 0.7 * pw)))); const key = L.plan.id + '|' + want + '|' + L.buildings.length; const tiles = Array.from(L.paths).map(k => k.split(',').map(Number));
     if (key !== folkKey || !folk.length) { folkKey = key; folk = []; const jobs = jobsOf(L), homes = L.buildings.filter(b => b.series && b.tier !== 0); for (let i = 0; i < want; i++) { const h = homes.length ? homes[i % homes.length] : { gx: HOME[0], gy: HOME[1] + 1 }; const j = jobs[i % jobs.length]; folk.push({ at: [h.gx + 0.5, h.gy + 1.5], home: [h.gx + 0.5, h.gy + 1.5], job: j, path: null, dwell: 0, where: 'home', shirt: ['#2f7fd6', '#e8552f', '#3fa66b', '#f2b42a', '#8f5fd1', '#1c1f26', '#f4f1e8', '#ff8fb1'][i % 8], hat: i % 4 === 0 || j.kind === 'farm', dog: i % 5 === 1, tool: j.kind === 'farm' ? 'hoe' : j.kind === 'garden' ? 'shears' : j.kind === 'milk' ? 'pail' : j.kind === 'wood' ? 'axe' : null }); } }
     const dt = Math.min(0.1, lastTick ? (now - lastTick) / 1000 : 0); lastTick = now; if (reduce) return;
-    const hr = S.hourOfDay(now), square = L.plan.zones.length ? [L.plan.zones[0].rect[0] + 1.5, L.plan.zones[0].rect[1] + 1.5] : [HOME[0] + 0.5, HOME[1] + 3.5];
+    const hr = S.hourOfDay(now, state), square = L.plan.zones.length ? [L.plan.zones[0].rect[0] + 1.5, L.plan.zones[0].rect[1] + 1.5] : [HOME[0] + 0.5, HOME[1] + 3.5];
     folk.forEach((f, i) => {
       const wantWhere = hr < 6 || hr >= 20 ? 'home' : hr < 12 ? 'work' : hr < 13 ? 'square' : hr < 17 ? 'work' : (f.dog && hr < 19 ? 'walk' : 'home');
       if (f.path && f.path.length) { const w = f.path[0], dx = w[0] - f.at[0], dy = w[1] - f.at[1], d = Math.hypot(dx, dy), sp = 1.4 * dt; if (d <= sp) { f.at = w.slice(); f.path.shift(); if (!f.path.length) { f.where = f.going; f.dwell = 1; } } else { f.at[0] += dx / d * sp; f.at[1] += dy / d * sp; } f.moving = true; return; }
@@ -221,7 +221,7 @@
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
     if (pw < 1) I.lights.forEach((l, i) => { if ((i % 5) / 5 >= pw) l.k = 0; else l.k *= 0.5 + 0.5 * pw; });   /* the grid: the lights a project pays for */
     I.nightfall(I.night);
-    if (T.weather && !opts.map && !reduce) weather(I, now);
+    if (T.weather && !opts.map && !opts.quiet && !reduce) weather(I, now);
     return L;
   }
   /* rain or snow, falling over the whole view; the drops are placed by hash so they need no state */

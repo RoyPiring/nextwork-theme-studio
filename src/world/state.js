@@ -9,10 +9,12 @@
   const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
 
   const AVATAR = { body: 'pineapple', shirt: '#2f7fd6', hat: 'none', skin: '#ffd6ad', hair: '#4a2e1a' };
-  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: '', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0, life: { founded: Date.now(), lastDone: 0 } }; }
+  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: '', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), life: freshLife(), wallet: { sparks: 0, unlocked: [] } }; }
+  function freshLife() { return { founded: Date.now(), lastDone: 0, at: 0, power: 1, citizens: 1, bonusCap: 0, crewAt: 0, week: { id: 0, projects: 0, steps: 0, met: false } }; }
   function normalise(saved) {
     const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
-    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); if (!s.life || typeof s.life !== 'object') s.life = { founded: Date.now(), lastDone: 0 }; if (typeof s.life.founded !== 'number') s.life.founded = Date.now(); if (typeof s.life.lastDone !== 'number') s.life.lastDone = 0; s.biome = ['forest', 'sandy', 'island', 'plains', 'mountains', 'snow', 'rain', 'zen', 'savanna'].includes(s.biome) ? s.biome : (s.biome === 'hill' ? 'plains' : s.biome === 'desert' ? 'sandy' : '');
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); const migrating = !s.life || typeof s.life !== 'object' || typeof s.life.citizens !== 'number'; s.life = Object.assign(freshLife(), s.life && typeof s.life === 'object' ? s.life : {}); ['founded', 'lastDone', 'at', 'power', 'citizens', 'bonusCap', 'crewAt'].forEach(k => { if (typeof s.life[k] !== 'number' || !isFinite(s.life[k])) s.life[k] = freshLife()[k]; }); if (!s.life.week || typeof s.life.week !== 'object') s.life.week = freshLife().week; if (!s.wallet || typeof s.wallet !== 'object') s.wallet = { sparks: 0, unlocked: [] }; s.wallet.sparks = Math.max(0, s.wallet.sparks | 0); if (!Array.isArray(s.wallet.unlocked)) s.wallet.unlocked = []; delete s.readAt;
+    if (migrating) { const n = score(s); s.life.citizens = Math.max(1, Math.floor(n / 2)); if (!s.wallet.sparks) s.wallet.sparks = n * 5; }   /* a world saved before the economy: the people and the sparks it had earned */ s.biome = ['forest', 'sandy', 'island', 'plains', 'mountains', 'snow', 'rain', 'zen', 'savanna'].includes(s.biome) ? s.biome : (s.biome === 'hill' ? 'plains' : s.biome === 'desert' ? 'sandy' : '');
     s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA; s.avatar = Object.assign({}, AVATAR, s.avatar && typeof s.avatar === 'object' ? s.avatar : {});
     s.lists = s.lists.map(l => ({ name: String(l.name || ''), total: +l.total || 0, done: +l.done || +l.total || 0, blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }));
     return s;
@@ -37,10 +39,13 @@
   }
   /* after the ninety: the lists, one project at a time */
   function nextListProject(s) { return s.lists.find(l => l.done < l.total) || null; }
-  function finish(s, title) { if (!s.done.includes(title)) { s.done.push(title); s.life.lastDone = Date.now(); } delete s.steps[title]; if (s.building === title) s.building = ''; return s; }
-  /* a reading off a nextwork.ai page: which project, which steps are ticked */
-  function applyProjectReading(s, r) { if (!r || !r.title) return s; if (r.total > 0 && r.done >= r.total) finish(s, r.title); else s.steps[r.title] = { done: r.done | 0, total: r.total | 0 }; s.readAt = r.at || Date.now(); return s; }
-  function applyPortfolioReading(s, r) { if (!r || !Array.isArray(r.lists)) return s; s.lists = r.lists.map(l => ({ name: l.name, total: l.count | 0, done: l.count | 0, blurb: l.blurb || '', kind: kindFor(l.name) })); if (r.name) s.name = r.name; s.readAt = r.at || Date.now(); return s; }
+  function finish(s, title, now) { if (!s.done.includes(title)) { s.done.push(title); event(s, 'project', now); } delete s.steps[title]; if (s.building === title) s.building = ''; return s; }
+  /* a reading off a nextwork.ai page: which project, which steps are ticked. Steps only ever rise; a step ticked is an event */
+  function applyProjectReading(s, r, now) { now = now || Date.now(); s.pulse = null; if (!r || !r.title) return s; const was = s.steps[r.title] ? s.steps[r.title].done | 0 : 0, done = Math.max(was, r.done | 0), total = Math.max(r.total | 0, done);
+    if (s.done.includes(r.title)) return s; const rose = Math.max(0, done - was); for (let i = 0; i < rose; i++) event(s, 'step', now);
+    if (total > 0 && done >= total) finish(s, r.title, now); else if (total > 0) s.steps[r.title] = { done, total };
+    s.pulse = { title: r.title, steps: rose, done, total, finished: s.done.includes(r.title), at: now }; return s; }
+  function applyPortfolioReading(s, r) { if (!r || !Array.isArray(r.lists)) return s; const old = s.lists; s.lists = r.lists.map(l => { const prev = old.find(x => x.name === l.name); return { name: l.name, total: l.count | 0, done: Math.min(l.count | 0, prev ? prev.done | 0 : 0), blurb: String(l.blurb || '').slice(0, 80), kind: kindFor(l.name) }; }); return s; }   /* pegged out for the crew to build, one a day while the power is up; the learner's name stays theirs to type */
 
   /* ---- the land: a plan per era ----
    * The plan for the era you are in (src/world/plans.js) lays the roads,
@@ -79,7 +84,7 @@
     s.done.forEach((title, i) => { if (i >= plan.threshold && i < plan.threshold + infra.length) return; const sr = SERIES.find(x => x.projects.some(pr => pr[0] === title)); if (!sr) return; const pr = sr.projects.find(x => x[0] === title); const pi = sr.projects.indexOf(pr); const q = (s.sites[title] && lotOk(s.sites[title])) ? s.sites[title] : nextLot(); at(q); buildings.push({ series: sr, kind: sr.kind, title, part: pi + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard), tier: tierIn(s, sr), order: i + 1, gx: q[0], gy: q[1] }); });
     let ei = 0; s.lists.forEach(ll => { for (let k = 0; k < ll.total; k++) { const q = EAST_LOTS[ei++] || EAST_LOTS[EAST_LOTS.length - 1]; buildings.push({ list: ll, kind: ll.kind, title: ll.name, part: k + 1, of: ll.total, xp: 0, tier: k < ll.done ? 2 : 0, gx: q[0], gy: q[1] }); } });
     const nextBuild = k < plan.builds.length ? plan.builds[k] : null, next = nextBuild ? null : nextLot();
-    const homes = buildings.filter(b => b.series).length, capacity = plan.capacity * (homes + 1);
+    const capacity = plan.capacity + (s.life.bonusCap | 0) + buildings.reduce((a, b) => a + (b.tier === 0 ? 0 : clamp(Math.ceil((b.xp || 60) / 30), 2, 5)), 0);   /* room: the era's own, the contracts kept, and every home by what it took to build */
     return { plan, buildings, infra, nextBuild, next, capacity, paths: roads(plan, buildings, s), west: plan.lotList, east: EAST_LOTS };
   }
   /* the roads: the plan's, plus the east bank's when there are lists (and a way over the water to reach it) */
@@ -110,14 +115,37 @@
   /* the life of the place. Days pass fast: one every 40 seconds, a season in twenty minutes, so crops grow and trees fill in while you watch.
    * Power is the real thing: a project done today powers the world for the day. Every real day without one it loses a quarter,
    * and the lights, the mill, the fire and the fields go with it. Do a project and it all comes back on. */
-  const DAY_MS = 40000, REAL_DAY = 86400000;
-  const dayOf = (s, now) => Math.max(0, Math.floor((now - s.life.founded) / DAY_MS));
-  const hourOfDay = now => ((now / DAY_MS) % 1) * 24;
-  const idleDays = (s, now) => s.life.lastDone ? (now - s.life.lastDone) / REAL_DAY : 9;
-  const power = (s, now) => { if (s.mode === 'dev' && typeof s.power === 'number') return s.power; if (!s.done.length && !s.lists.some(l => l.done)) return 1; return clamp(1 - Math.max(0, idleDays(s, now) - 1) * 0.25, 0, 1); };
-  const population = (s, now, capacity) => { const target = Math.max(1, Math.round(capacity * (0.4 + 0.6 * power(s, now)))); return Math.min(target, 1 + Math.floor(dayOf(s, now) * 0.5) + Math.floor(score(s) / 4)); };
+  /* ---- the economy: three things and three rules ----
+   * POWER is a battery. A step ticked adds 5%; a project finished fills it. It holds for a day, then loses 20% a real day down to an
+   * ember (10%): the lights, the mill, the fields and the fire follow it. CITIZENS move in one per step while the power is at least
+   * half, up to the homes' capacity, and leave one a day once the place has stood idle five days. SPARKS are the currency: one a
+   * step, ten a project, spent in the avatar shop, never lost. Everything comes from the page: a step ticked, a project finished. */
+  const DAY_MS = 40000, REAL_DAY = 86400000, GRACE = 1, DECAY = 0.2, EMBER = 0.1, STEP_POWER = 0.05, SPARK = { step: 1, project: 10 };
+  const dayMs = s => (s.mode === 'dev' && typeof s.dayMs === 'number' && s.dayMs > 0) ? s.dayMs : DAY_MS;
+  const dayOf = (s, now) => Math.max(0, Math.floor((now - s.life.founded) / dayMs(s)));
+  const hourOfDay = (now, s) => ((now / (s ? dayMs(s) : DAY_MS)) % 1) * 24;
+  const idleDays = (s, now) => s.life.at ? (now - s.life.at) / REAL_DAY : 0;
+  const power = (s, now) => { if (s.mode === 'dev' && typeof s.power === 'number') return s.power; if (!s.life.at) return 1; return clamp(s.life.power - Math.max(0, idleDays(s, now) - GRACE) * DECAY, EMBER, 1); };
+  const citizens = (s, now) => Math.max(1, (s.life.citizens | 0) - Math.floor(Math.max(0, idleDays(s, now) - 5)));
+  const population = (s, now, capacity) => Math.min(Math.max(1, capacity), citizens(s, now));
+  const weekId = now => Math.floor(now / (7 * REAL_DAY));
+  /* this week's contract: the era's next piece of infrastructure, for three projects or twenty steps. Met: two more can live here, for good */
+  const CONTRACT = { projects: 3, steps: 20, reward: 2 };
+  function contract(s, now) { now = now || Date.now(); const id = weekId(now); if (s.life.week.id !== id) s.life.week = { id, projects: 0, steps: 0, met: false }; const w = s.life.week, L = layout(s); const met = w.met || w.projects >= CONTRACT.projects || w.steps >= CONTRACT.steps; return { week: w, infra: L.nextBuild ? L.nextBuild.kind : null, projects: CONTRACT.projects, steps: CONTRACT.steps, met, reward: CONTRACT.reward, daysLeft: Math.max(0, Math.ceil(((id + 1) * 7 * REAL_DAY - now) / REAL_DAY)) }; }
+  /* one thing happened: a step ticked, or a project finished */
+  function event(s, kind, now) { now = now || Date.now(); const before = power(s, now), cap = layout(s).capacity; if (kind === 'project') s.life.lastDone = now;
+    s.life.power = clamp(before + (kind === 'project' ? 1 : STEP_POWER), 0, 1); s.life.citizens = Math.min(Math.max(cap, 1), citizens(s, now) + (before >= 0.5 ? (kind === 'project' ? 3 : 1) : 0)); s.life.at = now;
+    s.wallet.sparks += SPARK[kind] || 0; const c = contract(s, now); if (kind === 'project') c.week.projects++; else c.week.steps++; if (!c.week.met && (c.week.projects >= CONTRACT.projects || c.week.steps >= CONTRACT.steps)) { c.week.met = true; s.life.bonusCap += CONTRACT.reward; }
+    forget(); return s; }
+  /* the crew: while the power holds, they raise one pegged list building a real day */
+  function crew(s, now) { now = now || Date.now(); const built = []; if (!s.life.crewAt) { s.life.crewAt = now; return built; } let days = Math.floor((now - s.life.crewAt) / REAL_DAY); if (days <= 0) return built; if (power(s, now) < 0.5) { s.life.crewAt = now; return built; }
+    while (days-- > 0) { const l = nextListProject(s); if (!l) break; l.done++; built.push(l.name + ' ' + l.done + ' of ' + l.total); } s.life.crewAt = now; if (built.length) forget(); return built; }
+  /* the shop: sparks for what you wear */
+  const PRICES = { 'hat:cowboy': 20, 'hat:hard': 20, 'hat:beanie': 20, 'body:robot': 40, 'body:cat': 40 };
+  const owns = (s, item) => !(item in PRICES) || s.wallet.unlocked.includes(item);
+  function buy(s, item) { if (owns(s, item)) return true; const p = PRICES[item]; if (s.wallet.sparks < p) return false; s.wallet.sparks -= p; s.wallet.unlocked.push(item); return true; }
   const hourOf = s => (s.mode === 'dev' && typeof s.hour === 'number') ? s.hour : (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   const nightOf = h => h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0;
   const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
-  NW.State = { SCHEMA, AVATAR, landName, hourOf, DAY_MS, dayOf, hourOfDay, idleDays, power, population, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
+  NW.State = { SCHEMA, AVATAR, landName, hourOf, DAY_MS, REAL_DAY, EMBER, dayMs, dayOf, hourOfDay, idleDays, power, citizens, population, contract, CONTRACT, event, crew, PRICES, owns, buy, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
 })();

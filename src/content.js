@@ -2363,7 +2363,9 @@
   function scheduleWorldRead() {
     if (!TOP_FRAME || !self.NWT_WORLD || !worldSettings || !worldSettings.world || !worldSettings.world.enabled) return;
     clearTimeout(worldReadTimer);
+    const path = location.pathname;
     worldReadTimer = setTimeout(function () {
+      if (location.pathname !== path) return;   /* the page moved on while it settled: read the new one when it settles */
       try { NWT_WORLD.read(document, location.pathname); } catch (e) { /* never break the page */ }
     }, 700);
   }
