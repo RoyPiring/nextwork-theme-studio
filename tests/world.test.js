@@ -36,16 +36,21 @@ test('a fresh world is a tent: nothing done, production mode', () => {
   assert.equal(S.layout(s).buildings.length, 0);
 });
 
-test('finishing a project places one building on its series’ spread', () => {
+test('the first projects build what the camp needs; a tent only once it has them', () => {
   const s = S.normalise(null);
   S.finish(s, 'Set Up An AWS Account');
-  const L = S.layout(s);
-  assert.equal(L.buildings.length, 1);
-  assert.equal(L.buildings[0].kind, 'home');
-  assert.equal(S.houseWord(s)[1], 'Cabin');
-  assert.ok(L.paths.size > 1, 'a path is worn to it');
+  let L = S.layout(s);
+  assert.equal(L.infra.length, 1, 'one project, one piece of infrastructure');
+  assert.equal(L.infra[0].kind, 'pump', 'water comes first');
+  assert.equal(L.buildings.filter(b => b.series).length, 0, 'no tent yet');
+  assert.equal(L.nextBuild.kind, 'foodcache');
+  ['Join the Cloud Beginner Challenge!', 'Host a Website on Amazon S3', 'Cloud Security with AWS IAM', 'Build a Virtual Private Cloud'].forEach(t => S.finish(s, t));
+  L = S.layout(s);
+  assert.equal(L.plan.id, 'fort', 'five projects: the fort');
+  assert.equal(L.nextBuild.kind, 'stockade', 'and the fort wants its walls first');
+  assert.ok(L.capacity >= 4);
   S.finish(s, 'Set Up An AWS Account');
-  assert.equal(s.done.length, 1, 'finishing twice counts once');
+  assert.equal(s.done.length, 5, 'finishing twice counts once');
 });
 
 test('the ranch house grows by count, not by rarity', () => {

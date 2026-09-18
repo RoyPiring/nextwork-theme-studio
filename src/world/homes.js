@@ -45,15 +45,15 @@
   /* what a building goes up as: the very building it will be, revealed from
    * the ground up one slice per step, with scaffolding to the height reached */
   const TOP = [34, 52, 66, 84, 110, 100, 108];   /* how tall each era's home is, for the reveal */
-  function drawStage(I, gx, gy, done, total, kind, era, k, now) {
-    const n = Math.max(1, total | 0), frac = Math.min(done, n) / n, rise = frac * TOP[era] * (0.75 + 0.25 * k);
+  function drawStage(I, gx, gy, done, total, kind, era, k, now, custom) {
+    const draw = custom || ((I2, x, y) => ERA_HOME[era](I2, x, y, 1, now, kind)); const n = Math.max(1, total | 0), frac = Math.min(done, n) / n, rise = frac * (custom ? 90 : TOP[era]) * (0.75 + 0.25 * k);
     I.ctx.setLineDash([4, 4]); I.poly([I.p(gx - 0.2, gy - 0.2), I.p(gx + 1.2, gy - 0.2), I.p(gx + 1.2, gy + 1.2), I.p(gx - 0.2, gy + 1.2)], 'rgba(255,255,255,.1)', 'rgba(255,255,255,.8)', 1.2); I.ctx.setLineDash([]);
     [[-0.2, -0.2], [1.2, -0.2], [-0.2, 1.2], [1.2, 1.2]].forEach(o => { const q = I.p(gx + o[0], gy + o[1]); I.ctx.fillStyle = '#f4f1e8'; I.ctx.fillRect(q[0] - 1, q[1] - 9, 2, 9); I.ctx.fillStyle = '#ffc531'; I.ctx.fillRect(q[0] - 3, q[1] - 11, 6, 3); });
-    if (done >= n) { ERA_HOME[era](I, gx, gy, 1, now, kind); return 'Finished'; }
+    if (done >= n) { draw(I, gx, gy); return 'Finished'; }
     if (done > 0) {
       /* the slab, then the building itself up to the height the steps have reached */
       I.box(gx + 0.05, gy + 0.05, 0.9, 0.9, 4, era >= 2 ? '#c9c2b0' : '#8a6a3f', 0, { top: 0.1 });
-      const base = I.p(gx + 0.5, gy + 1.2); I.ctx.save(); I.ctx.beginPath(); I.ctx.rect(base[0] - 60, base[1] - 4 - rise, 120, rise + 8); I.ctx.clip(); ERA_HOME[era](I, gx, gy, 1, now, kind); I.ctx.restore();
+      const base = I.p(gx + 0.5, gy + 1.2); I.ctx.save(); I.ctx.beginPath(); I.ctx.rect(base[0] - (custom ? 200 : 60), base[1] - 4 - rise, custom ? 400 : 120, rise + 8); I.ctx.clip(); draw(I, gx, gy); I.ctx.restore();
       /* scaffolding at the corners, a cut line where the work stops */
       [[0.05, 0.05], [0.95, 0.05], [0.05, 0.95], [0.95, 0.95]].forEach(o => { const q = I.p(gx + o[0], gy + o[1], 4); I.line(q, [q[0], q[1] - rise - 6], '#b58a5a', 1.5); });
       const a = I.p(gx + 0.02, gy + 0.98, rise + 4), b = I.p(gx + 0.98, gy + 0.98, rise + 4), c = I.p(gx + 0.98, gy + 0.02, rise + 4); I.line(a, b, '#b58a5a', 1.5); I.line(b, c, '#b58a5a', 1.5); I.ctx.setLineDash([2, 2]); I.line(a, b, 'rgba(255,255,255,.7)', 1); I.line(b, c, 'rgba(255,255,255,.7)', 1); I.ctx.setLineDash([]);

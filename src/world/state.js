@@ -9,10 +9,10 @@
   const HOUSE_WORDS = [[0, 'Tent'], [1, 'Cabin'], [5, 'Homestead'], [15, 'Farmhouse'], [35, 'Ranch'], [60, 'Estate'], [90, 'Valley']];
 
   const AVATAR = { body: 'pineapple', shirt: '#2f7fd6', hat: 'none', skin: '#ffd6ad', hair: '#4a2e1a' };
-  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: 'plains', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
+  function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: '', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), readAt: 0 }; }
   function normalise(saved) {
     const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
-    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['forest', 'sandy', 'island', 'plains', 'mountains', 'hill', 'desert'].includes(s.biome) ? s.biome : 'plains';
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); s.biome = ['forest', 'sandy', 'island', 'plains', 'mountains'].includes(s.biome) ? s.biome : (s.biome === 'hill' ? 'plains' : s.biome === 'desert' ? 'sandy' : '');
     s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA; s.avatar = Object.assign({}, AVATAR, s.avatar && typeof s.avatar === 'object' ? s.avatar : {});
     s.lists = s.lists.map(l => ({ name: String(l.name || ''), total: +l.total || 0, done: +l.done || +l.total || 0, blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }));
     return s;
@@ -74,10 +74,14 @@
     const lotOk = q => plan.lotList.some(l => l[0] === q[0] && l[1] === q[1]);
     Object.keys(s.sites).forEach(t => { if (lotOk(s.sites[t])) at(s.sites[t]); });
     let wi = 0; const nextLot = () => { while (wi < plan.lotList.length && taken.has(key(plan.lotList[wi][0], plan.lotList[wi][1]))) wi++; return plan.lotList[wi++] || plan.lotList[plan.lotList.length - 1]; };
-    s.done.forEach((title, i) => { const sr = SERIES.find(x => x.projects.some(pr => pr[0] === title)); if (!sr) return; const pr = sr.projects.find(x => x[0] === title); const pi = sr.projects.indexOf(pr); const q = (s.sites[title] && lotOk(s.sites[title])) ? s.sites[title] : nextLot(); at(q); buildings.push({ series: sr, kind: sr.kind, title, part: pi + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard), tier: tierIn(s, sr), order: i + 1, gx: q[0], gy: q[1] }); });
+    /* what this era's projects have built so far: its infrastructure first, in order; homes only after the place has what it needs */
+    const k = Math.max(0, s.done.length - plan.threshold), infra = plan.builds.slice(0, k).map((b, i) => Object.assign({ title: s.done[plan.threshold + i] }, b));
+    const homesFrom = plan.threshold + plan.builds.length;
+    s.done.forEach((title, i) => { if (i < homesFrom) return; const sr = SERIES.find(x => x.projects.some(pr => pr[0] === title)); if (!sr) return; const pr = sr.projects.find(x => x[0] === title); const pi = sr.projects.indexOf(pr); const q = (s.sites[title] && lotOk(s.sites[title])) ? s.sites[title] : nextLot(); at(q); buildings.push({ series: sr, kind: sr.kind, title, part: pi + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard), tier: tierIn(s, sr), order: i + 1, gx: q[0], gy: q[1] }); });
     let ei = 0; s.lists.forEach(ll => { for (let k = 0; k < ll.total; k++) { const q = EAST_LOTS[ei++] || EAST_LOTS[EAST_LOTS.length - 1]; buildings.push({ list: ll, kind: ll.kind, title: ll.name, part: k + 1, of: ll.total, xp: 0, tier: k < ll.done ? 2 : 0, gx: q[0], gy: q[1] }); } });
-    const next = nextLot();
-    return { plan, buildings, next, paths: roads(plan, buildings, s), west: plan.lotList, east: EAST_LOTS };
+    const nextBuild = k < plan.builds.length ? plan.builds[k] : null, next = nextBuild ? null : nextLot();
+    const homes = buildings.filter(b => b.series).length, capacity = plan.capacity * (homes + 1);
+    return { plan, buildings, infra, nextBuild, next, capacity, paths: roads(plan, buildings, s), west: plan.lotList, east: EAST_LOTS };
   }
   /* the roads: the plan's, plus the east bank's when there are lists (and a way over the water to reach it) */
   function roads(plan, buildings, s) {
