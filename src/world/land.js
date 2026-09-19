@@ -191,6 +191,13 @@
       else { const t = lvl >= 5 ? 5 : lvl >= 3 ? 4 : lvl >= 2 ? 3 : 2; add(HOME[0] + 1 + HOME[1] + 1.2, () => B.homestead(I, HOME[0] + 0.1, HOME[1] - 0.2, now, t)); }
       if (!opts.map && opts.land) add(9999, () => I.label(HOME[0] + 1, HOME[1] - 2.4, opts.land, era.name, 11));
     }
+    /* what you bought with sparks: flowers, a flag, a name plate, a fountain, an orchard */
+    if (!opts.map && state.wallet && state.wallet.unlocked.length) { const has = k => state.wallet.unlocked.includes(k);
+      if (has('land:flowers')) [[-0.4, 2.3], [2.4, 2.3], [-0.4, 0.2], [2.4, 0.2]].forEach(o => { const x = HOME[0] + o[0], y = HOME[1] + o[1]; if (I.onScreen(x, y)) add(x + y + 0.3, () => I.bush(x, y, true)); });
+      if (has('land:flag')) add(HOME[0] + HOME[1] + 2.6, () => { const q = I.p(HOME[0] + 2.1, HOME[1] + 0.2, lvl >= 3 ? 90 : 46); ctx.fillStyle = '#3b4252'; ctx.fillRect(q[0] - 1, q[1] - 26, 2, 26); I.poly([[q[0] + 1, q[1] - 26], [q[0] + 14, q[1] - 22 + Math.sin(now / 300) * 2], [q[0] + 1, q[1] - 17]], (state.avatar && state.avatar.shirt) || '#2f7fd6'); });
+      if (has('land:sign')) add(HOME[0] + HOME[1] + 3.3, () => B.sign(I, HOME[0] - 0.6, HOME[1] + 2.4, (opts.land || 'Your land').toUpperCase().slice(0, 18), 'est. ' + new Date(state.life.founded).getFullYear()));
+      if (has('land:fountain')) { const sq = plan.zones.find(z => z.kind === 'square' || z.kind === 'plaza' || z.kind === 'park'); const fx0 = sq ? sq.rect[0] + Math.floor(sq.rect[2] / 2) - 0.5 : HOME[0] - 2.5, fy0 = sq ? sq.rect[1] + Math.floor(sq.rect[3] / 2) - 0.5 : HOME[1] + 4; if (I.onScreen(fx0, fy0)) add(fx0 + fy0 + 1.4, () => B.fountain(I, fx0, fy0, 1, now)); }
+      if (has('land:orchard')) [[-1.2, -1.2], [0, -1.6], [1.2, -1.2], [2.4, -1.6], [3.4, -1], [-1.6, 0]].forEach((o, i) => { const x = HOME[0] + o[0], y = HOME[1] + o[1]; if (I.onScreen(x, y)) add(x + y + 0.5, () => { B.oak(I, x, y, 0.75); const q = I.p(x + 0.5, y + 0.5); [[-6, -26], [4, -30], [8, -22], [-2, -20]].forEach((f, k) => I.blob(q[0] + f[0], q[1] + f[1], 1.8, k % 2 ? '#e8552f' : '#ffc531')); }); }); }
     /* what stood here before, and what this era's projects have built so far */
     const drawCivic = c => {
       if (c.kind === 'rail') return;

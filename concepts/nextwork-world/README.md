@@ -27,7 +27,7 @@ Your NextWork projects, as land. A concept for a pane inside the extension.
 ## The economy: three things, three rules
 
 - **Power** is a battery. A step ticked adds 8%; a project fills it. It
-  holds for a day, then loses 15% a real day down to an ember (10%). The
+  holds for a day, then loses 10% a real day down to an ember (10%); back after a week away, the first step lights it to 60%. The
   lights, the mill, the fields and the fire follow it.
 - **Citizens** move in one per step while the power is at least half, up to
   what the homes can hold (each home by what it took to build), and leave

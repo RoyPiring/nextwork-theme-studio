@@ -136,7 +136,8 @@
   /* one thing happened: a step ticked, or a project finished */
   function event(s, kind, now) { now = now || Date.now(); const before = power(s, now), cap = layout(s).capacity; if (kind === 'project') s.life.lastDone = now;
     const after = clamp(Math.max(before + (kind === 'project' ? 1 : STEP_POWER), idleDays(s, now) >= 7 && kind === 'step' ? 0.6 : 0), 0, 1);   /* back after a week away: the first step lights most of it again */ const have = citizens(s, now); s.life.power = after; s.life.citizens = Math.min(Math.max(cap, 1), have + (after >= 0.5 ? 1 : 0)); s.life.at = now; if (kind === 'step') s.life.steps = (s.life.steps | 0) + 1;
-    s.wallet.sparks += SPARK[kind] || 0; const c = contract(s, now); if (kind === 'project') c.week.projects++; else c.week.steps++; if (!c.week.met && (c.week.projects >= CONTRACT.projects || c.week.steps >= CONTRACT.steps)) { c.week.met = true; s.life.bonusCap += CONTRACT.reward; s.wallet.sparks += CONTRACT.sparks; s.life.citizens = Math.min(Math.max(cap + CONTRACT.reward, 1), s.life.citizens + CONTRACT.citizens); }
+    const lvBefore = levelOf(s).level; s.wallet.sparks += SPARK[kind] || 0; const c = contract(s, now); if (kind === 'project') c.week.projects++; else c.week.steps++; if (!c.week.met && (c.week.projects >= CONTRACT.projects || c.week.steps >= CONTRACT.steps)) { c.week.met = true; s.life.bonusCap += CONTRACT.reward; s.wallet.sparks += CONTRACT.sparks; s.life.citizens = Math.min(Math.max(cap + CONTRACT.reward, 1), s.life.citizens + CONTRACT.citizens); }
+    const lvAfter = levelOf(s).level; if (lvAfter > lvBefore) { s.wallet.sparks += 10 * (lvAfter - lvBefore); s.life.bonusCap += lvAfter - lvBefore; s.levelled = lvAfter; }
     forget(); return s; }
   /* the crew: while the power holds, they raise one pegged list building a real day */
   function crew(s, now) { now = now || Date.now(); const built = []; if (!s.life.crewAt || !s.life.lastDone) { s.life.crewAt = now; return built; } const days = Math.floor((now - s.life.crewAt) / REAL_DAY); if (days <= 0) return built;
@@ -146,11 +147,12 @@
   const levelFloor = n => 50 * n * (n + 1);   /* level 1 at 0, 2 at 100, 3 at 300, 4 at 600, 5 at 1000 */
   function levelOf(s) { const x = xp(s); let n = 0; while (levelFloor(n + 1) <= x) n++; const lo = levelFloor(n), hi = levelFloor(n + 1); return { level: n + 1, xp: x, into: x - lo, need: hi - lo, next: hi, at: (x - lo) / (hi - lo) }; }
   /* the shop: sparks for what you wear */
-  const PRICES = { 'hat:cowboy': 50, 'hat:hard': 50, 'hat:beanie': 50, 'body:robot': 100, 'body:cat': 100 };
+  const PRICES = { 'hat:cowboy': 50, 'hat:hard': 50, 'hat:beanie': 50, 'body:robot': 100, 'body:cat': 100, 'land:flowers': 60, 'land:flag': 80, 'land:sign': 100, 'land:fountain': 150, 'land:orchard': 200 };
+  const LAND_GOODS = [['land:flowers', 'Flower beds', 'colour round the door'], ['land:flag', 'Your flag', 'on the home, in your shirt colour'], ['land:sign', 'A name plate', 'your land\u2019s name at the door'], ['land:fountain', 'A fountain', 'on the square, lit at night'], ['land:orchard', 'An orchard', 'six fruit trees behind the home']];
   const owns = (s, item) => !(item in PRICES) || s.wallet.unlocked.includes(item);
   function buy(s, item) { if (owns(s, item)) return true; const p = PRICES[item]; if (s.wallet.sparks < p) return false; s.wallet.sparks -= p; s.wallet.unlocked.push(item); return true; }
   const hourOf = s => (s.mode === 'dev' && typeof s.hour === 'number') ? s.hour : (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   const nightOf = h => h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0;
   const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
-  NW.State = { SCHEMA, AVATAR, landName, hourOf, now, DAY_MS, REAL_DAY, EMBER, dayMs, dayOf, hourOfDay, idleDays, power, citizens, population, contract, CONTRACT, event, crew, PRICES, owns, buy, xp, levelOf, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
+  NW.State = { SCHEMA, AVATAR, landName, hourOf, now, DAY_MS, REAL_DAY, EMBER, dayMs, dayOf, hourOfDay, idleDays, power, citizens, population, contract, CONTRACT, event, crew, PRICES, LAND_GOODS, owns, buy, xp, levelOf, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
 })();
