@@ -1011,12 +1011,12 @@
   const KIND = { home: ['#d9563f', 'chimney'], lab: ['#5a3aa8', 'dish'], library: ['#c9503c', 'sign'], barn: ['#8a5a3a', 'silo'], tower: ['#2f7fd6', 'mast'], workshop: ['#e3a45b', 'stack'], vault: ['#6b7280', 'gate'], datacentre: ['#3fa66b', 'vents'], yard: ['#f2b42a', 'crate'], clinic: ['#e8352f', 'cross'], bank: ['#c9971f', 'coin'] };
   function detail(I, b, gx, gy, H, kind, now) {
     const d = (KIND[kind] || KIND.home)[1], c = (KIND[kind] || KIND.home)[0];
-    if (d === 'chimney') { I.chimney(gx + 0.7, gy + 0.2, H + 6, '#9c5a3a'); const q = I.p(gx + 0.76, gy + 0.26, H + 24); I.smoke(q[0], q[1], now); }
+    if (d === 'chimney') { I.chimney(gx + 0.7, gy + 0.2, H + 6, '#9c5a3a'); smokeAt(I, gx + 0.76, gy + 0.26, H + 24, now); }
     else if (d === 'dish') { const q = I.p(gx + 0.75, gy + 0.3, H + 8); I.ctx.fillStyle = '#e6e9ef'; I.ctx.beginPath(); I.ctx.ellipse(q[0], q[1] - 4, 6, 4, -0.5, 0, Math.PI * 2); I.ctx.fill(); I.line(q, [q[0], q[1] - 4], '#8a95a6', 2); }
     else if (d === 'sign') { const s = I.up(I.P(b.D, b.C, 0.5), H * 0.7); I.roundRect(s[0] - 8, s[1] - 4, 16, 7, 2, '#f4f1e8'); I.ctx.fillStyle = c; I.ctx.fillRect(s[0] - 6, s[1] - 2, 5, 3); I.ctx.fillRect(s[0] + 1, s[1] - 2, 5, 3); }
     else if (d === 'silo') { const t = I.box(gx + 0.82, gy + 0.05, 0.16, 0.16, H + 10, '#c9c2b0', 0, { noShadow: true }); I.roof(gx + 0.82, gy + 0.05, 0.16, 0.16, H + 10, 6, '#8a8f98', 0.05); }
     else if (d === 'mast') { const q = I.p(gx + 0.5, gy + 0.5, H + 4); I.line(q, [q[0], q[1] - 26], '#8a95a3', 2); I.blob(q[0], q[1] - 27, 2, Math.floor(now / 500) % 2 ? '#ff4d4d' : '#ffb3b3'); }
-    else if (d === 'stack') { I.chimney(gx + 0.75, gy + 0.15, H + 4, '#6b7280'); const q = I.p(gx + 0.81, gy + 0.21, H + 22); I.smoke(q[0], q[1], now); }
+    else if (d === 'stack') { I.chimney(gx + 0.75, gy + 0.15, H + 4, '#6b7280'); smokeAt(I, gx + 0.81, gy + 0.21, H + 22, now); }
     else if (d === 'gate') { const a = I.P(b.D, b.C, 0.36), e = I.P(b.D, b.C, 0.64); I.poly([a, e, I.up(e, H * 0.6), I.up(a, H * 0.6)], '#3b4252'); I.line(I.P(a, e, 0.5), I.up(I.P(a, e, 0.5), H * 0.6), '#9aa3b0', 1); }
     else if (d === 'vents') { [0.2, 0.5, 0.8].forEach(u => I.box(gx + u - 0.06, gy + 0.2, 0.12, 0.12, 5, '#dfe5ee', H + 4, { noShadow: true })); }
     else if (d === 'crate') { I.box(gx + 1.02, gy + 0.7, 0.22, 0.22, 7, c, 0, { noShadow: true, tex: 'ribbed' }); }
@@ -1024,6 +1024,8 @@
     else if (d === 'coin') { const s = I.up(I.P(b.D, b.C, 0.5), H * 0.72); I.blob(s[0], s[1], 4, c); I.ctx.fillStyle = '#4a2b00'; I.ctx.font = '800 5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('$', s[0], s[1] + 2); I.ctx.textAlign = 'left'; }
   }
   const accent = kind => (KIND[kind] || KIND.home)[0];
+  let live = true; let smokes = [];   /* live: draw the smoke now; otherwise note where it rises so the caller can */
+  const smokeAt = (I, gx, gy, z, now) => { if (live) { const q = I.p(gx, gy, z); I.smoke(q[0], q[1], now); } else smokes.push({ gx, gy, z }); };
   /* what a building goes up as: the very building it will be, revealed from
    * the ground up one slice per step, with scaffolding to the height reached */
   /* the terrain's building style: what the walls are made of, how the roof is pitched */
@@ -1131,7 +1133,7 @@
     if (has('setback') && !has('steps')) { const sb = I.box(ox + w * 0.2, oy + d * 0.2, w * 0.6, d * 0.6, fh * 1.4, wall, top, { noShadow: true, tex }); [0.3, 0.7].forEach(u => I.win(sb.D, sb.C, u, 6, 0.2, fh * 0.5, (N + 1) % 2 === 0)); I.flatRoof(ox + w * 0.2, oy + d * 0.2, w * 0.6, d * 0.6, top + fh * 1.4, roofC); top += fh * 1.4 + 4; }
     if (has('dormer') && vv.roof !== 'mansard') { const db = I.box(ox + w * 0.32, oy + d * 0.55, 0.3, 0.3, 9, wall, rz + 4, { noShadow: true }); I.win(db.D, db.C, 0.2, 2, 0.6, 6, (N % 2) === 0); I.roof(ox + w * 0.32, oy + d * 0.55, 0.3, 0.3, rz + 13, 6, roofC, 0.04); }
     if (has('chimney')) I.chimney(ox + w * 0.75, oy + 0.15, top + (vv.roof === 'flat' ? 0 : fh * 0.4), '#9c5a3a');
-    if (has('stack')) { I.chimney(ox + w * 0.8, oy + 0.1, top + 8, '#6b7280'); const q = I.p(ox + w * 0.86, oy + 0.16, top + 30); I.smoke(q[0], q[1], now); }
+    if (has('stack')) { I.chimney(ox + w * 0.8, oy + 0.1, top + 8, '#6b7280'); smokeAt(I, ox + w * 0.86, oy + 0.16, top + 30, now); }
     if (has('garden')) [[0.25, 0.3, '#5cc464'], [0.6, 0.55, '#3fa66b'], [0.4, 0.75, '#7fc55a']].forEach(o => { const q = I.p(ox + w * o[0], oy + d * o[1], top + 2); I.blob(q[0], q[1], 4 + w * 2, o[2], 0.7); });
     if (has('solar')) { const q0 = I.p(ox + 0.1, oy + 0.1, top + 1), q1 = I.p(ox + w - 0.1, oy + 0.1, top + 1), q2 = I.p(ox + w - 0.1, oy + d - 0.1, top + 1), q3 = I.p(ox + 0.1, oy + d - 0.1, top + 1); I.poly([q0, q1, q2, q3], '#1f3a6b', 'rgba(255,255,255,.4)', 1); for (let t = 0.25; t < 1; t += 0.25) I.line(I.P(q0, q3, t), I.P(q1, q2, t), 'rgba(255,255,255,.35)', 1); }
     if (has('tank')) { cylinder(I, ox + w * 0.75, oy + d * 0.3, 0.12, top, 10, '#8a8f98'); }
@@ -1180,7 +1182,9 @@
   B.CIV.hospital = function (I, gx, gy, now) { I.box(gx - 0.2, gy - 0.2, 3.4, 2.4, 4, '#cfd5df', 0, { top: 0.1 }); const H = 108, b = I.box(gx, gy, 3, 2, H, '#dfe9f2', 4, { tex: 'glass' }); [36, 72].forEach(v => I.line(I.up(b.D, v), I.up(b.C, v), 'rgba(255,255,255,.6)', 1.5)); for (let r = 0; r < 3; r++) for (let u = 0.06; u < 0.95; u += 0.12) { if (r === 0 && u > 0.38 && u < 0.6) continue; I.win(b.D, b.C, u, 12 + r * 34, 0.07, 18, ((r + Math.floor(u * 10)) % 3) !== 0); } for (let r = 0; r < 3; r++) [0.15, 0.45, 0.75].forEach(u => I.win(b.C, b.B, u, 12 + r * 34, 0.16, 18, r !== 1)); const a = I.P(b.D, b.C, 0.4), c = I.P(b.D, b.C, 0.6); I.poly([a, c, I.up(c, 20), I.up(a, 20)], '#9ad3ff'); I.poly([I.p(gx + 0.9, gy + 2.05, 24), I.p(gx + 2.1, gy + 2.05, 24), I.p(gx + 2.1, gy + 2.5, 20), I.p(gx + 0.9, gy + 2.5, 20)], '#e8352f'); I.flatRoof(gx, gy, 3, 2, H + 4, '#dfe5ee'); const s = I.p(gx + 1.5, gy + 1, H + 12); I.roundRect(s[0] - 9, s[1] - 9, 18, 18, 3, '#ffffff'); I.ctx.fillStyle = '#e8352f'; I.ctx.fillRect(s[0] - 2.5, s[1] - 7, 5, 14); I.ctx.fillRect(s[0] - 7, s[1] - 2.5, 14, 5); I.box(gx + 2.5, gy + 0.3, 0.3, 0.3, 10, '#dfe5ee', H + 4, { noShadow: true }); I.label(gx + 1.5, gy + 2.9, 'Hospital', '', 9); };
   B.CIV.datacentre = function (I, gx, gy, now) { B.datacentre(I, gx, gy, 1, now, 3); I.label(gx + 0.6, gy + 1.7, 'Data Centre', 'what keeps the city running', 8); };
   const setN = (n, place) => { N = n | 0; PLACE = place || {}; };
-  NW.Homes = { setTerrain, setN, STYLES, PALETTE, ERA_HOME, VARIANTS, drawStage, KIND };
+  const setLive = v => { live = !!v; if (!live) smokes = []; };
+  const takeSmokes = () => { const s = smokes; smokes = []; return s; };
+  NW.Homes = { setTerrain, setN, setLive, takeSmokes, STYLES, PALETTE, ERA_HOME, VARIANTS, drawStage, KIND };
 })();
 
 /* NextWorld · land: your world, drawn
@@ -1238,6 +1242,8 @@
   const STEP = 7;   /* one terrace, in pixels */
   const POND = [43, 9, 5, 4];   /* the forest's pond */
   let groundKey = '', ground = null, elev = null, decor = null;
+  const layer = { cv: null, I: null, key: '', PW: 0, PH: 0, S: 0, lights: [], smokes: [] };   /* the still layer, one per pane */
+  const LIVE = new Set(['campfire', 'windmill', 'skyisland', 'skyfarm', 'hoverport', 'skypad', 'windturbine', 'fusion', 'pool', 'reservoir', 'fountain']);   /* civic pieces that move, drawn live */
   function classify(L) {
     const plan = L.plan, W = plan.water, g = new Uint8Array(LAND * LAND), el = new Int8Array(LAND * LAND), wet = T.corridor === 'river';
     const inRect = (x, y, r) => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3];
@@ -1332,10 +1338,10 @@
    * 6: leave home for work. 7 to 12: at work (farmers hoe the field, gardeners trim the trees, the rest at their building).
    * 12: to the square, the fire or the cafe. 13 to 17: back at work. 17: home; some walk the dog. 20 to 6: indoors.
    * Fewer come out when the power is down; at a quarter, nearly nobody. */
-  const CAP = [2, 4, 8, 14, 22, 30, 36]; let folk = [], folkKey = '', lastTick = 0;
+  const CAP = [2, 4, 8, 14, 22, 30, 36]; let folk = [], folkKey = '', lastTick = 0; const tilesOf = { paths: null, tiles: [] };
   function jobsOf(L) { const plan = L.plan, jobs = []; plan.landscape.fields.forEach(f => jobs.push({ kind: 'farm', at: [f[0] + 1, f[1] + 1], rect: f })); plan.civic.concat(L.infra).forEach(c => { if (c.at && !['campfire', 'board', 'lantern', 'rail', 'pool', 'obelisk', 'arch', 'memorial', 'skyisland'].includes(c.kind)) jobs.push({ kind: c.kind, at: [c.at[0] + 0.5, c.at[1] + 0.5] }); if (c.kind === 'paddock') jobs.push({ kind: 'milk', at: [c.rect[0] + 1, c.rect[1] + 1] }); }); const trees = decor ? decor.trees.filter(t => t[2] === 'tree' && ground[t[1] * LAND + t[0]] === G.MANAGED) : []; trees.slice(0, 6).forEach(t => jobs.push({ kind: 'garden', at: [t[0] + 0.5, t[1] + 0.5] })); if (!jobs.length) jobs.push({ kind: 'wood', at: [HOME[0] + 1, HOME[1] + 3] }); return jobs; }
   function tickFolk(L, state, now) {
-    const lvl = NW.Eras.level(state), pw = S.power(state, S.now(state)), pop = S.population(state, S.now(state), L.capacity), want = Math.max(pw < 0.25 ? 1 : 2, Math.min(CAP[lvl], pop, Math.round(pop * (0.3 + 0.7 * pw)))); const key = L.plan.id + '|' + want + '|' + L.buildings.length; const tiles = Array.from(L.paths).map(k => k.split(',').map(Number));
+    const lvl = NW.Eras.level(state), pw = S.power(state, S.now(state)), pop = S.population(state, S.now(state), L.capacity), want = Math.max(pw < 0.25 ? 1 : 2, Math.min(CAP[lvl], pop, Math.round(pop * (0.3 + 0.7 * pw)))); const key = L.plan.id + '|' + want + '|' + L.buildings.length; if (tilesOf.paths !== L.paths) { tilesOf.paths = L.paths; tilesOf.tiles = Array.from(L.paths).map(k => k.split(',').map(Number)); } const tiles = tilesOf.tiles;
     if (key !== folkKey || !folk.length) { folkKey = key; folk = []; const jobs = jobsOf(L), homes = L.buildings.filter(b => b.series && b.tier !== 0); for (let i = 0; i < want; i++) { const h = homes.length ? homes[i % homes.length] : { gx: HOME[0], gy: HOME[1] + 1 }; const j = jobs[i % jobs.length]; folk.push({ at: [h.gx + 0.5, h.gy + 1.5], home: [h.gx + 0.5, h.gy + 1.5], job: j, path: null, dwell: 0, where: 'home', shirt: ['#2f7fd6', '#e8552f', '#3fa66b', '#f2b42a', '#8f5fd1', '#1c1f26', '#f4f1e8', '#ff8fb1'][i % 8], hat: i % 4 === 0 || j.kind === 'farm', dog: i % 5 === 1, tool: j.kind === 'farm' ? 'hoe' : j.kind === 'garden' ? 'shears' : j.kind === 'milk' ? 'pail' : j.kind === 'wood' ? 'axe' : null }); } }
     const dt = Math.min(0.1, lastTick ? (now - lastTick) / 1000 : 0); lastTick = now; if (reduce) return;
     const hr = S.hourOfDay(now, state), square = L.plan.zones.length ? [L.plan.zones[0].rect[0] + 1.5, L.plan.zones[0].rect[1] + 1.5] : [HOME[0] + 0.5, HOME[1] + 3.5];
@@ -1372,13 +1378,21 @@
   function drawLand(I, state, me, now, opts) {
     const ctx = I.ctx, L = S.layout(state), plan = L.plan; opts = opts || {}; T = terrainOf(state); Homes.setTerrain(state.biome); B.modern = NW.Eras.level(state) >= 3;
     const g = groundFor(L, state), lvl = NW.Eras.level(state), era = NW.Eras.eraOf(state);
-    for (let d = 0; d <= 2 * (LAND - 1); d++) for (let gx = Math.max(0, d - LAND + 1); gx <= Math.min(LAND - 1, d); gx++) { const gy = d - gx; if (!I.onScreen(gx, gy)) continue; groundTile(I, gx, gy, g[gy * LAND + gx]); }
-    /* the fields: sown, green, tall, gold, cut, through the fast month; fallow and weedy when the power is down */
     const pw = S.power(state, S.now(state)); NW.power = pw; const stage = pw < 0.5 ? -1 : Math.floor(((S.dayOf(state, S.now(state)) % 30) / 30) * 5);
+    const items = []; const add = (d, fn) => items.push({ d, fn });
+    const layered = !opts.map && !opts.site && !opts.placing && !opts.anim && !reduce;
+    const drawCivicWith = (I, add) => c => {
+      if (c.kind === 'rail') return;
+      if (c.kind === 'stockade') { if (!opts.map) add(c.rect[0] + c.rect[1] - 0.5, () => { const [x, y, w, h] = c.rect; I.fence(x, y, x + w, y, w * 2); I.fence(x, y, x, y + h, h * 2); I.fence(x + w, y, x + w, y + h, h * 2); I.fence(x, y + h, x + 16, y + h, 32); I.fence(x + 17.2, y + h, x + w, y + h, 2); }); return; }
+      if (c.kind === 'paddock') { add(c.rect[0] + c.rect[1] - 0.5, () => B.paddock(I, c.rect[0], c.rect[1], c.rect[2], c.rect[3])); [[1, 1.2], [4, 2]].forEach((o, i) => { const q = [c.rect[0] + o[0] + Math.sin(now / 9000 + i) * 0.8, c.rect[1] + o[1] + Math.cos(now / 11000 + i) * 0.5]; add(q[0] + q[1] + 0.2, () => (i ? B.cow : B.horse)(I, q[0], q[1], i ? now / 1000 : '#8a5a3a', now / 1000)); }); return; }
+      if (!c.at) return; const d = c.kind === 'board' ? (I2, x, y) => B.board(I2, x, y) : c.kind === 'windmill' ? (I2, x, y, n) => B.windmill(I2, x, y, n) : c.kind === 'tank' ? (I2, x, y) => B.tank(I2, x, y) : c.kind === 'barn' ? (I2, x, y, n) => B.barn(I2, x, y, 1, n, 2) : c.kind === 'coop' ? (I2, x, y, n) => B.coop(I2, x, y, n) : B.CIV[c.kind];
+      if (!d || !(I.onScreen(c.at[0], c.at[1]) || I.onScreen(c.at[0] + 3, c.at[1] + 3))) return; const big = ['cityhall', 'capitol', 'palace', 'university', 'stadium', 'hospital', 'skypad', 'hoverport', 'obelisk', 'pool'].includes(c.kind); add(c.kind === 'skyisland' ? 4000 + c.at[0] + c.at[1] : c.at[0] + c.at[1] + (big ? 4 : 1.2), () => d(I, c.at[0], c.at[1], now)); };
+    /* everything that stands still: the ground, the fields, the rail, the trees, the home, the civic buildings, the homes */
+    const scene = (I, ctx, add) => {
+    for (let d = 0; d <= 2 * (LAND - 1); d++) for (let gx = Math.max(0, d - LAND + 1); gx <= Math.min(LAND - 1, d); gx++) { const gy = d - gx; if (!I.onScreen(gx, gy)) continue; groundTile(I, gx, gy, g[gy * LAND + gx]); }
     if (!opts.map) plan.landscape.fields.forEach(f => { for (let y = f[1]; y < f[1] + f[3]; y++) for (let x = f[0]; x < f[0] + f[2]; x++) { if (!I.onScreen(x, y)) continue; const q = I.p(x + 0.5, y + 0.5); if (stage < 0) { ctx.fillStyle = '#7a8f3a'; [[-8, -2], [2, 1], [-2, 4], [7, -3]].forEach(o => ctx.fillRect(q[0] + o[0], q[1] + o[1] - 3, 1.5, 3)); continue; } if (stage === 0) { ctx.fillStyle = 'rgba(0,0,0,.12)'; for (let k = -1; k <= 1; k++) ctx.fillRect(q[0] - 12, q[1] + k * 4, 24, 1); continue; } if (stage === 4) { if ((x + y) % 2 === 0) { ctx.fillStyle = '#d9b24c'; ctx.fillRect(q[0] - 4, q[1] - 6, 8, 5); ctx.fillStyle = '#b8902e'; ctx.fillRect(q[0] - 4, q[1] - 2, 8, 1); } continue; } const h = [0, 4, 8, 11][stage], col = stage === 3 ? '#d9a23a' : stage === 2 ? '#7fb35a' : '#9fd06a'; ctx.fillStyle = col; for (let k = -2; k <= 2; k++) for (let m = -1; m <= 1; m++) ctx.fillRect(q[0] + k * 5 + m * 1.5, q[1] + m * 3 - h, 1.5, h); if (stage === 3) { ctx.fillStyle = '#f2c94c'; for (let k = -2; k <= 2; k++) ctx.fillRect(q[0] + k * 5 - 1, q[1] - h - 3, 3, 3); } } });
     const rail = plan.civic.find(c => c.kind === 'rail');
     if (rail && !opts.map) { ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 1.2; for (let x = rail.from[0]; x <= rail.to[0]; x += 0.5) { const a = I.p(x, rail.from[1] + 0.15), b = I.p(x, rail.from[1] + 0.85); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); } [0.3, 0.7].forEach(o => { const a = I.p(rail.from[0], rail.from[1] + o), b = I.p(rail.to[0] + 1, rail.to[1] + o); ctx.strokeStyle = '#9aa3b0'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }); }
-    const items = []; const add = (d, fn) => items.push({ d, fn });
     if (!opts.map) { decor.rails.forEach(([x, y]) => { if (!I.onScreen(x, y)) return; add(x + y + 0.4, () => { const a = I.p(x, y), b = I.p(x + 1, y), c = I.p(x, y + 1), d = I.p(x + 1, y + 1); I.line(I.up(a, 6), I.up(b, 6), '#8a6a3f', 1.5); I.line(I.up(c, 6), I.up(d, 6), '#8a6a3f', 1.5); }); });
       const grown = clamp(0.55 + S.dayOf(state, S.now(state)) / 30 * 0.45, 0.55, 1);
       decor.trees.forEach(([x, y, what, size, z]) => { if (!I.onScreen(x, y)) return; if (what === 'tree' && g[y * LAND + x] === G.MANAGED) size *= grown; add(x + y + 0.5, () => { I.cam.y += z; if (what === 'hay') B.hay(I, x, y); else if (what === 'rock') B.boulder(I, x, y, size); else if (what === 'reeds') B.reeds(I, x, y, size); else if (what === 'lantern') B.stonelantern(I, x, y); else treeOf(I, x, y, size); I.cam.y -= z; }); });
@@ -1397,13 +1411,9 @@
       if (has('land:fountain')) { const sq = plan.zones.find(z => z.kind === 'square' || z.kind === 'plaza' || z.kind === 'park'); const fx0 = sq ? sq.rect[0] + Math.floor(sq.rect[2] / 2) - 0.5 : HOME[0] - 2.5, fy0 = sq ? sq.rect[1] + Math.floor(sq.rect[3] / 2) - 0.5 : HOME[1] + 4; if (I.onScreen(fx0, fy0)) add(fx0 + fy0 + 1.4, () => B.fountain(I, fx0, fy0, 1, now)); }
       if (has('land:orchard')) [[-1.2, -1.2], [0, -1.6], [1.2, -1.2], [2.4, -1.6], [3.4, -1], [-1.6, 0]].forEach((o, i) => { const x = HOME[0] + o[0], y = HOME[1] + o[1]; if (I.onScreen(x, y)) add(x + y + 0.5, () => { B.oak(I, x, y, 0.75); const q = I.p(x + 0.5, y + 0.5); [[-6, -26], [4, -30], [8, -22], [-2, -20]].forEach((f, k) => I.blob(q[0] + f[0], q[1] + f[1], 1.8, k % 2 ? '#e8552f' : '#ffc531')); }); }); }
     /* what stood here before, and what this era's projects have built so far */
-    const drawCivic = c => {
-      if (c.kind === 'rail') return;
-      if (c.kind === 'stockade') { if (!opts.map) add(c.rect[0] + c.rect[1] - 0.5, () => { const [x, y, w, h] = c.rect; I.fence(x, y, x + w, y, w * 2); I.fence(x, y, x, y + h, h * 2); I.fence(x + w, y, x + w, y + h, h * 2); I.fence(x, y + h, x + 16, y + h, 32); I.fence(x + 17.2, y + h, x + w, y + h, 2); }); return; }
-      if (c.kind === 'paddock') { add(c.rect[0] + c.rect[1] - 0.5, () => B.paddock(I, c.rect[0], c.rect[1], c.rect[2], c.rect[3])); [[1, 1.2], [4, 2]].forEach((o, i) => { const q = [c.rect[0] + o[0] + Math.sin(now / 9000 + i) * 0.8, c.rect[1] + o[1] + Math.cos(now / 11000 + i) * 0.5]; add(q[0] + q[1] + 0.2, () => (i ? B.cow : B.horse)(I, q[0], q[1], i ? now / 1000 : '#8a5a3a', now / 1000)); }); return; }
-      if (!c.at) return; const d = c.kind === 'board' ? (I2, x, y) => B.board(I2, x, y) : c.kind === 'windmill' ? (I2, x, y, n) => B.windmill(I2, x, y, n) : c.kind === 'tank' ? (I2, x, y) => B.tank(I2, x, y) : c.kind === 'barn' ? (I2, x, y, n) => B.barn(I2, x, y, 1, n, 2) : c.kind === 'coop' ? (I2, x, y, n) => B.coop(I2, x, y, n) : B.CIV[c.kind];
-      if (!d || !(I.onScreen(c.at[0], c.at[1]) || I.onScreen(c.at[0] + 3, c.at[1] + 3))) return; const big = ['cityhall', 'capitol', 'palace', 'university', 'stadium', 'hospital', 'skypad', 'hoverport', 'obelisk', 'pool'].includes(c.kind); add(c.kind === 'skyisland' ? 4000 + c.at[0] + c.at[1] : c.at[0] + c.at[1] + (big ? 4 : 1.2), () => d(I, c.at[0], c.at[1], now)); };
-    plan.civic.forEach(drawCivic); L.infra.forEach(c => { if (!opts.site || opts.site.title !== c.title) drawCivic(c); });
+    const drawCivic = drawCivicWith(I, add);
+    const skipLive = c => layered && LIVE.has(c.kind);
+    plan.civic.forEach(c => { if (!skipLive(c)) drawCivic(c); }); L.infra.forEach(c => { if (!skipLive(c) && (!opts.site || opts.site.title !== c.title)) drawCivic(c); });
     /* the next lot, pegged out; every free lot while you are choosing */
     if (!opts.map && L.next && !opts.site) add(L.next[0] + L.next[1] + 0.4, () => { const q = I.p(L.next[0] + 0.5, L.next[1] + 0.5); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.ellipse(q[0], q[1], 14, 7, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); [[-0.3, -0.3], [1.3, -0.3], [-0.3, 1.3], [1.3, 1.3]].forEach(o => { const c = I.p(L.next[0] + o[0], L.next[1] + o[1]); ctx.fillStyle = '#f4f1e8'; ctx.fillRect(c[0] - 1, c[1] - 7, 2, 7); ctx.fillStyle = '#ffc531'; ctx.fillRect(c[0] - 2.5, c[1] - 9, 5, 2.5); }); });
     if (opts.placing) L.west.forEach(q => { if (!I.onScreen(q[0], q[1]) || !S.lotFree(state, q)) return; add(q[0] + q[1] + 0.3, () => { const c = I.p(q[0] + 0.5, q[1] + 0.5); ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.ellipse(c[0], c[1], 13, 6.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.setLineDash([]); }); });
@@ -1414,6 +1424,19 @@
       let k = 1; if (opts.anim && opts.anim.title === b.title) k = reduce ? 1 : clamp((now - opts.anim.start) / 1600, 0, 1);
       add(b.gx + b.gy + 0.5, () => { Homes.setN(b.order || 0, b); Homes.ERA_HOME[lvl](I, b.gx, b.gy, k, now, b.kind); }); if (!opts.map && b.order && !opts.quiet) add(b.gx + b.gy + 0.51, () => { const q = I.p(b.gx + 0.15, b.gy + 0.15, 2); I.roundRect(q[0] - 7, q[1] - 6, 14, 9, 3, 'rgba(255,255,255,.88)'); ctx.fillStyle = '#172033'; ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(String(b.order), q[0], q[1] + 1); ctx.textAlign = 'left'; }); });
     if (opts.placing) add(9998, () => { const q = I.p(HOME[0] + 1, HOME[1] + 4.5); ctx.font = '800 12px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,40,60,.55)'; ctx.strokeText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.fillStyle = '#fff'; ctx.fillText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.textAlign = 'left'; });
+    };
+    /* the still layer: the scene is drawn into a cached canvas and blitted every frame, redrawn only when the camera, the zoom, the
+     * layout or the day moves on. Only what moves is drawn live: people, cars, the avatar, smoke, the animated civic pieces, the lights. */
+    if (layered) {
+      const key = [plan.id, state.biome, L.buildings.length, (L.next || []).join(), L.nextBuild ? L.nextBuild.kind : '', I.S, Math.round(I.cam.x * 2), Math.round(I.cam.y * 2), I.PW, I.PH, stage, lvl, state.wallet.unlocked.length, opts.land || '', !!opts.quiet, Math.floor(S.dayOf(state, S.now(state)) / 3)].join('|');
+      if (!layer.cv) layer.cv = document.createElement('canvas');
+      if (layer.PW !== I.PW || layer.PH !== I.PH || layer.S !== I.S) { layer.cv.width = I.PW; layer.cv.height = I.PH; layer.I = NW.makeIso(layer.cv, I.PW / (2 * I.S), I.PH / (2 * I.S), I.S); layer.PW = I.PW; layer.PH = I.PH; layer.S = I.S; layer.key = ''; }
+      if (layer.key !== key) { const I2 = layer.I; I2.cam.x = I.cam.x; I2.cam.y = I.cam.y; I2.ctx.setTransform(1, 0, 0, 1, 0, 0); I2.ctx.clearRect(0, 0, I.PW, I.PH); I2.reset(); I2.lights.length = 0; I2.night = I.night; Homes.setLive(false); const items2 = []; scene(I2, I2.ctx, (d, fn) => items2.push({ d, fn })); items2.sort((a, b) => a.d - b.d).forEach(it => it.fn()); Homes.setLive(true); layer.lights = I2.lights.slice(); I2.lights.length = 0; layer.smokes = Homes.takeSmokes(); layer.key = key; }
+      ctx.drawImage(layer.cv, 0, 0, I.W, I.H);
+      layer.lights.forEach(l => I.lights.push({ x: l.x, y: l.y, r: l.r, c: l.c, k: l.k }));
+      layer.smokes.forEach(sm => { const q = I.p(sm.gx, sm.gy, sm.z); I.smoke(q[0], q[1], now); });
+      const dc = drawCivicWith(I, add); plan.civic.concat(L.infra).forEach(c => { if (LIVE.has(c.kind)) dc(c); });
+    } else scene(I, ctx, add);
     if (opts.site) { const st = opts.site; Homes.setN(L.buildings.filter(b => b.series).length + 1, L.next ? L.plan.lotList.find(q => q[0] === L.next[0] && q[1] === L.next[1]) || {} : {}); const draw = st.infra ? ((I2, x, y) => { const c = st.infra; if (c.kind === 'stockade') { const [sx, sy, w, h] = c.rect; I.fence(sx, sy, sx + w, sy, w * 2); I.fence(sx, sy, sx, sy + h, h * 2); I.fence(sx + w, sy, sx + w, sy + h, h * 2); I.fence(sx, sy + h, sx + 16, sy + h, 32); return; } if (c.kind === 'paddock') { B.paddock(I, c.rect[0], c.rect[1], c.rect[2], c.rect[3]); return; } if (c.kind === 'rail') return; const d = c.kind === 'board' ? (I3, a, b2) => B.board(I3, a, b2) : c.kind === 'windmill' ? (I3, a, b2, n) => B.windmill(I3, a, b2, n) : c.kind === 'tank' ? (I3, a, b2) => B.tank(I3, a, b2) : c.kind === 'barn' ? (I3, a, b2, n) => B.barn(I3, a, b2, 1, n, 2) : c.kind === 'coop' ? (I3, a, b2, n) => B.coop(I3, a, b2, n) : B.CIV[c.kind]; if (d) d(I2, x, y, now); }) : null; add(st.gx + st.gy + (st.infra ? 3 : 0.5), () => { opts.stage = Homes.drawStage(I, st.gx, st.gy, opts.stepsDone, opts.stepsTotal, st.kind, lvl, opts.k == null ? 1 : opts.k, now, draw); }); }
     /* the traffic */
     if (!opts.map && !opts.quiet && lvl >= 2) { tickCars(L, state, now); cars.forEach(c => { if (!I.onScreen(c.at[0], c.at[1])) return; const k = I.KINDS[c.kind], gx = c.at[0] - (c.dir === 'x' ? k.L / 2 : 0.5), gy = c.at[1] - (c.dir === 'y' ? k.L / 2 : 0.5); add(c.at[0] + c.at[1] + 0.45, () => { I.vehicle(gx, gy, c.kind, c.colour, 0, c.dir, { flip: c.flip, lit: I.night > 0.3 }); if (c.kind === 'cart') { const f = c.flip ? -0.75 : 0.75; B.horse(I, c.at[0] - 0.5 + (c.dir === 'x' ? f + 0.1 : 0), c.at[1] - 0.5 + (c.dir === 'y' ? f + 0.1 : 0), '#8a5a3a', c.moving ? now / 1000 : 3); } }); }); }
@@ -2008,9 +2031,13 @@
         devRow('Tools', [ex, imp, pb, fpsSpan]); devbar.appendChild(ioBox); } }
 
     /* ---- the loop: draw only what is showing; one frame in flight at a time ---- */
-    let running = true, pending = 0, lastCrew = 0, lastPip = 0, lastLevel = E.level(state);
+    /* the budget: thirty frames a second while you are with it, twelve after two minutes without a touch, none while the pane cannot be seen */
+    let running = true, pending = 0, lastCrew = 0, lastPip = 0, lastLevel = E.level(state), lastInput = performance.now(), lastDraw = 0, visible = true;
+    ['pointerdown', 'pointermove', 'wheel', 'keydown'].forEach(ev => wrap.addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true }));
+    if (window.IntersectionObserver && hostEl.nodeType === 1) new IntersectionObserver(es => { visible = es.some(e => e.isIntersecting); if (visible && running && !pending) pending = requestAnimationFrame(frame); }).observe(hostEl);
     function frame(now) {
-      pending = 0; if (!running) return;
+      pending = 0; if (!running) return; if (!visible) return;
+      const budget = now - lastInput > 120000 ? 1000 / 12 : 1000 / 30; if (now - lastDraw < budget - 2) { pending = requestAnimationFrame(frame); return; } lastDraw = now;
       if (perf.t) perf.ema = perf.ema * 0.95 + (now - perf.t) * 0.05; perf.t = now; if (fpsSpan && Math.floor(now / 500) !== Math.floor((now - perf.ema) / 500)) setText(fpsSpan, Math.round(1000 / perf.ema) + ' fps');
       const night = S.nightOf(S.hourOf(state));
       { const e = E.eraOf(state), lv = E.level(state); if (e.name !== lastEra) { lastEra = e.name; if (lv > lastLevel) { if (current === 'build') dot('base'); else show('base'); showLevelUp(e); Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; } lastLevel = lv; } }

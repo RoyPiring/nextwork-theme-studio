@@ -330,9 +330,13 @@
         devRow('Tools', [ex, imp, pb, fpsSpan]); devbar.appendChild(ioBox); } }
 
     /* ---- the loop: draw only what is showing; one frame in flight at a time ---- */
-    let running = true, pending = 0, lastCrew = 0, lastPip = 0, lastLevel = E.level(state);
+    /* the budget: thirty frames a second while you are with it, twelve after two minutes without a touch, none while the pane cannot be seen */
+    let running = true, pending = 0, lastCrew = 0, lastPip = 0, lastLevel = E.level(state), lastInput = performance.now(), lastDraw = 0, visible = true;
+    ['pointerdown', 'pointermove', 'wheel', 'keydown'].forEach(ev => wrap.addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true }));
+    if (window.IntersectionObserver && hostEl.nodeType === 1) new IntersectionObserver(es => { visible = es.some(e => e.isIntersecting); if (visible && running && !pending) pending = requestAnimationFrame(frame); }).observe(hostEl);
     function frame(now) {
-      pending = 0; if (!running) return;
+      pending = 0; if (!running) return; if (!visible) return;
+      const budget = now - lastInput > 120000 ? 1000 / 12 : 1000 / 30; if (now - lastDraw < budget - 2) { pending = requestAnimationFrame(frame); return; } lastDraw = now;
       if (perf.t) perf.ema = perf.ema * 0.95 + (now - perf.t) * 0.05; perf.t = now; if (fpsSpan && Math.floor(now / 500) !== Math.floor((now - perf.ema) / 500)) setText(fpsSpan, Math.round(1000 / perf.ema) + ' fps');
       const night = S.nightOf(S.hourOf(state));
       { const e = E.eraOf(state), lv = E.level(state); if (e.name !== lastEra) { lastEra = e.name; if (lv > lastLevel) { if (current === 'build') dot('base'); else show('base'); showLevelUp(e); Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; } lastLevel = lv; } }

@@ -13,12 +13,12 @@
   const KIND = { home: ['#d9563f', 'chimney'], lab: ['#5a3aa8', 'dish'], library: ['#c9503c', 'sign'], barn: ['#8a5a3a', 'silo'], tower: ['#2f7fd6', 'mast'], workshop: ['#e3a45b', 'stack'], vault: ['#6b7280', 'gate'], datacentre: ['#3fa66b', 'vents'], yard: ['#f2b42a', 'crate'], clinic: ['#e8352f', 'cross'], bank: ['#c9971f', 'coin'] };
   function detail(I, b, gx, gy, H, kind, now) {
     const d = (KIND[kind] || KIND.home)[1], c = (KIND[kind] || KIND.home)[0];
-    if (d === 'chimney') { I.chimney(gx + 0.7, gy + 0.2, H + 6, '#9c5a3a'); const q = I.p(gx + 0.76, gy + 0.26, H + 24); I.smoke(q[0], q[1], now); }
+    if (d === 'chimney') { I.chimney(gx + 0.7, gy + 0.2, H + 6, '#9c5a3a'); smokeAt(I, gx + 0.76, gy + 0.26, H + 24, now); }
     else if (d === 'dish') { const q = I.p(gx + 0.75, gy + 0.3, H + 8); I.ctx.fillStyle = '#e6e9ef'; I.ctx.beginPath(); I.ctx.ellipse(q[0], q[1] - 4, 6, 4, -0.5, 0, Math.PI * 2); I.ctx.fill(); I.line(q, [q[0], q[1] - 4], '#8a95a6', 2); }
     else if (d === 'sign') { const s = I.up(I.P(b.D, b.C, 0.5), H * 0.7); I.roundRect(s[0] - 8, s[1] - 4, 16, 7, 2, '#f4f1e8'); I.ctx.fillStyle = c; I.ctx.fillRect(s[0] - 6, s[1] - 2, 5, 3); I.ctx.fillRect(s[0] + 1, s[1] - 2, 5, 3); }
     else if (d === 'silo') { const t = I.box(gx + 0.82, gy + 0.05, 0.16, 0.16, H + 10, '#c9c2b0', 0, { noShadow: true }); I.roof(gx + 0.82, gy + 0.05, 0.16, 0.16, H + 10, 6, '#8a8f98', 0.05); }
     else if (d === 'mast') { const q = I.p(gx + 0.5, gy + 0.5, H + 4); I.line(q, [q[0], q[1] - 26], '#8a95a3', 2); I.blob(q[0], q[1] - 27, 2, Math.floor(now / 500) % 2 ? '#ff4d4d' : '#ffb3b3'); }
-    else if (d === 'stack') { I.chimney(gx + 0.75, gy + 0.15, H + 4, '#6b7280'); const q = I.p(gx + 0.81, gy + 0.21, H + 22); I.smoke(q[0], q[1], now); }
+    else if (d === 'stack') { I.chimney(gx + 0.75, gy + 0.15, H + 4, '#6b7280'); smokeAt(I, gx + 0.81, gy + 0.21, H + 22, now); }
     else if (d === 'gate') { const a = I.P(b.D, b.C, 0.36), e = I.P(b.D, b.C, 0.64); I.poly([a, e, I.up(e, H * 0.6), I.up(a, H * 0.6)], '#3b4252'); I.line(I.P(a, e, 0.5), I.up(I.P(a, e, 0.5), H * 0.6), '#9aa3b0', 1); }
     else if (d === 'vents') { [0.2, 0.5, 0.8].forEach(u => I.box(gx + u - 0.06, gy + 0.2, 0.12, 0.12, 5, '#dfe5ee', H + 4, { noShadow: true })); }
     else if (d === 'crate') { I.box(gx + 1.02, gy + 0.7, 0.22, 0.22, 7, c, 0, { noShadow: true, tex: 'ribbed' }); }
@@ -26,6 +26,8 @@
     else if (d === 'coin') { const s = I.up(I.P(b.D, b.C, 0.5), H * 0.72); I.blob(s[0], s[1], 4, c); I.ctx.fillStyle = '#4a2b00'; I.ctx.font = '800 5px Baloo 2, system-ui, sans-serif'; I.ctx.textAlign = 'center'; I.ctx.fillText('$', s[0], s[1] + 2); I.ctx.textAlign = 'left'; }
   }
   const accent = kind => (KIND[kind] || KIND.home)[0];
+  let live = true; let smokes = [];   /* live: draw the smoke now; otherwise note where it rises so the caller can */
+  const smokeAt = (I, gx, gy, z, now) => { if (live) { const q = I.p(gx, gy, z); I.smoke(q[0], q[1], now); } else smokes.push({ gx, gy, z }); };
   /* what a building goes up as: the very building it will be, revealed from
    * the ground up one slice per step, with scaffolding to the height reached */
   /* the terrain's building style: what the walls are made of, how the roof is pitched */
@@ -133,7 +135,7 @@
     if (has('setback') && !has('steps')) { const sb = I.box(ox + w * 0.2, oy + d * 0.2, w * 0.6, d * 0.6, fh * 1.4, wall, top, { noShadow: true, tex }); [0.3, 0.7].forEach(u => I.win(sb.D, sb.C, u, 6, 0.2, fh * 0.5, (N + 1) % 2 === 0)); I.flatRoof(ox + w * 0.2, oy + d * 0.2, w * 0.6, d * 0.6, top + fh * 1.4, roofC); top += fh * 1.4 + 4; }
     if (has('dormer') && vv.roof !== 'mansard') { const db = I.box(ox + w * 0.32, oy + d * 0.55, 0.3, 0.3, 9, wall, rz + 4, { noShadow: true }); I.win(db.D, db.C, 0.2, 2, 0.6, 6, (N % 2) === 0); I.roof(ox + w * 0.32, oy + d * 0.55, 0.3, 0.3, rz + 13, 6, roofC, 0.04); }
     if (has('chimney')) I.chimney(ox + w * 0.75, oy + 0.15, top + (vv.roof === 'flat' ? 0 : fh * 0.4), '#9c5a3a');
-    if (has('stack')) { I.chimney(ox + w * 0.8, oy + 0.1, top + 8, '#6b7280'); const q = I.p(ox + w * 0.86, oy + 0.16, top + 30); I.smoke(q[0], q[1], now); }
+    if (has('stack')) { I.chimney(ox + w * 0.8, oy + 0.1, top + 8, '#6b7280'); smokeAt(I, ox + w * 0.86, oy + 0.16, top + 30, now); }
     if (has('garden')) [[0.25, 0.3, '#5cc464'], [0.6, 0.55, '#3fa66b'], [0.4, 0.75, '#7fc55a']].forEach(o => { const q = I.p(ox + w * o[0], oy + d * o[1], top + 2); I.blob(q[0], q[1], 4 + w * 2, o[2], 0.7); });
     if (has('solar')) { const q0 = I.p(ox + 0.1, oy + 0.1, top + 1), q1 = I.p(ox + w - 0.1, oy + 0.1, top + 1), q2 = I.p(ox + w - 0.1, oy + d - 0.1, top + 1), q3 = I.p(ox + 0.1, oy + d - 0.1, top + 1); I.poly([q0, q1, q2, q3], '#1f3a6b', 'rgba(255,255,255,.4)', 1); for (let t = 0.25; t < 1; t += 0.25) I.line(I.P(q0, q3, t), I.P(q1, q2, t), 'rgba(255,255,255,.35)', 1); }
     if (has('tank')) { cylinder(I, ox + w * 0.75, oy + d * 0.3, 0.12, top, 10, '#8a8f98'); }
@@ -182,5 +184,7 @@
   B.CIV.hospital = function (I, gx, gy, now) { I.box(gx - 0.2, gy - 0.2, 3.4, 2.4, 4, '#cfd5df', 0, { top: 0.1 }); const H = 108, b = I.box(gx, gy, 3, 2, H, '#dfe9f2', 4, { tex: 'glass' }); [36, 72].forEach(v => I.line(I.up(b.D, v), I.up(b.C, v), 'rgba(255,255,255,.6)', 1.5)); for (let r = 0; r < 3; r++) for (let u = 0.06; u < 0.95; u += 0.12) { if (r === 0 && u > 0.38 && u < 0.6) continue; I.win(b.D, b.C, u, 12 + r * 34, 0.07, 18, ((r + Math.floor(u * 10)) % 3) !== 0); } for (let r = 0; r < 3; r++) [0.15, 0.45, 0.75].forEach(u => I.win(b.C, b.B, u, 12 + r * 34, 0.16, 18, r !== 1)); const a = I.P(b.D, b.C, 0.4), c = I.P(b.D, b.C, 0.6); I.poly([a, c, I.up(c, 20), I.up(a, 20)], '#9ad3ff'); I.poly([I.p(gx + 0.9, gy + 2.05, 24), I.p(gx + 2.1, gy + 2.05, 24), I.p(gx + 2.1, gy + 2.5, 20), I.p(gx + 0.9, gy + 2.5, 20)], '#e8352f'); I.flatRoof(gx, gy, 3, 2, H + 4, '#dfe5ee'); const s = I.p(gx + 1.5, gy + 1, H + 12); I.roundRect(s[0] - 9, s[1] - 9, 18, 18, 3, '#ffffff'); I.ctx.fillStyle = '#e8352f'; I.ctx.fillRect(s[0] - 2.5, s[1] - 7, 5, 14); I.ctx.fillRect(s[0] - 7, s[1] - 2.5, 14, 5); I.box(gx + 2.5, gy + 0.3, 0.3, 0.3, 10, '#dfe5ee', H + 4, { noShadow: true }); I.label(gx + 1.5, gy + 2.9, 'Hospital', '', 9); };
   B.CIV.datacentre = function (I, gx, gy, now) { B.datacentre(I, gx, gy, 1, now, 3); I.label(gx + 0.6, gy + 1.7, 'Data Centre', 'what keeps the city running', 8); };
   const setN = (n, place) => { N = n | 0; PLACE = place || {}; };
-  NW.Homes = { setTerrain, setN, STYLES, PALETTE, ERA_HOME, VARIANTS, drawStage, KIND };
+  const setLive = v => { live = !!v; if (!live) smokes = []; };
+  const takeSmokes = () => { const s = smokes; smokes = []; return s; };
+  NW.Homes = { setTerrain, setN, setLive, takeSmokes, STYLES, PALETTE, ERA_HOME, VARIANTS, drawStage, KIND };
 })();
