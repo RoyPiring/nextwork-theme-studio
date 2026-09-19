@@ -12,14 +12,16 @@
   function shade(h, k) { const c = hex(h).map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))); return rgb(c); }
 
   const TW = 48, TH = 24;
-  function makeIso(canvas, W0, H0, scale) {
-    const ctx = canvas.getContext('2d');
-    let S = scale || 1, W = W0, H = H0, PW = W0 * 2 * S, PH = H0 * 2 * S;   /* the canvas, in device pixels */
-    ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
+  /* device pixels per logical pixel: the screen's own ratio, never more than two, so a laptop is not asked to fill a phone's pixels */
+  const DPR = Math.min(2, Math.max(1, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1));
+  function makeIso(canvas, W0, H0, scale, dpr) {
+    const ctx = canvas.getContext('2d'); const D = dpr || DPR;
+    let S = scale || 1, W = W0, H = H0, PW = W0 * D * S, PH = H0 * D * S;   /* the canvas, in device pixels */
+    ctx.setTransform(D * S, 0, 0, D * S, 0, 0);
     const cam = { x: 0, y: 0 };
     const lights = [];   /* what glows after dark: filled while drawing, spent by nightfall() */
     /* zoom: the same point stays under the middle of the canvas */
-    function setScale(next) { S = Math.max(0.12, Math.min(3, next)); W = PW / (2 * S); H = PH / (2 * S); ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0); out.S = S; out.W = W; out.H = H; }
+    function setScale(next) { S = Math.max(0.12, Math.min(3, next)); W = PW / (D * S); H = PH / (D * S); ctx.setTransform(D * S, 0, 0, D * S, 0, 0); out.S = S; out.W = W; out.H = H; }
     /* the pane changed size: give the canvas that many device pixels and keep the scale */
     function resize(pw, ph) { pw = Math.max(200, Math.round(pw)); ph = Math.max(160, Math.round(ph)); if (pw === PW && ph === PH) return; canvas.width = pw; canvas.height = ph; PW = pw; PH = ph; out.PW = PW; out.PH = PH; setScale(S); }
     const p = (gx, gy, z) => [W / 2 + (gx - gy) * TW / 2 - cam.x, 60 + (gx + gy) * TH / 2 - (z || 0) - cam.y];
@@ -150,11 +152,11 @@
     /* a glow is drawn once per colour and size and stamped after that: a hundred lights cost a hundred drawImage calls, not a hundred gradients */
     const glows = new Map();
     function glow(c, r) { const key = c + '|' + Math.round(r); let sp = glows.get(key); if (sp) return sp; const R = Math.max(2, Math.round(r)); sp = document.createElement('canvas'); sp.width = R * 2; sp.height = R * 2; const g2 = sp.getContext('2d'); const g = g2.createRadialGradient(R, R, 1, R, R, R); g.addColorStop(0, 'rgba(' + c + ',1)'); g.addColorStop(1, 'rgba(' + c + ',0)'); g2.fillStyle = g; g2.beginPath(); g2.arc(R, R, R, 0, Math.PI * 2); g2.fill(); if (glows.size > 64) glows.clear(); glows.set(key, sp); return sp; }
-    const reset = () => ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
-    const out = { ctx, cam, W, H, S, PW, PH, night: 0, lights, nightfall, reset, setScale, resize, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, vehicle, KINDS, blob, roundRect, shadow, label };
+    const reset = () => ctx.setTransform(D * S, 0, 0, D * S, 0, 0);
+    const out = { ctx, cam, W, H, S, PW, PH, DPR: D, night: 0, lights, nightfall, reset, setScale, resize, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, vehicle, KINDS, blob, roundRect, shadow, label };
     return out;
   }
 
   window.NW = window.NW || {};
-  Object.assign(NW, { TW, TH, reduce, clamp, lerp, ease, hex, rgb, shade, makeIso });
+  Object.assign(NW, { TW, TH, DPR, reduce, clamp, lerp, ease, hex, rgb, shade, makeIso });
 })();

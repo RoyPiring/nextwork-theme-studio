@@ -241,7 +241,7 @@
     if (layered) {
       const key = [plan.id, state.biome, L.buildings.length, (L.next || []).join(), L.nextBuild ? L.nextBuild.kind : '', I.S, Math.round(I.cam.x * 2), Math.round(I.cam.y * 2), I.PW, I.PH, stage, lvl, state.wallet.unlocked.length, opts.land || '', !!opts.quiet, Math.floor(S.dayOf(state, S.now(state)) / 3)].join('|');
       if (!layer.cv) layer.cv = document.createElement('canvas');
-      if (layer.PW !== I.PW || layer.PH !== I.PH || layer.S !== I.S) { layer.cv.width = I.PW; layer.cv.height = I.PH; layer.I = NW.makeIso(layer.cv, I.PW / (2 * I.S), I.PH / (2 * I.S), I.S); layer.PW = I.PW; layer.PH = I.PH; layer.S = I.S; layer.key = ''; }
+      if (layer.PW !== I.PW || layer.PH !== I.PH || layer.S !== I.S) { layer.cv.width = I.PW; layer.cv.height = I.PH; layer.I = NW.makeIso(layer.cv, I.PW / (I.DPR * I.S), I.PH / (I.DPR * I.S), I.S, I.DPR); layer.PW = I.PW; layer.PH = I.PH; layer.S = I.S; layer.key = ''; }
       if (layer.key !== key) { const I2 = layer.I; I2.cam.x = I.cam.x; I2.cam.y = I.cam.y; I2.ctx.setTransform(1, 0, 0, 1, 0, 0); I2.ctx.clearRect(0, 0, I.PW, I.PH); I2.reset(); I2.lights.length = 0; I2.night = I.night; Homes.setLive(false); const items2 = []; scene(I2, I2.ctx, (d, fn) => items2.push({ d, fn })); items2.sort((a, b) => a.d - b.d).forEach(it => it.fn()); Homes.setLive(true); layer.lights = I2.lights.slice(); I2.lights.length = 0; layer.smokes = Homes.takeSmokes(); layer.key = key; }
       ctx.drawImage(layer.cv, 0, 0, I.W, I.H);
       layer.lights.forEach(l => I.lights.push({ x: l.x, y: l.y, r: l.r, c: l.c, k: l.k }));
@@ -266,7 +266,7 @@
     return L;
   }
   /* rain or snow, falling over the whole view; the drops are placed by hash so they need no state */
-  function weather(I, now) { const ctx = I.ctx, W = I.W || 880, H = I.H || 620, t = now / 1000, cx = I.cam.x, cy = I.cam.y; ctx.save(); ctx.setTransform(2 * I.S, 0, 0, 2 * I.S, 0, 0);
+  function weather(I, now) { const ctx = I.ctx, W = I.W || 880, H = I.H || 620, t = now / 1000, cx = I.cam.x, cy = I.cam.y; ctx.save(); ctx.setTransform(I.DPR * I.S, 0, 0, I.DPR * I.S, 0, 0);
     if (T.weather === 'rain') { ctx.strokeStyle = 'rgba(200,220,240,.45)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 160; i++) { const x = (S.hash(i, 1) * W * 1.2 - t * 40 + cx * 0.2) % (W * 1.2), y = (S.hash(i, 2) * H + t * 520 + i * 7 + cy * 0.2) % (H + 40) - 20; ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 14); } ctx.stroke(); ctx.fillStyle = 'rgba(120,140,160,.12)'; ctx.fillRect(0, 0, W, H); }
     else { ctx.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 110; i++) { const s = 1 + S.hash(i, 9) * 1.6, x = (S.hash(i, 1) * W + Math.sin(t * 0.8 + i) * 12 + t * 8) % W, y = (S.hash(i, 2) * H + t * (40 + s * 25) + i * 3) % (H + 20) - 10; ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill(); } }
     ctx.restore(); }

@@ -109,7 +109,7 @@
     function zoomer(sc, cv, onZoom) { const z = el('div', 'zoom'); const zin = el('button', null, '+'); zin.type = 'button'; zin.setAttribute('aria-label', 'Zoom in'); const zout = el('button', null, '−'); zout.type = 'button'; zout.setAttribute('aria-label', 'Zoom out'); zin.addEventListener('click', () => onZoom(1.25)); zout.addEventListener('click', () => onZoom(0.8)); put(z, zin, zout); sc.appendChild(z); cv.addEventListener('wheel', e => { e.preventDefault(); onZoom(e.deltaY < 0 ? 1.12 : 0.9); }, { passive: false }); }
     function drag(cv, I, onTap, onDrag) { let d = null; cv.addEventListener('pointerdown', e => { d = { x: e.clientX, y: e.clientY, cx: I.cam.x, cy: I.cam.y, moved: false }; cv.setPointerCapture(e.pointerId); }); cv.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; if (Math.hypot(dx, dy) > 4) d.moved = true; if (d.moved) { const r = cv.getBoundingClientRect(); I.cam.x = d.cx - dx * I.W / r.width; I.cam.y = d.cy - dy * I.H / r.height; if (onDrag) onDrag(); } }); cv.addEventListener('pointerup', e => { const was = d; d = null; if (!was || was.moved) return; const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) * I.W / r.width + I.cam.x - I.W / 2, y = (e.clientY - r.top) * I.H / r.height + I.cam.y - 60; onTap([(x / (TW / 2) + y / (TH / 2)) / 2, (y / (TH / 2) - x / (TW / 2)) / 2], [x + I.W / 2 - I.cam.x, y + 60 - I.cam.y]); }); }
     /* Pip: the pineapple under every scene. One title, one line, sometimes one button */
-    function pipCanvas() { const cv = el('canvas'); cv.width = 104; cv.height = 120; const I = makeIso(cv, 26, 30, 2); I.cam.y = 29; B.avatar(I, 0, 0, { body: 'pineapple', shirt: '#2f7fd6', hat: 'none' }, 0, false); return cv; }
+    function pipCanvas() { const cv = el('canvas'); cv.width = 104; cv.height = 120; const I = makeIso(cv, 26, 30, 2, 2); I.cam.y = 29; B.avatar(I, 0, 0, { body: 'pineapple', shirt: '#2f7fd6', hat: 'none' }, 0, false); return cv; }
     function guide(parent) { const box = el('div', 'pip'); const t = el('div'); const b = el('b'); const p = el('p'); put(t, b, p); const btn = el('button'); btn.type = 'button'; btn.hidden = true; put(box, pipCanvas(), t, btn); parent.appendChild(box); let onClick = null; btn.addEventListener('click', () => onClick && onClick()); return (title, line, action) => { setText(b, title); setText(p, line); if (action) { btn.hidden = false; setText(btn, action[0]); onClick = action[1]; } else { btn.hidden = true; onClick = null; } }; }
     function toast(sc) { const t = el('div', 'toast'); sc.appendChild(t); let timer = null; return text => { t.textContent = text; t.classList.add('on'); clearTimeout(timer); timer = setTimeout(() => t.classList.remove('on'), 2800); }; }
     function nav(sc, items) { const n = el('div', 'nav'); items.forEach(([t, fn]) => { const b = el('button', null, t); b.type = 'button'; b.addEventListener('click', fn); n.appendChild(b); }); sc.appendChild(n); return n; }
@@ -118,7 +118,7 @@
 
     /* ---- 1. NextWorld: the campus, the hub ---- */
     const w1 = scene(880, 620, 'NextWorld: NextWork Headquarters in Austin, and the learners’ plots round it. Tap your plot to enter your world. Drag to look, wheel to zoom.');
-    const world = makeIso(w1.cv, 880 / (2 * 0.5), 620 / (2 * 0.5), 0.5); const wc = camTo(HQ.C[0], HQ.C[1] + 8, world.H); world.cam.x = wc.x; world.cam.y = wc.y;
+    const world = makeIso(w1.cv, 880 / (NW.DPR * 0.5), 620 / (NW.DPR * 0.5), 0.5); const wc = camTo(HQ.C[0], HQ.C[1] + 8, world.H); world.cam.x = wc.x; world.cam.y = wc.y;
     const wbadge = el('div', 'badge', 'NextWorld'); wbadge.appendChild(el('small', null, 'NextWork HQ, Austin')); w1.sc.appendChild(wbadge);
     const aimW = (gx, gy) => { const c = camTo(gx, gy, world.H); world.cam.x = c.x; world.cam.y = c.y; };
     nav(w1.sc, [['Entry', () => aimW(HQ.ARCH[0], HQ.ARCH[1] + 3)], ['HQ', () => aimW(HQ.HALL[0] + 3, HQ.HALL[1] + 2)], ['Quad', () => aimW(HQ.C[0], HQ.C[1] + 1)], ['Back road', () => aimW(HQ.HACK[0] + 6, HQ.HACK[1] + 2)], ['Ranch', () => aimW(HQ.PADDOCK[0] + 6, HQ.PADDOCK[1] + 6)], ['My plot', () => aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1])], ['All', () => { world.setScale(0.2); aimW(HQ.C[0], HQ.C[1] + 4); }]]);
@@ -160,7 +160,7 @@
     /* ---- 2. My World ---- */
     const me = Land.makeMe(state); let anim = null; const fx = []; let lastL = S.layout(state); let placing = null;
     const b1 = scene(880, 620, 'Your land. Tap where you want to go and you take the roads there; arrow keys walk too. Tap a building for its project. Drag to look, wheel to zoom.');
-    const base = makeIso(b1.cv, 440, 310); Object.assign(base.cam, camTo(me.gx, me.gy, 310));
+    const base = makeIso(b1.cv, 880 / NW.DPR, 620 / NW.DPR); Object.assign(base.cam, camTo(me.gx, me.gy, 310));
     const hud = el('button', 'hud'); hud.type = 'button'; hud.title = 'Where you are and what to do next'; const shield = el('div', 'shield', '1'); const who = el('div', 'who'); const whoB = el('b', null, S.landName(state)); const whoS = el('small', null, ''); const whoN = el('small', 'next', ''); put(who, whoB, whoS, whoN); put(hud, shield, who); b1.sc.appendChild(hud);
     nav(b1.sc, [['Home', () => { Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; }], ['HQ', () => show('world')], ['Build', () => show('build')]]);
     zoomer(b1.sc, b1.cv, f => base.zoom(f));
@@ -207,7 +207,7 @@
     function finish(title, sr) { const hadSparks = state.wallet.sparks; S.finish(state, title, S.now(state)); save(); lastL = S.layout(state); const b = lastL.buildings.find(x => x.title === title); anim = { title, start: performance.now() }; btoast('Built: ' + title); bsay('Built!', 'People can move in now. +' + (state.wallet.sparks - hadSparks) + ' sparks.', ['See it', () => show('base')]); if (b) { fx.push({ type: 'sparkle', gx: b.gx + 0.5, gy: b.gy + 0.5, seed: Math.random() * 6, start: performance.now() + 1500, life: 900 }); Land.goTo(me, lastL.paths, [b.gx + 0.5, b.gy + 1.6]); me.follow = true; } dot('base'); dot('world'); paintSparks(); paintBoard(); paintBuild(); paintDev(); }
 
     /* ---- 3. Avatar: you, and the shop ---- */
-    const av = state.avatar; const a1 = scene(880, 400, 'Your avatar, walking your land'); const avI = makeIso(a1.cv, 440, 200); const avc = camTo(2, 2, 200); avI.cam.x = avc.x; avI.cam.y = avc.y + 10;
+    const av = state.avatar; const a1 = scene(880, 400, 'Your avatar, walking your land'); const avI = makeIso(a1.cv, 880 / NW.DPR, 400 / NW.DPR); const avc = camTo(2, 2, 200); avI.cam.x = avc.x; avI.cam.y = avc.y + 10;
     const avWrap = el('div', 'av'); avWrap.appendChild(a1.sc); const asay = guide(avWrap); const opts = el('div', 'opts'); avWrap.appendChild(opts); views.avatar.appendChild(avWrap);
     const field = (label, id, value, onChange) => { const row = el('div', 'grp'); const inp = el('input'); inp.id = id; inp.type = 'text'; inp.maxLength = 28; inp.value = value; inp.setAttribute('aria-label', label); inp.addEventListener('change', () => onChange(inp.value.trim())); put(row, el('span', null, label), inp); opts.appendChild(row); };
     field('Name', 'nww-name', state.name, v => { state.name = v || 'You'; save(); whoB.textContent = S.landName(state); });
@@ -234,7 +234,7 @@
     const psay = guide(views.build);
     const steps = el('div', 'steps'); views.build.appendChild(steps);
     const stepBtn = el('button', 'btn', 'Complete the next step'); stepBtn.type = 'button'; views.build.appendChild(stepBtn);
-    const s1 = scene(880, 500, 'The building site. Tap the nails as they pop up to hammer them in.'); const site = makeIso(s1.cv, 440, 250); const sbadge = el('div', 'badge', ''); s1.sc.appendChild(sbadge); zoomer(s1.sc, s1.cv, f => site.zoom(f)); views.build.appendChild(s1.sc);
+    const s1 = scene(880, 500, 'The building site. Tap the nails as they pop up to hammer them in.'); const site = makeIso(s1.cv, 880 / NW.DPR, 500 / NW.DPR); const sbadge = el('div', 'badge', ''); s1.sc.appendChild(sbadge); zoomer(s1.sc, s1.cv, f => site.zoom(f)); views.build.appendChild(s1.sc);
     const game = { nails: [], hit: 0, last: 0 };
     drag(s1.cv, site, (g, lg) => { const n = game.nails.find(x => !x.done && Math.hypot(x.sx - lg[0], x.sy - lg[1]) < 44); if (n) { n.done = true; n.at = performance.now(); game.hit++; const cs = current_site ? (state.craft[current_site.title] = (state.craft[current_site.title] || 0) + 1) : 0; if (state.mode === 'dev' && current_site && cs % 5 === 0) tickStep(); paintBuild(); } });
     const placeBtn = el('button', 'link', 'Placed by the plan. Want it elsewhere? Pick a lot'); placeBtn.type = 'button'; views.build.appendChild(placeBtn);
@@ -297,7 +297,7 @@
       SCENES.forEach(([I, sc, share]) => {
         /* the scene takes the height the rest of its tab leaves it, with a floor of the old share; a wide pane gets a tall map, not a letterbox */
         const view = sc.sc.parentElement; let extras = 0; if (view && !view.hidden) Array.prototype.forEach.call(view.children, c => { if (c !== sc.sc && !c.hidden && !c.classList.contains('board') && !c.classList.contains('list') && !c.classList.contains('fold') && c.tagName !== 'H3') extras += c.offsetHeight + 12; });
-        const h = Math.round(Math.max(220, Math.min(Math.max(avail - extras - 20, avail * share), cw * 1.1))); if (I) I.resize(cw * 2, h * 2); else if (sc.cv.width !== cw * 2 || sc.cv.height !== h * 2) { sc.cv.width = cw * 2; sc.cv.height = h * 2; } }); }
+        const h = Math.round(Math.max(220, Math.min(Math.max(avail - extras - 20, avail * share), cw * 1.1))); const D = NW.DPR; if (I) I.resize(cw * D, h * D); else if (sc.cv.width !== Math.round(cw * D) || sc.cv.height !== Math.round(h * D)) { sc.cv.width = Math.round(cw * D); sc.cv.height = Math.round(h * D); } }); }
     if (window.ResizeObserver) { const ro = new ResizeObserver(fit); ro.observe(wrap); if (hostEl !== wrap && hostEl.nodeType === 1) ro.observe(hostEl); } fit();
 
     /* ---- Pip speaks for the tab you are on, and when something happens ---- */
@@ -330,13 +330,13 @@
         devRow('Tools', [ex, imp, pb, fpsSpan]); devbar.appendChild(ioBox); } }
 
     /* ---- the loop: draw only what is showing; one frame in flight at a time ---- */
-    /* the budget: thirty frames a second while you are with it, twelve after two minutes without a touch, none while the pane cannot be seen */
+    /* the budget: thirty frames a second while you are with it, twelve after two minutes without a touch, two after ten, none while the pane cannot be seen */
     let running = true, pending = 0, lastCrew = 0, lastPip = 0, lastLevel = E.level(state), lastInput = performance.now(), lastDraw = 0, visible = true;
     ['pointerdown', 'pointermove', 'wheel', 'keydown'].forEach(ev => wrap.addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true }));
     if (window.IntersectionObserver && hostEl.nodeType === 1) new IntersectionObserver(es => { visible = es.some(e => e.isIntersecting); if (visible && running && !pending) pending = requestAnimationFrame(frame); }).observe(hostEl);
     function frame(now) {
       pending = 0; if (!running) return; if (!visible) return;
-      const budget = now - lastInput > 120000 ? 1000 / 12 : 1000 / 30; if (now - lastDraw < budget - 2) { pending = requestAnimationFrame(frame); return; } lastDraw = now;
+      const idle = now - lastInput, budget = idle > 600000 ? 500 : idle > 120000 ? 1000 / 12 : 1000 / 30;   /* thirty a second with you, twelve after two minutes, two after ten */ if (now - lastDraw < budget - 2) { pending = requestAnimationFrame(frame); return; } lastDraw = now;
       if (perf.t) perf.ema = perf.ema * 0.95 + (now - perf.t) * 0.05; perf.t = now; if (fpsSpan && Math.floor(now / 500) !== Math.floor((now - perf.ema) / 500)) setText(fpsSpan, Math.round(1000 / perf.ema) + ' fps');
       const night = S.nightOf(S.hourOf(state));
       { const e = E.eraOf(state), lv = E.level(state); if (e.name !== lastEra) { lastEra = e.name; if (lv > lastLevel) { if (current === 'build') dot('base'); else show('base'); showLevelUp(e); Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; } lastLevel = lv; } }

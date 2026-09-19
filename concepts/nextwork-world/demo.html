@@ -54,14 +54,16 @@
   function shade(h, k) { const c = hex(h).map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))); return rgb(c); }
 
   const TW = 48, TH = 24;
-  function makeIso(canvas, W0, H0, scale) {
-    const ctx = canvas.getContext('2d');
-    let S = scale || 1, W = W0, H = H0, PW = W0 * 2 * S, PH = H0 * 2 * S;   /* the canvas, in device pixels */
-    ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
+  /* device pixels per logical pixel: the screen's own ratio, never more than two, so a laptop is not asked to fill a phone's pixels */
+  const DPR = Math.min(2, Math.max(1, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1));
+  function makeIso(canvas, W0, H0, scale, dpr) {
+    const ctx = canvas.getContext('2d'); const D = dpr || DPR;
+    let S = scale || 1, W = W0, H = H0, PW = W0 * D * S, PH = H0 * D * S;   /* the canvas, in device pixels */
+    ctx.setTransform(D * S, 0, 0, D * S, 0, 0);
     const cam = { x: 0, y: 0 };
     const lights = [];   /* what glows after dark: filled while drawing, spent by nightfall() */
     /* zoom: the same point stays under the middle of the canvas */
-    function setScale(next) { S = Math.max(0.12, Math.min(3, next)); W = PW / (2 * S); H = PH / (2 * S); ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0); out.S = S; out.W = W; out.H = H; }
+    function setScale(next) { S = Math.max(0.12, Math.min(3, next)); W = PW / (D * S); H = PH / (D * S); ctx.setTransform(D * S, 0, 0, D * S, 0, 0); out.S = S; out.W = W; out.H = H; }
     /* the pane changed size: give the canvas that many device pixels and keep the scale */
     function resize(pw, ph) { pw = Math.max(200, Math.round(pw)); ph = Math.max(160, Math.round(ph)); if (pw === PW && ph === PH) return; canvas.width = pw; canvas.height = ph; PW = pw; PH = ph; out.PW = PW; out.PH = PH; setScale(S); }
     const p = (gx, gy, z) => [W / 2 + (gx - gy) * TW / 2 - cam.x, 60 + (gx + gy) * TH / 2 - (z || 0) - cam.y];
@@ -192,13 +194,13 @@
     /* a glow is drawn once per colour and size and stamped after that: a hundred lights cost a hundred drawImage calls, not a hundred gradients */
     const glows = new Map();
     function glow(c, r) { const key = c + '|' + Math.round(r); let sp = glows.get(key); if (sp) return sp; const R = Math.max(2, Math.round(r)); sp = document.createElement('canvas'); sp.width = R * 2; sp.height = R * 2; const g2 = sp.getContext('2d'); const g = g2.createRadialGradient(R, R, 1, R, R, R); g.addColorStop(0, 'rgba(' + c + ',1)'); g.addColorStop(1, 'rgba(' + c + ',0)'); g2.fillStyle = g; g2.beginPath(); g2.arc(R, R, R, 0, Math.PI * 2); g2.fill(); if (glows.size > 64) glows.clear(); glows.set(key, sp); return sp; }
-    const reset = () => ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
-    const out = { ctx, cam, W, H, S, PW, PH, night: 0, lights, nightfall, reset, setScale, resize, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, vehicle, KINDS, blob, roundRect, shadow, label };
+    const reset = () => ctx.setTransform(D * S, 0, 0, D * S, 0, 0);
+    const out = { ctx, cam, W, H, S, PW, PH, DPR: D, night: 0, lights, nightfall, reset, setScale, resize, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, vehicle, KINDS, blob, roundRect, shadow, label };
     return out;
   }
 
   window.NW = window.NW || {};
-  Object.assign(NW, { TW, TH, reduce, clamp, lerp, ease, hex, rgb, shade, makeIso });
+  Object.assign(NW, { TW, TH, DPR, reduce, clamp, lerp, ease, hex, rgb, shade, makeIso });
 })();
 
 /* NextWorld · assets: every building and prop
@@ -1430,7 +1432,7 @@
     if (layered) {
       const key = [plan.id, state.biome, L.buildings.length, (L.next || []).join(), L.nextBuild ? L.nextBuild.kind : '', I.S, Math.round(I.cam.x * 2), Math.round(I.cam.y * 2), I.PW, I.PH, stage, lvl, state.wallet.unlocked.length, opts.land || '', !!opts.quiet, Math.floor(S.dayOf(state, S.now(state)) / 3)].join('|');
       if (!layer.cv) layer.cv = document.createElement('canvas');
-      if (layer.PW !== I.PW || layer.PH !== I.PH || layer.S !== I.S) { layer.cv.width = I.PW; layer.cv.height = I.PH; layer.I = NW.makeIso(layer.cv, I.PW / (2 * I.S), I.PH / (2 * I.S), I.S); layer.PW = I.PW; layer.PH = I.PH; layer.S = I.S; layer.key = ''; }
+      if (layer.PW !== I.PW || layer.PH !== I.PH || layer.S !== I.S) { layer.cv.width = I.PW; layer.cv.height = I.PH; layer.I = NW.makeIso(layer.cv, I.PW / (I.DPR * I.S), I.PH / (I.DPR * I.S), I.S, I.DPR); layer.PW = I.PW; layer.PH = I.PH; layer.S = I.S; layer.key = ''; }
       if (layer.key !== key) { const I2 = layer.I; I2.cam.x = I.cam.x; I2.cam.y = I.cam.y; I2.ctx.setTransform(1, 0, 0, 1, 0, 0); I2.ctx.clearRect(0, 0, I.PW, I.PH); I2.reset(); I2.lights.length = 0; I2.night = I.night; Homes.setLive(false); const items2 = []; scene(I2, I2.ctx, (d, fn) => items2.push({ d, fn })); items2.sort((a, b) => a.d - b.d).forEach(it => it.fn()); Homes.setLive(true); layer.lights = I2.lights.slice(); I2.lights.length = 0; layer.smokes = Homes.takeSmokes(); layer.key = key; }
       ctx.drawImage(layer.cv, 0, 0, I.W, I.H);
       layer.lights.forEach(l => I.lights.push({ x: l.x, y: l.y, r: l.r, c: l.c, k: l.k }));
@@ -1455,7 +1457,7 @@
     return L;
   }
   /* rain or snow, falling over the whole view; the drops are placed by hash so they need no state */
-  function weather(I, now) { const ctx = I.ctx, W = I.W || 880, H = I.H || 620, t = now / 1000, cx = I.cam.x, cy = I.cam.y; ctx.save(); ctx.setTransform(2 * I.S, 0, 0, 2 * I.S, 0, 0);
+  function weather(I, now) { const ctx = I.ctx, W = I.W || 880, H = I.H || 620, t = now / 1000, cx = I.cam.x, cy = I.cam.y; ctx.save(); ctx.setTransform(I.DPR * I.S, 0, 0, I.DPR * I.S, 0, 0);
     if (T.weather === 'rain') { ctx.strokeStyle = 'rgba(200,220,240,.45)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 160; i++) { const x = (S.hash(i, 1) * W * 1.2 - t * 40 + cx * 0.2) % (W * 1.2), y = (S.hash(i, 2) * H + t * 520 + i * 7 + cy * 0.2) % (H + 40) - 20; ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 14); } ctx.stroke(); ctx.fillStyle = 'rgba(120,140,160,.12)'; ctx.fillRect(0, 0, W, H); }
     else { ctx.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 110; i++) { const s = 1 + S.hash(i, 9) * 1.6, x = (S.hash(i, 1) * W + Math.sin(t * 0.8 + i) * 12 + t * 8) % W, y = (S.hash(i, 2) * H + t * (40 + s * 25) + i * 3) % (H + 20) - 10; ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill(); } }
     ctx.restore(); }
@@ -1580,13 +1582,16 @@
     });
   }
 
+  const hqLayer = { cv: null, I: null, key: '', PW: 0, PH: 0, S: 0, lights: [] };
   function drawHQ(I, state, now, opts) {
     const ctx = I.ctx, os = owners(state); opts = opts || {}; tick(now);
+    const items = []; const add = (d, fn) => items.push({ d, fn });
+    /* the campus that stands still is drawn into a layer eight times a second; the people, the visitors and the car on the road are drawn live over it */
+    const scene = (I, ctx, add) => { const late = fn => add(9999, fn);
     for (let gy = 0; gy < MAP; gy++) for (let gx = 0; gx < MAP; gx++) { if (!I.onScreen(gx, gy)) continue; if (asphalt(gx, gy)) { I.tile(gx, gy, '#6f737b', 'rgba(0,0,0,.15)'); continue; } if (paved(gx, gy)) { I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.06)'); continue; } if (lawn(gx, gy)) { I.tile(gx, gy, (gx + gy) % 2 ? '#7fc55a' : '#86cc60'); continue; } I.tile(gx, gy, ground(gx, gy)); }
     /* road markings: the centre line of the entry road, the bays in the lot */
     ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.beginPath(); const c0 = I.p(C[0] + 0.5, C[1] + 23), c1 = I.p(C[0] + 0.5, MAP - 1); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke(); ctx.setLineDash([]);
     for (let i = 0; i <= 4; i++) [26, 30].forEach(row => { const a = I.p(C[0] + 4 + i * 2.3 - 0.3, C[1] + row - 0.2), b = I.p(C[0] + 4 + i * 2.3 - 0.3, C[1] + row + 1.2); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
-    const items = []; const add = (d, fn) => items.push({ d, fn }); const late = fn => items.push({ d: 9999, fn });
     /* the borders: a rail fence round the ranch, open at the two gates */
     const fx0 = C[0] + FENCE.x0, fy0 = C[1] + FENCE.y0, fx1 = C[0] + FENCE.x1, fy1 = C[1] + FENCE.y1;
     const seg = (a, b) => add(Math.min(a[0], b[0]) + Math.min(a[1], b[1]) - 0.5, () => I.fence(a[0], a[1], b[0], b[1], Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 1.5)));
@@ -1594,7 +1599,6 @@
     add(ARCH[0] + ARCH[1] + 1, () => B.arch(I, ARCH[0] + 0.5, ARCH[1] + 0.3, 'NextWork Headquarters'));
     /* outside the fence: parked cars, the racks, a sign, a car coming or going */
     SPACES.forEach((sp, i) => { const v = visitors.find(x => x.space === i); const parked = !v || (v.step === 0 || v.step === v.st.plan.length - 1) && !v.moving; if ((i === 2 || i === 6) && !v) return; if (parked) add(sp[0] + sp[1] + 0.5, () => I.car(sp[0], sp[1], v ? v.car : CAR_COLOURS[i % CAR_COLOURS.length])); });
-    const loop = (now / 16000) % 1; const cy = loop < 0.5 ? lerp(MAP - 2, C[1] + 29, loop * 2) : lerp(C[1] + 29, MAP - 2, (loop - 0.5) * 2); add(C[0] + 1 + cy + 0.6, () => I.car(C[0] + (loop < 0.5 ? 1 : -1) + 0.05, cy, loop < 0.5 ? '#9aa3b0' : '#3fa66b'));
     add(RACK[0] + RACK[1] + 0.6, () => B.bikerack(I, RACK[0], RACK[1], 6)); add(C[0] + 2 + C[1] + 24.5, () => B.sign(I, C[0] + 2, C[1] + 23.6, 'PARKING', 'lot and racks'));
     [[2, 33], [-2, 33], [2, 38], [-2, 38], [2, 43], [-2, 43]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.2, () => I.lamp(q[0] + 0.5, q[1] + 0.5)); });
     /* the grounds */
@@ -1620,9 +1624,18 @@
     HUBS.forEach((h, i) => { const q = HUB_AT[i]; if (I.onScreen(q[0], q[1]) || I.onScreen(q[0] + 3, q[1] + 3)) add(q[0] + q[1] + 3.2, () => B.bighub(I, q[0], q[1], now, h)); });
     if (!opts.map) for (let gy = 0; gy < MAP; gy += 1) for (let gx = 0; gx < MAP; gx += 1) { const r = S.hash(gx * 7 + 1, gy * 3 + 2); if (r > 0.06 || !I.onScreen(gx, gy) || paved(gx, gy) || asphalt(gx, gy) || inside(gx, gy) || (Math.abs(gx - C[0]) < 16 && gy > C[1] + 22)) continue; if (os.some(o => Math.abs(o.at[0] - gx) < 3 && Math.abs(o.at[1] - gy) < 3)) continue; add(gx + gy + 0.5, () => B.oak(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
     os.forEach(o => { if (!I.onScreen(o.at[0], o.at[1])) return; add(o.at[0] + o.at[1] + 1.2, () => B.plot(I, o.at[0], o.at[1], o, now)); if (!opts.map) late(() => I.label(o.at[0] + 0.6, o.at[1] + 2.9, o.name || 'Open slot', o.built ? o.built + ' built' : o.mine ? 'start here' : 'pick it and build', o.mine ? 10 : 8)); });
+    late(() => { I.label(HALL[0] + 3, HALL[1] + HALL_DEPTH + 2.2, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4, LAKE[1] + 8.4, 'The lake', '', 8); I.label(PADDOCK[0] + 5, PADDOCK[1] + 7, 'The paddock', 'horses', 8); I.label(PASTURE[0] + 5, PASTURE[1] + 7, 'The pasture', 'cows', 8); I.label(COOPS[1][0] + 0.5, COOPS[1][1] + 2.6, 'The coops', 'chickens', 8); I.label(HACK[0] + 3, HACK[1] + 4.4, 'NextWork Hackathon', 'where people compete', 9); I.label(GAMES[0] + 3, GAMES[1] + 4.4, 'NextWork Games', 'where people compete', 9); I.label(LODGE[2][0] + 0.5, LODGE[2][1] + 2.7, 'NextWork Lodge', 'a place to stay', 9); I.label(C[0] + 8, C[1] + 32.6, 'Parking', '', 8); I.label(RACK[0] + 1.5, RACK[1] + 1.9, 'Bike racks', '', 8); I.label(C[0] + 0.5, C[1] + 45, 'The entry road', 'from town', 8); });
+    };
+    if (!opts.map && !reduce) {
+      const key = [I.S, Math.round(I.cam.x * 2), Math.round(I.cam.y * 2), I.PW, I.PH, os.length, Math.floor(now / 125)].join('|');
+      if (!hqLayer.cv) hqLayer.cv = document.createElement('canvas');
+      if (hqLayer.PW !== I.PW || hqLayer.PH !== I.PH || hqLayer.S !== I.S) { hqLayer.cv.width = I.PW; hqLayer.cv.height = I.PH; hqLayer.I = NW.makeIso(hqLayer.cv, I.PW / (I.DPR * I.S), I.PH / (I.DPR * I.S), I.S, I.DPR); hqLayer.PW = I.PW; hqLayer.PH = I.PH; hqLayer.S = I.S; hqLayer.key = ''; }
+      if (hqLayer.key !== key) { const I2 = hqLayer.I; I2.cam.x = I.cam.x; I2.cam.y = I.cam.y; I2.ctx.setTransform(1, 0, 0, 1, 0, 0); I2.ctx.clearRect(0, 0, I.PW, I.PH); I2.reset(); I2.lights.length = 0; I2.night = I.night; const items2 = []; scene(I2, I2.ctx, (d, fn) => items2.push({ d, fn })); items2.sort((a, b) => a.d - b.d).forEach(it => it.fn()); hqLayer.lights = I2.lights.slice(); I2.lights.length = 0; hqLayer.key = key; }
+      ctx.drawImage(hqLayer.cv, 0, 0, I.W, I.H); hqLayer.lights.forEach(l => I.lights.push({ x: l.x, y: l.y, r: l.r, c: l.c, k: l.k }));
+    } else scene(I, ctx, add);
+    const loop = (now / 16000) % 1; const cy = loop < 0.5 ? lerp(MAP - 2, C[1] + 29, loop * 2) : lerp(C[1] + 29, MAP - 2, (loop - 0.5) * 2); add(C[0] + 1 + cy + 0.6, () => I.car(C[0] + (loop < 0.5 ? 1 : -1) + 0.05, cy, loop < 0.5 ? '#9aa3b0' : '#3fa66b'));
     agents.forEach(a => add(a.at[0] + a.at[1] + 0.05, () => I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)));
     visitors.forEach(a => { const atCar = !a.bike && (a.step === 0 || a.step === a.st.plan.length - 1) && !a.moving; if (atCar) return; add(a.at[0] + a.at[1] + 0.05, () => a.bike && a.moving && a.step <= 1 ? B.bike(I, a.at[0], a.at[1], a.colour, now / 1000) : I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)); });
-    late(() => { I.label(HALL[0] + 3, HALL[1] + HALL_DEPTH + 2.2, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4, LAKE[1] + 8.4, 'The lake', '', 8); I.label(PADDOCK[0] + 5, PADDOCK[1] + 7, 'The paddock', 'horses', 8); I.label(PASTURE[0] + 5, PASTURE[1] + 7, 'The pasture', 'cows', 8); I.label(COOPS[1][0] + 0.5, COOPS[1][1] + 2.6, 'The coops', 'chickens', 8); I.label(HACK[0] + 3, HACK[1] + 4.4, 'NextWork Hackathon', 'where people compete', 9); I.label(GAMES[0] + 3, GAMES[1] + 4.4, 'NextWork Games', 'where people compete', 9); I.label(LODGE[2][0] + 0.5, LODGE[2][1] + 2.7, 'NextWork Lodge', 'a place to stay', 9); I.label(C[0] + 8, C[1] + 32.6, 'Parking', '', 8); I.label(RACK[0] + 1.5, RACK[1] + 1.9, 'Bike racks', '', 8); I.label(C[0] + 0.5, C[1] + 45, 'The entry road', 'from town', 8); });
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
     I.nightfall(I.night);
     return { owners: os, hubs: HUB_AT, staff: STAFF };
@@ -1810,7 +1823,7 @@
     function zoomer(sc, cv, onZoom) { const z = el('div', 'zoom'); const zin = el('button', null, '+'); zin.type = 'button'; zin.setAttribute('aria-label', 'Zoom in'); const zout = el('button', null, '−'); zout.type = 'button'; zout.setAttribute('aria-label', 'Zoom out'); zin.addEventListener('click', () => onZoom(1.25)); zout.addEventListener('click', () => onZoom(0.8)); put(z, zin, zout); sc.appendChild(z); cv.addEventListener('wheel', e => { e.preventDefault(); onZoom(e.deltaY < 0 ? 1.12 : 0.9); }, { passive: false }); }
     function drag(cv, I, onTap, onDrag) { let d = null; cv.addEventListener('pointerdown', e => { d = { x: e.clientX, y: e.clientY, cx: I.cam.x, cy: I.cam.y, moved: false }; cv.setPointerCapture(e.pointerId); }); cv.addEventListener('pointermove', e => { if (!d) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; if (Math.hypot(dx, dy) > 4) d.moved = true; if (d.moved) { const r = cv.getBoundingClientRect(); I.cam.x = d.cx - dx * I.W / r.width; I.cam.y = d.cy - dy * I.H / r.height; if (onDrag) onDrag(); } }); cv.addEventListener('pointerup', e => { const was = d; d = null; if (!was || was.moved) return; const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) * I.W / r.width + I.cam.x - I.W / 2, y = (e.clientY - r.top) * I.H / r.height + I.cam.y - 60; onTap([(x / (TW / 2) + y / (TH / 2)) / 2, (y / (TH / 2) - x / (TW / 2)) / 2], [x + I.W / 2 - I.cam.x, y + 60 - I.cam.y]); }); }
     /* Pip: the pineapple under every scene. One title, one line, sometimes one button */
-    function pipCanvas() { const cv = el('canvas'); cv.width = 104; cv.height = 120; const I = makeIso(cv, 26, 30, 2); I.cam.y = 29; B.avatar(I, 0, 0, { body: 'pineapple', shirt: '#2f7fd6', hat: 'none' }, 0, false); return cv; }
+    function pipCanvas() { const cv = el('canvas'); cv.width = 104; cv.height = 120; const I = makeIso(cv, 26, 30, 2, 2); I.cam.y = 29; B.avatar(I, 0, 0, { body: 'pineapple', shirt: '#2f7fd6', hat: 'none' }, 0, false); return cv; }
     function guide(parent) { const box = el('div', 'pip'); const t = el('div'); const b = el('b'); const p = el('p'); put(t, b, p); const btn = el('button'); btn.type = 'button'; btn.hidden = true; put(box, pipCanvas(), t, btn); parent.appendChild(box); let onClick = null; btn.addEventListener('click', () => onClick && onClick()); return (title, line, action) => { setText(b, title); setText(p, line); if (action) { btn.hidden = false; setText(btn, action[0]); onClick = action[1]; } else { btn.hidden = true; onClick = null; } }; }
     function toast(sc) { const t = el('div', 'toast'); sc.appendChild(t); let timer = null; return text => { t.textContent = text; t.classList.add('on'); clearTimeout(timer); timer = setTimeout(() => t.classList.remove('on'), 2800); }; }
     function nav(sc, items) { const n = el('div', 'nav'); items.forEach(([t, fn]) => { const b = el('button', null, t); b.type = 'button'; b.addEventListener('click', fn); n.appendChild(b); }); sc.appendChild(n); return n; }
@@ -1819,7 +1832,7 @@
 
     /* ---- 1. NextWorld: the campus, the hub ---- */
     const w1 = scene(880, 620, 'NextWorld: NextWork Headquarters in Austin, and the learners’ plots round it. Tap your plot to enter your world. Drag to look, wheel to zoom.');
-    const world = makeIso(w1.cv, 880 / (2 * 0.5), 620 / (2 * 0.5), 0.5); const wc = camTo(HQ.C[0], HQ.C[1] + 8, world.H); world.cam.x = wc.x; world.cam.y = wc.y;
+    const world = makeIso(w1.cv, 880 / (NW.DPR * 0.5), 620 / (NW.DPR * 0.5), 0.5); const wc = camTo(HQ.C[0], HQ.C[1] + 8, world.H); world.cam.x = wc.x; world.cam.y = wc.y;
     const wbadge = el('div', 'badge', 'NextWorld'); wbadge.appendChild(el('small', null, 'NextWork HQ, Austin')); w1.sc.appendChild(wbadge);
     const aimW = (gx, gy) => { const c = camTo(gx, gy, world.H); world.cam.x = c.x; world.cam.y = c.y; };
     nav(w1.sc, [['Entry', () => aimW(HQ.ARCH[0], HQ.ARCH[1] + 3)], ['HQ', () => aimW(HQ.HALL[0] + 3, HQ.HALL[1] + 2)], ['Quad', () => aimW(HQ.C[0], HQ.C[1] + 1)], ['Back road', () => aimW(HQ.HACK[0] + 6, HQ.HACK[1] + 2)], ['Ranch', () => aimW(HQ.PADDOCK[0] + 6, HQ.PADDOCK[1] + 6)], ['My plot', () => aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1])], ['All', () => { world.setScale(0.2); aimW(HQ.C[0], HQ.C[1] + 4); }]]);
@@ -1861,7 +1874,7 @@
     /* ---- 2. My World ---- */
     const me = Land.makeMe(state); let anim = null; const fx = []; let lastL = S.layout(state); let placing = null;
     const b1 = scene(880, 620, 'Your land. Tap where you want to go and you take the roads there; arrow keys walk too. Tap a building for its project. Drag to look, wheel to zoom.');
-    const base = makeIso(b1.cv, 440, 310); Object.assign(base.cam, camTo(me.gx, me.gy, 310));
+    const base = makeIso(b1.cv, 880 / NW.DPR, 620 / NW.DPR); Object.assign(base.cam, camTo(me.gx, me.gy, 310));
     const hud = el('button', 'hud'); hud.type = 'button'; hud.title = 'Where you are and what to do next'; const shield = el('div', 'shield', '1'); const who = el('div', 'who'); const whoB = el('b', null, S.landName(state)); const whoS = el('small', null, ''); const whoN = el('small', 'next', ''); put(who, whoB, whoS, whoN); put(hud, shield, who); b1.sc.appendChild(hud);
     nav(b1.sc, [['Home', () => { Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; }], ['HQ', () => show('world')], ['Build', () => show('build')]]);
     zoomer(b1.sc, b1.cv, f => base.zoom(f));
@@ -1908,7 +1921,7 @@
     function finish(title, sr) { const hadSparks = state.wallet.sparks; S.finish(state, title, S.now(state)); save(); lastL = S.layout(state); const b = lastL.buildings.find(x => x.title === title); anim = { title, start: performance.now() }; btoast('Built: ' + title); bsay('Built!', 'People can move in now. +' + (state.wallet.sparks - hadSparks) + ' sparks.', ['See it', () => show('base')]); if (b) { fx.push({ type: 'sparkle', gx: b.gx + 0.5, gy: b.gy + 0.5, seed: Math.random() * 6, start: performance.now() + 1500, life: 900 }); Land.goTo(me, lastL.paths, [b.gx + 0.5, b.gy + 1.6]); me.follow = true; } dot('base'); dot('world'); paintSparks(); paintBoard(); paintBuild(); paintDev(); }
 
     /* ---- 3. Avatar: you, and the shop ---- */
-    const av = state.avatar; const a1 = scene(880, 400, 'Your avatar, walking your land'); const avI = makeIso(a1.cv, 440, 200); const avc = camTo(2, 2, 200); avI.cam.x = avc.x; avI.cam.y = avc.y + 10;
+    const av = state.avatar; const a1 = scene(880, 400, 'Your avatar, walking your land'); const avI = makeIso(a1.cv, 880 / NW.DPR, 400 / NW.DPR); const avc = camTo(2, 2, 200); avI.cam.x = avc.x; avI.cam.y = avc.y + 10;
     const avWrap = el('div', 'av'); avWrap.appendChild(a1.sc); const asay = guide(avWrap); const opts = el('div', 'opts'); avWrap.appendChild(opts); views.avatar.appendChild(avWrap);
     const field = (label, id, value, onChange) => { const row = el('div', 'grp'); const inp = el('input'); inp.id = id; inp.type = 'text'; inp.maxLength = 28; inp.value = value; inp.setAttribute('aria-label', label); inp.addEventListener('change', () => onChange(inp.value.trim())); put(row, el('span', null, label), inp); opts.appendChild(row); };
     field('Name', 'nww-name', state.name, v => { state.name = v || 'You'; save(); whoB.textContent = S.landName(state); });
@@ -1935,7 +1948,7 @@
     const psay = guide(views.build);
     const steps = el('div', 'steps'); views.build.appendChild(steps);
     const stepBtn = el('button', 'btn', 'Complete the next step'); stepBtn.type = 'button'; views.build.appendChild(stepBtn);
-    const s1 = scene(880, 500, 'The building site. Tap the nails as they pop up to hammer them in.'); const site = makeIso(s1.cv, 440, 250); const sbadge = el('div', 'badge', ''); s1.sc.appendChild(sbadge); zoomer(s1.sc, s1.cv, f => site.zoom(f)); views.build.appendChild(s1.sc);
+    const s1 = scene(880, 500, 'The building site. Tap the nails as they pop up to hammer them in.'); const site = makeIso(s1.cv, 880 / NW.DPR, 500 / NW.DPR); const sbadge = el('div', 'badge', ''); s1.sc.appendChild(sbadge); zoomer(s1.sc, s1.cv, f => site.zoom(f)); views.build.appendChild(s1.sc);
     const game = { nails: [], hit: 0, last: 0 };
     drag(s1.cv, site, (g, lg) => { const n = game.nails.find(x => !x.done && Math.hypot(x.sx - lg[0], x.sy - lg[1]) < 44); if (n) { n.done = true; n.at = performance.now(); game.hit++; const cs = current_site ? (state.craft[current_site.title] = (state.craft[current_site.title] || 0) + 1) : 0; if (state.mode === 'dev' && current_site && cs % 5 === 0) tickStep(); paintBuild(); } });
     const placeBtn = el('button', 'link', 'Placed by the plan. Want it elsewhere? Pick a lot'); placeBtn.type = 'button'; views.build.appendChild(placeBtn);
@@ -1998,7 +2011,7 @@
       SCENES.forEach(([I, sc, share]) => {
         /* the scene takes the height the rest of its tab leaves it, with a floor of the old share; a wide pane gets a tall map, not a letterbox */
         const view = sc.sc.parentElement; let extras = 0; if (view && !view.hidden) Array.prototype.forEach.call(view.children, c => { if (c !== sc.sc && !c.hidden && !c.classList.contains('board') && !c.classList.contains('list') && !c.classList.contains('fold') && c.tagName !== 'H3') extras += c.offsetHeight + 12; });
-        const h = Math.round(Math.max(220, Math.min(Math.max(avail - extras - 20, avail * share), cw * 1.1))); if (I) I.resize(cw * 2, h * 2); else if (sc.cv.width !== cw * 2 || sc.cv.height !== h * 2) { sc.cv.width = cw * 2; sc.cv.height = h * 2; } }); }
+        const h = Math.round(Math.max(220, Math.min(Math.max(avail - extras - 20, avail * share), cw * 1.1))); const D = NW.DPR; if (I) I.resize(cw * D, h * D); else if (sc.cv.width !== Math.round(cw * D) || sc.cv.height !== Math.round(h * D)) { sc.cv.width = Math.round(cw * D); sc.cv.height = Math.round(h * D); } }); }
     if (window.ResizeObserver) { const ro = new ResizeObserver(fit); ro.observe(wrap); if (hostEl !== wrap && hostEl.nodeType === 1) ro.observe(hostEl); } fit();
 
     /* ---- Pip speaks for the tab you are on, and when something happens ---- */
@@ -2031,13 +2044,13 @@
         devRow('Tools', [ex, imp, pb, fpsSpan]); devbar.appendChild(ioBox); } }
 
     /* ---- the loop: draw only what is showing; one frame in flight at a time ---- */
-    /* the budget: thirty frames a second while you are with it, twelve after two minutes without a touch, none while the pane cannot be seen */
+    /* the budget: thirty frames a second while you are with it, twelve after two minutes without a touch, two after ten, none while the pane cannot be seen */
     let running = true, pending = 0, lastCrew = 0, lastPip = 0, lastLevel = E.level(state), lastInput = performance.now(), lastDraw = 0, visible = true;
     ['pointerdown', 'pointermove', 'wheel', 'keydown'].forEach(ev => wrap.addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true }));
     if (window.IntersectionObserver && hostEl.nodeType === 1) new IntersectionObserver(es => { visible = es.some(e => e.isIntersecting); if (visible && running && !pending) pending = requestAnimationFrame(frame); }).observe(hostEl);
     function frame(now) {
       pending = 0; if (!running) return; if (!visible) return;
-      const budget = now - lastInput > 120000 ? 1000 / 12 : 1000 / 30; if (now - lastDraw < budget - 2) { pending = requestAnimationFrame(frame); return; } lastDraw = now;
+      const idle = now - lastInput, budget = idle > 600000 ? 500 : idle > 120000 ? 1000 / 12 : 1000 / 30;   /* thirty a second with you, twelve after two minutes, two after ten */ if (now - lastDraw < budget - 2) { pending = requestAnimationFrame(frame); return; } lastDraw = now;
       if (perf.t) perf.ema = perf.ema * 0.95 + (now - perf.t) * 0.05; perf.t = now; if (fpsSpan && Math.floor(now / 500) !== Math.floor((now - perf.ema) / 500)) setText(fpsSpan, Math.round(1000 / perf.ema) + ' fps');
       const night = S.nightOf(S.hourOf(state));
       { const e = E.eraOf(state), lv = E.level(state); if (e.name !== lastEra) { lastEra = e.name; if (lv > lastLevel) { if (current === 'build') dot('base'); else show('base'); showLevelUp(e); Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; } lastLevel = lv; } }

@@ -112,13 +112,16 @@
     });
   }
 
+  const hqLayer = { cv: null, I: null, key: '', PW: 0, PH: 0, S: 0, lights: [] };
   function drawHQ(I, state, now, opts) {
     const ctx = I.ctx, os = owners(state); opts = opts || {}; tick(now);
+    const items = []; const add = (d, fn) => items.push({ d, fn });
+    /* the campus that stands still is drawn into a layer eight times a second; the people, the visitors and the car on the road are drawn live over it */
+    const scene = (I, ctx, add) => { const late = fn => add(9999, fn);
     for (let gy = 0; gy < MAP; gy++) for (let gx = 0; gx < MAP; gx++) { if (!I.onScreen(gx, gy)) continue; if (asphalt(gx, gy)) { I.tile(gx, gy, '#6f737b', 'rgba(0,0,0,.15)'); continue; } if (paved(gx, gy)) { I.tile(gx, gy, (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc', 'rgba(0,0,0,.06)'); continue; } if (lawn(gx, gy)) { I.tile(gx, gy, (gx + gy) % 2 ? '#7fc55a' : '#86cc60'); continue; } I.tile(gx, gy, ground(gx, gy)); }
     /* road markings: the centre line of the entry road, the bays in the lot */
     ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.beginPath(); const c0 = I.p(C[0] + 0.5, C[1] + 23), c1 = I.p(C[0] + 0.5, MAP - 1); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke(); ctx.setLineDash([]);
     for (let i = 0; i <= 4; i++) [26, 30].forEach(row => { const a = I.p(C[0] + 4 + i * 2.3 - 0.3, C[1] + row - 0.2), b = I.p(C[0] + 4 + i * 2.3 - 0.3, C[1] + row + 1.2); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
-    const items = []; const add = (d, fn) => items.push({ d, fn }); const late = fn => items.push({ d: 9999, fn });
     /* the borders: a rail fence round the ranch, open at the two gates */
     const fx0 = C[0] + FENCE.x0, fy0 = C[1] + FENCE.y0, fx1 = C[0] + FENCE.x1, fy1 = C[1] + FENCE.y1;
     const seg = (a, b) => add(Math.min(a[0], b[0]) + Math.min(a[1], b[1]) - 0.5, () => I.fence(a[0], a[1], b[0], b[1], Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 1.5)));
@@ -126,7 +129,6 @@
     add(ARCH[0] + ARCH[1] + 1, () => B.arch(I, ARCH[0] + 0.5, ARCH[1] + 0.3, 'NextWork Headquarters'));
     /* outside the fence: parked cars, the racks, a sign, a car coming or going */
     SPACES.forEach((sp, i) => { const v = visitors.find(x => x.space === i); const parked = !v || (v.step === 0 || v.step === v.st.plan.length - 1) && !v.moving; if ((i === 2 || i === 6) && !v) return; if (parked) add(sp[0] + sp[1] + 0.5, () => I.car(sp[0], sp[1], v ? v.car : CAR_COLOURS[i % CAR_COLOURS.length])); });
-    const loop = (now / 16000) % 1; const cy = loop < 0.5 ? lerp(MAP - 2, C[1] + 29, loop * 2) : lerp(C[1] + 29, MAP - 2, (loop - 0.5) * 2); add(C[0] + 1 + cy + 0.6, () => I.car(C[0] + (loop < 0.5 ? 1 : -1) + 0.05, cy, loop < 0.5 ? '#9aa3b0' : '#3fa66b'));
     add(RACK[0] + RACK[1] + 0.6, () => B.bikerack(I, RACK[0], RACK[1], 6)); add(C[0] + 2 + C[1] + 24.5, () => B.sign(I, C[0] + 2, C[1] + 23.6, 'PARKING', 'lot and racks'));
     [[2, 33], [-2, 33], [2, 38], [-2, 38], [2, 43], [-2, 43]].forEach(o => { const q = at(o[0], o[1]); add(q[0] + q[1] + 0.2, () => I.lamp(q[0] + 0.5, q[1] + 0.5)); });
     /* the grounds */
@@ -152,9 +154,18 @@
     HUBS.forEach((h, i) => { const q = HUB_AT[i]; if (I.onScreen(q[0], q[1]) || I.onScreen(q[0] + 3, q[1] + 3)) add(q[0] + q[1] + 3.2, () => B.bighub(I, q[0], q[1], now, h)); });
     if (!opts.map) for (let gy = 0; gy < MAP; gy += 1) for (let gx = 0; gx < MAP; gx += 1) { const r = S.hash(gx * 7 + 1, gy * 3 + 2); if (r > 0.06 || !I.onScreen(gx, gy) || paved(gx, gy) || asphalt(gx, gy) || inside(gx, gy) || (Math.abs(gx - C[0]) < 16 && gy > C[1] + 22)) continue; if (os.some(o => Math.abs(o.at[0] - gx) < 3 && Math.abs(o.at[1] - gy) < 3)) continue; add(gx + gy + 0.5, () => B.oak(I, gx, gy, 0.8 + S.hash(gy, gx) * 0.5)); }
     os.forEach(o => { if (!I.onScreen(o.at[0], o.at[1])) return; add(o.at[0] + o.at[1] + 1.2, () => B.plot(I, o.at[0], o.at[1], o, now)); if (!opts.map) late(() => I.label(o.at[0] + 0.6, o.at[1] + 2.9, o.name || 'Open slot', o.built ? o.built + ' built' : o.mine ? 'start here' : 'pick it and build', o.mine ? 10 : 8)); });
+    late(() => { I.label(HALL[0] + 3, HALL[1] + HALL_DEPTH + 2.2, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4, LAKE[1] + 8.4, 'The lake', '', 8); I.label(PADDOCK[0] + 5, PADDOCK[1] + 7, 'The paddock', 'horses', 8); I.label(PASTURE[0] + 5, PASTURE[1] + 7, 'The pasture', 'cows', 8); I.label(COOPS[1][0] + 0.5, COOPS[1][1] + 2.6, 'The coops', 'chickens', 8); I.label(HACK[0] + 3, HACK[1] + 4.4, 'NextWork Hackathon', 'where people compete', 9); I.label(GAMES[0] + 3, GAMES[1] + 4.4, 'NextWork Games', 'where people compete', 9); I.label(LODGE[2][0] + 0.5, LODGE[2][1] + 2.7, 'NextWork Lodge', 'a place to stay', 9); I.label(C[0] + 8, C[1] + 32.6, 'Parking', '', 8); I.label(RACK[0] + 1.5, RACK[1] + 1.9, 'Bike racks', '', 8); I.label(C[0] + 0.5, C[1] + 45, 'The entry road', 'from town', 8); });
+    };
+    if (!opts.map && !reduce) {
+      const key = [I.S, Math.round(I.cam.x * 2), Math.round(I.cam.y * 2), I.PW, I.PH, os.length, Math.floor(now / 125)].join('|');
+      if (!hqLayer.cv) hqLayer.cv = document.createElement('canvas');
+      if (hqLayer.PW !== I.PW || hqLayer.PH !== I.PH || hqLayer.S !== I.S) { hqLayer.cv.width = I.PW; hqLayer.cv.height = I.PH; hqLayer.I = NW.makeIso(hqLayer.cv, I.PW / (I.DPR * I.S), I.PH / (I.DPR * I.S), I.S, I.DPR); hqLayer.PW = I.PW; hqLayer.PH = I.PH; hqLayer.S = I.S; hqLayer.key = ''; }
+      if (hqLayer.key !== key) { const I2 = hqLayer.I; I2.cam.x = I.cam.x; I2.cam.y = I.cam.y; I2.ctx.setTransform(1, 0, 0, 1, 0, 0); I2.ctx.clearRect(0, 0, I.PW, I.PH); I2.reset(); I2.lights.length = 0; I2.night = I.night; const items2 = []; scene(I2, I2.ctx, (d, fn) => items2.push({ d, fn })); items2.sort((a, b) => a.d - b.d).forEach(it => it.fn()); hqLayer.lights = I2.lights.slice(); I2.lights.length = 0; hqLayer.key = key; }
+      ctx.drawImage(hqLayer.cv, 0, 0, I.W, I.H); hqLayer.lights.forEach(l => I.lights.push({ x: l.x, y: l.y, r: l.r, c: l.c, k: l.k }));
+    } else scene(I, ctx, add);
+    const loop = (now / 16000) % 1; const cy = loop < 0.5 ? lerp(MAP - 2, C[1] + 29, loop * 2) : lerp(C[1] + 29, MAP - 2, (loop - 0.5) * 2); add(C[0] + 1 + cy + 0.6, () => I.car(C[0] + (loop < 0.5 ? 1 : -1) + 0.05, cy, loop < 0.5 ? '#9aa3b0' : '#3fa66b'));
     agents.forEach(a => add(a.at[0] + a.at[1] + 0.05, () => I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)));
     visitors.forEach(a => { const atCar = !a.bike && (a.step === 0 || a.step === a.st.plan.length - 1) && !a.moving; if (atCar) return; add(a.at[0] + a.at[1] + 0.05, () => a.bike && a.moving && a.step <= 1 ? B.bike(I, a.at[0], a.at[1], a.colour, now / 1000) : I.person(a.at[0], a.at[1], a.colour, a.moving && !reduce ? now / 1000 + a.i : 3 + a.i, false)); });
-    late(() => { I.label(HALL[0] + 3, HALL[1] + HALL_DEPTH + 2.2, 'NextWork Headquarters', 'Austin, Texas', 12); I.label(CAFE[0] + 1.5, CAFE[1] + 2.5, 'NextWork Cafe', 'ask anything', 9); I.label(LAKE[0] + 4, LAKE[1] + 8.4, 'The lake', '', 8); I.label(PADDOCK[0] + 5, PADDOCK[1] + 7, 'The paddock', 'horses', 8); I.label(PASTURE[0] + 5, PASTURE[1] + 7, 'The pasture', 'cows', 8); I.label(COOPS[1][0] + 0.5, COOPS[1][1] + 2.6, 'The coops', 'chickens', 8); I.label(HACK[0] + 3, HACK[1] + 4.4, 'NextWork Hackathon', 'where people compete', 9); I.label(GAMES[0] + 3, GAMES[1] + 4.4, 'NextWork Games', 'where people compete', 9); I.label(LODGE[2][0] + 0.5, LODGE[2][1] + 2.7, 'NextWork Lodge', 'a place to stay', 9); I.label(C[0] + 8, C[1] + 32.6, 'Parking', '', 8); I.label(RACK[0] + 1.5, RACK[1] + 1.9, 'Bike racks', '', 8); I.label(C[0] + 0.5, C[1] + 45, 'The entry road', 'from town', 8); });
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
     I.nightfall(I.night);
     return { owners: os, hubs: HUB_AT, staff: STAFF };
