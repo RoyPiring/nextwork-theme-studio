@@ -697,7 +697,7 @@
       story: 'A lone tent on the rise above the creek: a fire in front of the door, a notice board beside it, and one trodden footpath along the ridge toward the water.',
       home: [30, 31], clearing: { cx: 30, cy: 34, rx: 8, ry: 5 }, water: water(1),
       roads: [R(27, 33, 39, 33)], zones: [], civic: [C('campfire', 30, 34), C('board', 32, 34)],
-      builds: [C('pump', 28, 34), C('foodcache', 33, 35), C('woodshed', 28, 35), C('lantern', 31, 35), C('shelter', 33, 31)], capacity: 6,
+      builds: [C('pump', 28, 34), C('foodcache', 33, 35), C('woodshed', 28, 35), C('lantern', 31, 35), C('shelter', 33, 31)], capacity: 8,
       lots: [row(32, 36, 36, 'south'), row(34, 34, 34, 'north')],
       landscape: { fields: [], treeline: 'dense', lamps: 'none' } },
     { id: 'fort', name: 'Fort', word: 'a fort', threshold: 5,
@@ -794,7 +794,7 @@
   }
   /* after the ninety: the lists, one project at a time */
   function nextListProject(s) { return s.lists.find(l => l.done < l.total) || null; }
-  function finish(s, title, now) { if (!s.done.includes(title)) { s.done.push(title); event(s, 'project', now); } delete s.steps[title]; if (s.building === title) s.building = ''; return s; }
+  function finish(s, title, now) { if (!s.done.includes(title)) { const lv0 = levelOf(s).level; s.done.push(title); event(s, 'project', now, lv0); } delete s.steps[title]; if (s.building === title) s.building = ''; return s; }
   /* a reading off a nextwork.ai page: which project, which steps are ticked. Steps only ever rise; a step ticked is an event */
   function applyProjectReading(s, r, now) { now = now || Date.now(); s.pulse = null; if (!r || !r.title || !(r.total | 0)) return s; const had = s.steps[r.title], was = had ? had.done | 0 : 0, done = Math.max(was, r.done | 0), total = Math.max(r.total | 0, had ? had.total | 0 : 0, done);
     if (s.done.includes(r.title)) return s; const rose = Math.max(0, done - was); for (let i = 0; i < rose; i++) event(s, 'step', now);
@@ -889,9 +889,9 @@
   const CONTRACT = { projects: 1, steps: 7, reward: 4, sparks: 25, citizens: 5 };
   function contract(s, now) { now = now || Date.now(); const id = weekId(now); if (s.life.week.id !== id) s.life.week = { id, projects: 0, steps: 0, met: false }; const w = s.life.week, L = layout(s); const met = w.met || w.projects >= CONTRACT.projects || w.steps >= CONTRACT.steps; const tz = new Date(now).getTimezoneOffset() * 60000; return { week: w, infra: L.nextBuild ? L.nextBuild.kind : null, projects: CONTRACT.projects, steps: CONTRACT.steps, met, reward: CONTRACT.reward, sparks: CONTRACT.sparks, citizens: CONTRACT.citizens, daysLeft: Math.max(1, Math.ceil(((id + 1) * 7 * REAL_DAY + 4 * REAL_DAY + tz - now) / REAL_DAY)) }; }
   /* one thing happened: a step ticked, or a project finished */
-  function event(s, kind, now) { now = now || Date.now(); const before = power(s, now), cap = layout(s).capacity; if (kind === 'project') s.life.lastDone = now;
+  function event(s, kind, now, lvBefore) { now = now || Date.now(); if (lvBefore == null) lvBefore = levelOf(s).level; const before = power(s, now), cap = layout(s).capacity; if (kind === 'project') s.life.lastDone = now;
     const after = clamp(Math.max(before + (kind === 'project' ? 1 : STEP_POWER), idleDays(s, now) >= 7 && kind === 'step' ? 0.6 : 0), 0, 1);   /* back after a week away: the first step lights most of it again */ const have = citizens(s, now); s.life.power = after; s.life.citizens = Math.min(Math.max(cap, 1), have + (after >= 0.5 ? 1 : 0)); s.life.at = now; if (kind === 'step') s.life.steps = (s.life.steps | 0) + 1;
-    const lvBefore = levelOf(s).level; s.wallet.sparks += SPARK[kind] || 0; const c = contract(s, now); if (kind === 'project') c.week.projects++; else c.week.steps++; if (!c.week.met && (c.week.projects >= CONTRACT.projects || c.week.steps >= CONTRACT.steps)) { c.week.met = true; s.life.bonusCap += CONTRACT.reward; s.wallet.sparks += CONTRACT.sparks; s.life.citizens = Math.min(Math.max(cap + CONTRACT.reward, 1), s.life.citizens + CONTRACT.citizens); }
+    s.wallet.sparks += SPARK[kind] || 0; const c = contract(s, now); if (kind === 'project') c.week.projects++; else c.week.steps++; if (!c.week.met && (c.week.projects >= CONTRACT.projects || c.week.steps >= CONTRACT.steps)) { c.week.met = true; s.life.bonusCap += CONTRACT.reward; s.wallet.sparks += CONTRACT.sparks; s.life.citizens = Math.min(Math.max(cap + CONTRACT.reward, 1), s.life.citizens + CONTRACT.citizens); }
     const lvAfter = levelOf(s).level; if (lvAfter > lvBefore) { s.wallet.sparks += 10 * (lvAfter - lvBefore); s.life.bonusCap += lvAfter - lvBefore; s.levelled = lvAfter; }
     forget(); return s; }
   /* the crew: while the power holds, they raise one pegged list building a real day */

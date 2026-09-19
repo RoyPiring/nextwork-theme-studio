@@ -32,7 +32,7 @@
       story: 'A lone tent on the rise above the creek: a fire in front of the door, a notice board beside it, and one trodden footpath along the ridge toward the water.',
       home: [30, 31], clearing: { cx: 30, cy: 34, rx: 8, ry: 5 }, water: water(1),
       roads: [R(27, 33, 39, 33)], zones: [], civic: [C('campfire', 30, 34), C('board', 32, 34)],
-      builds: [C('pump', 28, 34), C('foodcache', 33, 35), C('woodshed', 28, 35), C('lantern', 31, 35), C('shelter', 33, 31)], capacity: 6,
+      builds: [C('pump', 28, 34), C('foodcache', 33, 35), C('woodshed', 28, 35), C('lantern', 31, 35), C('shelter', 33, 31)], capacity: 8,
       lots: [row(32, 36, 36, 'south'), row(34, 34, 34, 'north')],
       landscape: { fields: [], treeline: 'dense', lamps: 'none' } },
     { id: 'fort', name: 'Fort', word: 'a fort', threshold: 5,

@@ -106,6 +106,8 @@ test('sparks, citizens and the contract come from steps and projects; the crew b
   assert.equal(S.crew(s, now).length, 0, 'the crew starts the clock'); assert.equal(S.crew(s, now + 2 * day + 1000).length, 2, 'two days: two buildings'); assert.equal(s.lists[0].done, 2);
   assert.equal(S.crew(s, now + 10 * day).length, 3, 'the three left in the list, while the power held'); assert.equal(s.lists[0].done, 5);
   const lv = S.levelOf(s); assert.equal(S.xp(s), 7 * 5 + NW.PROJECTS.find(p => p.title === 'Set Up An AWS Account').xp, 'five XP a step, the project when it stands'); assert.equal(lv.level, 1, 'ninety-five XP: still level one'); assert.ok(lv.at > 0.9 && lv.at < 1, 'nearly at level two'); assert.equal(lv.next, 100);
+  const cap0 = s.life.bonusCap, sp0 = s.wallet.sparks; S.event(s, 'step', now); assert.equal(S.levelOf(s).level, 2, 'one more step: level two'); assert.equal(s.levelled, 2, 'and the panel is told'); assert.equal(s.life.bonusCap, cap0 + 1, 'a level is room for one more'); assert.equal(s.wallet.sparks, sp0 + 1 + 10, 'and ten sparks');
+  const t = S.normalise({ mode: 'prod' }); ['Host a Website on Amazon S3', 'Set Up An AWS Account'].forEach(title => { for (let k = 1; k <= 7; k++) S.applyProjectReading(t, { title, done: k, total: 7 }, now); }); assert.ok(t.levelled >= 2, 'a project that crosses a level says so too'); assert.ok(S.levelOf(t).level >= 2);
   const r = S.normalise(JSON.parse(JSON.stringify(S.applyPortfolioReading(S.normalise({}), { lists: [{ name: 'X', count: 9 }] })))); assert.equal(r.lists[0].done, 0, 'a pegged list stays pegged across a reload');
 });
 
