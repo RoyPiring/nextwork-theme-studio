@@ -93,8 +93,57 @@
       if (tool === 'hammer') { const sw = Math.sin(walkT * 18); ctx.strokeStyle = '#7a4b25'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(c[0] + 3, c[1] - 10 + bob); ctx.lineTo(c[0] + 8, c[1] - 14 - sw * 4 + bob); ctx.stroke(); ctx.fillStyle = '#5f6b73'; ctx.fillRect(c[0] + 6.5, c[1] - 16.5 - sw * 4 + bob, 4, 3); if (sw > 0.8) for (let i = 0; i < 3; i++) blob(c[0] + 9 + i * 2 - 2, c[1] - 12 + bob - i * 2, 1, '#ffd54a'); }
     }
     function puff(gx, gy, t) { if (t <= 0 || t >= 1) return; const c = p(gx + 0.5, gy + 0.5); for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2, r = 8 + t * 22; ctx.beginPath(); ctx.arc(c[0] + Math.cos(a) * r, c[1] - 2 + Math.sin(a) * r * 0.5, 6 * (1 - t) + 1, 0, Math.PI * 2); ctx.fillStyle = 'rgba(225,215,190,' + (0.75 * (1 - t)) + ')'; ctx.fill(); } }
-    function car(gx, gy, colour, z) { z = z || 0; shadow(gx + 0.02, gy + 0.22, 0.96, 0.52, 6); box(gx + 0.02, gy + 0.24, 0.96, 0.5, 8, colour, 5 + z, { noShadow: true }); const cab = box(gx + 0.28, gy + 0.27, 0.46, 0.44, 8, colour, 13 + z, { noShadow: true }); faceTex(cab.D, cab.C, 8, 'glass', '#2f4f7f'); faceTex(cab.C, cab.B, 8, 'glass', '#2f4f7f'); [[0.16, 0.22], [0.82, 0.22], [0.16, 0.72], [0.82, 0.72]].forEach(o => { const q = p(gx + o[0], gy + o[1], 2 + z); wheel(q[0], q[1], 4.2); }); const hl = p(gx + 0.02, gy + 0.5, 9 + z); blob(hl[0] + 1, hl[1], 1.6, '#fff4c2'); }
-    function truck(gx, gy, load, z) { z = z || 0; shadow(gx - 0.1, gy + 0.2, 1.3, 0.56, 6); box(gx - 0.1, gy + 0.22, 1.3, 0.52, 7, '#5f6b73', 5 + z, { noShadow: true }); const cab = box(gx - 0.08, gy + 0.24, 0.4, 0.48, 22, '#e8552f', 12 + z, { noShadow: true }); faceTex(cab.D, cab.C, 22, 'glass', '#2f4f7f'); if (load) box(gx + 0.42, gy + 0.28, 0.74, 0.4, 20, load, 12 + z, { noShadow: true, tex: 'ribbed' }); [[0.05, 0.2], [0.6, 0.2], [1.1, 0.2], [0.05, 0.74], [0.6, 0.74], [1.1, 0.74]].forEach(o => { const q = p(gx + o[0], gy + o[1], 2 + z); wheel(q[0], q[1], 4.6); }); }
+    /* ---- vehicles: a car is a tile long and a person and a half tall; every kind has its own silhouette ----
+     * kind: sedan, hatch, suv, pickup, van, bus, taxi, sports, truck, cart, handcart. dir: 'x' along gx (the default) or 'y' along gy.
+     * The front is the +gx (or +gy) end: headlights there, taillights behind. */
+    const KINDS = {
+      sedan: { L: 0.95, W: 0.5, body: 8, cab: [0.3, 0.45], cabH: 8 },
+      hatch: { L: 0.8, W: 0.48, body: 8, cab: [0.22, 0.5], cabH: 9, tail: true },
+      suv: { L: 1.0, W: 0.54, body: 11, cab: [0.28, 0.6], cabH: 10, rack: true },
+      pickup: { L: 1.05, W: 0.52, body: 9, cab: [0.36, 0.3], cabH: 10, bed: true },
+      van: { L: 1.05, W: 0.54, body: 9, cab: [0.1, 0.85], cabH: 13, boxy: true },
+      bus: { L: 1.9, W: 0.55, body: 10, cab: [0.05, 0.9], cabH: 14, boxy: true, band: true },
+      taxi: { L: 0.95, W: 0.5, body: 8, cab: [0.3, 0.45], cabH: 8, sign: true },
+      sports: { L: 0.95, W: 0.5, body: 6, cab: [0.42, 0.36], cabH: 6, low: true },
+      truck: { L: 1.3, W: 0.56, body: 7, cab: [0.02, 0.3], cabH: 22, load: true },
+      cart: { L: 0.9, W: 0.5, body: 8, cab: null, wood: true, wheels: 2 },
+      handcart: { L: 0.55, W: 0.4, body: 6, cab: null, wood: true, wheels: 2, handle: true }
+    };
+    function vehicle(gx, gy, kind, colour, z, dir, extra) {
+      const k = KINDS[kind] || KINDS.sedan; z = z || 0; dir = dir || 'x'; colour = colour || '#3b7dd8'; const flip = !!(extra && extra.flip);
+      const W = k.W, L = k.L, y0 = (1 - W) / 2;
+      /* a rectangle a tiles along the length and b tiles across, from the vehicle's own back-left corner; flipped, the front is the near end */
+      const R = (a, b, la, lb) => { if (flip) a = L - a - la; return dir === 'x' ? [gx + a, gy + b, la, lb] : [gx + b, gy + a, lb, la]; };
+      const pt = (a, b, h) => { const r = R(a, b, 0, 0); return p(r[0], r[1], h); };
+      { const r = R(0.02, y0, L - 0.04, W); shadow(r[0], r[1], r[2], r[3], k.body + 2); }
+      const wheelR = k.wood ? 5 : 4.2, wy = [y0 + 0.08, y0 + W - 0.08], wx = k.wheels === 2 ? [L * 0.5] : [L * 0.18, L * 0.82];
+      wx.forEach(a => wy.forEach(b => { const q = pt(a, b, z + 1); wheel(q[0], q[1] + 2, wheelR); }));
+      if (k.wood) {
+        const b = box.apply(null, R(0.05, y0 + 0.05, L - 0.1, W - 0.1).concat([k.body, '#8a5a3a', z + 6, { noShadow: true, tex: 'siding' }]));
+        line(b.D2, b.C2, '#5a3a1e', 1); if (k.handle) { const h0 = pt(-0.02, y0 + W / 2, z + 8), h1 = pt(-0.35, y0 + W / 2, z + 16); line(h0, h1, '#5a3a1e', 2); } else { [y0 + 0.12, y0 + W - 0.12].forEach(b2 => line(pt(0.02, b2, z + 8), pt(-0.5, b2, z + 8), '#5a3a1e', 2)); }
+        if (extra && extra.load) box.apply(null, R(0.15, y0 + 0.12, L - 0.3, W - 0.24).concat([6, extra.load, z + 6 + k.body, { noShadow: true, tex: 'ribbed' }]));
+        return;
+      }
+      /* the body: a lower box with a darker sill, then the cabin in glass with a roof in the body colour */
+      const bz = z + 3, b = box.apply(null, R(0, y0, L, W).concat([k.body, colour, bz, { noShadow: true }]));
+      line(P(b.D, b.D2, 0.3), P(b.C, b.C2, 0.3), shade(colour, -0.35), 1.5);
+      if (k.load) { const cab = box.apply(null, R(k.cab[0], y0 + 0.02, k.cab[1], W - 0.04).concat([k.cabH, colour, bz + k.body, { noShadow: true }])); faceTex(cab.D, cab.C, k.cabH * 0.5, 'glass', '#2f4f7f'); faceTex(cab.C, cab.B, k.cabH * 0.5, 'glass', '#2f4f7f'); box.apply(null, R(k.cab[0] + k.cab[1] + 0.06, y0 + 0.03, L - k.cab[0] - k.cab[1] - 0.1, W - 0.06).concat([20, (extra && extra.load) || '#e6e9ef', bz + k.body, { noShadow: true, tex: 'ribbed' }])); }
+      else if (k.cab) {
+        const cab = box.apply(null, R(k.cab[0], y0 + 0.05, k.cab[1], W - 0.1).concat([k.cabH, '#2f4f7f', bz + k.body, { noShadow: true, top: 0 }]));
+        faceTex(cab.D, cab.C, k.cabH, 'glass', '#2f4f7f'); faceTex(cab.C, cab.B, k.cabH, 'glass', '#2f4f7f');
+        if (k.band) for (let u = 0.08; u < 0.95; u += 0.12) line(P(cab.D, cab.C, u), up(P(cab.D, cab.C, u), k.cabH), shade(colour, -0.2), 1.2);
+        box.apply(null, R(k.cab[0] - 0.01, y0 + 0.04, k.cab[1] + 0.02, W - 0.08).concat([2.5, colour, bz + k.body + k.cabH, { noShadow: true, top: 0.25 }]));
+        if (k.rack) [y0 + 0.14, y0 + W - 0.14].forEach(b2 => line(pt(k.cab[0] + 0.05, b2, bz + k.body + k.cabH + 5), pt(k.cab[0] + k.cab[1] - 0.05, b2, bz + k.body + k.cabH + 5), '#3b4252', 1.5));
+        if (k.sign) { const q = pt(k.cab[0] + k.cab[1] / 2, y0 + W / 2, bz + k.body + k.cabH + 3); roundRect(q[0] - 6, q[1] - 6, 12, 5, 1.5, '#ffc531'); }
+        if (k.bed) { const r = R(k.cab[0] + k.cab[1] + 0.04, y0 + 0.04, L - k.cab[0] - k.cab[1] - 0.08, W - 0.08); box(r[0], r[1], r[2], r[3], 4, shade(colour, -0.25), bz + k.body, { noShadow: true, top: -0.45 }); }
+      }
+      /* lights: the front is the far end */
+      const hl = [pt(L, y0 + 0.12, bz + k.body * 0.6), pt(L, y0 + W - 0.12, bz + k.body * 0.6)]; hl.forEach(q => blob(q[0], q[1], 1.5, '#fff4c2'));
+      const tl = [pt(0, y0 + 0.12, bz + k.body * 0.6), pt(0, y0 + W - 0.12, bz + k.body * 0.6)]; tl.forEach(q => blob(q[0], q[1], 1.3, '#ff5a5a'));
+      if (extra && extra.lit) lights.push({ x: hl[0][0] + 6, y: hl[0][1] + 4, r: 22, c: '255,244,194', k: 0.5 });
+    }
+    function car(gx, gy, colour, z, kind, dir) { vehicle(gx, gy, kind || 'sedan', colour, z, dir); }
+    function truck(gx, gy, load, z, dir) { vehicle(gx, gy, 'truck', '#e8552f', z, dir, { load }); }
     function label(gx, gy, text, sub, size) { const q = p(gx, gy), k = 1 / S; ctx.font = '800 ' + (size || 11) * k + 'px Baloo 2, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3 * k; ctx.strokeStyle = 'rgba(40,40,60,.55)'; ctx.strokeText(text, q[0], q[1]); ctx.fillStyle = '#fff'; ctx.fillText(text, q[0], q[1]); if (sub) { ctx.font = '700 ' + 8 * k + 'px Nunito, sans-serif'; ctx.strokeText(sub, q[0], q[1] + 10 * k); ctx.fillStyle = '#ffe9a6'; ctx.fillText(sub, q[0], q[1] + 10 * k); } ctx.textAlign = 'left'; }
     /* after dark: the scene under a blue wash, then every light glowing through it */
     function nightfall(n) { if (!(n > 0)) { lights.length = 0; return; } ctx.fillStyle = 'rgba(6,10,40,' + (0.72 * n) + ')'; ctx.fillRect(-2, -2, W + 4, H + 4); ctx.fillStyle = 'rgba(30,40,90,' + (0.18 * n) + ')'; ctx.fillRect(-2, -2, W + 4, H + 4); ctx.save(); ctx.globalCompositeOperation = 'lighter'; lights.forEach(l => { if (!(l.k > 0) || l.x < -l.r || l.y < -l.r || l.x > W + l.r || l.y > H + l.r) return; const sp = glow(l.c, l.r); ctx.globalAlpha = Math.min(1, 0.55 * n * l.k); ctx.drawImage(sp, l.x - l.r, l.y - l.r, l.r * 2, l.r * 2); }); ctx.restore(); lights.length = 0; }
@@ -102,7 +151,7 @@
     const glows = new Map();
     function glow(c, r) { const key = c + '|' + Math.round(r); let sp = glows.get(key); if (sp) return sp; const R = Math.max(2, Math.round(r)); sp = document.createElement('canvas'); sp.width = R * 2; sp.height = R * 2; const g2 = sp.getContext('2d'); const g = g2.createRadialGradient(R, R, 1, R, R, R); g.addColorStop(0, 'rgba(' + c + ',1)'); g.addColorStop(1, 'rgba(' + c + ',0)'); g2.fillStyle = g; g2.beginPath(); g2.arc(R, R, R, 0, Math.PI * 2); g2.fill(); if (glows.size > 64) glows.clear(); glows.set(key, sp); return sp; }
     const reset = () => ctx.setTransform(2 * S, 0, 0, 2 * S, 0, 0);
-    const out = { ctx, cam, W, H, S, PW, PH, night: 0, lights, nightfall, reset, setScale, resize, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, blob, roundRect, shadow, label };
+    const out = { ctx, cam, W, H, S, PW, PH, night: 0, lights, nightfall, reset, setScale, resize, zoom: f => setScale(S * f), p, P, up, onScreen, poly, line, tile, box, roof, flatRoof, faceTex, win, door, chimney, smoke, fence, lamp, tree, bush, bench, wheel, person, puff, car, truck, vehicle, KINDS, blob, roundRect, shadow, label };
     return out;
   }
 

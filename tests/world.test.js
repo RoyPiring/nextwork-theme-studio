@@ -72,11 +72,11 @@ test('the hash is uniform on [0, 1), so heights reach the peaks', () => {
 test('the place is never empty on the day it levels up: every finished project stays a home, rebuilt in the era', () => {
   const s = S.normalise({ mode: 'dev', done: NW.PROJECTS.slice(0, 90).map(p => p.title), lists: [{ name: 'Other', kind: 'workshop', total: 12, done: 12, projects: [] }] });
   const L = S.layout(s); assert.equal(L.plan.id, 'capital');
-  assert.equal(L.infra.length, 8, 'list projects count toward the capital and its monuments');
-  assert.equal(L.infra.map(b => b.kind).join(), ['capitol', 'arch', 'obelisk', 'pool', 'memorial', 'cityhall', 'library', 'park'].join());
+  assert.equal(L.infra.length, 12, 'list projects count toward the capital and its monuments');
+  assert.equal(L.infra.map(b => b.kind).slice(0, 8).join(), ['capitol', 'arch', 'obelisk', 'pool', 'memorial', 'cityhall', 'library', 'park'].join()); assert.ok(L.infra.some(b => b.kind === 'hydroponic') && L.infra.some(b => b.kind === 'reservoir'), 'and then the capital feeds and waters itself');
   assert.ok(L.buildings.filter(b => b.series).length >= 80, 'the homes from every earlier era are still there');
-  const k = S.normalise({ mode: 'dev', done: NW.PROJECTS.map(p => p.title), lists: [{ name: 'Other', kind: 'workshop', total: 40, done: 40, projects: [] }] });
-  const K = S.layout(k); assert.equal(K.plan.id, 'kingdom'); assert.equal(K.infra.map(b => b.kind).join(), 'skypad,hoverport,skyisland,skyisland,skyisland');
+  const k = S.normalise({ mode: 'dev', done: NW.PROJECTS.map(p => p.title), lists: [{ name: 'Other', kind: 'workshop', total: 45, done: 45, projects: [] }] });
+  const K = S.layout(k); assert.equal(K.plan.id, 'kingdom'); assert.equal(K.infra.map(b => b.kind).slice(0, 3).join(), 'skypad,hoverport,fusion'); assert.equal(K.infra.filter(b => b.kind === 'skyisland').length, 6, 'six districts float');
 });
 
 test('the battery: a step adds eight percent, a project fills it, a day of grace, then ten percent a day down to an ember', () => {
