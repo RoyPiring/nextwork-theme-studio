@@ -319,7 +319,7 @@
     $('theme-name').disabled = false;
     $('theme-kind').textContent = theme.isPreset ? 'preset' : 'your theme';
     $('save-note').textContent = theme.isPreset
-      ? 'Presets are read-only — editing a color makes you a copy'
+      ? 'Presets are read-only: editing a color makes you a copy'
       : 'Saved automatically';
     $('customCSS').value = theme.customCSS || '';
 
