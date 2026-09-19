@@ -10,10 +10,10 @@
 
   const AVATAR = { body: 'pineapple', shirt: '#2f7fd6', hat: 'none', skin: '#ffd6ad', hair: '#4a2e1a' };
   function fresh() { return { schema: SCHEMA, mode: 'prod', name: 'You', land: '', biome: '', done: [], lists: [], steps: {}, building: '', sites: {}, craft: {}, me: null, avatar: Object.assign({}, AVATAR), life: freshLife(), wallet: { sparks: 0, unlocked: [] } }; }
-  function freshLife() { return { founded: Date.now(), lastDone: 0, at: 0, power: 1, citizens: 1, bonusCap: 0, crewAt: 0, week: { id: 0, projects: 0, steps: 0, met: false } }; }
+  function freshLife() { return { founded: Date.now(), lastDone: 0, at: 0, power: 1, citizens: 1, bonusCap: 0, crewAt: 0, steps: 0, week: { id: 0, projects: 0, steps: 0, met: false } }; }
   function normalise(saved) {
     const s = Object.assign(fresh(), saved && typeof saved === 'object' ? saved : {});
-    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); const migrating = !s.life || typeof s.life !== 'object' || typeof s.life.citizens !== 'number'; s.life = Object.assign(freshLife(), s.life && typeof s.life === 'object' ? s.life : {}); ['founded', 'lastDone', 'at', 'power', 'citizens', 'bonusCap', 'crewAt'].forEach(k => { if (typeof s.life[k] !== 'number' || !isFinite(s.life[k])) s.life[k] = freshLife()[k]; }); if (!s.life.week || typeof s.life.week !== 'object') s.life.week = freshLife().week; if (!s.wallet || typeof s.wallet !== 'object') s.wallet = { sparks: 0, unlocked: [] }; s.wallet.sparks = Math.max(0, s.wallet.sparks | 0); if (!Array.isArray(s.wallet.unlocked)) s.wallet.unlocked = []; delete s.readAt;
+    if (!Array.isArray(s.done)) s.done = []; if (!Array.isArray(s.lists)) s.lists = []; if (!s.steps || typeof s.steps !== 'object') s.steps = {}; if (!s.sites || typeof s.sites !== 'object') s.sites = {}; if (!s.craft || typeof s.craft !== 'object') s.craft = {}; s.land = String(s.land || ''); const migrating = !s.life || typeof s.life !== 'object' || typeof s.life.citizens !== 'number'; s.life = Object.assign(freshLife(), s.life && typeof s.life === 'object' ? s.life : {}); ['founded', 'lastDone', 'at', 'power', 'citizens', 'bonusCap', 'crewAt', 'steps'].forEach(k => { if (typeof s.life[k] !== 'number' || !isFinite(s.life[k])) s.life[k] = freshLife()[k]; }); if (!s.life.week || typeof s.life.week !== 'object') s.life.week = freshLife().week; if (!s.wallet || typeof s.wallet !== 'object') s.wallet = { sparks: 0, unlocked: [] }; s.wallet.sparks = Math.max(0, s.wallet.sparks | 0); if (!Array.isArray(s.wallet.unlocked)) s.wallet.unlocked = []; delete s.readAt;
     if (migrating) { const n = score(s); s.life.citizens = Math.max(1, Math.floor(n / 2)); if (!s.wallet.sparks) s.wallet.sparks = n * 5; }   /* a world saved before the economy: the people and the sparks it had earned */ s.biome = ['forest', 'sandy', 'island', 'plains', 'mountains', 'snow', 'rain', 'zen', 'savanna'].includes(s.biome) ? s.biome : (s.biome === 'hill' ? 'plains' : s.biome === 'desert' ? 'sandy' : '');
     s.mode = s.mode === 'dev' ? 'dev' : 'prod'; s.schema = SCHEMA; s.avatar = Object.assign({}, AVATAR, s.avatar && typeof s.avatar === 'object' ? s.avatar : {});
     s.lists = s.lists.map(l => { const total = +l.total || 0; return { name: String(l.name || ''), total, done: Math.min(total, Math.max(0, +l.done || 0)), blurb: String(l.blurb || ''), kind: l.kind || kindFor(String(l.name || '')) }; });
@@ -84,7 +84,7 @@
     s.done.forEach((title, i) => { if (i >= plan.threshold && i < plan.threshold + infra.length) return; const sr = SERIES.find(x => x.projects.some(pr => pr[0] === title)); if (!sr) { const q = (s.sites[title] && lotOk(s.sites[title])) ? s.sites[title] : nextLot(); at(q); buildings.push({ custom: true, kind: 'home', title, part: 1, of: 1, xp: 60, tier: 1, order: i + 1, gx: q[0], gy: q[1] }); return; } const pr = sr.projects.find(x => x[0] === title); const pi = sr.projects.indexOf(pr); const q = (s.sites[title] && lotOk(s.sites[title])) ? s.sites[title] : nextLot(); at(q); buildings.push({ series: sr, kind: sr.kind, title, part: pi + 1, of: sr.projects.length, xp: xpFor(pr[1], sr.hard), tier: tierIn(s, sr), order: i + 1, gx: q[0], gy: q[1] }); });
     let ei = 0; s.lists.forEach(ll => { for (let k = 0; k < ll.total; k++) { const q = EAST_LOTS[ei++] || EAST_LOTS[EAST_LOTS.length - 1]; buildings.push({ list: ll, kind: ll.kind, title: ll.name, part: k + 1, of: ll.total, xp: 0, tier: k < ll.done ? 2 : 0, gx: q[0], gy: q[1] }); } });
     const nextBuild = k < plan.builds.length ? plan.builds[k] : null, next = nextBuild ? null : nextLot();
-    const capacity = plan.capacity + (s.life.bonusCap | 0) + infra.reduce((a, b) => a + (b.kind === 'shelter' ? 2 : 1), 0) + buildings.reduce((a, b) => a + (b.tier === 0 ? 0 : clamp(Math.ceil((b.xp || 60) / 30), 2, 5)), 0);   /* room: the era's own, the contracts kept, and every home by what it took to build */
+    const capacity = plan.capacity + (s.life.bonusCap | 0) + infra.reduce((a, b) => a + (b.kind === 'shelter' ? 6 : 3), 0) + buildings.reduce((a, b) => a + (b.tier === 0 ? 0 : clamp(Math.ceil((b.xp || 60) / 8), 8, 18)), 0);   /* room: the era's own, the contracts kept, and every home by what it took to build */
     return { plan, buildings, infra, nextBuild, next, capacity, paths: roads(plan, buildings, s), west: plan.lotList, east: EAST_LOTS };
   }
   /* the roads: the plan's, plus the east bank's when there are lists (and a way over the water to reach it) */
@@ -114,11 +114,12 @@
   /* the hour: yours, unless dev has set one */
   /* the life of the place. Days pass fast: one every 40 seconds, a season in twenty minutes, so crops grow and trees fill in while you watch.
   /* ---- the economy: three things and three rules ----
-   * POWER is a battery. A step ticked adds 8%; a project finished fills it. It holds for a day, then loses 15% a real day down to an
-   * ember (10%): the lights, the mill, the fields and the fire follow it. CITIZENS move in one per step while the power is at least
-   * half, up to the homes' capacity, and leave one a day once the place has stood idle five days. SPARKS are the currency: one a
+   * POWER is a battery. A step ticked adds 8%; a project finished fills it. It holds for a day, then loses 10% a real day down to an
+   * ember (10%): the lights, the mill, the fields and the fire follow it. Back after a week away, the first step lights it to 60%.
+   * CITIZENS move in one per step while the power is at least half, up to the homes' room (eight to eighteen a home, by what it took
+   * to build), and leave one a day once the place has stood idle five days. SPARKS are the currency: one a
    * step, ten a project, spent in the avatar shop, never lost. Everything comes from the page: a step ticked, a project finished. */
-  const DAY_MS = 40000, REAL_DAY = 86400000, GRACE = 1, DECAY = 0.15, EMBER = 0.1, STEP_POWER = 0.08, SPARK = { step: 1, project: 10 };
+  const DAY_MS = 40000, REAL_DAY = 86400000, GRACE = 1, DECAY = 0.1, EMBER = 0.1, STEP_POWER = 0.08, SPARK = { step: 1, project: 10 };
   /* the clock: real time, unless dev has moved it */
   const now = s => Date.now() + ((s && s.mode === 'dev' && typeof s.clockOffset === 'number') ? s.clockOffset : 0);
   const dayMs = s => (s.mode === 'dev' && typeof s.dayMs === 'number' && s.dayMs > 0) ? s.dayMs : DAY_MS;
@@ -130,16 +131,20 @@
   const population = (s, now, capacity) => Math.min(Math.max(1, capacity), citizens(s, now));
   const weekId = now => Math.floor((now - 4 * REAL_DAY - new Date(now).getTimezoneOffset() * 60000) / (7 * REAL_DAY));   /* weeks start on a local Monday */
   /* this week's contract: the era's next piece of infrastructure, for one project or seven steps. Met: 25 sparks, five move in, and two more of room for good */
-  const CONTRACT = { projects: 1, steps: 7, reward: 2, sparks: 25, citizens: 5 };
+  const CONTRACT = { projects: 1, steps: 7, reward: 4, sparks: 25, citizens: 5 };
   function contract(s, now) { now = now || Date.now(); const id = weekId(now); if (s.life.week.id !== id) s.life.week = { id, projects: 0, steps: 0, met: false }; const w = s.life.week, L = layout(s); const met = w.met || w.projects >= CONTRACT.projects || w.steps >= CONTRACT.steps; const tz = new Date(now).getTimezoneOffset() * 60000; return { week: w, infra: L.nextBuild ? L.nextBuild.kind : null, projects: CONTRACT.projects, steps: CONTRACT.steps, met, reward: CONTRACT.reward, sparks: CONTRACT.sparks, citizens: CONTRACT.citizens, daysLeft: Math.max(1, Math.ceil(((id + 1) * 7 * REAL_DAY + 4 * REAL_DAY + tz - now) / REAL_DAY)) }; }
   /* one thing happened: a step ticked, or a project finished */
   function event(s, kind, now) { now = now || Date.now(); const before = power(s, now), cap = layout(s).capacity; if (kind === 'project') s.life.lastDone = now;
-    const after = clamp(before + (kind === 'project' ? 1 : STEP_POWER), 0, 1); const have = citizens(s, now); s.life.power = after; s.life.citizens = Math.min(Math.max(cap, 1), have + (after >= 0.5 ? (kind === 'project' ? 3 : 1) : 0)); s.life.at = now;
+    const after = clamp(Math.max(before + (kind === 'project' ? 1 : STEP_POWER), idleDays(s, now) >= 7 && kind === 'step' ? 0.6 : 0), 0, 1);   /* back after a week away: the first step lights most of it again */ const have = citizens(s, now); s.life.power = after; s.life.citizens = Math.min(Math.max(cap, 1), have + (after >= 0.5 ? 1 : 0)); s.life.at = now; if (kind === 'step') s.life.steps = (s.life.steps | 0) + 1;
     s.wallet.sparks += SPARK[kind] || 0; const c = contract(s, now); if (kind === 'project') c.week.projects++; else c.week.steps++; if (!c.week.met && (c.week.projects >= CONTRACT.projects || c.week.steps >= CONTRACT.steps)) { c.week.met = true; s.life.bonusCap += CONTRACT.reward; s.wallet.sparks += CONTRACT.sparks; s.life.citizens = Math.min(Math.max(cap + CONTRACT.reward, 1), s.life.citizens + CONTRACT.citizens); }
     forget(); return s; }
   /* the crew: while the power holds, they raise one pegged list building a real day */
   function crew(s, now) { now = now || Date.now(); const built = []; if (!s.life.crewAt || !s.life.lastDone) { s.life.crewAt = now; return built; } const days = Math.floor((now - s.life.crewAt) / REAL_DAY); if (days <= 0) return built;
     for (let k = 1; k <= days; k++) { if (power(s, s.life.crewAt + k * REAL_DAY) < 0.5) continue; const l = nextListProject(s); if (!l) break; l.done++; built.push(l.name + ' ' + l.done + ' of ' + l.total); } s.life.crewAt += days * REAL_DAY; if (built.length) forget(); return built; }
+  /* experience: five a step, the project's own worth when it stands; levels take a little more each time */
+  const xp = s => xpOf(s) + (s.life.steps | 0) * 5;
+  const levelFloor = n => 50 * n * (n + 1);   /* level 1 at 0, 2 at 100, 3 at 300, 4 at 600, 5 at 1000 */
+  function levelOf(s) { const x = xp(s); let n = 0; while (levelFloor(n + 1) <= x) n++; const lo = levelFloor(n), hi = levelFloor(n + 1); return { level: n + 1, xp: x, into: x - lo, need: hi - lo, next: hi, at: (x - lo) / (hi - lo) }; }
   /* the shop: sparks for what you wear */
   const PRICES = { 'hat:cowboy': 50, 'hat:hard': 50, 'hat:beanie': 50, 'body:robot': 100, 'body:cat': 100 };
   const owns = (s, item) => !(item in PRICES) || s.wallet.unlocked.includes(item);
@@ -147,5 +152,5 @@
   const hourOf = s => (s.mode === 'dev' && typeof s.hour === 'number') ? s.hour : (() => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; })();
   const nightOf = h => h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0;
   const landName = s => s.land || (s.name && s.name !== 'You' ? s.name + '’s land' : 'Your land');
-  NW.State = { SCHEMA, AVATAR, landName, hourOf, now, DAY_MS, REAL_DAY, EMBER, dayMs, dayOf, hourOfDay, idleDays, power, citizens, population, contract, CONTRACT, event, crew, PRICES, owns, buy, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
+  NW.State = { SCHEMA, AVATAR, landName, hourOf, now, DAY_MS, REAL_DAY, EMBER, dayMs, dayOf, hourOfDay, idleDays, power, citizens, population, contract, CONTRACT, event, crew, PRICES, owns, buy, xp, levelOf, nightOf, route, nearestRoad, nearestLot, lotFree, forget, score, planOf, nextPlan, homeOf, inWater, LAND, HOME, EAST_LOTS, LANES, EAST_TRUNK, fresh, normalise, seed, doneIn, tierIn, xpOf, houseWord, nextHouseWord, nextProject, nextListProject, finish, applyProjectReading, applyPortfolioReading, layout, hash, noise, height, creekX, onBank };
 })();
