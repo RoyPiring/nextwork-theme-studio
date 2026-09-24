@@ -163,20 +163,46 @@
   }
   const ERA_HOME = [0, 1, 2, 3, 4, 5, 6].map(era => function (I, gx, gy, k, now, kind) { const vv = pick(era); vv.era = era; if (era === 0) tent(I, gx, gy, vv, kind, now); else house(I, gx, gy, vv, kind, now); });
   const TOP = [40, 70, 80, 120, 230, 230, 260];   /* how tall an era's tallest home is, for the reveal */
+  /* ---- the building site: a real one. Packed earth, tape on the posts, the stock for the job, scaffolding that climbs with the steps, a crane from the city on ---- */
+  function siteGround(I, gx, gy) { const ctx = I.ctx, pts = [I.p(gx - 0.45, gy - 0.45), I.p(gx + 1.45, gy - 0.45), I.p(gx + 1.45, gy + 1.45), I.p(gx - 0.45, gy + 1.45)], c = I.p(gx + 0.5, gy + 0.5), g = ctx.createRadialGradient(c[0], c[1], 4, c[0], c[1], NW.TW * 1.3);
+    g.addColorStop(0, '#b9976a'); g.addColorStop(0.7, '#a8845a'); g.addColorStop(1, 'rgba(150,118,80,.0)'); I.poly(pts, g);
+    ctx.strokeStyle = 'rgba(90,64,36,.35)'; ctx.lineWidth = 1.4; [[0.2, 0.75], [0.35, 0.9]].forEach(([u, v]) => { const a = I.p(gx - 0.4, gy + u), b = I.p(gx + 1.4, gy + v); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.quadraticCurveTo((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 6, b[0], b[1]); ctx.stroke(); });   /* the tyre tracks */
+    for (let i = 0; i < 9; i++) { const q = I.p(gx - 0.3 + NW.State.hash(gx + i, gy) * 1.6, gy - 0.3 + NW.State.hash(gx, gy + i * 3) * 1.6); ctx.fillStyle = 'rgba(110,82,50,.5)'; ctx.beginPath(); ctx.ellipse(q[0], q[1], 1.6, 0.9, 0, 0, Math.PI * 2); ctx.fill(); } }
+  function siteTape(I, gx, gy) { const ctx = I.ctx, corners = [[-0.45, -0.45], [1.45, -0.45], [1.45, 1.45], [-0.45, 1.45]].map(o => I.p(gx + o[0], gy + o[1]));
+    [[3, 0], [0, 1], [1, 2]].forEach(([i, j]) => { const a = corners[i], b = corners[j]; ctx.lineWidth = 1.6; ctx.setLineDash([4, 4]); ctx.strokeStyle = '#ffc531'; ctx.beginPath(); ctx.moveTo(a[0], a[1] - 7); ctx.lineTo(b[0], b[1] - 7); ctx.stroke(); ctx.lineDashOffset = 4; ctx.strokeStyle = '#2a2230'; ctx.stroke(); ctx.lineDashOffset = 0; ctx.setLineDash([]); });
+    corners.forEach(q => { ctx.fillStyle = '#f4f1e8'; ctx.fillRect(q[0] - 1, q[1] - 10, 2, 10); ctx.fillStyle = '#ff7a2a'; ctx.beginPath(); ctx.moveTo(q[0] - 3, q[1] - 10); ctx.lineTo(q[0], q[1] - 15); ctx.lineTo(q[0] + 3, q[1] - 10); ctx.fill(); }); }
+  function siteStock(I, gx, gy, era) {
+    /* lumber on the left; bricks from the town; steel and a mixer from the city */
+    for (let i = 0; i < 3; i++) I.box(gx - 0.42 + i * 0.02, gy + 1.02, 0.5, 0.26, 3, i % 2 ? '#c9a06a' : '#b8874f', i * 3, { noShadow: i > 0, top: 0.2 });
+    if (era >= 2) { I.box(gx + 1.12, gy + 1.08, 0.3, 0.3, 2, '#8a6a3f', 0, { top: 0.1 }); I.box(gx + 1.14, gy + 1.1, 0.26, 0.26, 9, '#b8553f', 2, { noShadow: true, tex: 'brick' }); }
+    if (era >= 3) { [0, 1, 2].forEach(i => I.box(gx + 1.12 + i * 0.02, gy - 0.42, 0.12, 0.6, 2.5, '#6b7280', i * 2.5, { noShadow: i > 0, top: 0.15 })); const m = I.p(gx - 0.35, gy - 0.3); I.box(gx - 0.45, gy - 0.4, 0.3, 0.3, 5, '#e8552f', 0, { top: 0.1 }); I.ctx.fillStyle = '#f2b42a'; I.ctx.beginPath(); I.ctx.ellipse(m[0] + 2, m[1] - 11, 5, 4, -0.5, 0, Math.PI * 2); I.ctx.fill(); }
+  }
+  function scaffold(I, gx, gy, rise) { const wood = '#b58a5a', plank = '#c9a06a', ctx = I.ctx, lv = Math.max(1, Math.floor(rise / 14));
+    [[-0.2, -0.2], [1.2, -0.2], [-0.2, 1.2], [1.2, 1.2], [0.5, 1.2], [1.2, 0.5]].forEach(o => { const q = I.p(gx + o[0], gy + o[1], 4); I.line(q, [q[0], q[1] - rise - 6], wood, 1.4); });
+    for (let i = 1; i <= lv; i++) { const z = 4 + Math.min(rise, i * 14), a = I.p(gx - 0.22, gy + 1.22, z), b = I.p(gx + 1.22, gy + 1.22, z), c = I.p(gx + 1.22, gy - 0.22, z);
+      I.poly([a, b, I.p(gx + 1.22, gy + 1.42, z), I.p(gx - 0.22, gy + 1.42, z)], plank); I.poly([b, c, I.p(gx + 1.42, gy - 0.22, z), I.p(gx + 1.42, gy + 1.22, z)], NW.shade(plank, -0.15));
+      I.line(a, b, wood, 1.2); I.line(b, c, wood, 1.2); const a0 = I.p(gx - 0.22, gy + 1.22, z - 14), b0 = I.p(gx + 1.22, gy + 1.22, z - 14); ctx.globalAlpha = 0.6; I.line(a0, b, wood, 0.9); I.line(b0, I.p(gx + 1.22, gy - 0.22, z), wood, 0.9); ctx.globalAlpha = 1; }
+    const top = I.p(gx + 1.22, gy + 1.22, rise + 4); I.ctx.setLineDash([2, 2]); I.line(I.p(gx - 0.22, gy + 1.22, rise + 4), top, 'rgba(255,255,255,.75)', 1); I.line(top, I.p(gx + 1.22, gy - 0.22, rise + 4), 'rgba(255,255,255,.75)', 1); I.ctx.setLineDash([]); }
+  /* a tower crane: the mast, the jib turning slowly, the hook over the work */
+  function crane(I, gx, gy, rise, now) { const ctx = I.ctx, base = I.p(gx + 1.8, gy - 0.6), H = Math.max(110, rise + 60), topY = base[1] - H, a = Math.sin(now / 5200) * 0.5 - 0.25, jl = 70, arm = [base[0] - Math.cos(a) * jl, topY + Math.sin(a) * jl * 0.35], back = [base[0] + Math.cos(a) * 26, topY - Math.sin(a) * 9];
+    I.box(gx + 1.62, gy - 0.78, 0.36, 0.36, 5, '#8a95a6', 0, { top: 0.1 }); ctx.strokeStyle = '#f2b42a'; ctx.lineWidth = 1.2; for (let y = 0; y < H; y += 9) { ctx.beginPath(); ctx.moveTo(base[0] - 3, base[1] - y); ctx.lineTo(base[0] + 3, base[1] - y - 9); ctx.moveTo(base[0] + 3, base[1] - y); ctx.lineTo(base[0] - 3, base[1] - y - 9); ctx.stroke(); } I.line([base[0] - 3, base[1]], [base[0] - 3, topY], '#e0a020', 1.6); I.line([base[0] + 3, base[1]], [base[0] + 3, topY], '#e0a020', 1.6);
+    I.line([base[0], topY - 12], arm, '#6b7280', 0.8); I.line([base[0], topY - 12], back, '#6b7280', 0.8); I.line(back, arm, '#f2b42a', 3); ctx.fillStyle = '#6b7280'; ctx.fillRect(back[0] - 4, back[1] - 2, 8, 7); ctx.fillStyle = '#2f7fd6'; ctx.fillRect(base[0] - 4, topY + 1, 8, 7);
+    const hook = [arm[0] + 6, Math.min(base[1] - rise - 30, arm[1] + 40 + Math.sin(now / 900) * 4)]; I.line([arm[0] + 6, arm[1]], hook, '#3b4252', 0.8); ctx.fillStyle = '#c9a06a'; ctx.fillRect(hook[0] - 7, hook[1], 14, 3); }
+  /* before cranes: a timber hoist, two legs, a pulley and a bucket going up and down */
+  function hoist(I, gx, gy, rise, now) { const a = I.p(gx + 1.45, gy - 0.35), b = I.p(gx + 1.45, gy + 0.35), H = Math.max(50, rise + 24), top = [(a[0] + b[0]) / 2 - 10, Math.min(a[1], b[1]) - H]; I.line(a, top, '#8a6a3f', 2.2); I.line(b, top, '#8a6a3f', 2.2); I.line(top, [top[0] - 22, top[1] + 4], '#8a6a3f', 2); const y = top[1] + 10 + (Math.sin(now / 1400) * 0.5 + 0.5) * (H - 30); I.line([top[0] - 20, top[1] + 4], [top[0] - 20, y], '#3b3a44', 0.8); I.ctx.fillStyle = '#6b4a2b'; I.ctx.fillRect(top[0] - 23, y, 6, 5); I.ctx.fillStyle = '#9aa3b0'; I.ctx.beginPath(); I.ctx.arc(top[0] - 20, top[1] + 4, 2, 0, Math.PI * 2); I.ctx.fill(); }
+  function dust(I, gx, gy, now) { const ctx = I.ctx; for (let i = 0; i < 4; i++) { const ph = (now / 2600 + i * 0.25) % 1, q = I.p(gx + 0.2 + i * 0.3, gy + 1.2); ctx.fillStyle = 'rgba(210,190,150,' + (0.35 * (1 - ph)) + ')'; ctx.beginPath(); ctx.arc(q[0] + ph * 10, q[1] - 2 - ph * 14, 2 + ph * 5, 0, Math.PI * 2); ctx.fill(); } }
   function drawStage(I, gx, gy, done, total, kind, era, k, now, custom) {
     const draw = custom || ((I2, x, y) => ERA_HOME[era](I2, x, y, 1, now, kind)); const n = Math.max(1, total | 0), frac = Math.min(done, n) / n, rise = frac * (custom ? 90 : TOP[era]) * (0.75 + 0.25 * k);
-    I.ctx.setLineDash([4, 4]); I.poly([I.p(gx - 0.35, gy - 0.35), I.p(gx + 1.35, gy - 0.35), I.p(gx + 1.35, gy + 1.35), I.p(gx - 0.35, gy + 1.35)], 'rgba(255,255,255,.1)', 'rgba(255,255,255,.8)', 1.2); I.ctx.setLineDash([]);
-    [[-0.35, -0.35], [1.35, -0.35], [-0.35, 1.35], [1.35, 1.35]].forEach(o => { const q = I.p(gx + o[0], gy + o[1]); I.ctx.fillStyle = '#f4f1e8'; I.ctx.fillRect(q[0] - 1, q[1] - 9, 2, 9); I.ctx.fillStyle = '#ffc531'; I.ctx.fillRect(q[0] - 3, q[1] - 11, 6, 3); });
     if (done >= n) { draw(I, gx, gy); return 'Finished'; }
+    siteGround(I, gx, gy); siteStock(I, gx, gy, era);
     if (done > 0) {
       /* the slab, then the building itself up to the height the steps have reached */
       I.box(gx - 0.2, gy - 0.2, 1.4, 1.4, 4, era >= 2 ? '#c9c2b0' : '#8a6a3f', 0, { top: 0.1 });
       const base = I.p(gx + 0.5, gy + 1.5); I.ctx.save(); I.ctx.beginPath(); I.ctx.rect(base[0] - (custom ? 200 : 60), base[1] - 4 - rise, custom ? 400 : 120, rise + 8); I.ctx.clip(); draw(I, gx, gy); I.ctx.restore();
-      /* scaffolding at the corners, a cut line where the work stops */
-      [[-0.2, -0.2], [1.2, -0.2], [-0.2, 1.2], [1.2, 1.2]].forEach(o => { const q = I.p(gx + o[0], gy + o[1], 4); I.line(q, [q[0], q[1] - rise - 6], '#b58a5a', 1.5); });
-      const a = I.p(gx - 0.22, gy + 1.22, rise + 4), b = I.p(gx + 1.22, gy + 1.22, rise + 4), c = I.p(gx + 1.22, gy - 0.22, rise + 4); I.line(a, b, '#b58a5a', 1.5); I.line(b, c, '#b58a5a', 1.5); I.ctx.setLineDash([2, 2]); I.line(a, b, 'rgba(255,255,255,.7)', 1); I.line(b, c, 'rgba(255,255,255,.7)', 1); I.ctx.setLineDash([]);
+      scaffold(I, gx, gy, rise); if (era >= 3) crane(I, gx, gy, rise, now); else if (custom || era >= 1) hoist(I, gx, gy, rise, now); if (!NW.reduce) dust(I, gx, gy, now);
       I.puff(gx, gy, k);
-    }
+    } else { const q = I.p(gx + 0.5, gy + 0.5); I.ctx.setLineDash([3, 3]); I.poly([I.p(gx - 0.1, gy - 0.1), I.p(gx + 1.1, gy - 0.1), I.p(gx + 1.1, gy + 1.1), I.p(gx - 0.1, gy + 1.1)], 'rgba(255,255,255,.14)', 'rgba(255,255,255,.85)', 1.2); I.ctx.setLineDash([]); I.ctx.fillStyle = '#2f7fd6'; I.ctx.fillRect(q[0] - 8, q[1] - 16, 16, 11); I.ctx.fillStyle = '#e6f1fb'; I.ctx.fillRect(q[0] - 6, q[1] - 14, 12, 7); I.line([q[0], q[1] - 5], [q[0], q[1] + 2], '#6b4a2b', 1.4); }   /* pegged out: the outline and a blueprint on a stake */
+    siteTape(I, gx, gy);
     return done === 0 ? 'Pegged out' : 'Step ' + done + ' of ' + n + ' up';
   }
   /* the hospital, at hospital size: three wide, two deep, three storeys, the cross on the roof */

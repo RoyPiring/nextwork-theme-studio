@@ -31,7 +31,7 @@
   const terrainOf = s => TERRAINS[s.biome] || TERRAINS.plains;
   let T = TERRAINS.plains;
   /* the ground as [r,g,b], so it can be darkened without going through a hex string */
-  const groundRGB = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.8 && T.relief === 'peaks') { const st = NW.hex(T.stone); return (gx + gy) % 2 ? st : st.map(v => Math.round(v * 0.94)); } const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(T.grass[0]), b = NW.hex(T.grass[1]); const c = a.map((v, i) => Math.round(lerp(v, b[i], dry))); if (T.relief === 'mesa') { const d = Math.sin(gx * 0.5 + gy * 0.75 + S.noise(gx / 6, gy / 6) * 5); return c.map(v => Math.round(v * (0.94 + d * 0.07))); } return c; };   /* the desert: dune ridges of lighter and darker sand */
+  const groundRGB = (gx, gy) => { const h = S.height(gx, gy); if (h > 0.8 && T.relief === 'peaks') { const st = NW.hex(T.stone); return (gx + gy) % 2 ? st : st.map(v => Math.round(v * 0.94)); } const dry = clamp((h - 0.25) * 2.2, 0, 1); const a = NW.hex(T.grass[0]), b = NW.hex(T.grass[1]); const c = a.map((v, i) => Math.round(lerp(v, b[i], dry))); if (T.relief === 'mesa') { const d = Math.sin(gx * 0.5 + gy * 0.75 + S.noise(gx / 6, gy / 6) * 5); return c.map(v => Math.round(v * (0.94 + d * 0.07))); } const patch = 0.955 + S.noise(gx / 4.2 + 31, gy / 4.2 + 17) * 0.09; return c.map(v => Math.min(255, Math.round(v * patch))); };   /* the desert: dune ridges of lighter and darker sand */
   const groundColour = (gx, gy) => rgb(groundRGB(gx, gy));
   const treeOf = (I, gx, gy, size) => { const d = B[T.tree] || B.oak; d(I, gx, gy, size); };
   /* the island's shore, as a rounded square so the plan's far lots stay on land */
@@ -53,7 +53,7 @@
   const STEP = 7;   /* one terrace, in pixels */
   const POND = [43, 9, 5, 4];   /* the forest's pond */
   let groundKey = '', ground = null, elev = null, decor = null;
-  const layer = { cv: null, I: null, key: '', PW: 0, PH: 0, S: 0, lights: [], smokes: [] };   /* the still layer, one per pane */
+  const layer = { cv: null, I: null, front: null, IF: null, hasFront: false, key: '', PW: 0, PH: 0, S: 0, lights: [], smokes: [] };   /* the still layer, one per pane; on a build site, a second one for what stands in front of the site */
   const LIVE = new Set(['campfire', 'windmill', 'skyisland', 'skyfarm', 'hoverport', 'skypad', 'windturbine', 'fusion', 'pool', 'reservoir', 'fountain']);   /* civic pieces that move, drawn live */
   function classify(L) {
     const plan = L.plan, W = plan.water, g = new Uint8Array(LAND * LAND), el = new Int8Array(LAND * LAND), wet = T.corridor === 'river';
@@ -98,10 +98,10 @@
   function groundFor(L, state) { const k = L.plan.id + '|' + state.biome + '|' + L.buildings.length + '|' + (L.next || []).join() + '|' + (L.nextBuild ? L.nextBuild.kind : ''); if (k !== groundKey) { const c = classify(L); ground = c.g; elev = c.el; decor = c.d; groundKey = k; } return ground; }
   const colourOf = (k, gx, gy) => {
     switch (k) {
-      case G.WATER: return (gx + gy) % 5 === 0 ? NW.shade(T.water, 0.2) : T.water;
+      case G.WATER: return NW.shade(T.water, (S.noise(gx / 3 + 5, gy / 3) - 0.5) * 0.16);
       case G.OCEAN: return (gx * 7 + gy * 3) % 9 === 0 ? NW.shade(T.water, -0.25) : NW.shade(T.water, -0.4);
       case G.BEACH: case G.BANK: return T.sand;
-      case G.ROAD: return '#c8a877'; case G.PAVED: return (gx + gy) % 2 ? '#e3dccb' : '#d8d0bc'; case G.BRIDGE: return '#a88c5f';
+      case G.ROAD: return '#c8a877'; case G.PAVED: return NW.shade('#ddd6c4', (S.hash(gx * 3, gy * 7) - 0.5) * 0.05);   /* asphalt-pale, one surface with a little wear */ case G.BRIDGE: return '#a88c5f';
       case G.EMBANK: return '#b8b4a8'; case G.PROM: return '#e3dccb';
       case G.PLAZA: return (gx + gy) % 2 ? '#e9e2d0' : '#dfd7c3'; case G.PARK: return (gx + gy) % 2 ? '#7fc55a' : '#86cc60';
       case G.FIELD: return gy % 2 ? '#a8783f' : '#c8a06a';
@@ -123,13 +123,45 @@
   /* one tile of ground at its terrace, with a face down to any lower neighbour to the south or east */
   function groundTile(I, gx, gy, k) {
     const i = gy * LAND + gx, e = elev ? elev[i] : 0, z = e * STEP;
-    if (!e) I.tile(gx, gy, colourOf(k, gx, gy), edgeStroke(k));
-    else I.poly([I.p(gx, gy, z), I.p(gx + 1, gy, z), I.p(gx + 1, gy + 1, z), I.p(gx, gy + 1, z)], colourOf(k, gx, gy), edgeStroke(k));
+    const fill = colourOf(k, gx, gy), edge = k === G.ROAD ? null : edgeStroke(k) || fill;   /* roads get their verges in the detail pass */
+    if (!e) I.tile(gx, gy, fill, edge);
+    else I.poly([I.p(gx, gy, z), I.p(gx + 1, gy, z), I.p(gx + 1, gy + 1, z), I.p(gx, gy + 1, z)], fill, edge);
     const eS = gy + 1 < LAND ? elev[i + LAND] : e, eE = gx + 1 < LAND ? elev[i + 1] : e; if (eS >= e && eE >= e) return;
     const f = faceRGB(k, gx, gy);
     if (eS < e) I.poly([I.p(gx, gy + 1, z), I.p(gx + 1, gy + 1, z), I.p(gx + 1, gy + 1, eS * STEP), I.p(gx, gy + 1, eS * STEP)], rgb(f));
     if (eE < e) I.poly([I.p(gx + 1, gy, z), I.p(gx + 1, gy + 1, z), I.p(gx + 1, gy + 1, eE * STEP), I.p(gx + 1, gy, eE * STEP)], rgb(f.map(v => Math.round(v * 0.85))));
   }
+
+  /* the ground's small things, drawn once into the still layer: every stroke of a kind goes in one path */
+  const FLOWERS = ['#fff4c2', '#ffd35a', '#ff8fb1', '#c9b6ff'];
+  function groundDetail(I, g) {
+    const ctx = I.ctx, GRASS = [G.WILD, G.MANAGED, G.PARK, G.RIDGE, G.WOOD], dark = new Path2D(), light = new Path2D(), glint = new Path2D(), foam = new Path2D(), verge = new Path2D(), curb = new Path2D(), pebble = new Path2D(), dots = FLOWERS.map(() => new Path2D());
+    const kindAt = (x, y) => (x < 0 || y < 0 || x >= LAND || y >= LAND ? -1 : g[y * LAND + x]), wet = k => k === G.WATER || k === G.OCEAN, road = k => k === G.ROAD || k === G.BRIDGE || k === G.PAVED || k === G.PROM;
+    const edgeLine = (path, a, b) => { path.moveTo(a[0], a[1]); path.lineTo(b[0], b[1]); };
+    for (let gy = 0; gy < LAND; gy++) for (let gx = 0; gx < LAND; gx++) {
+      if (!I.onScreen(gx, gy) || (elev && elev[gy * LAND + gx])) continue; const k = g[gy * LAND + gx], h = S.hash(gx * 7 + 3, gy * 13 + 1);
+      if (GRASS.includes(k)) {
+        const n = h < 0.5 ? 3 : h < 0.8 ? 1 : 0; for (let i = 0; i < n; i++) { const q = I.p(gx + 0.15 + S.hash(gx + i, gy * 3) * 0.7, gy + 0.15 + S.hash(gx * 5, gy + i) * 0.7), path = i % 2 ? light : dark, hh = 2.2 + S.hash(gx, gy + i * 7) * 2; path.moveTo(q[0] - 1.6, q[1]); path.lineTo(q[0] - 2.4, q[1] - hh); path.moveTo(q[0], q[1]); path.lineTo(q[0], q[1] - hh - 0.8); path.moveTo(q[0] + 1.6, q[1]); path.lineTo(q[0] + 2.6, q[1] - hh * 0.8); }
+        if (h > 0.94 && (k === G.MANAGED || k === G.PARK) && T.weather !== 'snow') for (let i = 0; i < 4; i++) { const q = I.p(gx + 0.2 + S.hash(gx * 3 + i, gy) * 0.6, gy + 0.2 + S.hash(gx, gy * 5 + i) * 0.6); dots[(gx + gy + i) % FLOWERS.length].moveTo(q[0] + 1.2, q[1]); dots[(gx + gy + i) % FLOWERS.length].arc(q[0], q[1], 1.2, 0, Math.PI * 2); }
+      }
+      if ((k === G.ROCK || k === G.SCREE || k === G.WASH || k === G.GRAVEL || k === G.BEACH) && h < 0.45) { const q = I.p(gx + 0.3 + h, gy + 0.6 - h * 0.5); pebble.moveTo(q[0] + 1.8, q[1]); pebble.ellipse(q[0], q[1], 1.8, 1, 0, 0, Math.PI * 2); }
+      if (wet(k)) {
+        if (h > 0.72) { const q = I.p(gx + 0.25 + h * 0.4, gy + 0.3 + (1 - h) * 0.6); glint.moveTo(q[0] - 3, q[1]); glint.lineTo(q[0] + 3, q[1]); }
+        [[0, -1, [gx, gy], [gx + 1, gy]], [-1, 0, [gx, gy], [gx, gy + 1]], [0, 1, [gx, gy + 1], [gx + 1, gy + 1]], [1, 0, [gx + 1, gy], [gx + 1, gy + 1]]].forEach(([dx, dy, a, b]) => { const nk = kindAt(gx + dx, gy + dy); if (nk < 0 || wet(nk) || nk === G.BRIDGE) return; edgeLine(foam, I.p(a[0], a[1]), I.p(b[0], b[1])); });
+      }
+      if (road(k)) [[0, -1, [gx, gy], [gx + 1, gy]], [-1, 0, [gx, gy], [gx, gy + 1]], [0, 1, [gx, gy + 1], [gx + 1, gy + 1]], [1, 0, [gx + 1, gy], [gx + 1, gy + 1]]].forEach(([dx, dy, a, b]) => { const nk = kindAt(gx + dx, gy + dy); if (nk < 0 || road(nk) || wet(nk)) return; edgeLine(k === G.ROAD ? verge : curb, I.p(a[0], a[1]), I.p(b[0], b[1])); });
+    }
+    const T0 = NW.hex(T.grass[1]);
+    ctx.lineCap = 'round'; ctx.lineWidth = 0.9; ctx.strokeStyle = 'rgba(' + T0.map(v => Math.round(v * 0.62)).join(',') + ',.75)'; ctx.stroke(dark); ctx.strokeStyle = 'rgba(' + T0.map(v => Math.min(255, Math.round(v * 1.28))).join(',') + ',.7)'; ctx.stroke(light);
+    dots.forEach((d, i) => { ctx.fillStyle = FLOWERS[i]; ctx.fill(d); });
+    ctx.fillStyle = 'rgba(80,72,60,.35)'; ctx.fill(pebble);
+    ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.stroke(glint); ctx.lineWidth = 2.2; ctx.strokeStyle = 'rgba(240,250,255,.45)'; ctx.stroke(foam);
+    ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(96,66,30,.42)'; ctx.stroke(verge); ctx.lineWidth = 2.2; ctx.strokeStyle = 'rgba(120,118,112,.55)'; ctx.stroke(curb); ctx.lineCap = 'butt';
+  }
+  /* a soft shadow where a building meets the ground, so nothing floats */
+  function contact(I, gx, gy, w) { const ctx = I.ctx, q = I.p(gx, gy), r = w * NW.TW * 0.62, gr = ctx.createRadialGradient(q[0], q[1], r * 0.2, q[0], q[1], r); gr.addColorStop(0, 'rgba(18,28,20,.34)'); gr.addColorStop(1, 'rgba(18,28,20,0)'); ctx.save(); ctx.translate(q[0], q[1]); ctx.scale(1, 0.5); ctx.translate(-q[0], -q[1]); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+  /* the light of the day over the whole view: warm from the upper left, a touch of shade at the far edges */
+  function daylight(I, ctx) { const W = I.W, H = I.H; ctx.save(); const lg = ctx.createLinearGradient(0, 0, W, H); lg.addColorStop(0, 'rgba(255,238,196,.12)'); lg.addColorStop(0.45, 'rgba(255,238,196,0)'); lg.addColorStop(1, 'rgba(28,40,78,.12)'); ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H); const vg = ctx.createRadialGradient(W / 2, H * 0.48, Math.min(W, H) * 0.38, W / 2, H * 0.5, Math.max(W, H) * 0.78); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(12,22,34,.24)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H); ctx.restore(); }
 
   /* ---- you: always on a road ---- */
   const onRoad = (roads, gx, gy) => roads.has(Math.floor(gx) + ',' + Math.floor(gy));
@@ -191,7 +223,7 @@
     const g = groundFor(L, state), lvl = NW.Eras.level(state), era = NW.Eras.eraOf(state);
     const pw = S.power(state, S.now(state)); NW.power = pw; const stage = pw < 0.5 ? -1 : Math.floor(((S.dayOf(state, S.now(state)) % 30) / 30) * 5);
     const items = []; const add = (d, fn) => items.push({ d, fn });
-    const layered = !opts.map && !opts.site && !opts.placing && !opts.anim && !reduce;
+    const layered = !opts.map && !opts.placing && !opts.anim && !reduce, cut = opts.site ? opts.site.gx + opts.site.gy + (opts.site.infra ? 3 : 0.5) : Infinity;   /* on a site, what is behind it and what is in front of it are two still layers, and the site goes live between them */
     const drawCivicWith = (I, add) => c => {
       if (c.kind === 'rail') return;
       if (c.kind === 'stockade') { if (!opts.map) add(c.rect[0] + c.rect[1] - 0.5, () => { const [x, y, w, h] = c.rect; I.fence(x, y, x + w, y, w * 2); I.fence(x, y, x, y + h, h * 2); I.fence(x + w, y, x + w, y + h, h * 2); I.fence(x, y + h, x + 16, y + h, 32); I.fence(x + 17.2, y + h, x + w, y + h, 2); }); return; }
@@ -199,11 +231,12 @@
       if (!c.at) return; const d = c.kind === 'board' ? (I2, x, y) => B.board(I2, x, y) : c.kind === 'windmill' ? (I2, x, y, n) => B.windmill(I2, x, y, n) : c.kind === 'tank' ? (I2, x, y) => B.tank(I2, x, y) : c.kind === 'barn' ? (I2, x, y, n) => B.barn(I2, x, y, 1, n, 2) : c.kind === 'coop' ? (I2, x, y, n) => B.coop(I2, x, y, n) : B.CIV[c.kind];
       if (!d || !(I.onScreen(c.at[0], c.at[1]) || I.onScreen(c.at[0] + 3, c.at[1] + 3))) return; const big = ['cityhall', 'capitol', 'palace', 'university', 'stadium', 'hospital', 'skypad', 'hoverport', 'obelisk', 'pool'].includes(c.kind); add(c.kind === 'skyisland' ? 4000 + c.at[0] + c.at[1] : c.at[0] + c.at[1] + (big ? 4 : 1.2), () => d(I, c.at[0], c.at[1], now)); };
     /* everything that stands still: the ground, the fields, the rail, the trees, the home, the civic buildings, the homes */
-    const scene = (I, ctx, add) => {
-    for (let d = 0; d <= 2 * (LAND - 1); d++) for (let gx = Math.max(0, d - LAND + 1); gx <= Math.min(LAND - 1, d); gx++) { const gy = d - gx; if (!I.onScreen(gx, gy)) continue; groundTile(I, gx, gy, g[gy * LAND + gx]); }
-    if (!opts.map) plan.landscape.fields.forEach(f => { for (let y = f[1]; y < f[1] + f[3]; y++) for (let x = f[0]; x < f[0] + f[2]; x++) { if (!I.onScreen(x, y)) continue; const q = I.p(x + 0.5, y + 0.5); if (stage < 0) { ctx.fillStyle = '#7a8f3a'; [[-8, -2], [2, 1], [-2, 4], [7, -3]].forEach(o => ctx.fillRect(q[0] + o[0], q[1] + o[1] - 3, 1.5, 3)); continue; } if (stage === 0) { ctx.fillStyle = 'rgba(0,0,0,.12)'; for (let k = -1; k <= 1; k++) ctx.fillRect(q[0] - 12, q[1] + k * 4, 24, 1); continue; } if (stage === 4) { if ((x + y) % 2 === 0) { ctx.fillStyle = '#d9b24c'; ctx.fillRect(q[0] - 4, q[1] - 6, 8, 5); ctx.fillStyle = '#b8902e'; ctx.fillRect(q[0] - 4, q[1] - 2, 8, 1); } continue; } const h = [0, 4, 8, 11][stage], col = stage === 3 ? '#d9a23a' : stage === 2 ? '#7fb35a' : '#9fd06a'; ctx.fillStyle = col; for (let k = -2; k <= 2; k++) for (let m = -1; m <= 1; m++) ctx.fillRect(q[0] + k * 5 + m * 1.5, q[1] + m * 3 - h, 1.5, h); if (stage === 3) { ctx.fillStyle = '#f2c94c'; for (let k = -2; k <= 2; k++) ctx.fillRect(q[0] + k * 5 - 1, q[1] - h - 3, 3, 3); } } });
+    const scene = (I, ctx, add, front) => {   /* front: only what stands in front of a build site, with no ground under it */
+    if (!front) for (let d = 0; d <= 2 * (LAND - 1); d++) for (let gx = Math.max(0, d - LAND + 1); gx <= Math.min(LAND - 1, d); gx++) { const gy = d - gx; if (!I.onScreen(gx, gy)) continue; groundTile(I, gx, gy, g[gy * LAND + gx]); }
+    if (!opts.map && !front) groundDetail(I, g);
+    if (!opts.map && !front) plan.landscape.fields.forEach(f => { for (let y = f[1]; y < f[1] + f[3]; y++) for (let x = f[0]; x < f[0] + f[2]; x++) { if (!I.onScreen(x, y)) continue; const q = I.p(x + 0.5, y + 0.5); if (stage < 0) { ctx.fillStyle = '#7a8f3a'; [[-8, -2], [2, 1], [-2, 4], [7, -3]].forEach(o => ctx.fillRect(q[0] + o[0], q[1] + o[1] - 3, 1.5, 3)); continue; } if (stage === 0) { ctx.fillStyle = 'rgba(0,0,0,.12)'; for (let k = -1; k <= 1; k++) ctx.fillRect(q[0] - 12, q[1] + k * 4, 24, 1); continue; } if (stage === 4) { if ((x + y) % 2 === 0) { ctx.fillStyle = '#d9b24c'; ctx.fillRect(q[0] - 4, q[1] - 6, 8, 5); ctx.fillStyle = '#b8902e'; ctx.fillRect(q[0] - 4, q[1] - 2, 8, 1); } continue; } const h = [0, 4, 8, 11][stage], col = stage === 3 ? '#d9a23a' : stage === 2 ? '#7fb35a' : '#9fd06a'; ctx.fillStyle = col; for (let k = -2; k <= 2; k++) for (let m = -1; m <= 1; m++) ctx.fillRect(q[0] + k * 5 + m * 1.5, q[1] + m * 3 - h, 1.5, h); if (stage === 3) { ctx.fillStyle = '#f2c94c'; for (let k = -2; k <= 2; k++) ctx.fillRect(q[0] + k * 5 - 1, q[1] - h - 3, 3, 3); } } });
     const rail = plan.civic.find(c => c.kind === 'rail');
-    if (rail && !opts.map) { ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 1.2; for (let x = rail.from[0]; x <= rail.to[0]; x += 0.5) { const a = I.p(x, rail.from[1] + 0.15), b = I.p(x, rail.from[1] + 0.85); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); } [0.3, 0.7].forEach(o => { const a = I.p(rail.from[0], rail.from[1] + o), b = I.p(rail.to[0] + 1, rail.to[1] + o); ctx.strokeStyle = '#9aa3b0'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }); }
+    if (rail && !opts.map && !front) { ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 1.2; for (let x = rail.from[0]; x <= rail.to[0]; x += 0.5) { const a = I.p(x, rail.from[1] + 0.15), b = I.p(x, rail.from[1] + 0.85); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); } [0.3, 0.7].forEach(o => { const a = I.p(rail.from[0], rail.from[1] + o), b = I.p(rail.to[0] + 1, rail.to[1] + o); ctx.strokeStyle = '#9aa3b0'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }); }
     if (!opts.map) { decor.rails.forEach(([x, y]) => { if (!I.onScreen(x, y)) return; add(x + y + 0.4, () => { const a = I.p(x, y), b = I.p(x + 1, y), c = I.p(x, y + 1), d = I.p(x + 1, y + 1); I.line(I.up(a, 6), I.up(b, 6), '#8a6a3f', 1.5); I.line(I.up(c, 6), I.up(d, 6), '#8a6a3f', 1.5); }); });
       const grown = clamp(0.55 + S.dayOf(state, S.now(state)) / 30 * 0.45, 0.55, 1);
       decor.trees.forEach(([x, y, what, size, z]) => { if (!I.onScreen(x, y)) return; if (what === 'tree' && g[y * LAND + x] === G.MANAGED) size *= grown; add(x + y + 0.5, () => { I.cam.y += z; if (what === 'hay') B.hay(I, x, y); else if (what === 'rock') B.boulder(I, x, y, size); else if (what === 'reeds') B.reeds(I, x, y, size); else if (what === 'lantern') B.stonelantern(I, x, y); else treeOf(I, x, y, size); I.cam.y -= z; }); });
@@ -233,26 +266,30 @@
     L.buildings.forEach(b => { if (!I.onScreen(b.gx, b.gy)) return;
       if (b.tier === 0) { add(b.gx + b.gy + 0.5, () => { /* not yet: a clear field with a light cross, nothing to trip over */ I.tile(b.gx + 0.1, b.gy + 0.1, 'rgba(255,255,255,.28)', 'rgba(255,255,255,.55)'); const a = I.p(b.gx + 0.3, b.gy + 0.3), c = I.p(b.gx + 0.7, b.gy + 0.7), d = I.p(b.gx + 0.7, b.gy + 0.3), e = I.p(b.gx + 0.3, b.gy + 0.7); I.line(a, c, 'rgba(255,255,255,.6)', 1); I.line(d, e, 'rgba(255,255,255,.6)', 1); }); return; }
       let k = 1; if (opts.anim && opts.anim.title === b.title) k = reduce ? 1 : clamp((now - opts.anim.start) / 1600, 0, 1);
-      add(b.gx + b.gy + 0.5, () => { Homes.setN(b.order || 0, b); Homes.ERA_HOME[lvl](I, b.gx, b.gy, k, now, b.kind); }); if (!opts.map && b.order && !opts.quiet) add(b.gx + b.gy + 0.51, () => { const q = I.p(b.gx + 0.15, b.gy + 0.15, 2); I.roundRect(q[0] - 7, q[1] - 6, 14, 9, 3, 'rgba(255,255,255,.88)'); ctx.fillStyle = '#172033'; ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(String(b.order), q[0], q[1] + 1); ctx.textAlign = 'left'; }); });
+      add(b.gx + b.gy + 0.5, () => { if (!opts.map) contact(I, b.gx + 0.5, b.gy + 0.55, lvl >= 3 ? 1.1 : 0.85); Homes.setN(b.order || 0, b); Homes.ERA_HOME[lvl](I, b.gx, b.gy, k, now, b.kind); }); if (!opts.map && b.order && !opts.quiet) add(b.gx + b.gy + 0.51, () => { const q = I.p(b.gx + 0.15, b.gy + 0.15, 2); I.roundRect(q[0] - 7, q[1] - 6, 14, 9, 3, 'rgba(255,255,255,.88)'); ctx.fillStyle = '#172033'; ctx.font = '800 6.5px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(String(b.order), q[0], q[1] + 1); ctx.textAlign = 'left'; }); });
     if (opts.placing) add(9998, () => { const q = I.p(HOME[0] + 1, HOME[1] + 4.5); ctx.font = '800 12px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,40,60,.55)'; ctx.strokeText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.fillStyle = '#fff'; ctx.fillText('Where do you want this? Tap an outlined lot.', q[0], q[1]); ctx.textAlign = 'left'; });
     };
     /* the still layer: the scene is drawn into a cached canvas and blitted every frame, redrawn only when the camera, the zoom, the
      * layout or the day moves on. Only what moves is drawn live: people, cars, the avatar, smoke, the animated civic pieces, the lights. */
     if (layered) {
-      const key = [plan.id, state.biome, L.buildings.length, (L.next || []).join(), L.nextBuild ? L.nextBuild.kind : '', I.S, Math.round(I.cam.x * 2), Math.round(I.cam.y * 2), I.PW, I.PH, stage, lvl, state.wallet.unlocked.length, opts.land || '', !!opts.quiet, Math.floor(S.dayOf(state, S.now(state)) / 3)].join('|');
+      const key = [plan.id, state.biome, L.buildings.length, (L.next || []).join(), L.nextBuild ? L.nextBuild.kind : '', I.S, Math.round(I.cam.x * 2), Math.round(I.cam.y * 2), I.PW, I.PH, stage, lvl, state.wallet.unlocked.length, opts.land || '', !!opts.quiet, Math.floor(S.dayOf(state, S.now(state)) / 3), opts.site ? opts.site.title + '@' + cut : ''].join('|');
       if (!layer.cv) layer.cv = document.createElement('canvas');
-      if (layer.PW !== I.PW || layer.PH !== I.PH || layer.S !== I.S) { layer.cv.width = I.PW; layer.cv.height = I.PH; layer.I = NW.makeIso(layer.cv, I.PW / (I.DPR * I.S), I.PH / (I.DPR * I.S), I.S, I.DPR); layer.PW = I.PW; layer.PH = I.PH; layer.S = I.S; layer.key = ''; }
-      if (layer.key !== key) { const I2 = layer.I; I2.cam.x = I.cam.x; I2.cam.y = I.cam.y; I2.ctx.setTransform(1, 0, 0, 1, 0, 0); I2.ctx.clearRect(0, 0, I.PW, I.PH); I2.reset(); I2.lights.length = 0; I2.night = I.night; Homes.setLive(false); const items2 = []; scene(I2, I2.ctx, (d, fn) => items2.push({ d, fn })); items2.sort((a, b) => a.d - b.d).forEach(it => it.fn()); Homes.setLive(true); layer.lights = I2.lights.slice(); I2.lights.length = 0; layer.smokes = Homes.takeSmokes(); layer.key = key; }
+      if (!layer.front) layer.front = document.createElement('canvas');
+      if (layer.PW !== I.PW || layer.PH !== I.PH || layer.S !== I.S) { [layer.cv, layer.front].forEach(c => { c.width = I.PW; c.height = I.PH; }); layer.I = NW.makeIso(layer.cv, I.PW / (I.DPR * I.S), I.PH / (I.DPR * I.S), I.S, I.DPR); layer.IF = NW.makeIso(layer.front, I.PW / (I.DPR * I.S), I.PH / (I.DPR * I.S), I.S, I.DPR); layer.PW = I.PW; layer.PH = I.PH; layer.S = I.S; layer.key = ''; }
+      if (layer.key !== key) { const I2 = layer.I, IF = layer.IF; [I2, IF].forEach(J => { J.cam.x = I.cam.x; J.cam.y = I.cam.y; J.ctx.setTransform(1, 0, 0, 1, 0, 0); J.ctx.clearRect(0, 0, I.PW, I.PH); J.reset(); J.lights.length = 0; J.night = I.night; }); Homes.setLive(false); const items2 = []; scene(I2, I2.ctx, (d, fn) => items2.push({ d, fn })); items2.sort((a, b) => a.d - b.d);
+        const back = items2.filter(it => it.d < cut), fore = items2.filter(it => it.d >= cut); back.forEach(it => it.fn()); layer.hasFront = fore.length > 0; if (fore.length) { const fronts = []; scene(IF, IF.ctx, (d, fn) => { if (d >= cut) fronts.push({ d, fn }); }, true); fronts.sort((a, b) => a.d - b.d).forEach(it => it.fn()); }   /* the front layer is the same scene, drawn again, keeping only what stands in front */
+        Homes.setLive(true); layer.lights = I2.lights.concat(IF.lights); I2.lights.length = 0; IF.lights.length = 0; layer.smokes = Homes.takeSmokes(); layer.key = key; }
       ctx.drawImage(layer.cv, 0, 0, I.W, I.H);
       layer.lights.forEach(l => I.lights.push({ x: l.x, y: l.y, r: l.r, c: l.c, k: l.k }));
       layer.smokes.forEach(sm => { const q = I.p(sm.gx, sm.gy, sm.z); I.smoke(q[0], q[1], now); });
       const dc = drawCivicWith(I, add); plan.civic.concat(L.infra).forEach(c => { if (LIVE.has(c.kind)) dc(c); });
     } else scene(I, ctx, add);
+    const frontLayer = layered && opts.site && layer.hasFront;
     if (opts.site) { const st = opts.site; Homes.setN(L.buildings.filter(b => b.series).length + 1, L.next ? L.plan.lotList.find(q => q[0] === L.next[0] && q[1] === L.next[1]) || {} : {}); const draw = st.infra ? ((I2, x, y) => { const c = st.infra; if (c.kind === 'stockade') { const [sx, sy, w, h] = c.rect; I.fence(sx, sy, sx + w, sy, w * 2); I.fence(sx, sy, sx, sy + h, h * 2); I.fence(sx + w, sy, sx + w, sy + h, h * 2); I.fence(sx, sy + h, sx + 16, sy + h, 32); return; } if (c.kind === 'paddock') { B.paddock(I, c.rect[0], c.rect[1], c.rect[2], c.rect[3]); return; } if (c.kind === 'rail') return; const d = c.kind === 'board' ? (I3, a, b2) => B.board(I3, a, b2) : c.kind === 'windmill' ? (I3, a, b2, n) => B.windmill(I3, a, b2, n) : c.kind === 'tank' ? (I3, a, b2) => B.tank(I3, a, b2) : c.kind === 'barn' ? (I3, a, b2, n) => B.barn(I3, a, b2, 1, n, 2) : c.kind === 'coop' ? (I3, a, b2, n) => B.coop(I3, a, b2, n) : B.CIV[c.kind]; if (d) d(I2, x, y, now); }) : null; add(st.gx + st.gy + (st.infra ? 3 : 0.5), () => { opts.stage = Homes.drawStage(I, st.gx, st.gy, opts.stepsDone, opts.stepsTotal, st.kind, lvl, opts.k == null ? 1 : opts.k, now, draw); }); }
     /* your crew at work (bone workers for a necromancer, squires for a knight, and so on) on the build site, one waiting at the next pegged lot; and the rift at the edge of the land */
     if (NW.Figures && NW.Hero && !opts.map && !opts.quiet) {
-      const cls = NW.Hero.cls(state).id, t0 = reduce ? 1.1 : now / 1000, crew = (gx, gy, i) => add(gx + gy + 0.05, () => { const q = I.p(gx, gy); NW.Figures.crew(ctx, cls, q[0], q[1], 0.62, t0 + i * 0.37); });
-      if (opts.site) { const n = Math.min(3, 2 + Math.floor((NW.Hero ? NW.Hero.level(state) : 1) / 5)); [[-0.2, 0.75], [1.2, 0.3], [0.7, 1.25]].slice(0, n).forEach((o, i) => crew(opts.site.gx + o[0], opts.site.gy + o[1], i)); }
+      const cls = NW.Hero.cls(state).id, t0 = reduce ? 1.1 : now / 1000, crew = (gx, gy, i, over) => add(Math.max(gx + gy + 0.05, over || 0), () => { const q = I.p(gx, gy); NW.Figures.crew(ctx, cls, q[0], q[1], 0.62, t0 + i * 0.37); });
+      if (opts.site) { const n = Math.min(3, 2 + Math.floor((NW.Hero ? NW.Hero.level(state) : 1) / 5)); [[-0.2, 0.75], [1.2, 0.3], [0.7, 1.25]].slice(0, n).forEach((o, i) => crew(opts.site.gx + o[0], opts.site.gy + o[1], i, opts.site.gx + opts.site.gy + (opts.site.infra ? 3 : 0.5) + 0.02 + i * 0.01)); }   /* the crew stands on the site, never under it */
       else if (L.next) crew(L.next[0] + 0.15, L.next[1] + 0.95, 0);
       const r = riftOf(state); if (r && I.onScreen(r[0], r[1])) add(r[0] + r[1], () => riftGate(I, r, t0, NW.Hero && NW.Hero.hero(state).raids.length > 0));
     }
@@ -267,7 +304,9 @@
       if (f.type === 'float') add(999, () => { const q = I.p(f.gx, f.gy, 40 + t * 40); ctx.globalAlpha = 1 - t; ctx.font = '800 13px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(16,24,44,.6)'; ctx.strokeText(f.text, q[0], q[1]); ctx.fillStyle = f.colour; ctx.fillText(f.text, q[0], q[1]); ctx.textAlign = 'left'; ctx.globalAlpha = 1; });
       if (f.type === 'sparkle') add(999, () => { const q = I.p(f.gx, f.gy, 20); for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + f.seed, r = ease(t) * 34; ctx.globalAlpha = 1 - t; I.blob(q[0] + Math.cos(a) * r, q[1] + Math.sin(a) * r * 0.55 - t * 18, 2.2 * (1 - t) + 0.5, ['#ffd54a', '#7cf0a4', '#4fc3ff', '#ff8fb1'][i % 4]); } ctx.globalAlpha = 1; }); });
     items.sort((a, b) => a.d - b.d).forEach(it => it.fn());
+    if (frontLayer) ctx.drawImage(layer.front, 0, 0, I.W, I.H);
     if (pw < 1) I.lights.forEach((l, i) => { if ((i % 5) / 5 >= pw) l.k = 0; else l.k *= 0.5 + 0.5 * pw; });   /* the grid: the lights a project pays for */
+    if (!opts.map) daylight(I, ctx);
     I.nightfall(I.night);
     if (T.weather && !opts.map && !opts.quiet && !reduce) weather(I, now);
     return L;
