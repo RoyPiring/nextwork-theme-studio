@@ -14,7 +14,7 @@ function loadWorld() {
   const g = { console, Date, Math, JSON, Set, Map, Object, Array, Number, String, RegExp, Error, performance: { now: () => 0 } };
   g.window = g; g.self = g; g.document = { createElement: () => ({ style: {}, dataset: {}, classList: { add() {}, remove() {} }, appendChild() {}, addEventListener() {}, setAttribute() {}, getContext: () => null }), createTextNode: () => ({}) };
   const ctx = vm.createContext(g);
-  ['engine', 'assets', 'data', 'plans', 'state', 'eras', 'homes', 'land', 'hq', 'global', 'hero', 'battle', 'readers', 'views'].forEach(f => {
+  ['engine', 'assets', 'data', 'plans', 'state', 'eras', 'homes', 'land', 'hq', 'global', 'classes', 'figures', 'hero', 'battle', 'readers', 'views'].forEach(f => {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'world', f + '.js'), 'utf8'), ctx, { filename: f + '.js' });
   });
   return g.NW;
@@ -146,6 +146,36 @@ test('the battle is deterministic, a first raid is won, and a hell rift is not f
   assert.ok(a.won, 'a first raid is won'); assert.ok(a.stars >= 1 && a.stars <= 3);
   let hellWins = 0; for (let i = 0; i < 4; i++) if (go(at(60), 'hell', 300 + i).won) hellWins++; assert.ok(hellWins < 4, 'hell is not won every time by a learner who never spends souls');
   const tired = at(20); tired.life.at = Date.now() - 20 * S.REAL_DAY; assert.ok(H.army(tired).tired, 'power low: the dead are tired'); assert.ok(H.army(tired).units[0].atk < H.army(at(20)).units[0].atk);
+});
+
+test('thirteen classes, each whole: six fighters and a crew, five spells, six weapons, three ranks, eight chapters', () => {
+  const C = NW.Classes, ids = new Set(), spells = new Set();
+  assert.equal(C.LIST.length, 13);
+  C.LIST.forEach(k => {
+    assert.equal(k.units.length, 6, k.id); assert.equal(k.spells.length, 5, k.id); assert.equal(k.weapons.length, 6, k.id); assert.equal(k.ranks.length, 3, k.id); assert.equal(k.story.length, C.CHAPTERS.length, k.id);
+    const st = k.stats; assert.equal(st.str + st.agi + st.spi + st.phy, 50, k.id + ': fifty stat points a level, spread its own way');
+    assert.ok(k.units[0].range < 1.5 && !k.units[0].dive, k.id + ': the first fighter holds the line');
+    [k.crew].concat(k.units).forEach(u => { assert.ok(!ids.has(u.id), 'one id per fighter: ' + u.id); ids.add(u.id); });
+    k.spells.forEach(p => { assert.ok(!spells.has(p.id), 'one id per spell: ' + p.id); spells.add(p.id); assert.ok(['strike', 'single', 'chain', 'volley', 'hex', 'stun', 'shield', 'heal', 'haste', 'summon', 'raise', 'field'].includes(p.fx), p.id); if (p.fx === 'summon') assert.ok(C.units[p.unit], p.id + ' calls a fighter that exists'); });
+    k.story.forEach(ch => assert.ok(!/\u2014/.test(ch[0] + ch[1]), 'no em dashes in the story'));
+  });
+});
+
+test('you choose your class once: the story, the weapons and the army follow it', () => {
+  const H = NW.Hero, s = S.normalise({ mode: 'prod' }); s.done = NW.PROJECTS.slice(0, 12).map(p => p.title); s.life.steps = 84;
+  assert.ok(!H.chosen(s)); assert.equal(H.chapters(s).filter(c => c.open).length, 0, 'no story before the awakening');
+  assert.ok(H.choose(s, 'knight')); assert.ok(!H.choose(s, 'archer'), 'production: the awakening is for good'); assert.equal(H.cls(s).id, 'knight');
+  assert.equal(H.classOf(H.level(s), s).name, 'Banneret'); assert.ok(H.army(s).units.every(u => u.id.startsWith('k_')), 'a knight fights with knights');
+  assert.ok(H.armory(s).every(w => NW.Classes.byId.knight.weapons.includes(w.type)), 'and carries knight weapons');
+  const open = H.chapters(s).filter(c => c.open).map(c => c.key); assert.ok(open.includes('awaken') && open.includes('fort') && open.includes('sub1')); assert.ok(!open.includes('raid'), 'the raid chapter waits for a raid won');
+  assert.ok(H.unread(s) > 0); H.markRead(s); assert.equal(H.unread(s), 0);
+  const d = S.normalise({ mode: 'dev' }); H.choose(d, 'knight'); assert.ok(H.choose(d, 'archer'), 'dev: try them all'); assert.equal(H.cls(d).id, 'archer');
+});
+
+test('every class wins its first raid and its first ordinary rift', () => {
+  const H = NW.Hero, Bt = NW.Battle;
+  NW.Classes.LIST.forEach(k => { const s = S.normalise({ mode: 'dev' }); s.done = [NW.PROJECTS[0].title]; s.life.steps = 7; s.life.at = Date.now(); s.life.lastDone = Date.now(); H.choose(s, k.id);
+    ['raid', 'ordinary'].forEach(kind => { let won = 0; for (let i = 0; i < 3; i++) { const a = H.army(s); if (Bt.run(Bt.create({ kind, cls: a.cls, wall: a.wall, level: H.level(s), army: a.units, spirit: a.spirit, power: a.power, base: a.base, weapon: a.weapon, spells: H.spells(s).map(x => x.id), phy: H.stats(s).phy, seed: 40 + i, auto: true })).won) won++; } assert.ok(won >= 2, k.id + ' ' + kind + ': ' + won + ' of 3'); }); });
 });
 
 test('the rift stands on open ground at the edge of the land, clear of the home and every build', () => {

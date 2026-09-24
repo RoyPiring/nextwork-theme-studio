@@ -247,7 +247,8 @@
     else if (kind === 'beanie') { I.roundRect(x - 4, y - 4.5, 8, 5, 2.5, colour); I.blob(x, y - 5, 1.6, colour); }
   }
   B.avatar = function (I, gx, gy, av, walkT, moving) {
-    av = av || {}; const c = I.p(gx, gy); const bob = moving ? Math.sin(walkT * 12) * 0.7 : 0, swing = moving ? Math.sin(walkT * 12) * 1.2 : 0;
+    av = av || {}; const c = I.p(gx, gy);
+    if (av.cls && av.body === 'person' && NW.Figures) { I.ctx.fillStyle = 'rgba(20,40,30,.28)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 1, c[1] + 0.5, 5, 2.2, 0, 0, Math.PI * 2); I.ctx.fill(); NW.Figures.hero(I.ctx, c[0], c[1] + (moving ? Math.sin(walkT * 12) * 0.5 : 0) - 0.5, av, walkT, false, 0.36); return; }   /* once you awaken, your class walks your land */ const bob = moving ? Math.sin(walkT * 12) * 0.7 : 0, swing = moving ? Math.sin(walkT * 12) * 1.2 : 0;
     I.ctx.fillStyle = 'rgba(20,40,30,.28)'; I.ctx.beginPath(); I.ctx.ellipse(c[0] + 1, c[1] + 0.5, 5, 2.2, 0, 0, Math.PI * 2); I.ctx.fill();
     if (av.body === 'pineapple') {
       /* the pineapple: legs, an oval body with the diamond skin, a face, the crown */
