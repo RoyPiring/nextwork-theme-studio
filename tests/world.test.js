@@ -14,7 +14,7 @@ function loadWorld() {
   const g = { console, Date, Math, JSON, Set, Map, Object, Array, Number, String, RegExp, Error, performance: { now: () => 0 } };
   g.window = g; g.self = g; g.document = { createElement: () => ({ style: {}, dataset: {}, classList: { add() {}, remove() {} }, appendChild() {}, addEventListener() {}, setAttribute() {}, getContext: () => null }), createTextNode: () => ({}) };
   const ctx = vm.createContext(g);
-  ['engine', 'assets', 'data', 'plans', 'state', 'eras', 'homes', 'land', 'hq', 'global', 'readers', 'views'].forEach(f => {
+  ['engine', 'assets', 'data', 'plans', 'state', 'eras', 'homes', 'land', 'hq', 'global', 'hero', 'battle', 'readers', 'views'].forEach(f => {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'src', 'world', f + '.js'), 'utf8'), ctx, { filename: f + '.js' });
   });
   return g.NW;
@@ -109,6 +109,43 @@ test('sparks, citizens and the contract come from steps and projects; the crew b
   const cap0 = s.life.bonusCap, sp0 = s.wallet.sparks; S.event(s, 'step', now); assert.equal(S.levelOf(s).level, 2, 'one more step: level two'); assert.equal(s.levelled, 2, 'and the panel is told'); assert.equal(s.life.bonusCap, cap0 + 1, 'a level is room for one more'); assert.equal(s.wallet.sparks, sp0 + 1 + 10, 'and ten sparks');
   const t = S.normalise({ mode: 'prod' }); ['Host a Website on Amazon S3', 'Set Up An AWS Account'].forEach(title => { for (let k = 1; k <= 7; k++) S.applyProjectReading(t, { title, done: k, total: 7 }, now); }); assert.ok(t.levelled >= 2, 'a project that crosses a level says so too'); assert.ok(S.levelOf(t).level >= 2);
   const r = S.normalise(JSON.parse(JSON.stringify(S.applyPortfolioReading(S.normalise({}), { lists: [{ name: 'X', count: 9 }] })))); assert.equal(r.lists[0].done, 0, 'a pegged list stays pegged across a reload');
+});
+
+test('the hero: a necromancer from the first project, sublimated at five and ten, every stat doubled each time', () => {
+  const H = NW.Hero, at = n => { const s = S.normalise({ mode: 'prod' }); s.done = NW.PROJECTS.slice(0, n).map(p => p.title); s.life.steps = n * 7; return s; };
+  const one = at(1); assert.equal(H.classOf(H.level(one)).name, 'Necromancer'); assert.equal(H.stats(one).spi, 20 * H.level(one), 'spirit twenty a level');
+  const s4 = at(8), s5 = at(10); assert.equal(H.level(s4), 4); assert.equal(H.level(s5), 5); assert.equal(H.classOf(5).name, 'Bone Lord'); assert.equal(H.stats(s5).spi, 20 * 5 * 2, 'sublimation doubles');
+  assert.equal(H.classOf(10).name, 'Undying Sovereign'); assert.ok(H.armySize(s5) > H.armySize(one));
+  assert.equal(H.unlocked(one).map(u => u.id).join(), 'worker,warrior'); assert.ok(H.unlocked(s5).some(u => u.id === 'mage'));
+});
+
+test('every finished project drops its own weapon: type from its series, rarity from how few finish it, one curse', () => {
+  const H = NW.Hero, s = S.normalise({ mode: 'prod' }); s.done = NW.PROJECTS.map(p => p.title);
+  const all = H.armory(s); assert.equal(all.length, 90, 'ninety projects, ninety weapons');
+  const again = H.weaponFor(s, NW.PROJECTS[20].title), once = H.weaponFor(s, NW.PROJECTS[20].title); assert.equal(again.name, once.name, 'the same project always makes the same weapon');
+  assert.ok(new Set(all.map(w => w.name + w.series)).size >= 80, 'and they are not all alike');
+  assert.ok(all.some(w => w.rarity === 5), 'a whole series of three or more makes a mythic'); assert.ok(all.every(w => w.atk > 0 && H.AFFIX.some(a => a[0] === w.affix)));
+  const lone = S.normalise({ mode: 'prod' }); lone.done = [NW.PROJECTS[0].title]; assert.ok(H.weaponFor(lone, NW.PROJECTS[0].title).rarity < 5, 'a one-project series does not hand out a mythic on day one');
+});
+
+test('keys from steps, a raid from every finished project, souls from winning, and what souls buy', () => {
+  const H = NW.Hero, now = Date.now(), s = S.normalise({ mode: 'prod' });
+  S.applyProjectReading(s, { title: 'Set Up An AWS Account', done: 7, total: 7 }, now); H.projectFinished(s, 'Set Up An AWS Account');
+  assert.equal(H.keys(s), 1, 'seven steps: one key'); assert.equal(H.stepsToKey(s), 3); assert.ok(H.canEnter(s, 'raid')); assert.ok(H.canEnter(s, 'ordinary')); assert.ok(!H.canEnter(s, 'nightmare'), 'nightmare waits for level five');
+  const e = H.enter(s, 'raid'); assert.equal(e.title, 'Set Up An AWS Account'); assert.ok(!H.canEnter(s, 'raid'), 'one raid a project');
+  H.enter(s, 'ordinary'); assert.equal(H.keys(s), 0);
+  const r = H.reward(s, 'ordinary', true, 3); assert.ok(r.souls > 25); const lost = H.reward(s, 'raid', false, 0); assert.ok(lost.souls > 0 && lost.souls < r.souls, 'a loss still pays a little');
+  const souls = H.hero(s).souls; assert.equal(H.rankUp(s, 'warrior'), souls >= 30); if (souls >= 30) assert.equal(H.hero(s).ranks.warrior, 1);
+  s.life.steps = 400; assert.equal(H.keys(s), 5, 'keys cap at five');
+});
+
+test('the battle is deterministic, a first raid is won, and a hell rift is not free', () => {
+  const H = NW.Hero, Bt = NW.Battle, at = n => { const s = S.normalise({ mode: 'prod' }); s.done = NW.PROJECTS.slice(0, n).map(p => p.title); s.life.steps = n * 7; s.life.at = Date.now(); s.life.lastDone = Date.now(); return s; };
+  const go = (s, kind, seed) => { const a = H.army(s); return Bt.run(Bt.create({ kind, level: H.level(s), army: a.units, spirit: a.spirit, power: a.power, base: a.base, weapon: a.weapon, spells: H.spells(s).map(x => x.id), phy: H.stats(s).phy, seed, auto: true })); };
+  const a = go(at(1), 'raid', 5), b = go(at(1), 'raid', 5); assert.equal(a.t, b.t); assert.equal(a.kills, b.kills, 'the same seed plays the same fight');
+  assert.ok(a.won, 'a first raid is won'); assert.ok(a.stars >= 1 && a.stars <= 3);
+  let hellWins = 0; for (let i = 0; i < 4; i++) if (go(at(60), 'hell', 300 + i).won) hellWins++; assert.ok(hellWins < 4, 'hell is not won every time by a learner who never spends souls');
+  const tired = at(20); tired.life.at = Date.now() - 20 * S.REAL_DAY; assert.ok(H.army(tired).tired, 'power low: the dead are tired'); assert.ok(H.army(tired).units[0].atk < H.army(at(20)).units[0].atk);
 });
 
 test('the ranch house grows by count, not by rarity', () => {

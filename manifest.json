@@ -35,6 +35,8 @@
         "src/world/land.js",
         "src/world/hq.js",
         "src/world/global.js",
+        "src/world/hero.js",
+        "src/world/battle.js",
         "src/world/readers.js",
         "src/world/views.js",
         "src/world/pane.js",

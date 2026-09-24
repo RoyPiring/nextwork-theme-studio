@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
-const order = ['engine', 'assets', 'data', 'plans', 'state', 'eras', 'homes', 'land', 'hq', 'global', 'views'];
+const order = ['engine', 'assets', 'data', 'plans', 'state', 'eras', 'homes', 'land', 'hq', 'global', 'hero', 'battle', 'views'];
 const src = order.map(f => fs.readFileSync(path.join(root, 'src', 'world', f + '.js'), 'utf8')).join('\n');
 const page = fs.readFileSync(path.join(root, 'concepts', 'nextwork-world', 'demo.src.html'), 'utf8');
 if (!page.includes('<!-- WORLD -->')) throw new Error('demo.src.html has no <!-- WORLD --> marker');
