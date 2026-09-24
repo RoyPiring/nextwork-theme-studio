@@ -148,6 +148,16 @@ test('the battle is deterministic, a first raid is won, and a hell rift is not f
   const tired = at(20); tired.life.at = Date.now() - 20 * S.REAL_DAY; assert.ok(H.army(tired).tired, 'power low: the dead are tired'); assert.ok(H.army(tired).units[0].atk < H.army(at(20)).units[0].atk);
 });
 
+test('the rift stands on open ground at the edge of the land, clear of the home and every build', () => {
+  const at = (n, biome) => { const s = S.normalise({ mode: 'prod', biome }); s.done = NW.PROJECTS.slice(0, n).map(p => p.title); s.life.steps = n * 7; return s; };
+  [1, 3, 12, 40, 90].forEach(n => ['plains', 'mountains', 'island'].forEach(biome => {
+    const s = at(n, biome), r = NW.Land.riftOf(s), L = S.layout(s);
+    assert.ok(r, 'a rift at ' + n + ' projects on ' + biome);
+    assert.ok(Math.max(Math.abs(r[0] - 0.5 - S.HOME[0] - 1), Math.abs(r[1] - 0.5 - S.HOME[1] - 1)) >= 4, 'the rift keeps away from the home');
+    assert.ok(!L.buildings.some(b => Math.abs(b.gx + 0.5 - r[0]) < 2 && Math.abs(b.gy + 0.5 - r[1]) < 2), 'the rift stands on no build');
+    assert.deepEqual(NW.Land.riftOf(at(n, biome)), r, 'the same land puts it in the same place');
+  }));
+});
 test('the ranch house grows by count, not by rarity', () => {
   const s = S.seed(S.fresh(), 50);
   assert.equal(s.done.length, 50);

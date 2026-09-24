@@ -1440,6 +1440,13 @@
       const dc = drawCivicWith(I, add); plan.civic.concat(L.infra).forEach(c => { if (LIVE.has(c.kind)) dc(c); });
     } else scene(I, ctx, add);
     if (opts.site) { const st = opts.site; Homes.setN(L.buildings.filter(b => b.series).length + 1, L.next ? L.plan.lotList.find(q => q[0] === L.next[0] && q[1] === L.next[1]) || {} : {}); const draw = st.infra ? ((I2, x, y) => { const c = st.infra; if (c.kind === 'stockade') { const [sx, sy, w, h] = c.rect; I.fence(sx, sy, sx + w, sy, w * 2); I.fence(sx, sy, sx, sy + h, h * 2); I.fence(sx + w, sy, sx + w, sy + h, h * 2); I.fence(sx, sy + h, sx + 16, sy + h, 32); return; } if (c.kind === 'paddock') { B.paddock(I, c.rect[0], c.rect[1], c.rect[2], c.rect[3]); return; } if (c.kind === 'rail') return; const d = c.kind === 'board' ? (I3, a, b2) => B.board(I3, a, b2) : c.kind === 'windmill' ? (I3, a, b2, n) => B.windmill(I3, a, b2, n) : c.kind === 'tank' ? (I3, a, b2) => B.tank(I3, a, b2) : c.kind === 'barn' ? (I3, a, b2, n) => B.barn(I3, a, b2, 1, n, 2) : c.kind === 'coop' ? (I3, a, b2, n) => B.coop(I3, a, b2, n) : B.CIV[c.kind]; if (d) d(I2, x, y, now); }) : null; add(st.gx + st.gy + (st.infra ? 3 : 0.5), () => { opts.stage = Homes.drawStage(I, st.gx, st.gy, opts.stepsDone, opts.stepsTotal, st.kind, lvl, opts.k == null ? 1 : opts.k, now, draw); }); }
+    /* the dead at work: bone workers on the build site, one waiting at the next pegged lot; and the rift at the edge of the land */
+    if (NW.Battle && !opts.map && !opts.quiet) {
+      const Bt = NW.Battle, t0 = reduce ? 1.1 : now / 1000, crew = (gx, gy, i) => add(gx + gy + 0.05, () => { const q = I.p(gx, gy); Bt.worker(ctx, q[0], q[1], 0.7, t0 + i * 0.37); });
+      if (opts.site) { const n = Math.min(3, 2 + Math.floor((NW.Hero ? NW.Hero.level(state) : 1) / 5)); [[-0.2, 0.75], [1.2, 0.3], [0.7, 1.25]].slice(0, n).forEach((o, i) => crew(opts.site.gx + o[0], opts.site.gy + o[1], i)); }
+      else if (L.next) crew(L.next[0] + 0.15, L.next[1] + 0.95, 0);
+      const r = riftOf(state); if (r && I.onScreen(r[0], r[1])) add(r[0] + r[1], () => riftGate(I, r, t0, NW.Hero && NW.Hero.hero(state).raids.length > 0));
+    }
     /* the traffic */
     if (!opts.map && !opts.quiet && lvl >= 2) { tickCars(L, state, now); cars.forEach(c => { if (!I.onScreen(c.at[0], c.at[1])) return; const k = I.KINDS[c.kind], gx = c.at[0] - (c.dir === 'x' ? k.L / 2 : 0.5), gy = c.at[1] - (c.dir === 'y' ? k.L / 2 : 0.5); add(c.at[0] + c.at[1] + 0.45, () => { I.vehicle(gx, gy, c.kind, c.colour, 0, c.dir, { flip: c.flip, lit: I.night > 0.3 }); if (c.kind === 'cart') { const f = c.flip ? -0.75 : 0.75; B.horse(I, c.at[0] - 0.5 + (c.dir === 'x' ? f + 0.1 : 0), c.at[1] - 0.5 + (c.dir === 'y' ? f + 0.1 : 0), '#8a5a3a', c.moving ? now / 1000 : 3); } }); }); }
     /* the kingdom's hover cars, circling the two cities at height, their shadows on the ground */
@@ -1456,6 +1463,25 @@
     if (T.weather && !opts.map && !opts.quiet && !reduce) weather(I, now);
     return L;
   }
+  /* the rift: a portal on open, level ground at the edge of the cleared land, clear of every build, lot and tree; found once per layout */
+  let rift = null, riftKey = null;
+  function riftOf(state) { const L = S.layout(state); T = terrainOf(state); groundFor(L, state); if (riftKey === groundKey) return rift; riftKey = groundKey; rift = null; const c = L.plan.clearing;
+    const near = (a, x, y, d) => a.some(q => Math.abs(q[0] - x) < d && Math.abs(q[1] - y) < d), lots = L.plan.lotList || [];
+    for (let i = 0; i < 48 && !rift; i++) { const a = -Math.PI / 2 + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * Math.PI / 24;
+      for (let f = 1.05; f >= 0.7 && !rift; f -= 0.07) { const x = Math.floor(c.cx + Math.cos(a) * c.rx * f), y = Math.floor(c.cy + Math.sin(a) * c.ry * f); if (x < 2 || y < 2 || x >= LAND - 2 || y >= LAND - 2) continue; let ok = true;
+        for (let dy = -1; dy <= 1 && ok; dy++) for (let dx = -1; dx <= 1 && ok; dx++) { const j = (y + dy) * LAND + x + dx; if ((ground[j] !== G.MANAGED && ground[j] !== G.WILD) || elev[j] !== 0) ok = false; }
+        if (ok && !L.buildings.some(b => Math.abs(b.gx - x) < 2.5 && Math.abs(b.gy - y) < 2.5) && !near(lots, x, y, 2.5) && !near(decor.trees, x, y, 1.5) && !near([[HOME[0] + 1, HOME[1] + 1]], x, y, 4) && !(L.next && near([L.next], x, y, 2.5))) rift = [x + 0.5, y + 0.5]; } }
+    return rift; }
+  /* the gate itself: a standing ring of violet light over a scorched patch, brighter while a raid is waiting */
+  function riftGate(I, r, t, hot) { const ctx = I.ctx, q = I.p(r[0], r[1]), e = I.p(r[0] + 1, r[1]), w = Math.hypot(e[0] - q[0], e[1] - q[1]) * 0.9, h = w * 1.5, cy = q[1] - h * 0.55, k = hot ? 1 : 0.7, pulse = 0.85 + Math.sin(t * 3) * 0.15;
+    ctx.save(); ctx.fillStyle = 'rgba(40,20,50,.45)'; ctx.beginPath(); ctx.ellipse(q[0], q[1], w * 0.75, w * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+    const glow = ctx.createRadialGradient(q[0], cy, 0, q[0], cy, h * 0.9); glow.addColorStop(0, 'rgba(190,110,255,' + 0.45 * k * pulse + ')'); glow.addColorStop(1, 'rgba(190,110,255,0)'); ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(q[0], cy, h * 0.9, 0, Math.PI * 2); ctx.fill();
+    [[-0.42, 0.9], [0.42, 1.05]].forEach(([dx, s]) => { ctx.fillStyle = '#4a4458'; ctx.beginPath(); ctx.moveTo(q[0] + dx * w - 3, q[1]); ctx.lineTo(q[0] + dx * w - 2, q[1] - h * 0.95 * s); ctx.lineTo(q[0] + dx * w + 2.5, q[1] - h * 0.9 * s); ctx.lineTo(q[0] + dx * w + 3, q[1]); ctx.closePath(); ctx.fill(); });
+    const core = ctx.createRadialGradient(q[0], cy, 0, q[0], cy, w * 0.4); core.addColorStop(0, 'rgba(20,0,40,.95)'); core.addColorStop(0.7, 'rgba(90,20,150,.9)'); core.addColorStop(1, 'rgba(200,120,255,.8)'); ctx.fillStyle = core; ctx.beginPath(); ctx.ellipse(q[0], cy, w * 0.32, h * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    for (let i = 0; i < 3; i++) { ctx.strokeStyle = 'rgba(230,190,255,' + (0.8 - i * 0.2) * k + ')'; ctx.lineWidth = 1.4 - i * 0.3; ctx.beginPath(); ctx.ellipse(q[0], cy, w * (0.3 - i * 0.07), h * (0.38 - i * 0.09), 0, t * (1.5 + i) + i, t * (1.5 + i) + i + Math.PI * 1.3); ctx.stroke(); }
+    for (let i = 0; i < 5; i++) { const a = (t * 0.7 + i / 5) % 1; ctx.fillStyle = 'rgba(220,170,255,' + (1 - a) * k + ')'; ctx.beginPath(); ctx.arc(q[0] + Math.sin(i * 2.4 + t) * w * 0.3, cy - a * h * 0.7, 1.3, 0, Math.PI * 2); ctx.fill(); }
+    if (hot) { ctx.font = '800 10px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(30,10,40,.85)'; ctx.fillStyle = '#f0d6ff'; ctx.strokeText('RAID', q[0], q[1] - h * 1.08); ctx.fillText('RAID', q[0], q[1] - h * 1.08); }
+    ctx.restore(); I.lights.push({ x: q[0], y: cy, r: h * 0.9, c: '190,110,255', k: 0.7 * k }); }
   /* rain or snow, falling over the whole view; the drops are placed by hash so they need no state */
   function weather(I, now) { const ctx = I.ctx, W = I.W || 880, H = I.H || 620, t = now / 1000, cx = I.cam.x, cy = I.cam.y; ctx.save(); ctx.setTransform(I.DPR * I.S, 0, 0, I.DPR * I.S, 0, 0);
     if (T.weather === 'rain') { ctx.strokeStyle = 'rgba(200,220,240,.45)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 160; i++) { const x = (S.hash(i, 1) * W * 1.2 - t * 40 + cx * 0.2) % (W * 1.2), y = (S.hash(i, 2) * H + t * 520 + i * 7 + cy * 0.2) % (H + 40) - 20; ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 14); } ctx.stroke(); ctx.fillStyle = 'rgba(120,140,160,.12)'; ctx.fillRect(0, 0, W, H); }
@@ -1465,7 +1491,7 @@
   /* the classified ground for a state, for anything that wants to ask what is where */
   const groundOf = state => { T = terrainOf(state); const L = S.layout(state); groundFor(L, state); return { g: ground, el: elev, G, T }; };
   const hit = (L, g) => L.buildings.find(b => b.tier > 0 && Math.abs(b.gx + 0.5 - g[0]) < 0.75 && Math.abs(b.gy + 0.5 - g[1]) < 0.75);
-  NW.Land = { TERRAINS, TERRAIN_KEYS, terrainOf, groundColour, treeOf, onRoad, makeMe, goTo, stepMe, siteFor, drawLand, sky, hit, groundOf };
+  NW.Land = { TERRAINS, TERRAIN_KEYS, terrainOf, groundColour, treeOf, onRoad, makeMe, goTo, stepMe, siteFor, drawLand, sky, hit, groundOf, riftOf };
 })();
 
 /* NextWorld · HQ: the NextWork World map
@@ -1712,6 +1738,300 @@
   NW.Global = { drawGlobe, SAMPLE, AUSTIN };
 })();
 
+/* NextWorld · hero: the necromancer you become by building
+ * Pure: no DOM, no canvas. Your level comes only from learning (State);
+ * this file turns that level into a class, four stats, an army, a
+ * weapon for every finished project, rift keys from ticked steps, and
+ * souls to spend on the dead. Everything is derived from what you have
+ * built, so it can never drift from the page. */
+'use strict';
+(function () {
+  const S = NW.State, { SERIES, PROJECTS } = NW;
+
+  /* ---- the class: awakened at level 1, sublimated at 5 and 10; every stat doubles each time ---- */
+  const CLASSES = [
+    { at: 1, name: 'Necromancer', grade: 'Hidden', mult: 1 },
+    { at: 5, name: 'Bone Lord', grade: 'Unique', mult: 2 },
+    { at: 10, name: 'Undying Sovereign', grade: 'Unique', mult: 4 }
+  ];
+  const classOf = level => CLASSES.filter(c => level >= c.at).pop();
+
+  /* ---- the dead you can raise, in the order you learn to raise them ---- */
+  const SUMMONS = [
+    { id: 'worker', name: 'Bone worker', at: 1, role: 'builds', hp: 0, atk: 0, range: 0, speed: 0, cd: 0 },
+    { id: 'warrior', name: 'Bone warrior', at: 1, role: 'holds the line', hp: 70, atk: 9, range: 0.7, speed: 1.6, cd: 0.8 },
+    { id: 'archer', name: 'Bone archer', at: 2, role: 'shoots from the back', hp: 34, atk: 8, range: 4.2, speed: 1.4, cd: 1.0 },
+    { id: 'mage', name: 'Bone mage', at: 4, role: 'burns a crowd', hp: 30, atk: 11, range: 3.6, speed: 1.3, cd: 1.6, aoe: 1.3 },
+    { id: 'rider', name: 'Headless rider', at: 6, role: 'charges', hp: 90, atk: 16, range: 0.8, speed: 3.0, cd: 0.9 },
+    { id: 'lich', name: 'Lich', at: 8, role: 'curses and freezes', hp: 70, atk: 18, range: 4.4, speed: 1.2, cd: 1.8, aoe: 1.6, slow: 0.4 },
+    { id: 'wyrm', name: 'Bone wyrm', at: 12, role: 'breathes death', hp: 260, atk: 34, range: 3.2, speed: 1.0, cd: 2.2, aoe: 2.2, cap: 1 }
+  ];
+  /* ---- the spells you cast yourself ---- */
+  const SPELLS = [
+    { id: 'spear', name: 'Bone spear', at: 1, cd: 3, what: 'pierces the lane at your mark' },
+    { id: 'raise', name: 'Raise the fallen', at: 2, cd: 8, what: 'the beasts you killed stand up for you' },
+    { id: 'curse', name: 'Withering curse', at: 3, cd: 7, what: 'slows and softens everything at your mark' },
+    { id: 'armor', name: 'Bone armour', at: 4, cd: 10, what: 'shields every summon' },
+    { id: 'domain', name: 'Domain of the dead', at: 10, cd: 25, what: 'the whole field rots for six seconds' }
+  ];
+
+  const level = s => S.levelOf(s).level;
+  /* strength, agility and physique ten a level, spirit twenty, all doubled by each sublimation; the weapon sharpens spells, it does not replace learning */
+  function stats(s) { const L = level(s), c = classOf(L); const base = { str: 10 * L, agi: 10 * L, spi: 20 * L, phy: 10 * L }; Object.keys(base).forEach(k => { base[k] *= c.mult; }); return base; }
+  const armySize = s => Math.min(12, 2 + level(s));
+  const unlocked = s => SUMMONS.filter(u => level(s) >= u.at);
+  const spells = s => SPELLS.filter(sp => level(s) >= sp.at);
+  function combatPower(s) { const st = stats(s), w = equipped(s); return Math.round(st.str + st.agi + st.spi * 1.5 + st.phy + (w ? w.atk * 10 : 0) + armySize(s) * 50 + Object.values(hero(s).ranks).reduce((a, r) => a + r * 40, 0)); }
+
+  /* ---- the save: a small record beside the rest of the world ---- */
+  function freshHero() { return { souls: 0, keysUsed: 0, ranks: {}, enhance: {}, equipped: '', raids: [], forge: [], best: {}, cleared: { ordinary: 0, nightmare: 0, hell: 0 } }; }
+  function hero(s) { if (!s.hero || typeof s.hero !== 'object') s.hero = freshHero(); const h = s.hero, f = freshHero(); Object.keys(f).forEach(k => { if (h[k] == null || typeof h[k] !== typeof f[k] || Array.isArray(f[k]) !== Array.isArray(h[k])) h[k] = f[k]; }); h.souls = Math.max(0, h.souls | 0); return h; }
+
+  /* ---- weapons: one for every finished project, made from the project itself ---- */
+  const RARITY = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+  const RARITY_COLOUR = ['#b8c0cc', '#6fd08c', '#4fa3ff', '#b56cff', '#ffb02e', '#ff4f6d'];
+  const ATTACK = [10, 16, 24, 36, 52, 75];
+  const TYPE = { home: 'Bone staff', lab: 'Soul orb', library: 'Grimoire', barn: 'Harvest scythe', tower: 'Storm wand', workshop: 'Bone hammer', vault: 'Warden blade', datacentre: 'Soul lantern', yard: 'Chain flail', clinic: 'Mending censer', bank: 'Gilded sceptre' };
+  const PREFIX = [['Worn', 'Plain', 'Ashen'], ['Tempered', 'Grave', 'Hollow'], ['Moonlit', 'Runed', 'Wraith'], ['Dreadsworn', 'Nightforged', 'Soulbound'], ['Kingsbane', 'Worldgrave', 'Eclipse'], ['Undying', 'First Dawn', 'Endless']];
+  const AFFIX = [['bleed', 'Bleed', 'bleeds what it hits'], ['slow', 'Frost', 'slows what it hits'], ['decay', 'Decay', 'breaks armour'], ['poison', 'Plague', 'splashes poison'], ['lightning', 'Storm', 'chains to two more']];
+  const STOP = ['with', 'and', 'the', 'for', 'your', 'using', 'from', 'into', 'build', 'set', 'up', 'an', 'a', 'on', 'to', 'of', 'in', 'aws', 'amazon', 'three', 'two', 'multiple', 'started', 'getting', 'part', 'first', 'your', 'create', 'make', 'deploy', 'host', 'website', 'app', 'project', 'tier'];
+  const rarityOfXp = xp => xp >= 140 ? 4 : xp >= 115 ? 3 : xp >= 95 ? 2 : xp >= 75 ? 1 : 0;
+  function weaponFor(s, title) {
+    const p = PROJECTS.find(x => x.title === title); if (!p) return null; const sr = SERIES.find(x => x.id === p.series);
+    const done = sr.projects.every(pr => s.done.includes(pr[0])), last = sr.projects[sr.projects.length - 1][0] === title;
+    let sum = 0; for (let i = 0; i < title.length; i++) sum = (sum * 31 + title.charCodeAt(i)) % 100003;
+    const r = done && last && sr.projects.length >= 3 ? 5 : rarityOfXp(p.xp)   /* mythic: the last of a series of three or more, once the series is whole */, h = S.hash(sum % 997, sum % 991), plus = hero(s).enhance[title] | 0;
+    const word = title.split(/[^A-Za-z0-9+#.]+/).filter(x => x.length > 2 && !STOP.includes(x.toLowerCase())).sort((a, c) => c.length - a.length)[0] || sr.name.split(' ')[0];   /* the project's own word: a grimoire of Kubernetes */
+    const aff = AFFIX[Math.floor(h * AFFIX.length) % AFFIX.length];
+    return { id: title, name: PREFIX[r][Math.floor(h * 97) % 3] + ' ' + TYPE[sr.kind].toLowerCase() + ' of ' + word, type: TYPE[sr.kind], series: sr.name, rarity: r, rarityName: RARITY[r], colour: RARITY_COLOUR[r], affix: aff[0], affixName: aff[1], affixWhat: aff[2], plus, atk: Math.round(ATTACK[r] * (1 + 0.1 * plus)) };
+  }
+  const armory = s => s.done.map(t => weaponFor(s, t)).filter(Boolean).sort((a, b) => b.atk - a.atk);
+  function equipped(s) { const h = hero(s); const w = h.equipped && s.done.includes(h.equipped) ? weaponFor(s, h.equipped) : null; if (w) return w; const all = armory(s); return all[0] || null; }
+
+  /* ---- keys and raids: every five steps ticked is a rift key; every finished project is a raid on your land ---- */
+  const KEY_STEPS = 5, KEY_CAP = 5, RAID_CAP = 3;
+  function keys(s) { const h = hero(s), earned = Math.floor((s.life.steps | 0) / KEY_STEPS); if (earned - h.keysUsed > KEY_CAP) h.keysUsed = earned - KEY_CAP; return Math.max(0, earned - h.keysUsed); }
+  const stepsToKey = s => KEY_STEPS - ((s.life.steps | 0) % KEY_STEPS);
+  function projectFinished(s, title) { const h = hero(s); if (!h.raids.includes(title)) { h.raids.push(title); if (h.raids.length > RAID_CAP) h.raids.shift(); } if (!h.forge.includes(title)) h.forge.push(title); if (h.forge.length > RAID_CAP) h.forge.shift(); return s; }
+  const RIFTS = { raid: { name: 'Raid on your land', at: 1, mult: 0.8, waves: 3, boss: '', souls: 10 }, ordinary: { name: 'Ordinary rift', at: 1, mult: 1.2, waves: 3, boss: 'chief', souls: 25 }, nightmare: { name: 'Nightmare rift', at: 5, mult: 3.5, waves: 4, boss: 'warden', souls: 60 }, hell: { name: 'Hell rift', at: 10, mult: 10, waves: 5, boss: 'warden', souls: 150 } };   /* balanced with tools/battlecheck.js */
+  function canEnter(s, kind) { const r = RIFTS[kind]; if (!r || level(s) < r.at) return false; return kind === 'raid' ? hero(s).raids.length > 0 : keys(s) > 0; }
+  function enter(s, kind) { if (!canEnter(s, kind)) return null; const h = hero(s); let title = ''; if (kind === 'raid') title = h.raids.shift(); else h.keysUsed++; return { kind, title, level: level(s) }; }
+  /* the result of a battle: souls by rift, stars and level; a loss still pays a little */
+  function reward(s, kind, won, stars) { const r = RIFTS[kind], h = hero(s), L = level(s); const souls = won ? Math.round((r.souls + 3 * L) * (1 + 0.25 * Math.max(0, (stars | 0) - 1))) : Math.round(r.souls * 0.2); h.souls += souls; if (won && kind !== 'raid') h.cleared[kind] = (h.cleared[kind] | 0) + 1; if (won) h.best[kind] = Math.max(h.best[kind] | 0, stars | 0); const sparks = won ? (kind === 'raid' ? 5 : kind === 'hell' ? 20 : 8) : 0; s.wallet.sparks += sparks; return { souls, sparks }; }
+
+  /* ---- what souls buy: ranks for the dead, edges for the weapon ---- */
+  const RANK_MAX = 5, PLUS_MAX = 10;
+  const rankCost = r => 30 * Math.pow(2, r);
+  const plusCost = n => Math.round(20 * Math.pow(n + 1, 1.5));
+  function rankUp(s, id) { const h = hero(s), r = h.ranks[id] | 0; if (r >= RANK_MAX || !unlocked(s).some(u => u.id === id) || h.souls < rankCost(r)) return false; h.souls -= rankCost(r); h.ranks[id] = r + 1; return true; }
+  function enhance(s, title) { const h = hero(s), n = h.enhance[title] | 0; if (n >= PLUS_MAX || !s.done.includes(title) || h.souls < plusCost(n)) return false; h.souls -= plusCost(n); h.enhance[title] = n + 1; return true; }
+  function equip(s, title) { if (!s.done.includes(title)) return false; hero(s).equipped = title; return true; }
+
+  /* ---- the army that takes the field: each summon's numbers at your level, rank and power ---- */
+  function army(s, now) {
+    const L = level(s), c = classOf(L), w = equipped(s), pw = S.power(s, now || S.now(s)), tired = pw < 0.5 ? 0.75 : 1, h = hero(s);
+    const grow = (1 + 0.12 * (L - 1)) * (c.mult === 1 ? 1 : c.mult === 2 ? 1.5 : 2) * tired, fighters = unlocked(s).filter(u => u.id !== 'worker');
+    const out = []; let n = armySize(s), i = 0;
+    while (n > 0 && fighters.length) { const u = fighters[i % fighters.length]; i++; if (u.cap && out.filter(x => x.id === u.id).length >= u.cap) { if (i > 40) break; continue; } const rk = 1 + 0.2 * (h.ranks[u.id] | 0); out.push({ id: u.id, hp: Math.round(u.hp * grow * rk), atk: Math.round(u.atk * grow * rk * (1 + (w ? w.atk / 250 : 0))), range: u.range, speed: u.speed, cd: u.cd, aoe: u.aoe || 0, slow: u.slow || 0 }); n--; }
+    return { units: out, spirit: stats(s).spi, weapon: w, tired: tired < 1, level: L, power: grow, base: (1 + 0.12 * (L - 1)) * (c.mult === 1 ? 1 : c.mult === 2 ? 1.5 : 2) };   /* power: what your dead hit with; base: the curve the beasts are built on */
+  }
+
+  NW.Hero = { CLASSES, SUMMONS, SPELLS, RIFTS, RARITY, RARITY_COLOUR, AFFIX, RANK_MAX, PLUS_MAX, KEY_STEPS, classOf, level, stats, armySize, unlocked, spells, combatPower, hero, weaponFor, armory, equipped, equip, keys, stepsToKey, projectFinished, canEnter, enter, reward, rankCost, plusCost, rankUp, enhance, army };
+})();
+
+/* NextWorld · battle: the rift beasts come, the dead hold the line
+ * A side-on lane battle. The simulation is deterministic (seeded, fixed
+ * step) and knows nothing of the canvas, so the tests play it headless
+ * to keep it winnable and never trivial; the drawing reads it. Your
+ * summons re-form a few seconds after they fall: while they stand, you
+ * stand. You aim with a tap and cast your spells; with auto on, the
+ * spells cast themselves at the front of the enemy line. */
+'use strict';
+(function () {
+  const LANE = 20, HERO_X = 1.1, SPAWN_X = 19.4, STEP = 1 / 30, LIMIT = 120;
+  /* the balance, checked by tools/battlecheck.js: how fast the beasts grow a level, and what the spells do per point of spirit */
+  const TUNE = { foe: 1.1, extra: 3, spear: 22, curse: 6, domain: 8, lightning: 12, poison: 10, bleed: 4 };   /* spells in damage per point of power; foe scales the beasts; extra: one more beast a wave for every this many of your dead */
+  const FOES = {
+    crawler: { hp: 34, atk: 6, speed: 1.3, range: 0.6, cd: 1.0, size: 0.8 },
+    hound: { hp: 26, atk: 7, speed: 2.8, range: 0.6, cd: 0.7, size: 0.85, flank: true },   /* runs past the line for you */
+    brute: { hp: 140, atk: 15, speed: 0.9, range: 0.8, cd: 1.4, size: 1.35 },
+    shaman: { hp: 40, atk: 9, speed: 1.1, range: 3.6, cd: 1.8, size: 0.95, ranged: true },
+    chief: { hp: 300, atk: 18, speed: 0.8, range: 0.9, cd: 1.3, size: 1.7, aoe: 1.0, boss: true },   /* the brute that leads an ordinary rift */
+    warden: { hp: 900, atk: 26, speed: 0.7, range: 1.2, cd: 1.6, size: 2.1, aoe: 1.4, boss: true }
+  };
+  const rng = seed => { let a = (seed | 0) || 1; return () => { a = (a * 1664525 + 1013904223) | 0; return ((a >>> 0) % 100000) / 100000; }; };
+
+  /* the waves: crawlers first, hounds and brutes from the second, shamans from the third, the warden at the end of a rift */
+  function waves(kind, n, boss, r, army) {
+    const out = [];
+    for (let i = 0; i < n; i++) { const w = []; const count = 5 + 2 * i + (kind === 'raid' ? 0 : 1) + Math.floor((army || 3) / TUNE.extra); for (let k = 0; k < count; k++) { const roll = r(); w.push(i >= 2 && roll < 0.2 ? 'shaman' : i >= 1 && roll < 0.45 ? 'hound' : 'crawler'); } for (let b = 0; b < (i >= 1 ? Math.min(3, i) : 0); b++) w.push('brute'); if (boss && i === n - 1) w.push(boss); out.push(w); }
+    return out;
+  }
+  function unitOf(side, id, spec, x, y) { return { side, id, x, y, hp: spec.hp, max: spec.hp, atk: spec.atk, range: spec.range, speed: spec.speed, cd: spec.cd, cdLeft: 0.3, aoe: spec.aoe || 0, slow: spec.slow || 0, size: spec.size || 1, boss: !!spec.boss, ranged: spec.range > 1.5, slowT: 0, curseT: 0, bleed: 0, shield: 0, shieldT: 0, dead: false, deadAt: 0, raised: 0, flash: 0, walk: 0 }; }
+
+  /* ---- a battle ---- */
+  function create(o) {
+    const r = rng(o.seed || 7), rift = NW.Hero.RIFTS[o.kind] || NW.Hero.RIFTS.raid, L = o.level || 1;
+    const b = { kind: o.kind, t: 0, acc: 0, r, units: [], fx: [], corpses: [], queue: [], wave: -1, waves: waves(o.kind, rift.waves, rift.boss, r, (o.army || []).length), spawnT: 0, scale: rift.mult * (o.base || 1), level: L, power: o.power || 1, spirit: o.spirit || 20, weapon: o.weapon || null, spells: o.spells || ['spear'], cds: {}, focus: 12, auto: !!o.auto, heroMax: Math.round(60 + (o.phy || 10) * 1.5), heroHp: 0, over: false, won: false, stars: 0, kills: 0, domainT: 0, shake: 0, par: 20 + rift.waves * 9, tired: !!o.tired };
+    b.heroHp = b.heroMax;
+    (o.army || []).forEach((u, i) => { const ranged = u.range > 1.5; const hx = (ranged ? 2.2 : 3.4) + (i % 3) * 0.35; b.units.push(Object.assign(unitOf('us', u.id, u, hx, 0.15 + ((i * 37) % 70) / 100), { home: true, homeX: hx })); });
+    return b;
+  }
+  const alive = (b, side) => b.units.filter(u => u.side === side && !u.dead);
+  const wmult = b => 1 + (b.weapon ? b.weapon.atk / 80 : 0);
+  function hurt(b, u, dmg, from) {
+    if (u.dead) return; let d = dmg * (u.curseT > 0 ? 1.3 : 1); if (u.shield > 0) { const a = Math.min(u.shield, d); u.shield -= a; d -= a; } u.hp -= d; if (from === 'dot') { u.dot = (u.dot || 0) + d; if (u.dot >= u.max * 0.08 || u.hp <= 0) { b.fx.push({ type: 'num', x: u.x, y: u.y, v: Math.round(u.dot), t: 0, life: 0.8, us: u.side === 'us', dot: true }); u.dot = 0; } } else if (d >= u.max * 0.04 || !u.boss && d >= u.max * 0.02) u.flash = 0.07;   /* a white blink for a real blow only, so a boss under steady fire keeps its colour */   /* a bleed or a domain adds up and shows now and then; it does not flash every tick */
+    if (d >= 1 && from !== 'dot') b.fx.push({ type: 'num', x: u.x, y: u.y, v: Math.round(d), t: 0, life: 0.8, us: u.side === 'us', big: d > u.max * 0.4 || from === 'spell' });
+    if (u.hp <= 0) { u.dead = true; u.deadAt = b.t; if (u.side === 'them') { b.kills++; b.corpses.push({ x: u.x, y: u.y, at: b.t, id: u.id, max: u.max, atk: u.atk, size: u.size }); b.fx.push({ type: 'bones', x: u.x, y: u.y, t: 0, life: 0.9, seed: b.r() }); if (u.boss) b.shake = 0.5; } }
+  }
+  /* a weapon's curse, on whatever a spell hits */
+  function affix(b, u) { const a = b.weapon && b.weapon.affix; if (!a) return; if (a === 'bleed') u.bleed = Math.max(u.bleed, 3); else if (a === 'slow') u.slowT = Math.max(u.slowT, 2); else if (a === 'decay') u.curseT = Math.max(u.curseT, 3); }
+  function front(b) { const e = alive(b, 'them'); if (!e.length) return null; return e.reduce((m, u) => u.x < m.x ? u : m, e[0]).x; }
+
+  /* ---- the spells ---- */
+  function cast(b, id) {
+    if (b.over || !b.spells.includes(id) || (b.cds[id] || 0) > 0) return false; const spec = NW.Hero.SPELLS.find(s => s.id === id); const fx = b.focus, sp = b.power * wmult(b);   /* power already carries the tiredness */
+    if (id === 'spear') { const hit = alive(b, 'them').filter(u => Math.abs(u.x - fx) < 2.2); hit.forEach(u => { hurt(b, u, sp * TUNE.spear, 'spell'); affix(b, u); }); if (b.weapon && b.weapon.affix === 'lightning') alive(b, 'them').filter(u => !hit.includes(u)).sort((a, c) => Math.abs(a.x - fx) - Math.abs(c.x - fx)).slice(0, 2).forEach(u => { hurt(b, u, sp * TUNE.lightning, 'spell'); b.fx.push({ type: 'bolt', x: fx, x2: u.x, y: u.y, t: 0, life: 0.3 }); }); if (b.weapon && b.weapon.affix === 'poison') alive(b, 'them').filter(u => !hit.includes(u) && Math.abs(u.x - fx) < 3.7).forEach(u => hurt(b, u, sp * TUNE.poison, 'spell')); b.fx.push({ type: 'spear', x: fx, t: 0, life: 0.6 }); }
+    else if (id === 'raise') { const fresh = b.corpses.filter(c => b.t - c.at < 12 && !c.used).slice(-(1 + Math.floor(b.level / 4))); fresh.forEach(c => { c.used = true; b.units.push(Object.assign(unitOf('us', 'raised', { hp: Math.max(40, c.max * 0.6), atk: Math.max(8, c.atk), range: 0.7, speed: 1.8, cd: 0.9, size: Math.min(1.4, c.size) }, c.x, c.y), { raised: 15, kind: c.id, homeX: 5 })); b.fx.push({ type: 'rise', x: c.x, y: c.y, t: 0, life: 0.8 }); }); if (!fresh.length) return false; }
+    else if (id === 'curse') { alive(b, 'them').filter(u => Math.abs(u.x - fx) < 2.6).forEach(u => { u.slowT = 5; u.curseT = 5; hurt(b, u, sp * TUNE.curse, 'spell'); affix(b, u); }); b.fx.push({ type: 'curse', x: fx, t: 0, life: 1.2 }); }
+    else if (id === 'armor') { alive(b, 'us').forEach(u => { u.shield = u.max * 0.35; u.shieldT = 6; }); b.fx.push({ type: 'armor', t: 0, life: 0.8 }); }
+    else if (id === 'domain') { b.domainT = 6; b.fx.push({ type: 'domain', t: 0, life: 6 }); }
+    b.cds[id] = spec.cd; b.castAt = b.t; return true;
+  }
+  function aim(b, x) { b.focus = Math.max(2, Math.min(LANE - 0.5, x)); b.aimedAt = b.t; }
+
+  /* ---- one fixed step ---- */
+  function tick(b) {
+    const dt = STEP; b.t += dt; Object.keys(b.cds).forEach(k => { b.cds[k] = Math.max(0, b.cds[k] - dt); }); b.shake = Math.max(0, b.shake - dt);
+    /* the next wave when the field is clear */
+    if (!b.queue.length && !alive(b, 'them').length) { if (b.wave + 1 >= b.waves.length) { b.over = true; b.won = true; } else { b.wave++; b.queue = b.waves[b.wave].slice(); b.spawnT = 0.6; b.fx.push({ type: 'wave', t: 0, life: 1.6, n: b.wave + 1 }); } }
+    if (b.queue.length) { b.spawnT -= dt; if (b.spawnT <= 0) { const id = b.queue.shift(), f = FOES[id], sc = b.scale * (f.boss ? 1.15 : 1); b.units.push(Object.assign(unitOf('them', id, { hp: Math.round(f.hp * sc * TUNE.foe), atk: f.atk * sc * Math.sqrt(TUNE.foe), range: f.range, speed: f.speed, cd: f.cd, aoe: f.aoe, size: f.size, boss: f.boss }, SPAWN_X, 0.12 + b.r() * 0.76), { flank: !!f.flank })); b.spawnT = FOES[id].boss ? 1.2 : 0.55; } }
+    if (b.auto || !b.aimedAt || b.t - b.aimedAt > 4) { const f = front(b); if (f != null) b.focus = Math.min(LANE - 0.5, f + 0.8); }
+    if (b.auto) b.spells.forEach(id => { if (id === 'armor' && !alive(b, 'us').some(u => u.hp < u.max * 0.7)) return; if (id === 'domain' && alive(b, 'them').length < 5) return; cast(b, id); });
+    if (b.domainT > 0) { b.domainT -= dt; alive(b, 'them').forEach(u => { hurt(b, u, b.power * wmult(b) * TUNE.domain * dt, 'dot'); u.slowT = Math.max(u.slowT, 0.3); }); }
+    b.units.forEach(u => {
+      u.flash = Math.max(0, u.flash - dt);
+      if (u.dead) { if (u.side === 'us' && u.home && b.t - u.deadAt > 4) { u.dead = false; u.hp = u.max; u.x = u.homeX; b.fx.push({ type: 'rise', x: u.x, y: u.y, t: 0, life: 0.8 }); } return; }
+      if (u.raised) { u.raised -= dt; if (u.raised <= 0) { u.dead = true; u.home = false; u.deadAt = b.t; return; } }
+      u.slowT = Math.max(0, u.slowT - dt); u.curseT = Math.max(0, u.curseT - dt); u.shieldT -= dt; if (u.shieldT <= 0) u.shield = 0;
+      if (u.bleed > 0) { u.bleed -= dt; hurt(b, u, b.power * wmult(b) * TUNE.bleed * dt, 'dot'); if (u.dead) return; }   /* a bleed hurts by your power, not by the size of what bleeds */
+      u.cdLeft -= dt; const foes = alive(b, u.side === 'us' ? 'them' : 'us'); const dir = u.side === 'us' ? 1 : -1;
+      let target = null, best = 1e9; if (!u.flank) foes.forEach(f => { const d = (f.x - u.x) * dir; if (d > -0.4 && d < best) { best = d; target = f; } });
+      const spd = u.speed * (u.slowT > 0 ? 0.5 : 1);
+      if (u.side === 'them' && (!target || best > u.range) && u.x <= HERO_X + 0.6) { if (u.cdLeft <= 0) { b.heroHp -= u.atk; u.cdLeft = u.cd; b.shake = 0.15; b.fx.push({ type: 'hit', x: HERO_X, y: 0.5, t: 0, life: 0.3 }); if (b.heroHp <= 0) { b.over = true; b.won = false; } } return; }
+      if (target && best <= u.range) { if (u.cdLeft <= 0) { u.cdLeft = u.cd; const dmg = u.atk * (b.tired && u.side === 'us' ? 0.75 : 1); if (u.range > 1.5) b.fx.push({ type: u.id === 'archer' ? 'arrow' : u.side === 'us' ? 'orb' : 'venom', x: u.x, y: u.y, x2: target.x, y2: target.y, t: 0, life: 0.35 }); hurt(b, target, dmg); if (u.aoe) foes.filter(f => f !== target && Math.abs(f.x - target.x) < u.aoe).forEach(f => { hurt(b, f, dmg * 0.6); if (u.slow) f.slowT = Math.max(f.slowT, 2); }); if (u.slow) target.slowT = Math.max(target.slowT, 2); } }
+      else if (u.side === 'them') { u.x = Math.max(HERO_X + 0.5, u.x - spd * dt); u.walk += dt * spd * 3; }
+      else if (target) { /* the dead advance; the ranged ones keep behind the front of their own line */ let cap = LANE - 0.5; if (u.ranged) { const melee = alive(b, 'us').filter(m => !m.ranged); if (melee.length) cap = Math.max(u.x, Math.max.apply(null, melee.map(m => m.x)) - 0.5); } const nx = Math.min(cap, u.x + spd * dt); if (nx !== u.x) u.walk += dt * spd * 3; u.x = nx; }
+      else if (Math.abs(u.x - u.homeX) > 0.05) { u.x += Math.sign(u.homeX - u.x) * Math.min(Math.abs(u.homeX - u.x), spd * dt); u.walk += dt * spd * 3; }   /* between waves they walk back to their places */
+    });
+    b.units = b.units.filter(u => !(u.dead && !u.home && b.t - u.deadAt > 1.5));
+    b.fx.forEach(f => { f.t += dt; }); b.fx = b.fx.filter(f => f.t < f.life);
+    if (b.t > LIMIT && !b.over) { b.over = true; b.won = false; }
+    if (b.over && !b.stars) b.stars = b.won ? 1 + (b.heroHp / b.heroMax > 0.5 ? 1 : 0) + (b.t < b.par ? 1 : 0) : 0;
+  }
+  /* real time in, fixed steps out; a slow frame never makes the fight jump */
+  function step(b, secs) { b.acc = Math.min(0.25, b.acc + secs); while (b.acc >= STEP && !b.over) { tick(b); b.acc -= STEP; } if (b.over) b.fx.forEach(f => { f.t += secs; }); }
+  function run(b, maxSecs) { let n = 0; while (!b.over && n < (maxSecs || LIMIT + 5) / STEP) { tick(b); n++; } return b; }
+
+  /* ==================== the drawing ==================== */
+  const bg = { key: '', cv: null };
+  function backdrop(ctx, W, H, look) {
+    const key = W + 'x' + H + '|' + look.ground + '|' + look.night; if (bg.key !== key) { bg.key = key; bg.cv = document.createElement('canvas'); bg.cv.width = Math.round(W * look.dpr); bg.cv.height = Math.round(H * look.dpr); const g = bg.cv.getContext('2d'); g.setTransform(look.dpr, 0, 0, look.dpr, 0, 0);
+      const sky = g.createLinearGradient(0, 0, W, 0); sky.addColorStop(0, look.night ? '#101a3a' : '#3a4f8a'); sky.addColorStop(0.7, look.night ? '#2a1640' : '#6b4c8f'); sky.addColorStop(1, '#8a2f6b'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+      for (let i = 0; i < 60; i++) { g.fillStyle = 'rgba(255,255,255,' + (0.3 + (i % 5) * 0.12) + ')'; g.fillRect((i * 97.3) % W, (i * 41.7) % (H * 0.45), 1.2, 1.2); }
+      [[0.5, '#2a2a4a', 0.28], [0.62, '#20203a', 0.18]].forEach(([base, c, amp], k) => { g.fillStyle = c; g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 12) g.lineTo(x, H * base - Math.abs(Math.sin(x / (70 + k * 40) + k)) * H * amp * 0.6 - Math.sin(x / 23) * 4); g.lineTo(W, H); g.closePath(); g.fill(); });
+      const gy = H * 0.66, gr = g.createLinearGradient(0, gy, 0, H); gr.addColorStop(0, look.ground); gr.addColorStop(1, NW.shade(look.ground, -0.55)); g.fillStyle = gr; g.fillRect(0, gy, W, H - gy);
+      const lane = g.createLinearGradient(0, H * 0.58, 0, H * 0.84); lane.addColorStop(0, 'rgba(120,90,60,0)'); lane.addColorStop(0.25, 'rgba(120,90,60,.45)'); lane.addColorStop(0.75, 'rgba(96,72,48,.5)'); lane.addColorStop(1, 'rgba(96,72,48,0)'); g.fillStyle = lane; g.fillRect(0, H * 0.58, W, H * 0.26);   /* the trodden lane from the wall to the rift */
+      for (let i = 0; i < 90; i++) { const x = (i * 131.7) % W, y = gy + 4 + (H - gy - 6) * ((i * 0.618) % 1), sh = 3 + (i % 4) * 1.5; g.strokeStyle = i % 3 ? NW.shade(look.ground, 0.18) : NW.shade(look.ground, -0.25); g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 2, y - sh); g.moveTo(x, y); g.lineTo(x + 2, y - sh * 0.8); g.stroke(); }
+      /* your wall on the left, and the home behind it */
+      g.fillStyle = '#3a2a1e'; for (let i = 0; i < 7; i++) { g.fillRect(4 + i * 7, gy - 34 - (i % 2) * 4, 6, 44 + (i % 2) * 4); g.beginPath(); g.moveTo(4 + i * 7, gy - 34 - (i % 2) * 4); g.lineTo(7 + i * 7, gy - 40 - (i % 2) * 4); g.lineTo(10 + i * 7, gy - 34 - (i % 2) * 4); g.fill(); }
+      g.fillStyle = '#2a2036'; g.fillRect(14, gy - 70, 26, 30); g.beginPath(); g.moveTo(10, gy - 70); g.lineTo(27, gy - 88); g.lineTo(44, gy - 70); g.fill(); g.fillStyle = '#ffd98a'; g.fillRect(22, gy - 62, 5, 6); }
+    ctx.drawImage(bg.cv, 0, 0, W, H);
+  }
+  let K = 1;   /* how big a unit is on this canvas: a person-sized skeleton is about a tenth of the field's height */
+  const X = (W, x) => 34 + x / LANE * (W - 70), Y = (H, y) => H * 0.7 + (y - 0.5) * H * 0.2, SC = y => (0.85 + y * 0.3) * K;
+  function blob(ctx, x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+  function ell(ctx, x, y, rx, ry, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); }
+  function ln(ctx, a, b, c, w) { ctx.strokeStyle = c; ctx.lineWidth = w || 1.5; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+  /* a skeleton, facing right, feet at (x,y): the body every summon shares */
+  function skeleton(ctx, x, y, s, t, eye, flash) {
+    const bone = flash ? '#ffffff' : '#ecebe2', dark = '#8a8778', sw = Math.sin(t * 9) * 3 * s;
+    ln(ctx, [x - 2 * s, y - 12 * s], [x - 3 * s + sw, y], bone, 2 * s); ln(ctx, [x + 2 * s, y - 12 * s], [x + 3 * s - sw, y], bone, 2 * s);
+    ell(ctx, x, y - 13 * s, 4 * s, 2 * s, bone); ln(ctx, [x, y - 14 * s], [x, y - 25 * s], bone, 2 * s);
+    for (let k = 0; k < 3; k++) { ctx.strokeStyle = k % 2 ? dark : bone; ctx.lineWidth = 1.3 * s; ctx.beginPath(); ctx.ellipse(x, y - 19 * s - k * 2.2 * s, 4.5 * s - k * 0.4 * s, 1.6 * s, 0, 0, Math.PI); ctx.stroke(); }
+    ln(ctx, [x - 4 * s, y - 24 * s], [x - 6 * s - sw * 0.5, y - 15 * s], bone, 1.8 * s); ln(ctx, [x + 4 * s, y - 24 * s], [x + 7 * s + sw * 0.5, y - 17 * s], bone, 1.8 * s);
+    blob(ctx, x, y - 30 * s, 5 * s, bone); ctx.fillStyle = '#1c1a24'; ctx.fillRect(x - 1 * s, y - 31.5 * s, 2 * s, 2.5 * s); ctx.fillRect(x + 2.4 * s, y - 31.5 * s, 2 * s, 2.5 * s); blob(ctx, x + 0.2 * s, y - 30.3 * s, 1 * s, eye); blob(ctx, x + 3.4 * s, y - 30.3 * s, 1 * s, eye); ctx.fillStyle = dark; ctx.fillRect(x - 1.5 * s, y - 26.6 * s, 6 * s, 1.2 * s);
+    return [x + 7 * s + sw * 0.5, y - 17 * s];
+  }
+  function drawUs(ctx, u, px, py, s, t) {
+    const eye = u.raised ? '#7cff8a' : '#7ff5ff';
+    if (u.id === 'rider') { const bone = '#ecebe2'; ell(ctx, px, py - 14 * s, 13 * s, 6 * s, '#3a3440'); [[-9, 1], [-5, -1], [6, 1], [10, -1]].forEach(([o, ph]) => ln(ctx, [px + o * s, py - 10 * s], [px + o * s + Math.sin(t * 12 + ph) * 3 * s, py], bone, 2 * s)); ln(ctx, [px + 10 * s, py - 16 * s], [px + 17 * s, py - 24 * s], bone, 3 * s); ell(ctx, px + 19 * s, py - 24 * s, 5 * s, 3 * s, bone); blob(ctx, px + 21 * s, py - 25 * s, 1.2 * s, '#ff5a5a'); skeleton(ctx, px - 2 * s, py - 12 * s, s * 0.8, 0, eye, u.flash); ln(ctx, [px + 2 * s, py - 30 * s], [px + 26 * s, py - 30 * s], '#c9d2dc', 2 * s); return; }
+    if (u.id === 'lich') { const fl = py - 6 * s + Math.sin(t * 2) * 3 * s; ctx.fillStyle = '#3b1f5a'; ctx.beginPath(); ctx.moveTo(px - 9 * s, fl + 6 * s); ctx.lineTo(px + 9 * s, fl + 6 * s); ctx.lineTo(px + 5 * s, fl - 26 * s); ctx.lineTo(px - 5 * s, fl - 26 * s); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#b56cff'; ctx.lineWidth = 1.5; ctx.stroke(); blob(ctx, px, fl - 31 * s, 5.5 * s, '#ecebe2'); blob(ctx, px + 1.5 * s, fl - 31 * s, 1.2 * s, '#b56cff'); blob(ctx, px + 4 * s, fl - 31 * s, 1.2 * s, '#b56cff'); ctx.fillStyle = '#ffc531'; ctx.beginPath(); ctx.moveTo(px - 5 * s, fl - 35 * s); ctx.lineTo(px - 3 * s, fl - 41 * s); ctx.lineTo(px, fl - 36 * s); ctx.lineTo(px + 3 * s, fl - 41 * s); ctx.lineTo(px + 5 * s, fl - 35 * s); ctx.closePath(); ctx.fill(); blob(ctx, px + 10 * s, fl - 18 * s, 3.5 * s, 'rgba(181,108,255,.8)'); return; }
+    if (u.id === 'wyrm') { const bone = u.flash ? '#fff' : '#e6e3d6', fl = py - 34 * s + Math.sin(t * 1.5) * 4 * s, flap = Math.sin(t * 4) * 12 * s; ell(ctx, px, py + 1, 22 * s, 5 * s, 'rgba(0,0,0,.25)');
+      [[-1, 'rgba(70,50,110,.55)'], [1, 'rgba(90,70,140,.5)']].forEach(([side, c]) => { const bx = px - 2 * s, by = fl - 4 * s, tipx = px - 18 * s, tipy = fl - 34 * s - flap * side * 0.5; ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tipx, tipy); ctx.lineTo(px - 30 * s, fl - 8 * s); ctx.lineTo(px - 14 * s, fl + 2 * s); ctx.closePath(); ctx.fill(); ln(ctx, [bx, by], [tipx, tipy], bone, 2.2 * s); [0.35, 0.65].forEach(k => ln(ctx, [tipx + (bx - tipx) * k, tipy + (by - tipy) * k], [px - 30 * s + (px - 14 * s - (px - 30 * s)) * k, fl - 8 * s + 10 * s * k], bone, 1.2 * s)); });
+      ctx.strokeStyle = bone; ctx.lineWidth = 4 * s; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px - 38 * s, fl + 10 * s); ctx.quadraticCurveTo(px - 14 * s, fl - 2 * s, px + 10 * s, fl - 10 * s); ctx.stroke(); ctx.lineCap = 'butt';
+      for (let k = -30; k < 8; k += 5) ln(ctx, [px + k * s, fl - 2 * s + k * 0.25 * s], [px + k * s + 1 * s, fl + 7 * s + k * 0.1 * s], bone, 1.6 * s);
+      ctx.fillStyle = bone; ctx.beginPath(); ctx.moveTo(px + 8 * s, fl - 14 * s); ctx.lineTo(px + 26 * s, fl - 13 * s); ctx.lineTo(px + 30 * s, fl - 8 * s); ctx.lineTo(px + 16 * s, fl - 5 * s); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(px + 10 * s, fl - 14 * s); ctx.lineTo(px + 6 * s, fl - 24 * s); ctx.lineTo(px + 14 * s, fl - 15 * s); ctx.closePath(); ctx.fill();
+      ln(ctx, [px + 16 * s, fl - 5 * s], [px + 28 * s, fl - 3 * s + Math.sin(t * 5) * 2 * s], bone, 2 * s); blob(ctx, px + 18 * s, fl - 11 * s, 2 * s, '#1c1a24'); blob(ctx, px + 18.5 * s, fl - 11 * s, 1.3 * s, '#7ff5ff'); const eg = ctx.createRadialGradient(px + 18 * s, fl - 11 * s, 0, px + 18 * s, fl - 11 * s, 8 * s); eg.addColorStop(0, 'rgba(127,245,255,.5)'); eg.addColorStop(1, 'rgba(127,245,255,0)'); ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(px + 18 * s, fl - 11 * s, 8 * s, 0, Math.PI * 2); ctx.fill(); return; }
+    const hand = skeleton(ctx, px, py, s, u.walk, eye, u.flash);
+    if (u.id === 'warrior' || u.id === 'raised') { ln(ctx, hand, [hand[0] + 9 * s, hand[1] - 9 * s], '#c9d2dc', 2 * s); ell(ctx, px - 5 * s, py - 18 * s, 3.5 * s, 5 * s, '#6b4a2b'); }
+    else if (u.id === 'archer') { ctx.strokeStyle = '#8a6a3f'; ctx.lineWidth = 1.6 * s; ctx.beginPath(); ctx.arc(hand[0], hand[1], 7 * s, -1.2, 1.2); ctx.stroke(); ln(ctx, [hand[0] + 2.5 * s, hand[1] - 6.5 * s], [hand[0] + 2.5 * s, hand[1] + 6.5 * s], '#ddd', 0.8); }
+    else if (u.id === 'mage') { ln(ctx, [hand[0], hand[1] + 10 * s], [hand[0] + 1 * s, hand[1] - 14 * s], '#6b4a2b', 1.8 * s); blob(ctx, hand[0] + 1 * s, hand[1] - 16 * s, 3 * s, 'rgba(255,120,60,.9)'); }
+  }
+  function drawThem(ctx, u, px, py, s, t) {
+    const f = u.flash ? '#ffffff' : null, bob = Math.sin(u.walk) * 1.5 * s;
+    if (u.id === 'crawler') { ell(ctx, px, py - 6 * s + bob, 10 * s, 7 * s, f || '#7a3fb0'); ell(ctx, px - 2 * s, py - 9 * s + bob, 5 * s, 3 * s, 'rgba(255,255,255,.18)'); blob(ctx, px - 4 * s, py - 8 * s + bob, 1.6 * s, '#ffe14d'); blob(ctx, px - 8 * s, py - 7 * s + bob, 1.4 * s, '#ffe14d'); }
+    else if (u.id === 'hound') { const c = f || '#2b2433'; ell(ctx, px, py - 11 * s, 11 * s, 5 * s, c); [[-7, 0], [-3, 2], [4, 0], [8, 2]].forEach(([o, ph]) => ln(ctx, [px + o * s, py - 8 * s], [px + o * s + Math.sin(u.walk * 2 + ph) * 3 * s, py], c, 2 * s)); ell(ctx, px - 12 * s, py - 15 * s, 5 * s, 4 * s, c); ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(px - 12 * s, py - 18 * s); ctx.lineTo(px - 10 * s, py - 23 * s); ctx.lineTo(px - 8 * s, py - 18 * s); ctx.fill(); blob(ctx, px - 14 * s, py - 16 * s, 1.3 * s, '#ff3b3b'); ln(ctx, [px + 10 * s, py - 12 * s], [px + 16 * s, py - 17 * s], c, 2 * s); }
+    else if (u.id === 'brute' || u.id === 'chief') { const c = f || '#5f6b4a'; ell(ctx, px, py - 20 * s, 12 * s, 15 * s, c); ln(ctx, [px - 5 * s, py - 6 * s], [px - 6 * s + bob, py], c, 5 * s); ln(ctx, [px + 5 * s, py - 6 * s], [px + 6 * s - bob, py], c, 5 * s); blob(ctx, px - 3 * s, py - 38 * s, 6 * s, c); blob(ctx, px - 5 * s, py - 39 * s, 1.3 * s, '#ff5a2a'); ln(ctx, [px - 10 * s, py - 24 * s], [px - 20 * s, py - 38 * s + Math.sin(t * 3) * 4 * s], '#6b4a2b', 4 * s); blob(ctx, px - 21 * s, py - 40 * s + Math.sin(t * 3) * 4 * s, 4.5 * s, '#4a3326'); }
+    else if (u.id === 'shaman') { const c = f || '#2e3d2e'; ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(px - 8 * s, py); ctx.lineTo(px + 8 * s, py); ctx.lineTo(px + 3 * s, py - 28 * s); ctx.lineTo(px - 4 * s, py - 28 * s); ctx.closePath(); ctx.fill(); blob(ctx, px, py - 30 * s, 5 * s, c); blob(ctx, px - 2 * s, py - 30 * s, 1.2 * s, '#7cff8a'); ln(ctx, [px - 9 * s, py + 2 * s], [px - 10 * s, py - 30 * s], '#6b4a2b', 1.6 * s); blob(ctx, px - 10 * s, py - 32 * s, 3.2 * s, 'rgba(124,255,138,.85)'); }
+    else if (u.id === 'warden') { const c = f || '#3a1f26'; ell(ctx, px, py - 30 * s, 16 * s, 24 * s, c); ctx.strokeStyle = '#ff4f6d'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px - 8 * s, py - 40 * s); ctx.lineTo(px, py - 24 * s); ctx.lineTo(px + 8 * s, py - 40 * s); ctx.stroke(); ln(ctx, [px - 7 * s, py - 8 * s], [px - 8 * s + bob, py], c, 7 * s); ln(ctx, [px + 7 * s, py - 8 * s], [px + 8 * s - bob, py], c, 7 * s); blob(ctx, px, py - 58 * s, 9 * s, c); [[-1, -1], [1, 1]].forEach(([d]) => { ctx.strokeStyle = '#d9d2c4'; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(px + d * 6 * s, py - 64 * s); ctx.quadraticCurveTo(px + d * 16 * s, py - 70 * s, px + d * 14 * s, py - 80 * s); ctx.stroke(); }); blob(ctx, px - 4 * s, py - 59 * s, 2 * s, '#ff4f6d'); blob(ctx, px + 3 * s, py - 59 * s, 2 * s, '#ff4f6d'); }
+  }
+  /* the necromancer: the robe in your shirt colour, your own head, a staff that glows the weapon's rarity */
+  function drawHero(ctx, x, y, look, t, cast) {
+    const robe = look.shirt || '#3b1f5a', glow = look.weapon ? look.weapon.colour : '#7ff5ff';
+    ell(ctx, x, y + 2, 14, 4, 'rgba(0,0,0,.35)');
+    ctx.fillStyle = NW.shade(robe, -0.35); ctx.beginPath(); ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y); ctx.lineTo(x + 6, y - 30); ctx.lineTo(x - 6, y - 30); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#b56cff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x - 12, y); ctx.lineTo(x + 12, y); ctx.stroke();
+    if (look.body === 'pineapple') { ell(ctx, x, y - 38, 8, 10, '#f2b42a'); ctx.strokeStyle = 'rgba(140,80,10,.5)'; ctx.lineWidth = 0.8; for (let d = -8; d < 8; d += 3) { ctx.beginPath(); ctx.moveTo(x + d - 5, y - 30); ctx.lineTo(x + d + 5, y - 46); ctx.stroke(); } [[-4, -8], [0, -12], [4, -8]].forEach(([o, h]) => { ctx.fillStyle = '#3fa66b'; ctx.beginPath(); ctx.moveTo(x + o - 2, y - 46); ctx.lineTo(x + o * 1.4, y - 46 + h); ctx.lineTo(x + o + 2, y - 46); ctx.fill(); }); }
+    else { blob(ctx, x, y - 36, 6.5, look.skin || '#ffd6ad'); ctx.fillStyle = NW.shade(robe, -0.5); ctx.beginPath(); ctx.arc(x, y - 37, 8, Math.PI, 0); ctx.fill(); }
+    blob(ctx, x + 2, y - 37, 1.2, '#1c1a24'); blob(ctx, x + 5, y - 37, 1.2, '#1c1a24');
+    ln(ctx, [x + 11, y + 2], [x + 13, y - 46], '#5a3a1e', 2.5); const gl = 4 + Math.sin(t * 4) * 1 + (cast ? 4 : 0); const g = ctx.createRadialGradient(x + 13, y - 49, 0, x + 13, y - 49, gl * 3); g.addColorStop(0, glow); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x + 13, y - 49, gl * 3, 0, Math.PI * 2); ctx.fill(); blob(ctx, x + 13, y - 49, 3, '#ffffff');
+  }
+  function portal(ctx, W, H, t) { const x = W - 22, y = H * 0.62; for (let i = 0; i < 4; i++) { ctx.strokeStyle = 'rgba(' + (180 + i * 18) + ',60,' + (200 - i * 20) + ',' + (0.8 - i * 0.15) + ')'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, 16 - i * 3 + Math.sin(t * 3 + i) * 1.5, 46 - i * 8, 0, t * (1 + i * 0.3), t * (1 + i * 0.3) + Math.PI * 1.6); ctx.stroke(); } const g = ctx.createRadialGradient(x, y, 2, x, y, 40); g.addColorStop(0, 'rgba(255,90,180,.55)'); g.addColorStop(1, 'rgba(255,90,180,0)'); ctx.fillStyle = g; ctx.fillRect(x - 40, y - 60, 80, 120); }
+
+  function draw(ctx, W, H, b, now, look) {
+    const t = now / 1000; K = Math.max(0.8, Math.min(1.9, H / 280)); ctx.save(); if (b && b.shake > 0) ctx.translate((Math.random() - 0.5) * b.shake * 12, (Math.random() - 0.5) * b.shake * 8);
+    backdrop(ctx, W, H, look); portal(ctx, W, H, t); [12, 44].forEach((x, i) => { const y = H * 0.66 - 44, fl = 1 + Math.sin(t * 11 + i * 2) * 0.2; const tg = ctx.createRadialGradient(x, y, 0, x, y, 26 * fl); tg.addColorStop(0, 'rgba(255,190,90,.6)'); tg.addColorStop(1, 'rgba(255,190,90,0)'); ctx.fillStyle = tg; ctx.beginPath(); ctx.arc(x, y, 26 * fl, 0, Math.PI * 2); ctx.fill(); blob(ctx, x, y, 3 * fl, '#ffd98a'); });
+    if (b && b.domainT > 0) { const a = Math.min(1, b.domainT, 6 - b.domainT + 0.2); const dg = ctx.createLinearGradient(0, H * 0.5, 0, H); dg.addColorStop(0, 'rgba(90,20,140,0)'); dg.addColorStop(0.4, 'rgba(90,20,140,' + 0.45 * a + ')'); dg.addColorStop(1, 'rgba(40,0,70,' + 0.7 * a + ')'); ctx.fillStyle = dg; ctx.fillRect(0, H * 0.5, W, H * 0.5); for (let i = 0; i < 26; i++) { const x = (i * 97 + t * 30 * (i % 3 + 1)) % W, y = H - ((t * 40 + i * 37) % (H * 0.45)); blob(ctx, x, y, 2 + (i % 3), 'rgba(200,140,255,' + 0.6 * a + ')'); } }
+    drawHero(ctx, X(W, HERO_X) - 6, Y(H, 0.5), look, t, !!(b && b.castAt != null && b.t - b.castAt < 0.4));
+    if (b) {
+      const fx = X(W, b.focus); ctx.strokeStyle = 'rgba(127,245,255,.55)'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.ellipse(fx, H * 0.72, 30, 7, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      b.fx.forEach(f => { const k = f.t / f.life;
+        if (f.type === 'curse') { ctx.strokeStyle = 'rgba(181,108,255,' + (1 - k) + ')'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(X(W, f.x), H * 0.72, 20 + k * 60, 5 + k * 14, 0, 0, Math.PI * 2); ctx.stroke(); }
+        if (f.type === 'spear') for (let i = -4; i <= 4; i++) { const sx = X(W, f.x) + i * 11, hgt = (1 - Math.abs(k * 2 - 1)) * (26 + (i % 2) * 8); ctx.fillStyle = '#ecebe2'; ctx.beginPath(); ctx.moveTo(sx - 3, H * 0.74); ctx.lineTo(sx, H * 0.74 - hgt); ctx.lineTo(sx + 3, H * 0.74); ctx.fill(); } });
+      const drawable = b.units.filter(u => !u.dead).sort((a, c) => a.y - c.y);
+      b.corpses.slice(-14).forEach(c => { if (b.t - c.at > 12 || c.used) return; ctx.fillStyle = 'rgba(236,235,226,.35)'; ctx.fillRect(X(W, c.x) - 6, Y(H, c.y) - 2, 12, 2); });
+      drawable.forEach(u => { const px = X(W, u.x), py = Y(H, u.y), s = SC(u.y) * (u.size || 1);
+        ell(ctx, px, py + 1, 10 * s, 3 * s, 'rgba(0,0,0,.3)');
+        if (u.side === 'us') drawUs(ctx, u, px, py, SC(u.y), t); else drawThem(ctx, u, px, py, s, t);
+        if (u.shield > 0) { ctx.strokeStyle = 'rgba(236,235,226,.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(px, py - 18 * s, 13 * s, 22 * s, 0, 0, Math.PI * 2); ctx.stroke(); }
+        if (u.curseT > 0) blob(ctx, px, py - 44 * s, 2.5, '#b56cff');
+        if (u.hp < u.max && !u.boss) { const w = 20 * s; ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(px - w / 2, py - 42 * s - (u.id === 'wyrm' ? 30 : 0), w, 3); ctx.fillStyle = u.side === 'us' ? '#7ff5ff' : '#ff5a6e'; ctx.fillRect(px - w / 2, py - 42 * s - (u.id === 'wyrm' ? 30 : 0), w * Math.max(0, u.hp / u.max), 3); } });
+      b.fx.forEach(f => { const k = f.t / f.life;
+        if (f.type === 'arrow' || f.type === 'orb' || f.type === 'venom' || f.type === 'bolt') { const x0 = X(W, f.x), y0 = Y(H, f.y || 0.5) - 20, x1 = X(W, f.x2), y1 = Y(H, f.y2 == null ? f.y : f.y2) - 18, px = x0 + (x1 - x0) * k, py = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * (f.type === 'arrow' ? 18 : 6); if (f.type === 'arrow') ln(ctx, [px - 6, py + 1], [px + 2, py], '#e6e3d6', 1.5); else if (f.type === 'bolt') ln(ctx, [x0, y0], [x1, y1], 'rgba(160,220,255,' + (1 - k) + ')', 2); else blob(ctx, px, py, 3.5, f.type === 'orb' ? 'rgba(255,140,60,.95)' : 'rgba(124,255,138,.9)'); }
+        if (f.type === 'rise') { for (let i = 0; i < 6; i++) blob(ctx, X(W, f.x) + Math.sin(i * 2 + k * 6) * 8, Y(H, f.y) - k * 30 - i * 4, 2.2 * (1 - k), 'rgba(124,255,138,.8)'); }
+        if (f.type === 'bones') { for (let i = 0; i < 7; i++) { const a = i + f.seed * 6; ln(ctx, [X(W, f.x) + Math.cos(a) * k * 18, Y(H, f.y) - 10 + k * k * 14 - Math.sin(a) * k * 10], [X(W, f.x) + Math.cos(a) * k * 18 + 4, Y(H, f.y) - 12 + k * k * 14 - Math.sin(a) * k * 10], 'rgba(236,235,226,' + (1 - k) + ')', 2); } }
+        if (f.type === 'num') { ctx.globalAlpha = 1 - k; ctx.font = '800 ' + (f.big ? 15 : 11) + 'px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.6)'; const tx = X(W, f.x), ty = Y(H, f.y) - 46 - k * 22; ctx.strokeText(String(f.v), tx, ty); ctx.fillStyle = f.us ? '#ff8a8a' : f.dot ? '#d9a3ff' : f.big ? '#ffe14d' : '#ffffff'; ctx.fillText(String(f.v), tx, ty); ctx.globalAlpha = 1; ctx.textAlign = 'left'; }
+        if (f.type === 'armor') { ctx.fillStyle = 'rgba(236,235,226,' + (0.25 * (1 - k)) + ')'; ctx.fillRect(0, 0, W * 0.4, H); }
+        if (f.type === 'wave') { ctx.globalAlpha = Math.min(1, (1 - k) * 2); ctx.font = '800 22px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,.55)'; const boss = NW.Hero.RIFTS[b.kind].boss, txt = f.n === b.waves.length && boss ? 'Wave ' + f.n + ': the ' + (boss === 'warden' ? 'Warden' : 'Chief') : 'Wave ' + f.n; ctx.strokeText(txt, W / 2, H * 0.3); ctx.fillStyle = '#ffffff'; ctx.fillText(txt, W / 2, H * 0.3); ctx.globalAlpha = 1; ctx.textAlign = 'left'; } });
+    }
+    ctx.restore();
+  }
+  /* a bone worker for the land's build sites: a small skeleton with a hammer, screen space */
+  function worker(ctx, x, y, s, t) { const hand = skeleton(ctx, x, y, s, 0, '#7ff5ff', false); const a = Math.sin(t * 7) * 0.8; ln(ctx, hand, [hand[0] + Math.cos(a - 1) * 7 * s, hand[1] + Math.sin(a - 1) * 7 * s], '#6b4a2b', 1.6 * s); }
+
+  NW.Battle = { LANE, HERO_X, FOES, TUNE, create, cast, aim, step, run, draw, worker, X, focusAt: (W, px) => (px - 34) / (W - 70) * LANE };
+})();
+
 /* NextWorld · views: the panel itself
  * mount(root, host) builds the tabs inside root (an element or a shadow
  * root) and draws only the tab that is showing. The host supplies storage,
@@ -1722,7 +2042,9 @@
 (function () {
   const { makeIso, B, clamp, lerp, reduce, SERIES, START_HERE, ABOUT, KIND_NAME, ICON, TW, TH } = NW;
   const S = NW.State, Land = NW.Land, HQ = NW.HQ, G = NW.Global, E = NW.Eras;
-  const TABS = [['world', 'NextWorld'], ['avatar', 'Avatar'], ['base', 'My World'], ['build', 'My Build'], ['global', 'Globe']];
+  const TABS = [['world', 'NextWorld'], ['avatar', 'Hero'], ['base', 'My World'], ['build', 'My Build'], ['battle', 'Battle'], ['global', 'Globe']];
+  const SUMMON_ICON = { worker: '\ud83d\udd28', warrior: '\ud83d\udc80', archer: '\ud83c\udff9', mage: '\ud83d\udd25', rider: '\ud83d\udc0e', lich: '\ud83d\udc51', wyrm: '\ud83d\udc09' };
+  const SPELL_ICON = { spear: '\ud83e\uddb4', raise: '\ud83d\udc7b', curse: '\ud83d\udfe3', armor: '\ud83d\udee1\ufe0f', domain: '\ud83c\udf11' };
 
   const CSS = `
     :host, .nww { all: initial; }
@@ -1735,7 +2057,7 @@
     .sparks[hidden], .lvl[hidden], .tabs button[hidden] { display: none; } .sparks { font: 800 12px/1 "Baloo 2", system-ui, sans-serif; padding: 7px 11px; border-radius: 999px; background: rgba(255,197,49,.16); color: var(--gold); border: 1px solid rgba(255,197,49,.35); white-space: nowrap; }
     .lvl { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; min-width: 120px; flex: 1; } .lvl b { font: 800 12px/1 "Baloo 2", system-ui, sans-serif; color: var(--nww-text, #fff); white-space: nowrap; } .lvl .barx { margin: 0; height: 8px; } .lvl small { display: block; font: 700 10.5px/1 Nunito, system-ui, sans-serif; color: var(--dim); margin-top: 3px; white-space: nowrap; }
     .tabs { display: flex; gap: 3px; background: rgba(0,0,0,.25); border-radius: 12px; padding: 3px; width: 100%; }
-    .tabs button { flex: 1; min-height: 36px; font: 700 13px/1.1 "Baloo 2", system-ui, sans-serif; padding: 8px 6px; border: 0; border-radius: 9px; background: transparent; color: var(--dim); white-space: nowrap; position: relative; }
+    .tabs button { flex: 1; min-height: 36px; font: 700 12.5px/1.1 "Baloo 2", system-ui, sans-serif; padding: 8px 3px; border: 0; border-radius: 9px; background: transparent; color: var(--dim); white-space: nowrap; position: relative; }
     .tabs button[aria-selected="true"] { background: var(--tab-on); color: var(--tab-on-text); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
     .tabs button[data-dot="1"]::after { content: ''; position: absolute; top: 5px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
     .view { padding: 12px 12px 16px; display: flex; flex-direction: column; gap: 12px; } .view[hidden] { display: none; }
@@ -1788,6 +2110,24 @@
     .levelup { position: absolute; left: 50%; bottom: 52px; cursor: pointer; transform: translateX(-50%); width: min(92%, 520px); background: rgba(255,255,255,.95); color: #172033; border-radius: 14px; padding: 12px 16px; text-align: center; box-shadow: 0 12px 34px rgba(0,0,0,.35); border: 2px solid var(--gold); } .levelup[hidden] { display: none; } .levelup small { display: block; font: 700 11.5px/1.2 "Baloo 2", system-ui, sans-serif; color: #8a5a3a; letter-spacing: .05em; text-transform: uppercase; } .levelup b { display: block; font: 800 20px/1.15 "Baloo 2", system-ui, sans-serif; margin: 2px 0 4px; } .levelup p { margin: 0; font-size: 13px; line-height: 1.45; }
     .prog { display: flex; flex-direction: column; gap: 5px; } .prog .barx { height: 12px; margin: 0; } .prog small { font-size: 12px; color: var(--dim); }
     .scene[hidden] { display: none; }
+
+    .souls { font: 800 12px/1 "Baloo 2", system-ui, sans-serif; padding: 7px 11px; border-radius: 999px; background: rgba(181,108,255,.16); color: #d8b8ff; border: 1px solid rgba(181,108,255,.4); white-space: nowrap; } .souls[hidden] { display: none; }
+    .sheet { background: linear-gradient(160deg, #2c1d48, var(--card) 70%); border: 1px solid rgba(181,108,255,.35); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; box-shadow: 0 10px 28px rgba(20,8,40,.45); }
+    .shead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .shead b { font: 800 21px/1 "Baloo 2", system-ui, sans-serif; color: #fff; } .grade { font: 800 11px/1 "Baloo 2", system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; color: #d8b8ff; background: rgba(181,108,255,.2); padding: 5px 9px; border-radius: 999px; } .cp { margin-left: auto; font: 800 13.5px/1 "Baloo 2", system-ui, sans-serif; color: var(--gold); }
+    .sheet > small { color: var(--dim); font-size: 12.5px; line-height: 1.4; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } .stats div { background: rgba(0,0,0,.28); border-radius: 10px; padding: 8px 9px; } .stats small { display: block; font: 700 10.5px/1 Nunito, system-ui, sans-serif; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; } .stats b { display: block; margin-top: 3px; font: 800 18px/1.1 "Baloo 2", system-ui, sans-serif; color: #fff; }
+    .wcard { --rar: #b8c0cc; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 11px; background: rgba(0,0,0,.25); border: 1px solid var(--line); border-left: 4px solid var(--rar); } .wcard.main { box-shadow: inset 0 0 0 1px var(--rar), 0 0 18px -6px var(--rar); }
+    .wcard b { display: block; color: var(--rar); font: 800 14px/1.2 "Baloo 2", system-ui, sans-serif; } .wcard small { display: block; font-size: 12px; color: var(--dim); margin-top: 2px; }
+    .acts2 { display: flex; flex-direction: column; gap: 5px; align-items: stretch; } .acts2 button { font: 800 12px/1 "Baloo 2", system-ui, sans-serif; min-height: 34px; padding: 6px 11px; border: 0; border-radius: 9px; background: rgba(127,127,127,.22); color: var(--nww-text, #fff); white-space: nowrap; } .acts2 button:disabled { opacity: .45; } .acts2 .on { font: 800 12px/1 "Baloo 2", system-ui, sans-serif; color: var(--ok); text-align: center; }
+    .row.locked { opacity: .55; }
+    .bhud { position: absolute; left: 10px; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; line-height: 1.2; } .bhud b { font: 800 13.5px/1 "Baloo 2", system-ui, sans-serif; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.85); }
+    .bhud .hp { height: 9px; border-radius: 6px; background: rgba(0,0,0,.5); overflow: hidden; width: 44%; box-shadow: 0 0 0 1px rgba(255,255,255,.2); } .bhud .hp i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #ff5a6e, #ffae7a); transition: width .2s; } .bhud .boss { width: 100%; } .bhud .boss i { background: linear-gradient(90deg, #b56cff, #ff4f6d); } .bhud [hidden] { display: none; }
+    .bspells { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; } .bspells[hidden] { display: none; }
+    .bspells button { position: relative; overflow: hidden; min-width: 66px; min-height: 44px; padding: 6px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,.28); background: rgba(22,14,38,.86); color: #fff; font: 800 12px/1.1 "Baloo 2", system-ui, sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+    .bspells button i { position: absolute; left: 0; bottom: 0; height: 100%; background: rgba(0,0,0,.55); pointer-events: none; } .bspells button span { position: relative; } .bspells button.ready { border-color: #7ff5ff; box-shadow: 0 0 12px -2px #7ff5ff; } .bspells button[aria-pressed="true"] { background: var(--gold); color: var(--ink); }
+    .bres { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(88%, 420px); background: rgba(16,10,30,.92); color: #fff; border-radius: 16px; padding: 16px 18px; text-align: center; border: 1px solid rgba(181,108,255,.5); box-shadow: 0 16px 40px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 8px; } .bres[hidden] { display: none; } .bres b { font: 800 24px/1.1 "Baloo 2", system-ui, sans-serif; } .bres .st { font-size: 26px; letter-spacing: 4px; color: var(--gold); } .bres small { color: #cfc6e6; font-size: 13px; }
+    .bres button { font: 800 13.5px/1 "Baloo 2", system-ui, sans-serif; min-height: 40px; border: 0; border-radius: 11px; background: linear-gradient(180deg, #ffe27a, var(--gold) 55%, #ff9d1c); color: var(--ink); }
+    .rifts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; } .rifts button { display: flex; flex-direction: column; gap: 3px; align-items: center; min-height: 58px; padding: 8px 6px; border-radius: 11px; border: 1px solid rgba(181,108,255,.4); background: linear-gradient(180deg, #2c1d48, #1c1430); color: #fff; font: 800 13px/1.1 "Baloo 2", system-ui, sans-serif; } .rifts button small { font: 700 11px/1.1 Nunito, system-ui, sans-serif; color: #cfc6e6; } .rifts button:disabled { opacity: .45; }
     @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
   `;
 
@@ -1810,13 +2150,14 @@
     const sparks = el('div', 'sparks'); sparks.title = 'Sparks: one a step, ten a project. Spend them on your avatar.';
     const lvl = el('div', 'lvl'); const lvlB = el('b'); const lvlBar = el('div', 'barx'); const lvlI = el('i'); lvlBar.appendChild(lvlI); const lvlS = el('small'); const lvlR = el('div'); put(lvlR, lvlBar, lvlS); put(lvl, lvlB, lvlR); lvl.title = 'Experience: five a step, the project\u2019s worth when it stands.';
     const mode = el('button', 'mode'); mode.type = 'button'; const tabs = el('div', 'tabs'); tabs.setAttribute('role', 'tablist');
-    put(bar, brand, lvl, sparks, mode, tabs); wrap.appendChild(bar);
+    const soulsPill = el('div', 'souls'); soulsPill.title = 'Souls: won in battle. Spend them to rank up your dead and sharpen your weapon.'; soulsPill.hidden = true;
+    put(bar, brand, lvl, sparks, soulsPill, mode, tabs); wrap.appendChild(bar);
     const devbar = el('div', 'devbar'); devbar.hidden = true; wrap.appendChild(devbar); let devOpen = false;
     const devToggle = el('button', 'devtoggle', 'Dev tools ▾'); devToggle.type = 'button'; devToggle.hidden = true; devToggle.addEventListener('click', () => { devOpen = !devOpen; devbar.hidden = !devOpen; devToggle.textContent = devOpen ? 'Dev tools ▴' : 'Dev tools ▾'; setTimeout(fit, 0); }); wrap.insertBefore(devToggle, devbar);
     const views = {}, tabBtns = {}; const seen = new Set();
     TABS.forEach(([id, name]) => { const b = el('button', null, name); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.view = id; b.addEventListener('click', () => show(id)); tabs.appendChild(b); tabBtns[id] = b; const v = el('section', 'view'); v.hidden = true; views[id] = v; wrap.appendChild(v); });
     let current = 'world';
-    function show(id) { current = id; seen.add(id); lastPip = performance.now(); TABS.forEach(([k]) => { tabBtns[k].setAttribute('aria-selected', String(k === id)); views[k].hidden = k !== id; }); tabBtns[id].dataset.dot = '0'; if (id === 'build') paintBuild(); if (id === 'base') paintBoard(); if (id === 'world') paintHub(); if (id === 'global') paintGlobeCard(); if (id === 'avatar') paintShop(); host.remember && host.remember('tab', id); if (typeof fit === 'function') setTimeout(fit, 0); pipFor(id); }
+    function show(id) { current = id; seen.add(id); lastPip = performance.now(); TABS.forEach(([k]) => { tabBtns[k].setAttribute('aria-selected', String(k === id)); views[k].hidden = k !== id; }); tabBtns[id].dataset.dot = '0'; if (id === 'build') paintBuild(); if (id === 'base') paintBoard(); if (id === 'world') paintHub(); if (id === 'global') paintGlobeCard(); if (id === 'avatar') { paintShop(); paintHero(); } if (id === 'battle') paintBattle(); host.remember && host.remember('tab', id); if (typeof fit === 'function') setTimeout(fit, 0); pipFor(id); }
     const dot = id => { if (current !== id) tabBtns[id].dataset.dot = '1'; };
     function scene(w, h, label) { const sc = el('div', 'scene'); const cv = el('canvas'); cv.width = w; cv.height = h; cv.tabIndex = 0; cv.setAttribute('aria-label', label); sc.appendChild(cv); return { sc, cv }; }
     /* zoom: the wheel, and two buttons, on every scene */
@@ -1828,7 +2169,7 @@
     function toast(sc) { const t = el('div', 'toast'); sc.appendChild(t); let timer = null; return text => { t.textContent = text; t.classList.add('on'); clearTimeout(timer); timer = setTimeout(() => t.classList.remove('on'), 2800); }; }
     function nav(sc, items) { const n = el('div', 'nav'); items.forEach(([t, fn]) => { const b = el('button', null, t); b.type = 'button'; b.addEventListener('click', fn); n.appendChild(b); }); sc.appendChild(n); return n; }
     function fold(parent, title, count) { const b = el('button', 'fold', title); b.type = 'button'; const c = el('small', null, count || ''); b.appendChild(c); const list = el('div', 'list'); list.hidden = true; b.setAttribute('aria-expanded', 'false'); b.addEventListener('click', () => { list.hidden = !list.hidden; b.setAttribute('aria-expanded', String(!list.hidden)); setTimeout(fit, 0); }); put(parent, b, list); return { list, count: c, open() { list.hidden = false; b.setAttribute('aria-expanded', 'true'); } }; }
-    const paintSparks = () => { const fresh = !state.wallet.sparks && !state.done.length; sparks.hidden = fresh; lvl.hidden = fresh; const far = !state.done.length && !state.lists.some(l => l.done); ['world', 'avatar', 'global'].forEach(id => { const was = tabBtns[id].hidden; tabBtns[id].hidden = far; if (was && !far) tabBtns[id].dataset.dot = '1'; }); setText(sparks, '✦ ' + state.wallet.sparks); const L = S.levelOf(state); setText(lvlB, 'Level ' + L.level); lvlI.style.width = Math.round(L.at * 100) + '%'; setText(lvlS, L.into + ' / ' + L.need + ' XP'); };
+    const paintSparks = () => { const fresh = !state.wallet.sparks && !state.done.length; sparks.hidden = fresh; lvl.hidden = fresh; const far = !state.done.length && !state.lists.some(l => l.done); ['world', 'avatar', 'battle', 'global'].forEach(id => { const was = tabBtns[id].hidden; tabBtns[id].hidden = far; if (was && !far) tabBtns[id].dataset.dot = '1'; }); setText(sparks, '✦ ' + state.wallet.sparks); const hs = NW.Hero.hero(state).souls; soulsPill.hidden = !hs; setText(soulsPill, '☠ ' + hs); const L = S.levelOf(state); setText(lvlB, 'Level ' + L.level); lvlI.style.width = Math.round(L.at * 100) + '%'; setText(lvlS, L.into + ' / ' + L.need + ' XP'); };
 
     /* ---- 1. NextWorld: the campus, the hub ---- */
     const w1 = scene(880, 620, 'NextWorld: NextWork Headquarters in Austin, and the learners’ plots round it. Tap your plot to enter your world. Drag to look, wheel to zoom.');
@@ -1913,12 +2254,13 @@
     drag(b1.cv, base, g => { const L = lastL; lastPip = performance.now();
       if (placing) { const q = S.nearestLot(state, g); if (!q) { bsay('Not there', 'Pick an outlined lot on a lane.'); return; } state.sites[placing] = q; state.building = placing; if (state.mode === 'dev' && !state.steps[placing]) state.steps[placing] = { done: 0, total: 7 }; const t = placing; placing = null; save(); lastL = S.layout(state); btoast('Pegged out'); bsay('Pegged out', t + ' goes here.'); paintBoard(); paintBuild(); show('build'); return; }
       { const ex = L.plan.roads[0].from; if (Math.abs(g[0] - ex[0] + 0.5) < 1.6 && Math.abs(g[1] - ex[1] + 0.5) < 1.6) { show('world'); aimW(HQ.PLOTS[HQ.MINE][0], HQ.PLOTS[HQ.MINE][1]); return; } }
+      { const r = Land.riftOf(state); if (r && Math.abs(g[0] - r[0]) < 1.3 && Math.abs(g[1] - r[1]) < 1.3) { show('battle'); return; } }
       const hit = Land.hit(L, g); if (hit) { showCard(hit); return; } card.hidden = true;
       if (Math.abs(g[0] - S.HOME[0] - 1) < 1.8 && Math.abs(g[1] - S.HOME[1] - 1) < 1.8) { const ne = E.nextEra(state); bsay(S.landName(state), ne ? (ne.n - E.score(state)) + ' more projects to ' + ne.name + '.' : 'A kingdom.'); Land.goTo(me, L.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; return; }
       if (g[0] >= 0 && g[1] >= 0 && g[0] < S.LAND && g[1] < S.LAND) { if (Land.goTo(me, L.paths, g)) me.follow = true; else bsay('No road there', 'Roads reach everything built.'); } }, () => { me.follow = false; });
     b1.cv.addEventListener('keydown', e => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) { me.keys[e.key] = true; e.preventDefault(); } });
     b1.cv.addEventListener('keyup', e => { delete me.keys[e.key]; }); b1.cv.addEventListener('blur', () => { me.keys = {}; });
-    function finish(title, sr) { const hadSparks = state.wallet.sparks; S.finish(state, title, S.now(state)); save(); lastL = S.layout(state); const b = lastL.buildings.find(x => x.title === title); anim = { title, start: performance.now() }; btoast('Built: ' + title); bsay('Built!', 'People can move in now. +' + (state.wallet.sparks - hadSparks) + ' sparks.', ['See it', () => show('base')]); if (b) { fx.push({ type: 'sparkle', gx: b.gx + 0.5, gy: b.gy + 0.5, seed: Math.random() * 6, start: performance.now() + 1500, life: 900 }); Land.goTo(me, lastL.paths, [b.gx + 0.5, b.gy + 1.6]); me.follow = true; } dot('base'); dot('world'); paintSparks(); paintBoard(); paintBuild(); paintDev(); }
+    function finish(title, sr) { const hadSparks = state.wallet.sparks; S.finish(state, title, S.now(state)); NW.Hero.projectFinished(state, title); dot('battle'); save(); lastL = S.layout(state); const b = lastL.buildings.find(x => x.title === title); anim = { title, start: performance.now() }; btoast('Built: ' + title); bsay('Built!', 'People can move in now. +' + (state.wallet.sparks - hadSparks) + ' sparks.', ['See it', () => show('base')]); if (b) { fx.push({ type: 'sparkle', gx: b.gx + 0.5, gy: b.gy + 0.5, seed: Math.random() * 6, start: performance.now() + 1500, life: 900 }); Land.goTo(me, lastL.paths, [b.gx + 0.5, b.gy + 1.6]); me.follow = true; } dot('base'); dot('world'); paintSparks(); paintBoard(); paintBuild(); paintDev(); }
 
     /* ---- 3. Avatar: you, and the shop ---- */
     const av = state.avatar; const a1 = scene(880, 400, 'Your avatar, walking your land'); const avI = makeIso(a1.cv, 880 / NW.DPR, 400 / NW.DPR); const avc = camTo(2, 2, 200); avI.cam.x = avc.x; avI.cam.y = avc.y + 10;
@@ -1937,6 +2279,75 @@
     const landShop = el('div', 'grp'); landShop.appendChild(el('span', null, 'Your land')); opts.appendChild(landShop);
     function paintLandShop() { while (landShop.children.length > 1) landShop.removeChild(landShop.lastChild); S.LAND_GOODS.forEach(([item, name, why]) => { const own = S.owns(state, item); const b = el('button', null, own ? name + ' \u2713' : name + ' · ' + S.PRICES[item] + '\u2726'); b.type = 'button'; b.title = why; b.setAttribute('aria-pressed', String(own)); b.dataset.locked = own ? '0' : '1'; b.disabled = own; b.addEventListener('click', () => { if (!S.buy(state, item)) { asay('Not yet', 'That is ' + S.PRICES[item] + ' sparks. You have ' + state.wallet.sparks + '.', ['Earn some', () => show('build')]); return; } save(); paintSparks(); paintLandShop(); asay('Yours', name + ': ' + why + '.', ['See it', () => show('base')]); }); landShop.appendChild(b); }); }
     function paintShop() { shopGroups.forEach(f => f()); paintLandShop(); asay('Your avatar and your land', 'Dashed options cost sparks. A step is a spark.'); }
+
+    /* ---- 3b. the hero: who you have become, the dead you command, what you carry ---- */
+    const Hr = NW.Hero, Bt = NW.Battle; const clear = n => { while (n.firstChild) n.removeChild(n.firstChild); };
+    const sheet = el('div', 'sheet'); views.avatar.insertBefore(sheet, avWrap);
+    const armyFold = fold(views.avatar, 'Your army'), spellFold = fold(views.avatar, 'Your spells'), armoryFold = fold(views.avatar, 'Your armory'); armyFold.open();
+    const paintSouls = () => paintSparks();
+    function weaponCard(w, main) {
+      const card = el('div', 'wcard' + (main ? ' main' : '')); card.style.setProperty('--rar', w.colour); const t = el('div');
+      put(t, el('b', null, w.name + (w.plus ? ' +' + w.plus : '')), el('small', null, w.rarityName + ' · attack ' + w.atk + ' · ' + w.series), el('small', null, w.affixName + ': ' + w.affixWhat)); card.appendChild(t);
+      const acts = el('div', 'acts2'), on = Hr.equipped(state), h = Hr.hero(state);
+      if (on && on.id === w.id) acts.appendChild(el('span', 'on', 'Equipped')); else { const e = el('button', null, 'Equip'); e.type = 'button'; e.addEventListener('click', () => { Hr.equip(state, w.id); save(); paintHero(); btoast('Equipped: ' + w.name); }); acts.appendChild(e); }
+      if (w.plus < Hr.PLUS_MAX) { const cost = Hr.plusCost(w.plus), en = el('button', null, 'Sharpen · ' + cost + ' \u2620'); en.type = 'button'; en.disabled = h.souls < cost; en.title = 'Spend souls: +10% attack'; en.addEventListener('click', () => { if (Hr.enhance(state, w.id)) { save(); paintHero(); paintSouls(); btoast(w.name + ' +' + (w.plus + 1)); } }); acts.appendChild(en); }
+      card.appendChild(acts); return card;
+    }
+    function paintHero() {
+      const L = Hr.level(state), c = Hr.classOf(L), st = Hr.stats(state), w = Hr.equipped(state), h = Hr.hero(state), next = Hr.CLASSES.find(x => x.at > L);
+      clear(sheet); const top = el('div', 'shead'); put(top, el('b', null, c.name), el('span', 'grade', c.grade + ' class'), el('span', 'cp', 'Combat power ' + Hr.combatPower(state))); sheet.appendChild(top);
+      sheet.appendChild(el('small', null, 'Level ' + L + ' · ' + (next ? 'at level ' + next.at + ' you sublimate into ' + next.name + ' and every stat doubles' : 'the last sublimation is yours')));
+      const grid = el('div', 'stats'); [['Strength', st.str], ['Agility', st.agi], ['Spirit', st.spi], ['Physique', st.phy]].forEach(([k, v]) => { const d = el('div'); put(d, el('small', null, k), el('b', null, String(v))); grid.appendChild(d); }); sheet.appendChild(grid);
+      sheet.appendChild(w ? weaponCard(w, true) : el('small', null, 'Finish a project and it drops your first weapon.'));
+      clear(armyFold.list); setText(armyFold.count, Hr.armySize(state) + ' in the field · ' + h.souls + ' souls');
+      Hr.SUMMONS.forEach(u => { const open = L >= u.at, rk = h.ranks[u.id] | 0, fights = u.id !== 'worker'; const row = el('div', 'row' + (open ? '' : ' locked')); const nn = el('div', 'n'); put(nn, el('b', null, u.name + (open && fights ? ' ' + '\u2605'.repeat(rk) + '\u2606'.repeat(Hr.RANK_MAX - rk) : '')), el('small', null, open ? u.role : 'raised at level ' + u.at)); put(row, el('i', null, SUMMON_ICON[u.id]), nn, el('div', 'v', open ? (fights ? 'rank ' + rk : 'on your land') : 'level ' + u.at));
+        if (open && fights && rk < Hr.RANK_MAX) { const cost = Hr.rankCost(rk), b = el('button', null, 'Rank up · ' + cost + ' souls'); b.type = 'button'; b.disabled = h.souls < cost; b.addEventListener('click', () => { if (Hr.rankUp(state, u.id)) { save(); paintHero(); paintSouls(); btoast(u.name + ': rank ' + (rk + 1)); } }); row.appendChild(b); } armyFold.list.appendChild(row); });
+      clear(spellFold.list); setText(spellFold.count, Hr.spells(state).length + ' of ' + Hr.SPELLS.length);
+      Hr.SPELLS.forEach(sp => { const open = L >= sp.at; const row = el('div', 'row' + (open ? '' : ' locked')); const nn = el('div', 'n'); put(nn, el('b', null, sp.name), el('small', null, sp.what)); put(row, el('i', null, SPELL_ICON[sp.id]), nn, el('div', 'v', open ? sp.cd + 's' : 'level ' + sp.at)); spellFold.list.appendChild(row); });
+      clear(armoryFold.list); const all = Hr.armory(state); setText(armoryFold.count, all.length + ' of 90');
+      if (!all.length) armoryFold.list.appendChild(el('div', 'cap', 'Every project you finish drops a weapon made from it.'));
+      all.slice(0, 40).forEach(wp => armoryFold.list.appendChild(weaponCard(wp, false)));
+    }
+
+    /* ---- 5. Battle: the forge, the raids, the rifts, and the fight ---- */
+    const fg = scene(880, 300, 'The forge: tap the crystal three times to break it and take your weapon.'); const fgx = fg.cv.getContext('2d'); views.battle.appendChild(fg.sc); fg.sc.hidden = true;
+    const fgCard = el('div'); views.battle.appendChild(fgCard);
+    const bsc = scene(880, 480, 'The battle. Tap the field to aim your spells; the buttons cast them.'); const bx = bsc.cv.getContext('2d'); views.battle.appendChild(bsc.sc);
+    const hudB = el('div', 'bhud'); const hudT = el('b'); const hpBar = el('div', 'hp'); const hpI = el('i'); hpBar.appendChild(hpI); const bossBar = el('div', 'hp boss'); const bossI = el('i'); bossBar.appendChild(bossI); bossBar.hidden = true; put(hudB, hudT, hpBar, bossBar); bsc.sc.appendChild(hudB);
+    const spellBar = el('div', 'bspells'); bsc.sc.appendChild(spellBar); spellBar.hidden = true;
+    const bres = el('div', 'bres'); bres.hidden = true; bsc.sc.appendChild(bres);
+    const fsay = guide(views.battle); const rpanel = el('div', 'board'); views.battle.appendChild(rpanel);
+    let fight = null, idle = null, rewarded = true, forgeHits = 0, forgeAt = 0, forgeTitle = '';
+    const look = () => { const T = Land.TERRAINS[state.biome] || Land.TERRAINS.plains; return { ground: T.grass[1], night: S.nightOf(S.hourOf(state)) > 0.5, dpr: NW.DPR, body: av.body, shirt: av.shirt, skin: av.skin, weapon: Hr.equipped(state) }; };
+    function fightFor(kind, entry) { const a = Hr.army(state), st = Hr.stats(state); return Bt.create({ kind, level: Hr.level(state), army: a.units, spirit: a.spirit, power: a.power, base: a.base, weapon: a.weapon, spells: Hr.spells(state).map(x => x.id), phy: st.phy, seed: (Date.now() % 99991) + 1, auto: !!Hr.hero(state).auto, tired: a.tired, entry }); }
+    function startFight(kind) { const e = Hr.enter(state, kind); if (!e) return; save(); fight = fightFor(kind, e); rewarded = false; bres.hidden = true; paintSpells(); paintBattle(); lastInput = performance.now(); fsay(Hr.RIFTS[kind].name, kind === 'raid' ? 'They came for ' + (e.title || 'your land') + '. Tap to aim; cast.' : 'Tap to aim. Your dead re-form while you stand.'); }
+    function endFight() { rewarded = true; const r = Hr.reward(state, fight.kind, fight.won, fight.stars); save(); paintSouls(); clear(bres); bres.hidden = false; put(bres, el('b', null, fight.won ? 'Victory' : 'The line broke'), el('div', 'st', fight.won ? '\u2605'.repeat(fight.stars) + '\u2606'.repeat(3 - fight.stars) : '\u2606\u2606\u2606'), el('small', null, fight.kills + ' beasts fallen · +' + r.souls + ' souls' + (r.sparks ? ' · +' + r.sparks + ' sparks' : '') + (fight.won ? '' : '. Rank up your dead and try again.'))); const ok = el('button', null, fight.won ? 'Collect' : 'Back to camp'); ok.type = 'button'; ok.addEventListener('click', () => { fight = null; bres.hidden = true; idle = null; paintBattle(); }); bres.appendChild(ok); spellBar.hidden = true; fsay(fight.won ? 'Victory' : 'Not this time', fight.won ? NW.LESSONS[(fight.kills + fight.stars) % NW.LESSONS.length] : 'Every project makes you stronger. Build, then come back.'); }
+    function paintSpells() { clear(spellBar); spellBar.hidden = !fight; if (!fight) return; fight.spells.forEach(id => { const sp = Hr.SPELLS.find(x => x.id === id), b = el('button'); b.type = 'button'; b.dataset.id = id; const i = el('i'); const t = el('span', null, SPELL_ICON[id] + ' ' + sp.name.split(' ').pop()); put(b, i, t); b.title = sp.name + ': ' + sp.what; b.addEventListener('click', () => { if (fight && Bt.cast(fight, id)) lastInput = performance.now(); }); spellBar.appendChild(b); }); const au = el('button', null, 'Auto'); au.type = 'button'; au.setAttribute('aria-pressed', String(fight.auto)); au.addEventListener('click', () => { fight.auto = !fight.auto; const h = Hr.hero(state); h.auto = fight.auto; save(); au.setAttribute('aria-pressed', String(fight.auto)); }); spellBar.appendChild(au); }
+    function paintHud() { if (!fight) { setText(hudT, Hr.classOf(Hr.level(state)).name + ' · level ' + Hr.level(state) + ' · ' + Hr.armySize(state) + ' dead at your call'); hpI.style.width = '100%'; bossBar.hidden = true; return; } setText(hudT, (Hr.RIFTS[fight.kind].name) + ' · wave ' + Math.max(1, fight.wave + 1) + ' of ' + fight.waves.length + ' · ' + fight.kills + ' fallen'); hpI.style.width = Math.max(0, fight.heroHp / fight.heroMax * 100) + '%'; const boss = fight.units.find(u => u.boss && !u.dead && u.side === 'them'); bossBar.hidden = !boss; if (boss) bossI.style.width = (boss.hp / boss.max * 100) + '%';
+      Array.prototype.forEach.call(spellBar.querySelectorAll('button[data-id]'), b => { const id = b.dataset.id, cd = fight.cds[id] || 0, sp = Hr.SPELLS.find(x => x.id === id); b.firstChild.style.width = (cd / sp.cd * 100) + '%'; b.classList.toggle('ready', cd <= 0); }); }
+    function paintBattle() {
+      const h = Hr.hero(state), L = Hr.level(state); forgeTitle = h.forge[0] || ''; fg.sc.hidden = !forgeTitle; clear(fgCard); if (forgeTitle && forgeHits >= 3) { const w = Hr.weaponFor(state, forgeTitle); if (w) fgCard.appendChild(weaponCard(w, true)); const done = el('button', 'btn go', h.raids.length ? 'Defend your land' : 'Take it'); done.type = 'button'; done.addEventListener('click', () => { h.forge.shift(); forgeHits = 0; save(); if (h.raids.length) startFight('raid'); paintBattle(); }); fgCard.appendChild(done); }
+      clear(rpanel); rpanel.appendChild(el('h3', null, 'The rifts'));
+      if (h.raids.length) { const pin = el('div', 'pin'); const t = el('div'); put(t, el('b', null, h.raids.length === 1 ? 'Your land is under attack' : h.raids.length + ' raids waiting'), el('small', null, 'Every finished project brings one. Win it for souls.')); const b = el('button', null, 'Defend'); b.type = 'button'; b.disabled = !!fight; b.addEventListener('click', () => startFight('raid')); put(pin, t, b); rpanel.appendChild(pin); }
+      const k = Hr.keys(state); rpanel.appendChild(el('p', null, k ? k + ' rift key' + (k === 1 ? '' : 's') + '. Pick a rift.' : 'No rift key yet: ' + Hr.stepsToKey(state) + ' more step' + (Hr.stepsToKey(state) === 1 ? '' : 's') + ' ticked and you have one.'));
+      const grid = el('div', 'rifts'); ['ordinary', 'nightmare', 'hell'].forEach(kind => { const r = Hr.RIFTS[kind], b = el('button'); b.type = 'button'; const locked = L < r.at; put(b, el('span', null, r.name.split(' ')[0]), el('small', null, locked ? 'level ' + r.at : (h.best[kind] ? '\u2605'.repeat(h.best[kind]) + ' · ' : '') + r.souls + '+ souls')); b.disabled = locked || !k || !!fight; b.addEventListener('click', () => startFight(kind)); grid.appendChild(b); }); rpanel.appendChild(grid);
+      if (!fight) { idle = null; paintHud(); } setTimeout(fit, 0); paintBattlePip();
+    }
+    function paintBattlePip() { const h = Hr.hero(state); if (fight) return; if (h.forge.length) fsay('A weapon is forging', forgeHits < 3 ? 'Tap the crystal three times.' : 'It is yours.'); else if (h.raids.length) fsay('They are at the wall', 'Defend your land. The raid is quick.', ['Defend', () => startFight('raid')]); else if (Hr.keys(state)) fsay('A rift is open', 'Spend a key for souls.'); else fsay('Your dead are resting', 'Finish a project for a raid; five steps for a rift key.', ['Build', () => show('build')]); }
+    fg.cv.addEventListener('pointerup', () => { if (!forgeTitle || forgeHits >= 3) return; forgeHits++; forgeAt = performance.now(); lastInput = forgeAt; if (forgeHits >= 3) { btoast('Forged: ' + Hr.weaponFor(state, forgeTitle).name); paintBattle(); } });
+    bsc.cv.addEventListener('pointerup', e => { if (!fight || fight.over) return; const r = bsc.cv.getBoundingClientRect(), W = bsc.cv.width / NW.DPR; Bt.aim(fight, Bt.focusAt(W, (e.clientX - r.left) * W / r.width)); lastInput = performance.now(); });
+    /* the crystal: the rarity's colour, a crack a tap, then the pieces fly */
+    function drawForge(now) { const D = NW.DPR, W = fg.cv.width / D, H = fg.cv.height / D; fgx.setTransform(D, 0, 0, D, 0, 0); const w = forgeTitle ? Hr.weaponFor(state, forgeTitle) : null; const col = w ? w.colour : '#b8c0cc'; const g = fgx.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, W * 0.6); g.addColorStop(0, '#2c1d48'); g.addColorStop(1, '#0e0a18'); fgx.fillStyle = g; fgx.fillRect(0, 0, W, H);
+      const t = now / 1000, cx = W / 2, cy = H / 2 + Math.sin(t * 2) * 4, s = Math.min(W, H) * 0.3, k = forgeHits >= 3 ? Math.min(1, (now - forgeAt) / 700) : 0;
+      const glow = fgx.createRadialGradient(cx, cy, 2, cx, cy, s * 2); glow.addColorStop(0, col); glow.addColorStop(1, 'rgba(0,0,0,0)'); fgx.globalAlpha = 0.45 + forgeHits * 0.15; fgx.fillStyle = glow; fgx.fillRect(cx - s * 2, cy - s * 2, s * 4, s * 4); fgx.globalAlpha = 1;
+      if (k < 1) { const pts = [[0, -1.1], [0.55, -0.3], [0.4, 0.8], [0, 1.1], [-0.4, 0.8], [-0.55, -0.3]]; fgx.fillStyle = col; fgx.beginPath(); pts.forEach((p, i) => { const x = cx + p[0] * s * (1 + k * 0.4), y = cy + p[1] * s * (1 + k * 0.4); i ? fgx.lineTo(x, y) : fgx.moveTo(x, y); }); fgx.closePath(); fgx.globalAlpha = 1 - k; fgx.fill(); fgx.strokeStyle = 'rgba(255,255,255,.7)'; fgx.lineWidth = 2; fgx.stroke(); fgx.fillStyle = 'rgba(255,255,255,.35)'; fgx.beginPath(); fgx.moveTo(cx, cy - s * 1.1); fgx.lineTo(cx + s * 0.55, cy - s * 0.3); fgx.lineTo(cx, cy); fgx.closePath(); fgx.fill();
+        for (let i = 0; i < forgeHits; i++) { fgx.strokeStyle = '#ffffff'; fgx.lineWidth = 1.6; fgx.beginPath(); fgx.moveTo(cx + (i - 1) * s * 0.25, cy - s * 0.8); fgx.lineTo(cx + (i - 1) * s * 0.1 + s * 0.15, cy - s * 0.1); fgx.lineTo(cx + (i - 1) * s * 0.3, cy + s * 0.6); fgx.stroke(); } fgx.globalAlpha = 1; }
+      if (forgeHits >= 3) { for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, r = k * s * 2.2; fgx.fillStyle = col; fgx.globalAlpha = 1 - k; fgx.fillRect(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 5, 5); } fgx.globalAlpha = Math.min(1, k * 1.5); fgx.font = '800 18px Baloo 2, system-ui, sans-serif'; fgx.textAlign = 'center'; fgx.fillStyle = col; fgx.fillText(w ? w.name : '', cx, cy + 6); fgx.font = '700 12px Nunito, system-ui, sans-serif'; fgx.fillStyle = '#cfc6e6'; fgx.fillText(w ? w.rarityName + ' ' + w.type.toLowerCase() : '', cx, cy + 26); fgx.globalAlpha = 1; fgx.textAlign = 'left'; }
+      else { fgx.font = '800 14px Baloo 2, system-ui, sans-serif'; fgx.textAlign = 'center'; fgx.fillStyle = '#cfc6e6'; fgx.fillText('Tap ' + (3 - forgeHits) + ' more', cx, H - 16); fgx.textAlign = 'left'; } }
+    function drawBattle(now, dt) { const D = NW.DPR, W = bsc.cv.width / D, H = bsc.cv.height / D; bx.setTransform(D, 0, 0, D, 0, 0);
+      if (fight) { if (!fight.over) Bt.step(fight, dt); else if (!rewarded) endFight(); Bt.draw(bx, W, H, fight, now, look()); }
+      else { if (!idle) { idle = fightFor('raid'); idle.queue = []; idle.waves = []; } Bt.draw(bx, W, H, idle, now, look()); }
+      paintHud(); }
 
     /* ---- 4. My Build ---- */
     const bt = el('div', 'tiles'); const tWhere = el('div', 'tile wide'); const tWb = el('b'); const tWs = el('span'); const tWbar = el('div', 'barx'); const tWi = el('i'); tWbar.appendChild(tWi); put(tWhere, el('small', null, 'Your land'), tWb, tWs, tWbar);
@@ -1988,7 +2399,7 @@
       if (S.score(state) !== was) paintDev(); paintSparks(); paintBuild(); paintBoard();
       const gained = state.wallet.sparks - hadSparks;
       if (state.levelled) { const lv = state.levelled; delete state.levelled; save(); btoast('Level ' + lv); luS.textContent = S.levelOf(state).xp + ' XP'; luT.textContent = 'Level ' + lv; luP.textContent = '+10 sparks, and room for one more, for good.'; levelup.hidden = false; dash.hidden = true; clearTimeout(luTimer); luTimer = setTimeout(() => { levelup.hidden = true; }, 5000); if (current !== 'base') dot('base'); }
-      if (p && p.finished) { const b = lastL.buildings.find(x => x.title === p.title); anim = { title: p.title, start: performance.now() }; btoast('Built: ' + p.title); if (b) { fx.push({ type: 'sparkle', gx: b.gx + 0.5, gy: b.gy + 0.5, seed: Math.random() * 6, start: performance.now() + 1500, life: 900 }); Land.goTo(me, lastL.paths, [b.gx + 0.5, b.gy + 1.6]); me.follow = true; } const nx2 = S.nextProject(state), pr = NW.PROJECTS.find(x => x.title === p.title); bsay('Built!', 'People can move in now. +' + gained + ' sparks.', ['See it', () => show('base')]); psay('Built! +' + (pr ? pr.xp : 60) + ' XP', 'It stands. +' + gained + ' sparks.', nx2 ? ['Next: ' + nx2.title, () => { state.building = nx2.title; save(); host.openProject(nx2.title, nx2.series); }] : null); dot('base'); dot('world'); }
+      if (p && p.finished) { NW.Hero.projectFinished(state, p.title); save(); dot('battle'); const b = lastL.buildings.find(x => x.title === p.title); anim = { title: p.title, start: performance.now() }; btoast('Built: ' + p.title); if (b) { fx.push({ type: 'sparkle', gx: b.gx + 0.5, gy: b.gy + 0.5, seed: Math.random() * 6, start: performance.now() + 1500, life: 900 }); Land.goTo(me, lastL.paths, [b.gx + 0.5, b.gy + 1.6]); me.follow = true; } const nx2 = S.nextProject(state), pr = NW.PROJECTS.find(x => x.title === p.title); bsay('Built!', 'People can move in now. +' + gained + ' sparks.', ['See it', () => show('base')]); psay('Built! +' + (pr ? pr.xp : 60) + ' XP', 'It stands. A new weapon waits, and your land is under attack.', ['Forge it', () => show('battle')]); void nx2; dot('base'); dot('world'); }
       else if (p && p.steps) { psay('Step ' + p.done + ' of ' + p.total + ' done · +' + (5 * p.steps) + ' XP · +' + gained + ' spark' + (gained === 1 ? '' : 's'), NW.LESSONS[p.done % NW.LESSONS.length]); if (current !== 'build') dot('build'); if (current === 'base') pipFor('base'); } }
 
     /* ---- 5. Globe: the world, and your place in it ---- */
@@ -2011,7 +2422,8 @@
       SCENES.forEach(([I, sc, share]) => {
         /* the scene takes the height the rest of its tab leaves it, with a floor of the old share; a wide pane gets a tall map, not a letterbox */
         const view = sc.sc.parentElement; let extras = 0; if (view && !view.hidden) Array.prototype.forEach.call(view.children, c => { if (c !== sc.sc && !c.hidden && !c.classList.contains('board') && !c.classList.contains('list') && !c.classList.contains('fold') && c.tagName !== 'H3') extras += c.offsetHeight + 12; });
-        const h = Math.round(Math.max(220, Math.min(Math.max(avail - extras - 20, avail * share), cw * 1.1))); const D = NW.DPR; if (I) I.resize(cw * D, h * D); else if (sc.cv.width !== Math.round(cw * D) || sc.cv.height !== Math.round(h * D)) { sc.cv.width = Math.round(cw * D); sc.cv.height = Math.round(h * D); } }); }
+        const h = Math.round(Math.max(220, Math.min(Math.max(avail - extras - 20, avail * share), cw * 1.1))); const D = NW.DPR; if (I) I.resize(cw * D, h * D); else if (sc.cv.width !== Math.round(cw * D) || sc.cv.height !== Math.round(h * D)) { sc.cv.width = Math.round(cw * D); sc.cv.height = Math.round(h * D); } });
+      { const D = NW.DPR, bh = Math.round(Math.max(260, Math.min(cw * 0.62, avail * 0.66))), fh = Math.round(Math.min(220, cw * 0.4)); if (bsc.cv.width !== Math.round(cw * D) || bsc.cv.height !== Math.round(bh * D)) { bsc.cv.width = Math.round(cw * D); bsc.cv.height = Math.round(bh * D); } if (fg.cv.width !== Math.round(cw * D) || fg.cv.height !== Math.round(fh * D)) { fg.cv.width = Math.round(cw * D); fg.cv.height = Math.round(fh * D); } } }
     if (window.ResizeObserver) { const ro = new ResizeObserver(fit); ro.observe(wrap); if (hostEl !== wrap && hostEl.nodeType === 1) ro.observe(hostEl); } fit();
 
     /* ---- Pip speaks for the tab you are on, and when something happens ---- */
@@ -2019,11 +2431,11 @@
       if (id === 'world') wsay('Hi, I am Pip', state.done.length ? 'This is HQ. Your plot is outside the fence.' : 'Welcome to NextWork HQ. Tap your plot to start.', ['My plot', () => show('base')]);
       if (id === 'base') { const st = nx ? stepsOf(nx.title) : null, going = nx && state.steps[nx.title]; if (!state.biome) bsay('Hi, I am Pip', 'Pick your land. It is yours for good.'); else if (going) bsay(nx.title, 'Step ' + Math.min(st.done + 1, st.total) + ' of ' + st.total + '. Tick it on the page; a wall rises here.', ['Open it', () => host.openProject(nx.title, nx.series)]); else if (state.building && nx) bsay('You picked ' + nx.title, 'Open it and tick step 1.', ['Open it', () => host.openProject(nx.title, nx.series)]); else if (!state.done.length) bsay('Pick a project', 'One from the board below. Then tick its steps.'); else if (pw < 0.5) bsay('Power is low', 'One step and the town lights up again.', ['Build', () => show('build')]); else if (nx) bsay('Next', nx.title, ['Build it', () => show('build')]); else bsay('Everything is built', 'Walk it. It is yours.'); }
       if (id === 'build' && nx) { const st = stepsOf(nx.title); if (!st.done) psay('Start', 'Open it. Tick a step there, a wall rises here.'); }
-      if (id === 'global') paintGlobeCard(); if (id === 'avatar') paintShop(); }
+      if (id === 'global') paintGlobeCard(); if (id === 'avatar') paintShop(); if (id === 'battle') paintBattle(); }
 
     /* ---- mode, dev controls ---- */
     function paintMode() { setTimeout(fit, 0); mode.hidden = !!host.chrome && state.mode !== 'dev'; mode.textContent = state.mode === 'dev' ? 'Dev' : 'Live'; mode.title = state.mode === 'dev' ? 'Dev: simulate and reset. Tap for live data.' : 'Live: real data only. Tap for dev tools.'; mode.dataset.on = state.mode; devToggle.hidden = state.mode !== 'dev'; devbar.hidden = state.mode !== 'dev' || !devOpen; }
-    mode.addEventListener('click', () => { state.mode = state.mode === 'dev' ? 'prod' : 'dev'; if (state.mode === 'prod' && host.production) { const p = S.normalise(host.production()); state.done = p.done; state.lists = p.lists; state.steps = p.steps; state.life = p.life; state.wallet = p.wallet; state.sites = p.sites; delete state.power; delete state.hour; delete state.dayMs; delete state.quiet; delete state.clockOffset; } save(); lastL = S.layout(state); paintMode(); paintDev(); paintBuild(); paintBoard(); paintSparks(); });
+    mode.addEventListener('click', () => { state.mode = state.mode === 'dev' ? 'prod' : 'dev'; if (state.mode === 'prod' && host.production) { const p = S.normalise(host.production()); state.done = p.done; state.lists = p.lists; state.steps = p.steps; state.life = p.life; state.wallet = p.wallet; state.hero = p.hero; state.sites = p.sites; delete state.power; delete state.hour; delete state.dayMs; delete state.quiet; delete state.clockOffset; } save(); lastL = S.layout(state); paintMode(); paintDev(); paintBuild(); paintBoard(); paintSparks(); });
     const perf = { t: 0, ema: 16 }; let fpsSpan = null; const ioBox = el('textarea'); ioBox.hidden = true; ioBox.setAttribute('aria-label', 'State as JSON'); let badgeOn = host.pageBadge ? !!host.pageBadge() : false;
     /* a persona: a learner who builds on a pattern, played out on the dev clock */
     function persona(weeks, perWeek, gapDays) { for (let w = 0; w < weeks; w++) { for (let i = 0; i < perWeek; i++) { const nx = S.nextProject(state); if (!nx) break; state.clockOffset = (state.clockOffset || 0) + Math.round(gapDays * S.REAL_DAY / perWeek); applyProject({ title: nx.title, done: 7, total: 7, at: S.now(state) }); } if (gapDays < 7) state.clockOffset = (state.clockOffset || 0) + (7 - gapDays) * S.REAL_DAY; } S.crew(state, S.now(state)); }
@@ -2038,6 +2450,7 @@
       devRow('Clock', [['+1 day', () => { state.clockOffset = (state.clockOffset || 0) + S.REAL_DAY; }], ['+1 week', () => { state.clockOffset = (state.clockOffset || 0) + 7 * S.REAL_DAY; }], ['Real time', () => { delete state.clockOffset; }, !state.clockOffset], el('span', null, (state.clockOffset ? '+' + Math.round(state.clockOffset / S.REAL_DAY) + ' days' : 'now')), ['Crew: run', () => { const b = S.crew(state, S.now(state)); btoast(b.length ? 'Crew built ' + b.join(', ') : 'Crew: nothing to build'); }], ['Reset the week', () => { state.life.week = { id: 0, projects: 0, steps: 0, met: false }; }]]);
       devRow('Persona', [['Daily, 2 weeks', () => persona(2, 7, 7)], ['Weekender, 4 weeks', () => persona(4, 3, 1)], ['Weekly, 8 weeks', () => persona(8, 1, 7)], ['Away 14 days', () => { state.clockOffset = (state.clockOffset || 0) + 14 * S.REAL_DAY; }]]);
       devRow('Time', [['Day = 5 s', () => { state.dayMs = 5000; }, state.dayMs === 5000], ['40 s', () => { delete state.dayMs; }, !state.dayMs], ['2 min', () => { state.dayMs = 120000; }, state.dayMs === 120000], ['Skip a month', () => { state.life.founded -= 30 * S.dayMs(state); }], el('span', null, 'Light')].concat([['Live', null], ['Day', 12], ['Dusk', 19], ['Night', 23]].map(([t, h]) => [t, () => { if (h == null) delete state.hour; else state.hour = h; }, (h == null && typeof state.hour !== 'number') || state.hour === h])));
+      devRow('Battle', [['+100 souls', () => { NW.Hero.hero(state).souls += 100; }], ['+1 rift key', () => { state.life.steps = (state.life.steps | 0) + NW.Hero.KEY_STEPS; }], ['+1 raid', () => { const t = state.done[state.done.length - 1]; if (t) NW.Hero.projectFinished(state, t); }], ['Win this fight', () => { if (fight && !fight.over) { fight.over = true; fight.won = true; fight.stars = 3; } }], ['Lose this fight', () => { if (fight && !fight.over) { fight.over = true; fight.won = false; fight.stars = 0; } }], ['Auto: ' + (NW.Hero.hero(state).auto ? 'on' : 'off'), () => { const h = NW.Hero.hero(state); h.auto = !h.auto; }, !!NW.Hero.hero(state).auto]]);
       devRow('Land', Land.TERRAIN_KEYS.map(k => [TERRAIN_ICON[k] + ' ' + Land.TERRAINS[k].name, () => { state.biome = k; S.forget(); }, state.biome === k]).concat([['Quiet (no people, no weather)', () => { state.quiet = !state.quiet; }, !!state.quiet]]));
       { fpsSpan = el('span', 'fps', ''); const ex = el('button', null, 'Export / import state'); ex.type = 'button'; ex.addEventListener('click', () => { ioBox.hidden = !ioBox.hidden; if (!ioBox.hidden) ioBox.value = JSON.stringify(state); }); const imp = el('button', null, 'Load JSON'); imp.type = 'button'; imp.addEventListener('click', () => { try { const o = JSON.parse(ioBox.value); Object.assign(state, S.normalise(o)); save(); S.forget(); lastL = S.layout(state); refresh(['Loaded', 'State replaced.']); paintDev(); paintBuild(); paintBoard(); paintSparks(); } catch (err) { btoast('Not JSON'); } });
         const pb = host.pageBadge ? ['Pineapple on project pages: ' + (badgeOn ? 'on' : 'off'), () => { badgeOn = !badgeOn; host.pageBadge(badgeOn); }, badgeOn] : null;
@@ -2045,12 +2458,12 @@
 
     /* ---- the loop: draw only what is showing; one frame in flight at a time ---- */
     /* the budget: thirty frames a second while you are with it, twelve after two minutes without a touch, two after ten, none while the pane cannot be seen */
-    let running = true, pending = 0, lastCrew = 0, lastPip = 0, lastLevel = E.level(state), lastInput = performance.now(), lastDraw = 0, visible = true;
+    let running = true, pending = 0, lastCrew = 0, lastPip = 0, lastLevel = E.level(state), lastInput = performance.now(), lastDraw = 0, visible = true, lastT = 0;
     ['pointerdown', 'pointermove', 'wheel', 'keydown'].forEach(ev => wrap.addEventListener(ev, () => { lastInput = performance.now(); }, { passive: true }));
     if (window.IntersectionObserver && hostEl.nodeType === 1) new IntersectionObserver(es => { visible = es.some(e => e.isIntersecting); if (visible && running && !pending) pending = requestAnimationFrame(frame); }).observe(hostEl);
     function frame(now) {
       pending = 0; if (!running) return; if (!visible) return;
-      const idle = now - lastInput, budget = idle > 600000 ? 500 : idle > 120000 ? 1000 / 12 : 1000 / 30;   /* thirty a second with you, twelve after two minutes, two after ten */ if (now - lastDraw < budget - 2) { pending = requestAnimationFrame(frame); return; } lastDraw = now;
+      const still = now - lastInput, fighting = current === 'battle' && fight && !fight.over, budget = fighting ? 1000 / 30 : still > 600000 ? 500 : still > 120000 ? 1000 / 12 : 1000 / 30;   /* a fight always gets its thirty */   /* thirty a second with you, twelve after two minutes, two after ten */ if (now - lastDraw < budget - 2) { pending = requestAnimationFrame(frame); return; } lastDraw = now;
       if (perf.t) perf.ema = perf.ema * 0.95 + (now - perf.t) * 0.05; perf.t = now; if (fpsSpan && Math.floor(now / 500) !== Math.floor((now - perf.ema) / 500)) setText(fpsSpan, Math.round(1000 / perf.ema) + ' fps');
       const night = S.nightOf(S.hourOf(state));
       { const e = E.eraOf(state), lv = E.level(state); if (e.name !== lastEra) { lastEra = e.name; if (lv > lastLevel) { if (current === 'build') dot('base'); else show('base'); showLevelUp(e); Land.goTo(me, lastL.paths, [S.HOME[0] + 1.5, S.HOME[1] + 2.5]); me.follow = true; } lastLevel = lv; } }
@@ -2062,8 +2475,9 @@
       else if (current === 'build') { Land.sky(site, night); site.night = night; const st = current_site ? stepsOf(current_site.title) : { done: 0, total: 0 }; const o = { site: current_site, stepsDone: st.done, stepsTotal: st.total, k: reduce ? 1 : clamp((now - bs.lastAt) / 900, 0, 1), anim, quiet: !!state.quiet }; Land.drawLand(site, state, null, now, o); setText(sbadge, o.stage ? o.stage + ' · ' + st.done + ' of ' + st.total : '');
         /* the nail game: while something is going up, nails pop up round the site; tap them */
         if (current_site && st.done > 0 && st.done < st.total && !reduce) { if (now - game.last > 1400 && game.nails.filter(n => !n.done).length < 4) { game.last = now; const slot = [[0.1, 0.1], [0.9, 0.1], [0.1, 0.9], [0.9, 0.9], [0.5, 0.1], [0.5, 0.9]][Math.floor(Math.random() * 6)]; game.nails.push({ gx: current_site.gx + slot[0], gy: current_site.gy + slot[1], z: 36, born: now, done: false }); } game.nails = game.nails.filter(n => n.done ? now - n.at < 500 : now - n.born < 7000); game.nails.forEach(n => { const q = site.p(n.gx, n.gy, n.z); n.sx = q[0]; n.sy = q[1]; }); game.nails.forEach(n => { const ctx = site.ctx; if (n.done) { const t = (now - n.at) / 500; ctx.globalAlpha = 1 - t; ctx.font = '800 12px Baloo 2, system-ui, sans-serif'; ctx.fillStyle = '#ffc531'; ctx.textAlign = 'center'; ctx.fillText('+1', n.sx, n.sy - 10 - t * 16); ctx.textAlign = 'left'; ctx.globalAlpha = 1; return; } const pulse = 1 + Math.sin((now - n.born) / 150) * 0.15; ctx.fillStyle = 'rgba(255,197,49,.35)'; ctx.beginPath(); ctx.arc(n.sx, n.sy, 13 * pulse, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#ffc531'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(n.sx, n.sy, 13 * pulse, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = '#9aa3b0'; ctx.fillRect(n.sx - 1.5, n.sy - 9, 3, 11); ctx.fillStyle = '#e6e9ef'; ctx.fillRect(n.sx - 4, n.sy - 11, 8, 3); }); } }
+      else if (current === 'battle') { const dt = Math.min(0.1, lastT ? (now - lastT) / 1000 : 0); if (!fg.sc.hidden) drawForge(now); drawBattle(now, dt); }
       else if (current === 'global') { if (gview.spin && !reduce) gview.yaw += 0.08; ghits = G.drawGlobe(gctx, g1.cv.width, g1.cv.height, state, now, gview); setText(gsmall, state.mode === 'dev' ? 'sample plots' : 'plots when NextWork publishes a count'); }
-      if (!reduce && !pending) pending = requestAnimationFrame(frame);
+      lastT = now; if (!reduce && !pending) pending = requestAnimationFrame(frame);
     }
     paintMode(); paintDev(); paintBuild(); paintBoard(); paintSparks();
     const remembered = host.remember && host.remember('tab'); show(!state.biome ? 'base' : TABS.some(t => t[0] === remembered) ? remembered : 'world');

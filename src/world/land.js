@@ -249,6 +249,13 @@
       const dc = drawCivicWith(I, add); plan.civic.concat(L.infra).forEach(c => { if (LIVE.has(c.kind)) dc(c); });
     } else scene(I, ctx, add);
     if (opts.site) { const st = opts.site; Homes.setN(L.buildings.filter(b => b.series).length + 1, L.next ? L.plan.lotList.find(q => q[0] === L.next[0] && q[1] === L.next[1]) || {} : {}); const draw = st.infra ? ((I2, x, y) => { const c = st.infra; if (c.kind === 'stockade') { const [sx, sy, w, h] = c.rect; I.fence(sx, sy, sx + w, sy, w * 2); I.fence(sx, sy, sx, sy + h, h * 2); I.fence(sx + w, sy, sx + w, sy + h, h * 2); I.fence(sx, sy + h, sx + 16, sy + h, 32); return; } if (c.kind === 'paddock') { B.paddock(I, c.rect[0], c.rect[1], c.rect[2], c.rect[3]); return; } if (c.kind === 'rail') return; const d = c.kind === 'board' ? (I3, a, b2) => B.board(I3, a, b2) : c.kind === 'windmill' ? (I3, a, b2, n) => B.windmill(I3, a, b2, n) : c.kind === 'tank' ? (I3, a, b2) => B.tank(I3, a, b2) : c.kind === 'barn' ? (I3, a, b2, n) => B.barn(I3, a, b2, 1, n, 2) : c.kind === 'coop' ? (I3, a, b2, n) => B.coop(I3, a, b2, n) : B.CIV[c.kind]; if (d) d(I2, x, y, now); }) : null; add(st.gx + st.gy + (st.infra ? 3 : 0.5), () => { opts.stage = Homes.drawStage(I, st.gx, st.gy, opts.stepsDone, opts.stepsTotal, st.kind, lvl, opts.k == null ? 1 : opts.k, now, draw); }); }
+    /* the dead at work: bone workers on the build site, one waiting at the next pegged lot; and the rift at the edge of the land */
+    if (NW.Battle && !opts.map && !opts.quiet) {
+      const Bt = NW.Battle, t0 = reduce ? 1.1 : now / 1000, crew = (gx, gy, i) => add(gx + gy + 0.05, () => { const q = I.p(gx, gy); Bt.worker(ctx, q[0], q[1], 0.7, t0 + i * 0.37); });
+      if (opts.site) { const n = Math.min(3, 2 + Math.floor((NW.Hero ? NW.Hero.level(state) : 1) / 5)); [[-0.2, 0.75], [1.2, 0.3], [0.7, 1.25]].slice(0, n).forEach((o, i) => crew(opts.site.gx + o[0], opts.site.gy + o[1], i)); }
+      else if (L.next) crew(L.next[0] + 0.15, L.next[1] + 0.95, 0);
+      const r = riftOf(state); if (r && I.onScreen(r[0], r[1])) add(r[0] + r[1], () => riftGate(I, r, t0, NW.Hero && NW.Hero.hero(state).raids.length > 0));
+    }
     /* the traffic */
     if (!opts.map && !opts.quiet && lvl >= 2) { tickCars(L, state, now); cars.forEach(c => { if (!I.onScreen(c.at[0], c.at[1])) return; const k = I.KINDS[c.kind], gx = c.at[0] - (c.dir === 'x' ? k.L / 2 : 0.5), gy = c.at[1] - (c.dir === 'y' ? k.L / 2 : 0.5); add(c.at[0] + c.at[1] + 0.45, () => { I.vehicle(gx, gy, c.kind, c.colour, 0, c.dir, { flip: c.flip, lit: I.night > 0.3 }); if (c.kind === 'cart') { const f = c.flip ? -0.75 : 0.75; B.horse(I, c.at[0] - 0.5 + (c.dir === 'x' ? f + 0.1 : 0), c.at[1] - 0.5 + (c.dir === 'y' ? f + 0.1 : 0), '#8a5a3a', c.moving ? now / 1000 : 3); } }); }); }
     /* the kingdom's hover cars, circling the two cities at height, their shadows on the ground */
@@ -265,6 +272,25 @@
     if (T.weather && !opts.map && !opts.quiet && !reduce) weather(I, now);
     return L;
   }
+  /* the rift: a portal on open, level ground at the edge of the cleared land, clear of every build, lot and tree; found once per layout */
+  let rift = null, riftKey = null;
+  function riftOf(state) { const L = S.layout(state); T = terrainOf(state); groundFor(L, state); if (riftKey === groundKey) return rift; riftKey = groundKey; rift = null; const c = L.plan.clearing;
+    const near = (a, x, y, d) => a.some(q => Math.abs(q[0] - x) < d && Math.abs(q[1] - y) < d), lots = L.plan.lotList || [];
+    for (let i = 0; i < 48 && !rift; i++) { const a = -Math.PI / 2 + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * Math.PI / 24;
+      for (let f = 1.05; f >= 0.7 && !rift; f -= 0.07) { const x = Math.floor(c.cx + Math.cos(a) * c.rx * f), y = Math.floor(c.cy + Math.sin(a) * c.ry * f); if (x < 2 || y < 2 || x >= LAND - 2 || y >= LAND - 2) continue; let ok = true;
+        for (let dy = -1; dy <= 1 && ok; dy++) for (let dx = -1; dx <= 1 && ok; dx++) { const j = (y + dy) * LAND + x + dx; if ((ground[j] !== G.MANAGED && ground[j] !== G.WILD) || elev[j] !== 0) ok = false; }
+        if (ok && !L.buildings.some(b => Math.abs(b.gx - x) < 2.5 && Math.abs(b.gy - y) < 2.5) && !near(lots, x, y, 2.5) && !near(decor.trees, x, y, 1.5) && !near([[HOME[0] + 1, HOME[1] + 1]], x, y, 4) && !(L.next && near([L.next], x, y, 2.5))) rift = [x + 0.5, y + 0.5]; } }
+    return rift; }
+  /* the gate itself: a standing ring of violet light over a scorched patch, brighter while a raid is waiting */
+  function riftGate(I, r, t, hot) { const ctx = I.ctx, q = I.p(r[0], r[1]), e = I.p(r[0] + 1, r[1]), w = Math.hypot(e[0] - q[0], e[1] - q[1]) * 0.9, h = w * 1.5, cy = q[1] - h * 0.55, k = hot ? 1 : 0.7, pulse = 0.85 + Math.sin(t * 3) * 0.15;
+    ctx.save(); ctx.fillStyle = 'rgba(40,20,50,.45)'; ctx.beginPath(); ctx.ellipse(q[0], q[1], w * 0.75, w * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+    const glow = ctx.createRadialGradient(q[0], cy, 0, q[0], cy, h * 0.9); glow.addColorStop(0, 'rgba(190,110,255,' + 0.45 * k * pulse + ')'); glow.addColorStop(1, 'rgba(190,110,255,0)'); ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(q[0], cy, h * 0.9, 0, Math.PI * 2); ctx.fill();
+    [[-0.42, 0.9], [0.42, 1.05]].forEach(([dx, s]) => { ctx.fillStyle = '#4a4458'; ctx.beginPath(); ctx.moveTo(q[0] + dx * w - 3, q[1]); ctx.lineTo(q[0] + dx * w - 2, q[1] - h * 0.95 * s); ctx.lineTo(q[0] + dx * w + 2.5, q[1] - h * 0.9 * s); ctx.lineTo(q[0] + dx * w + 3, q[1]); ctx.closePath(); ctx.fill(); });
+    const core = ctx.createRadialGradient(q[0], cy, 0, q[0], cy, w * 0.4); core.addColorStop(0, 'rgba(20,0,40,.95)'); core.addColorStop(0.7, 'rgba(90,20,150,.9)'); core.addColorStop(1, 'rgba(200,120,255,.8)'); ctx.fillStyle = core; ctx.beginPath(); ctx.ellipse(q[0], cy, w * 0.32, h * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    for (let i = 0; i < 3; i++) { ctx.strokeStyle = 'rgba(230,190,255,' + (0.8 - i * 0.2) * k + ')'; ctx.lineWidth = 1.4 - i * 0.3; ctx.beginPath(); ctx.ellipse(q[0], cy, w * (0.3 - i * 0.07), h * (0.38 - i * 0.09), 0, t * (1.5 + i) + i, t * (1.5 + i) + i + Math.PI * 1.3); ctx.stroke(); }
+    for (let i = 0; i < 5; i++) { const a = (t * 0.7 + i / 5) % 1; ctx.fillStyle = 'rgba(220,170,255,' + (1 - a) * k + ')'; ctx.beginPath(); ctx.arc(q[0] + Math.sin(i * 2.4 + t) * w * 0.3, cy - a * h * 0.7, 1.3, 0, Math.PI * 2); ctx.fill(); }
+    if (hot) { ctx.font = '800 10px Baloo 2, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(30,10,40,.85)'; ctx.fillStyle = '#f0d6ff'; ctx.strokeText('RAID', q[0], q[1] - h * 1.08); ctx.fillText('RAID', q[0], q[1] - h * 1.08); }
+    ctx.restore(); I.lights.push({ x: q[0], y: cy, r: h * 0.9, c: '190,110,255', k: 0.7 * k }); }
   /* rain or snow, falling over the whole view; the drops are placed by hash so they need no state */
   function weather(I, now) { const ctx = I.ctx, W = I.W || 880, H = I.H || 620, t = now / 1000, cx = I.cam.x, cy = I.cam.y; ctx.save(); ctx.setTransform(I.DPR * I.S, 0, 0, I.DPR * I.S, 0, 0);
     if (T.weather === 'rain') { ctx.strokeStyle = 'rgba(200,220,240,.45)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 160; i++) { const x = (S.hash(i, 1) * W * 1.2 - t * 40 + cx * 0.2) % (W * 1.2), y = (S.hash(i, 2) * H + t * 520 + i * 7 + cy * 0.2) % (H + 40) - 20; ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 14); } ctx.stroke(); ctx.fillStyle = 'rgba(120,140,160,.12)'; ctx.fillRect(0, 0, W, H); }
@@ -274,5 +300,5 @@
   /* the classified ground for a state, for anything that wants to ask what is where */
   const groundOf = state => { T = terrainOf(state); const L = S.layout(state); groundFor(L, state); return { g: ground, el: elev, G, T }; };
   const hit = (L, g) => L.buildings.find(b => b.tier > 0 && Math.abs(b.gx + 0.5 - g[0]) < 0.75 && Math.abs(b.gy + 0.5 - g[1]) < 0.75);
-  NW.Land = { TERRAINS, TERRAIN_KEYS, terrainOf, groundColour, treeOf, onRoad, makeMe, goTo, stepMe, siteFor, drawLand, sky, hit, groundOf };
+  NW.Land = { TERRAINS, TERRAIN_KEYS, terrainOf, groundColour, treeOf, onRoad, makeMe, goTo, stepMe, siteFor, drawLand, sky, hit, groundOf, riftOf };
 })();

@@ -8,21 +8,28 @@ Your NextWork projects, as land. A concept for a pane inside the extension.
 - Dev mode seeds, simulates and resets. Production shows only what the
   extension has read from your own pages on nextwork.ai.
 
-## The five tabs
+## The six tabs
 
 1. **NextWorld** - NextWork Headquarters, Austin: the campus, the hubs, the
    staff, the ranch, and the learners' plots outside the fence. Under it,
    this week's contract and who is building (sample names until NextWork
    publishes counts). Tap your plot to go home.
-2. **Avatar** - you: pineapple, person, robot or cat, and the shop. Dashed
+2. **Hero** - you: a necromancer from the first project, with class,
+   combat power, four stats, the army, the spells and the armory. The look
+   (pineapple, person, robot or cat) and the shop are still here; dashed
    options cost sparks.
 3. **My World** - your land, on one of nine terrains you choose once. Every
    era has a site plan; the era's first projects build its infrastructure,
    every other project is a home. People move in, farm, trim the trees and
-   walk the dog on a forty-second day. Tap the shield for the dashboard.
+   walk the dog on a forty-second day. Bone workers wait at the next lot;
+   a rift glows at the edge of the land (tap it to fight). Tap the shield
+   for the dashboard.
 4. **My Build** - the project going up, step by step, the exact building
-   revealed as the steps are ticked, a lesson under each step, the nails.
-5. **Globe** - the world, and your rank in it.
+   revealed as the steps are ticked, a lesson under each step, the nails,
+   and the bone crew hammering on the site.
+5. **Battle** - the forge (three taps break the new weapon out), the raid
+   a finish opens, and the rifts your steps unlock. See `BATTLE.md`.
+6. **Globe** - the world, and your rank in it.
 
 ## The economy: three things, three rules
 

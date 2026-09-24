@@ -60,8 +60,30 @@ is felt.
 ## What does not change
 
 The NextWorld tab (the campus, the hub) is untouched. My World keeps its
-eras and plans; the dead now build there: bone workers stand on every
-build site, and a rift portal glows at the edge of your land.
+eras and plans; the dead now build there: two or three bone workers hammer
+on the build site (more as you level), one waits at the next pegged lot,
+and a rift portal glows on open ground at the edge of your land, marked
+RAID while one is waiting. Tap it and the Battle tab opens.
+
+## The numbers
+
+| Rift | Opens at | Waves | Boss | Souls |
+|---|---|---|---|---|
+| Raid (a finished project) | always | 3 | none | 10 |
+| Ordinary | level 1 | 3 | chief | 25 |
+| Nightmare | level 5 | 4 | warden | 60 |
+| Hell | level 10 | 5 | warden | 150 |
+
+Souls scale with level and stars (a win, the hero above half health, under
+par time); a loss pays a fifth. Rank a summon: 30, 60, 120, 240, 480 souls
+(five ranks). Sharpen a weapon: 20 x (n+1)^1.5 souls, up to +10.
+
+Balance is checked headless: `node tools/battlecheck.js` plays every rift
+at eight levels over sixteen seeds on auto. Raids and Ordinary are won
+from level 1; Nightmare at level 5 is a long grind (won, but near the
+time limit and rarely for three stars); Hell at level 13 is won three
+times in four by a player who ranks up and sharpens, and never by one who
+leaves the souls unspent.
 
 ## Files
 
