@@ -255,6 +255,73 @@
     if (f.running) focusTick = setInterval(renderFocus, 1000);
   }
 
+  /* ---- the companion: the little friend on the page ----
+   * Who it is and how it behaves are settings like any other. Its model is
+   * not: that lives on this computer, behind a helper the user installs, and
+   * the popup only asks the browser for native messaging when "Tie in your
+   * model" is pressed, then asks the helper whether it is there. */
+  const BUDDY_PERM = { permissions: ['nativeMessaging'] };
+  function buddyState() { return Object.assign({}, NWB.DEFAULTS, settings.buddy); }
+  function saveBuddy(patch) { save({ buddy: Object.assign({}, buddyState(), patch) }); renderBuddy(); }
+  let buddyAnim = null;
+  function paintPick(cv, id, t) { const d = Math.min(2, window.devicePixelRatio || 1), c = cv.getContext && cv.getContext('2d'); if (!c || !c.setTransform) return; c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, 48, 48); NWB.draw(c, id, 24, 45, 0.48, { action: 'idle', t: t }); }
+  function renderBuddy() {
+    const b = buddyState(), p = NWB.get(b.who);
+    $('buddyEnabled').checked = !!b.enabled;
+    [...$('buddy-picks').querySelectorAll('button')].forEach(function (btn) { btn.setAttribute('aria-checked', String(btn.dataset.who === b.who)); });
+    $('buddy-blurb').textContent = p.title + '. ' + p.blurb;
+    if (document.activeElement !== $('buddy-name')) $('buddy-name').value = b.name || '';
+    $('buddy-name').placeholder = p.name;
+    [...$('buddy-nudge').querySelectorAll('button')].forEach(function (btn) { btn.setAttribute('aria-pressed', String(Number(btn.dataset.min) === Number(b.nudgeMin))); });
+    $('buddy-quiet').checked = !!b.quiet;
+    $('buddy-unlink').hidden = !b.linked;
+    $('buddy-connect').textContent = b.linked ? 'Check the connection' : 'Tie in your model';
+    $('buddy-cmd-install').textContent = 'node companion-host/install.js --extension ' + chrome.runtime.id;
+  }
+  /* the chosen companion moves in the popup while its tab is open, and nothing moves when it is not */
+  function animateBuddy(on) {
+    if (buddyAnim) { clearInterval(buddyAnim); buddyAnim = null; }
+    [...$('buddy-picks').querySelectorAll('canvas')].forEach(function (cv) { paintPick(cv, cv.dataset.who, 0); });
+    if (!on) return;
+    const start = Date.now();
+    buddyAnim = setInterval(function () { const cv = $('buddy-picks').querySelector('canvas[data-who="' + buddyState().who + '"]'); if (cv) paintPick(cv, cv.dataset.who, (Date.now() - start) / 1000); }, 100);
+  }
+  function modelSays(text) { $('buddy-model-state').textContent = text; }
+  /* Ask the helper whether it is there, and say what it said. */
+  function pingModel(quiet) {
+    chrome.runtime.sendMessage({ type: 'buddy:ping' }, function (res) {
+      if (chrome.runtime.lastError || !res) { if (!quiet) modelSays('No answer from the helper.'); return; }
+      if (!res.ok) { $('buddy-steps').hidden = false; modelSays(res.code === 'no-host' ? 'The helper is not installed yet. Three steps below.' : res.error || 'Not connected.'); if (buddyState().linked && res.code === 'no-host') saveBuddy({ linked: false }); return; }
+      $('buddy-steps').hidden = true;
+      modelSays((res.ready ? 'Connected: ' : 'Helper found, but ') + (res.ready ? res.model + ' via ' + res.backend : (res.why || 'the model is not ready.')) + (res.repo ? ' · context from ' + res.repo : ''));
+      if (!buddyState().linked && res.ready) saveBuddy({ linked: true });
+    });
+  }
+  function connectModel() {
+    chrome.permissions.request(BUDDY_PERM, function (granted) {
+      if (chrome.runtime.lastError || !granted) { modelSays('Not allowed. Your companion still works without a model.'); return; }
+      modelSays('Looking for the helper\u2026'); pingModel(false);
+    });
+  }
+  function wireBuddy() {
+    NWB.PRESETS.forEach(function (p) {
+      const btn = document.createElement('button'); btn.type = 'button'; btn.setAttribute('role', 'radio'); btn.dataset.who = p.id; btn.title = p.title;
+      const cv = document.createElement('canvas'); const d = Math.min(2, window.devicePixelRatio || 1); cv.width = 48 * d; cv.height = 48 * d; cv.dataset.who = p.id; cv.setAttribute('aria-hidden', 'true');
+      const label = document.createElement('span'); label.textContent = p.name;
+      btn.appendChild(cv); btn.appendChild(label); btn.addEventListener('click', function () { saveBuddy({ who: p.id }); });
+      $('buddy-picks').appendChild(btn);
+    });
+    $('buddyEnabled').addEventListener('change', function () { saveBuddy({ enabled: $('buddyEnabled').checked }); });
+    $('buddy-name').addEventListener('change', function () { saveBuddy({ name: $('buddy-name').value.trim().slice(0, 20) }); });
+    [...$('buddy-nudge').querySelectorAll('button')].forEach(function (btn) { btn.addEventListener('click', function () { saveBuddy({ nudgeMin: Number(btn.dataset.min) }); }); });
+    $('buddy-quiet').addEventListener('change', function () { saveBuddy({ quiet: $('buddy-quiet').checked }); });
+    $('buddy-connect').addEventListener('click', connectModel);
+    $('buddy-unlink').addEventListener('click', function () { chrome.permissions.remove(BUDDY_PERM, function () { saveBuddy({ linked: false }); modelSays('Disconnected. Your companion speaks from its own lines.'); }); });
+    [...document.querySelectorAll('[data-copy]')].forEach(function (btn) { btn.addEventListener('click', function () { const text = $(btn.dataset.copy).textContent; if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1400); }); }); });
+    renderBuddy();
+    if (buddyState().linked) chrome.permissions.contains(BUDDY_PERM, function (has) { if (has) pingModel(true); else saveBuddy({ linked: false }); });
+  }
+
   /* ---- the companion pane ---- */
 
   function companionState() {
@@ -560,11 +627,12 @@
    * Which tab is showing is not a setting - it is where you were a moment ago
    * - so it is kept beside the popup rather than written in with the themes. */
   function showTab(name) {
-    ['theme', 'focus', 'split'].forEach(function (id) {
+    ['theme', 'focus', 'split', 'buddy'].forEach(function (id) {
       $('tab-' + id).setAttribute('aria-selected', String(id === name));
       $('panel-' + id).hidden = id !== name;
     });
     try { localStorage.setItem('nwt-tab', name); } catch (e) { /* private mode */ }
+    animateBuddy(name === 'buddy');
   }
 
   /* The two halves of this tab, remembered the same way the tabs above are:
@@ -746,7 +814,7 @@
     $('companion-add').addEventListener('click', addPane);
     $('companion-access-btn').addEventListener('click', askAllow);
 
-    ['theme', 'focus', 'split'].forEach(function (name) {
+    ['theme', 'focus', 'split', 'buddy'].forEach(function (name) {
       $('tab-' + name).addEventListener('click', function () { showTab(name); });
     });
     ['page', 'float'].forEach(function (name) {
@@ -763,7 +831,8 @@
     });
     let opening = 'theme';
     try { opening = localStorage.getItem('nwt-tab') || 'theme'; } catch (e) { /* private mode */ }
-    showTab(['theme', 'focus', 'split'].indexOf(opening) === -1 ? 'theme' : opening);
+    wireBuddy();
+    showTab(['theme', 'focus', 'split', 'buddy'].indexOf(opening) === -1 ? 'theme' : opening);
 
     $('splitEnabled').addEventListener('change', function () {
       saveSplit({ enabled: $('splitEnabled').checked });

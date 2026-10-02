@@ -12,6 +12,9 @@
     "https://nextwork.ai/*",
     "https://*.nextwork.ai/*"
   ],
+  "optional_permissions": [
+    "nativeMessaging"
+  ],
   "optional_host_permissions": [
     "https://*/*"
   ],
@@ -25,7 +28,9 @@
         "src/wallpapers.js",
         "src/scenes.js",
         "src/theme-engine.js",
-        "src/content.js"
+        "src/content.js",
+        "src/buddy-art.js",
+        "src/buddy.js"
       ],
       "run_at": "document_start",
       "all_frames": true

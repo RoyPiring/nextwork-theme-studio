@@ -15,3 +15,6 @@ Thumbs.db
 *.zip
 *.xpi
 dist/
+
+# the companion helper's settings for this machine (paths, extension id, your repo)
+companion-host/.local/

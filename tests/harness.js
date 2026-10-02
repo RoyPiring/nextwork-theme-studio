@@ -1309,7 +1309,7 @@ function loadPage(options) {
   const vm = require('node:vm');
   vm.createContext(sandbox);
   sandbox.self = sandbox;
-  ['src/wallpapers.js', 'src/scenes.js', 'src/theme-engine.js']
+  ['src/wallpapers.js', 'src/scenes.js', 'src/theme-engine.js', 'src/buddy-art.js']
     .concat(opts.scripts || [])
     .forEach(f => vm.runInContext(
       fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f }));

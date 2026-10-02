@@ -333,3 +333,38 @@ chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
   }
 
 });
+
+/* ---- the companion's model: a program on this computer, reached through native messaging ----
+ *
+ * The extension never opens a connection for this. A question goes to a helper
+ * the user installed themselves (companion-host/install.js), registered with
+ * the browser under the name below; the browser starts it, hands it one
+ * message, and hands back its one reply. Native messaging is an optional
+ * permission, asked for only when "Tie in your model" is pressed, so a
+ * companion without a model needs nothing more than the extension already has.
+ * Everything sent is trimmed here, so a page can never push more than a short
+ * question and where you are. */
+const BUDDY_HOST = 'com.pineapple.nextwork_buddy';
+const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
+function toHost(payload, reply) {
+  if (!chrome.runtime.sendNativeMessage) { reply({ ok: false, code: 'no-permission', error: 'Tie in your model from the Companion tab first.' }); return; }
+  try {
+    chrome.runtime.sendNativeMessage(BUDDY_HOST, payload, function (res) {
+      if (chrome.runtime.lastError) { reply({ ok: false, code: 'no-host', error: 'The model helper is not installed on this computer yet.', detail: clip(chrome.runtime.lastError.message, 200) }); return; }
+      reply(res && typeof res === 'object' ? res : { ok: false, code: 'empty', error: 'The model helper sent nothing back.' });
+    });
+  } catch (e) { reply({ ok: false, code: 'no-host', error: 'The model helper could not be reached.' }); }
+}
+chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
+  if (!msg || typeof msg.type !== 'string' || msg.type.indexOf('buddy:') !== 0) return;
+  if (sender && sender.id && sender.id !== chrome.runtime.id) return;
+  if (msg.type === 'buddy:ping') { toHost({ type: 'ping' }, reply); return true; }
+  if (msg.type === 'buddy:ask') {
+    const p = msg.persona || {}, pg = msg.page || {}, st = msg.stats || {};
+    toHost({ type: 'ask', question: clip(msg.question, 300),
+      persona: { name: clip(p.name, 40), voice: clip(p.voice, 160) },
+      page: { project: clip(pg.project, 100), section: clip(pg.section, 80), onProject: !!pg.onProject, path: clip(pg.path, 120) },
+      stats: { today: st.today | 0, total: st.total | 0, mood: st.mood | 0 } }, reply);
+    return true;
+  }
+});

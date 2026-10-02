@@ -2339,6 +2339,9 @@
 
   chrome.storage.onChanged.addListener(function (changes, area) {
     if (area !== 'local') return;
+    /* The companion keeps its own settings and its mood; neither changes the theme, so neither rebuilds it. */
+    const keys = Object.keys(changes || {});
+    if (keys.length && keys.every(function (k) { return k === 'buddy' || k === 'buddyPet'; })) return;
     readAndRender();
   });
 

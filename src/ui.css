@@ -184,14 +184,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 }
 
 /* ---- tabs ----
- * Three things live in this popup and they are not related: how the site
- * looks, a timer, and what sits beside the page. Stacked in one column they
- * made a page you had to scroll past two features to reach the third. */
-.tabs { display: flex; gap: 4px; margin-bottom: 12px;
+ * Four things live in this popup and they are not related: how the site
+ * looks, a timer, what sits beside the page, and a companion. Stacked in one
+ * column they made a page you had to scroll past three to reach the fourth.
+ * Three to a row, so a fourth starts a second row instead of squeezing. */
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;
   background: var(--ui-surface); border: 1px solid var(--ui-border);
   border-radius: 10px; padding: 3px; }
 .tabs button {
-  flex: 1; min-width: 0; padding: 6px 4px; font-size: 12px; font-weight: 600;
+  flex: 1 1 30%; min-width: 0; padding: 6px 4px; font-size: 12px; font-weight: 600;
   border: 0; background: transparent; color: var(--ui-text-muted);
   border-radius: 7px;
 }
@@ -212,6 +213,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .tabs.sub button[aria-selected="true"] { background: transparent;
   border-bottom-color: var(--ui-accent); }
 .sub-panel { display: flex; flex-direction: column; gap: 10px; }
+/* ---- the companion: five to choose from, drawn by the same code as on the page ---- */
+.buddy-picks { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.buddy-picks button { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 4px 0 6px; overflow: hidden; font-size: 10px; line-height: 1.15; border-radius: 9px; }
+.buddy-picks button[aria-checked="true"] { border-color: var(--ui-accent); box-shadow: 0 0 0 1px var(--ui-accent); }
+.buddy-picks canvas { width: 42px; height: 42px; }
+#buddy-name { width: 100%; }
+.buddy-steps { display: flex; flex-direction: column; gap: 6px; }
+.buddy-steps p { margin: 0; line-height: 1.45; }
+.buddy-steps code, #buddy-model code { font-size: 10.5px; word-break: break-all; }
+.row.cmd { gap: 6px; align-items: flex-start; } .row.cmd code { flex: 1; padding: 6px 8px; border-radius: 7px; background: var(--ui-surface-alt); border: 1px solid var(--ui-border); }
 .sub-panel[hidden] { display: none; }
 /* Beside a group label rather than standing on its own, so it reads as part
  * of the heading instead of as the biggest control in the panel. */

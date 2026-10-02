@@ -23,6 +23,7 @@
     <button type="button" role="tab" id="tab-theme" data-tab="theme" aria-selected="true">Theme</button>
     <button type="button" role="tab" id="tab-focus" data-tab="focus" aria-selected="false">Focus</button>
     <button type="button" role="tab" id="tab-split" data-tab="split" aria-selected="false">Panels</button>
+    <button type="button" role="tab" id="tab-buddy" data-tab="buddy" aria-selected="false">Companion</button>
   </div>
 
   <div class="tab-panel" id="panel-theme">
@@ -137,6 +138,55 @@
 
   </div><!-- /panel-focus -->
 
+  <div class="tab-panel" id="panel-buddy" hidden>
+  <section class="card" id="buddy-panel">
+    <div class="row between">
+      <h2 class="section-title">Companion</h2>
+      <label class="switch-inline" title="Show your companion on nextwork.ai">
+        <span class="tiny muted">Show</span>
+        <span class="switch sm"><input type="checkbox" id="buddyEnabled"><span></span></span>
+      </label>
+    </div>
+    <p class="tiny muted">A small friend that floats on nextwork.ai, keeps you on track and nudges you when you drift. It lives on this computer only.</p>
+
+    <div class="buddy-picks" id="buddy-picks" role="radiogroup" aria-label="Choose your companion"></div>
+    <p class="tiny" id="buddy-blurb"></p>
+
+    <div class="focus-group">
+      <span class="group-label">Its name</span>
+      <input type="text" id="buddy-name" maxlength="20" aria-label="Your companion's name">
+    </div>
+
+    <div class="focus-group">
+      <span class="group-label">Nudge me when I go still</span>
+      <div class="chips" id="buddy-nudge" role="group" aria-label="Nudge after">
+        <button type="button" data-min="0">Off</button>
+        <button type="button" data-min="3">3m</button>
+        <button type="button" data-min="5">5m</button>
+        <button type="button" data-min="10">10m</button>
+      </div>
+      <label class="check tiny"><input type="checkbox" id="buddy-quiet"> Quiet: only talk when I click it</label>
+    </div>
+
+    <div class="focus-group" id="buddy-model">
+      <span class="group-label">Your local model</span>
+      <p class="tiny muted" id="buddy-model-state">Not tied in. Your companion works without one.</p>
+      <div class="row" style="gap:8px">
+        <button class="primary grow" id="buddy-connect">Tie in your model</button>
+        <button class="ghost tiny" id="buddy-unlink" hidden>Disconnect</button>
+      </div>
+      <div class="buddy-steps" id="buddy-steps" hidden>
+        <p class="tiny"><b>1.</b> Install Ollama on this computer, then pull a small model:</p>
+        <div class="row cmd"><code id="buddy-cmd-pull">ollama pull gemma3:4b</code><button class="ghost tiny" data-copy="buddy-cmd-pull">Copy</button></div>
+        <p class="tiny"><b>2.</b> From this extension&#8217;s folder, register the helper. Add <code>--repo "C:\path\to\your\project"</code> to give it a project&#8217;s context.</p>
+        <div class="row cmd"><code id="buddy-cmd-install"></code><button class="ghost tiny" data-copy="buddy-cmd-install">Copy</button></div>
+        <p class="tiny"><b>3.</b> Press <b>Tie in your model</b> again.</p>
+        <p class="tiny muted">Any command-line AI works too: add <code>--command "your-cli --print"</code>. The helper only talks to this computer.</p>
+      </div>
+    </div>
+  </section>
+  </div><!-- /panel-buddy -->
+
   <div class="tab-panel" id="panel-split" hidden>
   <div class="tabs sub" role="tablist">
     <button type="button" role="tab" id="sub-page" data-sub="page" aria-selected="true">In the page</button>
@@ -220,6 +270,7 @@
   <script src="wallpapers.js"></script>
   <script src="scenes.js"></script>
   <script src="theme-engine.js"></script>
+  <script src="buddy-art.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

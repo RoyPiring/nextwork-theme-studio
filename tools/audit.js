@@ -115,7 +115,17 @@ check('permissions stay minimal', () => {
 
   /* Everything below is another way to widen reach without touching
    * `permissions`, so each one has to be absent rather than merely unchecked. */
-  ['optional_permissions', 'web_accessible_resources',
+  /* One optional permission, and only this one: native messaging, for the
+   * companion's model. It is asked for when "Tie in your model" is pressed and
+   * not before, and what it reaches is a program the user installed on their
+   * own machine and registered by name (companion-host/install.js). It opens
+   * no connection from the extension and grants no host access. Anything else
+   * here is a new permission at install, and has to be argued for on its own. */
+  const optPerms = manifest.optional_permissions || [];
+  if (optPerms.length && JSON.stringify(optPerms) !== JSON.stringify(['nativeMessaging'])) {
+    fail('optional_permissions should be only nativeMessaging: ' + optPerms.join(', '));
+  }
+  ['web_accessible_resources',
    'externally_connectable', 'content_security_policy'].forEach(key => {
     if (manifest[key]) fail(key + ' should not be needed');
   });

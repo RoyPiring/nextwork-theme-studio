@@ -128,6 +128,23 @@ have already allowed with a way to take each one back.
 
 ---
 
+### Companion
+
+A small friend that floats on nextwork.ai while you build: the **Pineapple
+King**, **Nabi** the fairy, **Bloop** the slime, the **NextWork Robot**, or
+**Ember**, a dragon egg that hatches as you focus. It wanders a little, cheers
+when you come back, and nudges you when you go still on a project. Click it for
+where you are, how you are doing, or focus music ideas.
+
+It can also talk with a **model on your own computer** (Ollama with Gemma, or
+any command-line AI) through a small helper you install. The extension never
+opens a connection for it, and asks for the permission only when you tie a
+model in.
+
+→ [Set up a local model](companion-host/README.md)
+
+---
+
 ## Documentation
 
 **New here?** [The changelog](CHANGELOG.md) lists what each version added.
