@@ -275,9 +275,10 @@
     [...$('buddy-nudge').querySelectorAll('button')].forEach(function (btn) { btn.setAttribute('aria-pressed', String(Number(btn.dataset.min) === Number(b.nudgeMin))); });
     $('buddy-quiet').checked = !!b.quiet;
     $('buddy-roam').checked = b.roam !== false;
+    $('buddy-online').checked = !!b.onlineVoices;
     [...$('buddy-voice').querySelectorAll('button')].forEach(function (btn) { btn.setAttribute('aria-pressed', String(btn.dataset.voice === (b.voice || 'off'))); });
     $('buddy-voice-name').disabled = b.voice !== 'system'; $('buddy-voice-try').disabled = !b.voice || b.voice === 'off';
-    $('buddy-voice-note').textContent = b.voice === 'model' ? (buddyVoiceReady ? 'A neural voice from the helper on this computer.' : 'Needs the helper with a voice: see step 2 below (--voice). Until then it uses this computer\u2019s voice.') : 'Only voices that run on this computer are listed. Nothing is sent online.';
+    $('buddy-voice-note').textContent = b.voice === 'model' ? (buddyVoiceReady ? 'A neural voice from the helper on this computer.' : 'Needs the helper with a voice: see step 2 below (--voice). Until then it uses this computer\u2019s voice.') : (b.onlineVoices ? 'Online voices are on: what it says out loud goes to Microsoft. Chat and everything else stay on this computer.' : 'Only voices that run on this computer are listed. Nothing is sent online.');
     $('buddy-unlink').hidden = !b.linked;
     $('buddy-connect').textContent = b.linked ? 'Check the connection' : 'Tie in your model';
     $('buddy-cmd-install').textContent = 'node companion-host/install.js --extension ' + chrome.runtime.id;
@@ -295,12 +296,12 @@
   }
   /* this computer's own voices: the online ones are left out, because they send the words away */
   let buddyVoiceReady = false;
-  function localVoices() { return self.speechSynthesis ? self.speechSynthesis.getVoices().filter(function (v) { return v.localService; }) : []; }
+  function localVoices() { const online = !!buddyState().onlineVoices; return self.speechSynthesis ? self.speechSynthesis.getVoices().filter(function (v) { return v.localService || online; }) : []; }
   function fillVoices() { const sel = $('buddy-voice-name'), b = buddyState(), voices = localVoices(); while (sel.firstChild) sel.removeChild(sel.firstChild);
     if (!voices.length) { const o = document.createElement('option'); o.textContent = 'No local voices found'; sel.appendChild(o); return; }
-    voices.forEach(function (v) { const o = document.createElement('option'); o.value = v.name; o.textContent = v.name.replace(/^Microsoft /, '') + ' (' + v.lang + ')'; o.selected = v.name === b.voiceName; sel.appendChild(o); }); }
-  function tryVoice() { const b = buddyState(), p = NWB.get(b.who), ss = self.speechSynthesis; if (!ss) return; const v = localVoices().find(function (x) { return x.name === b.voiceName; }) || localVoices()[0]; if (!v) return;
-    const u = new SpeechSynthesisUtterance('Hi, I\u2019m ' + (b.name || p.name) + '. Let\u2019s get building.'); u.voice = v; u.rate = (p.speech || {}).rate || 1; u.pitch = (p.speech || {}).pitch || 1; ss.cancel(); ss.speak(u); }
+    voices.forEach(function (v) { const o = document.createElement('option'); o.value = v.name; o.textContent = v.name.replace(/^Microsoft /, '') + (v.localService ? '' : ' \u00b7 online'); o.selected = v.name === b.voiceName; sel.appendChild(o); }); }
+  function tryVoice() { const b = buddyState(), p = NWB.get(b.who), ss = self.speechSynthesis; if (!ss) return; const v = localVoices().find(function (x) { return x.name === b.voiceName; }) || localVoices()[0]; if (!v) return; const natural = /Natural/i.test(v.name);
+    const u = new SpeechSynthesisUtterance('Hi, I\u2019m ' + (b.name || p.name) + '. Let\u2019s get building.'); u.voice = v; u.rate = natural ? 1 : (p.speech || {}).rate || 1; u.pitch = natural ? 1 : (p.speech || {}).pitch || 1; ss.cancel(); ss.speak(u); }
   function modelSays(text) { $('buddy-model-state').textContent = text; }
   /* Ask the helper whether it is there, and say what it said. */
   function pingModel(quiet) {
@@ -335,6 +336,10 @@
     [...$('buddy-voice').querySelectorAll('button')].forEach(function (btn) { btn.addEventListener('click', function () { const patch = { voice: btn.dataset.voice }; if (btn.dataset.voice === 'system' && !buddyState().voiceName && localVoices()[0]) patch.voiceName = localVoices()[0].name; saveBuddy(patch); }); });
     $('buddy-voice-name').addEventListener('change', function () { saveBuddy({ voiceName: $('buddy-voice-name').value }); tryVoice(); });
     $('buddy-voice-try').addEventListener('click', tryVoice);
+    $('buddy-online').addEventListener('change', function () { const on = $('buddy-online').checked, patch = { onlineVoices: on }; settings.buddy = Object.assign({}, buddyState(), patch);
+      const all = localVoices(), andrew = all.find(function (v) { return /Andrew.*Natural/i.test(v.name); }) || all.find(function (v) { return /Natural/i.test(v.name) && /^en/i.test(v.lang); });
+      if (on && andrew) { patch.voiceName = andrew.name; if (buddyState().voice === 'off') patch.voice = 'system'; } if (!on && all.every(function (v) { return v.name !== buddyState().voiceName || !v.localService; })) patch.voiceName = '';
+      saveBuddy(patch); fillVoices(); });
     fillVoices(); if (self.speechSynthesis) self.speechSynthesis.addEventListener('voiceschanged', fillVoices);
     $('buddy-connect').addEventListener('click', connectModel);
     $('buddy-unlink').addEventListener('click', function () { chrome.permissions.remove(BUDDY_PERM, function () { saveBuddy({ linked: false }); modelSays('Disconnected. Your companion speaks from its own lines.'); }); });

@@ -128,10 +128,12 @@
     systemSpeak(clean);
   }
   function systemSpeak(text, retried) {
-    const ss = window.speechSynthesis; if (!ss) return; const local = ss.getVoices().filter(v => v.localService);   /* only voices that run on this computer: an online voice would send the text away */
-    if (!local.length) { if (!retried) ss.addEventListener('voiceschanged', () => systemSpeak(text, true), { once: true }); return; }
-    const voice = local.find(v => v.name === cfg.voiceName) || local.find(v => /^en/i.test(v.lang)) || local[0], st = who().speech || {};
-    const u = new SpeechSynthesisUtterance(text); u.voice = voice; u.rate = st.rate || 1; u.pitch = st.pitch || 1; ss.cancel(); ss.speak(u);
+    /* Only voices that run on this computer, unless you allowed the browser's online voices (Edge's Natural ones): those send the words to Microsoft to be spoken. */
+    const ss = window.speechSynthesis; if (!ss) return; const usable = ss.getVoices().filter(v => v.localService || cfg.onlineVoices);
+    if (!usable.length) { if (!retried) ss.addEventListener('voiceschanged', () => systemSpeak(text, true), { once: true }); return; }
+    const voice = usable.find(v => v.name === cfg.voiceName) || (cfg.onlineVoices && usable.find(v => /Andrew.*Natural/i.test(v.name))) || usable.find(v => /^en/i.test(v.lang)) || usable[0], st = who().speech || {};
+    const natural = /Natural/i.test(voice.name);   /* a natural voice already sounds like a person; bending its pitch makes it sound less like one */
+    const u = new SpeechSynthesisUtterance(text); u.voice = voice; u.rate = natural ? 1 : (st.rate || 1); u.pitch = natural ? 1 : (st.pitch || 1); ss.cancel(); ss.speak(u);
   }
   function play(b64) { try { audio = audio || new AudioContext(); const bin = atob(b64), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); audio.decodeAudioData(buf.buffer).then(ab => { const src = audio.createBufferSource(); src.buffer = ab; src.connect(audio.destination); src.start(); }, () => {}); } catch (e) { /* no sound this time */ } }
 

@@ -226,7 +226,7 @@
   function heart(ctx, x, y, r) { ctx.fillStyle = '#ff5a7a'; ctx.beginPath(); ctx.moveTo(x, y + r); ctx.bezierCurveTo(x - r * 2, y - r * 0.4, x - r * 0.8, y - r * 1.8, x, y - r * 0.5); ctx.bezierCurveTo(x + r * 0.8, y - r * 1.8, x + r * 2, y - r * 0.4, x, y + r); ctx.fill(); }
 
   /* the settings, shared by the page and the popup */
-  const DEFAULTS = { enabled: false, who: 'king', name: '', nudgeMin: 5, quiet: false, x: null, y: null, scale: 1, linked: false, snoozeUntil: 0, roam: true, voice: 'off', voiceName: '' };   /* voice: off, system (this computer's voices) or model (a neural voice through the helper) */
+  const DEFAULTS = { enabled: false, who: 'king', name: '', nudgeMin: 5, quiet: false, x: null, y: null, scale: 1, linked: false, snoozeUntil: 0, roam: true, voice: 'off', voiceName: '', onlineVoices: false };   /* voice: off, system (this computer's voices) or model (a neural voice through the helper) */
 
   self.NWB = { PRESETS, ACTIONS, DEFAULTS, get, stageOf, pickAction, line, draw };
 })();

@@ -67,10 +67,24 @@ In the popup, under **Its voice**:
   node companion-host/install.js --extension <id> --voice "piper -m C:\voices\en_US-amy-medium.onnx"
   ```
 
+  For the most human-sounding local voice, use **Kokoro** (open, Apache
+  licensed): download `kokoro-v1.0.onnx` and `voices-v1.0.bin` once into a
+  folder, then:
+
+  ```
+  node companion-host/install.js --extension <id> --voice "python companion-host/kokoro-say.py --dir C:\voices\kokoro --voice am_michael"
+  ```
+
   Any text-to-speech command works if it reads the line on stdin and writes a
   WAV to stdout. Try it with `node companion-host/host.js --say "Hello"`,
   which writes `.local/say-test.wav`. Until a voice is set up, Neural falls
   back to this computer's voice.
+
+**Edge's Natural voices** (Andrew, Ava and the rest) sound the most human, but
+they are not local: Edge sends the words to Microsoft to be spoken. The popup
+offers them only behind **Allow online voices**, which is off until you tick
+it, and it applies only to what the companion says out loud. (The `edge-tts`
+tool is open source, but it reaches the same online voices.)
 
 Browsers only let a page speak after you have clicked or typed on it, so the
 first line after loading may be silent.
