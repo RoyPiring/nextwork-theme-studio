@@ -51,6 +51,32 @@ browser starts when you ask your companion something.
 3. In the popup, press **Tie in your model**. Allow the permission. The status
    line says which model answered.
 
+## Give it a voice
+
+In the popup, under **Its voice**:
+
+- **This computer** uses the voices already installed (on Windows: David,
+  Zira, Mark). Only voices that run on this computer are listed; online
+  voices are left out because they send the words away.
+- **Neural** uses a local neural voice through this helper, such as
+  [Piper](https://github.com/OHF-Voice/piper1-gpl). Download a voice once, then
+  reinstall with `--voice`:
+
+  ```
+  piper --download-model en_US-amy-medium --download-dir C:\voices
+  node companion-host/install.js --extension <id> --voice "piper -m C:\voices\en_US-amy-medium.onnx"
+  ```
+
+  Any text-to-speech command works if it reads the line on stdin and writes a
+  WAV to stdout. Try it with `node companion-host/host.js --say "Hello"`,
+  which writes `.local/say-test.wav`. Until a voice is set up, Neural falls
+  back to this computer's voice.
+
+Browsers only let a page speak after you have clicked or typed on it, so the
+first line after loading may be silent.
+
+## Check it
+
 Run `node companion-host/host.js --selftest` to check it from a terminal, or
 `node companion-host/host.js --ask "your question"` to ask once.
 

@@ -167,6 +167,18 @@
         <button type="button" data-min="10">10m</button>
       </div>
       <label class="check tiny"><input type="checkbox" id="buddy-quiet"> Quiet: only talk when I click it</label>
+      <label class="check tiny"><input type="checkbox" id="buddy-roam"> Float around the whole screen</label>
+    </div>
+
+    <div class="focus-group">
+      <span class="group-label">Its voice</span>
+      <div class="chips" id="buddy-voice" role="group" aria-label="How it speaks">
+        <button type="button" data-voice="off">Silent</button>
+        <button type="button" data-voice="system" title="The voices installed on this computer">This computer</button>
+        <button type="button" data-voice="model" title="A neural voice the helper runs, like Piper">Neural</button>
+      </div>
+      <div class="row" style="gap:6px"><select id="buddy-voice-name" aria-label="Which voice" class="grow"></select><button class="ghost tiny" id="buddy-voice-try">Try it</button></div>
+      <p class="tiny muted" id="buddy-voice-note">Only voices that run on this computer are listed. Nothing is sent online.</p>
     </div>
 
     <div class="focus-group" id="buddy-model">
@@ -182,7 +194,7 @@
         <p class="tiny"><b>2.</b> Open a terminal <b>in the folder you loaded this extension from</b> (<code>cd</code> into it first), then register the helper. Add <code>--repo "C:\path\to\your\project"</code> to give it a project&#8217;s context.</p>
         <div class="row cmd"><code id="buddy-cmd-install"></code><button class="ghost tiny" data-copy="buddy-cmd-install">Copy</button></div>
         <p class="tiny"><b>3.</b> Press <b>Tie in your model</b> again.</p>
-        <p class="tiny muted">Any command-line AI works too: add <code>--command "your-cli --print"</code>. The helper only talks to this computer.</p>
+        <p class="tiny muted">Any command-line AI works too: add <code>--command "your-cli --print"</code>. For a neural voice add <code>--voice "piper -m path\to\voice.onnx"</code>. The helper only talks to this computer.</p>
       </div>
     </div>
   </section>

@@ -11,6 +11,7 @@
  *       [--model gemma3:4b]             the Ollama model (default gemma3:4b)
  *       [--command "your-cli --print"]  use any command-line AI instead of Ollama
  *       [--ollama http://127.0.0.1:11434]
+ *       [--voice "piper -m C:\voices\en_US-amy-medium.onnx"]  a local text-to-speech command: text in, WAV out
  *   node companion-host/install.js --uninstall
  *
  * Your extension's id is shown in the popup (Companion, Tie in your model) and
@@ -43,7 +44,7 @@ function install(o) {
   const repo = o.repo ? path.resolve(String(o.repo)) : '';
   if (repo && !fs.existsSync(repo)) { console.error('That repo folder does not exist: ' + repo); process.exit(1); }
   fs.mkdirSync(host.LOCAL_DIR, { recursive: true });
-  const cfg = Object.assign({}, host.DEFAULTS, { backend, model: o.model ? String(o.model) : host.DEFAULTS.model, ollama: o.ollama ? String(o.ollama) : host.DEFAULTS.ollama, command: o.command ? splitCommand(o.command) : [], repo });
+  const cfg = Object.assign({}, host.DEFAULTS, { backend, model: o.model ? String(o.model) : host.DEFAULTS.model, ollama: o.ollama ? String(o.ollama) : host.DEFAULTS.ollama, command: o.command ? splitCommand(o.command) : [], repo, voiceCommand: o.voice ? splitCommand(o.voice) : [] });
   fs.writeFileSync(host.CONFIG, JSON.stringify(cfg, null, 2));
   /* the browser runs a program, not a script: a small launcher that runs this Node on host.js */
   const hostJs = path.join(__dirname, 'host.js'); let launcher;
@@ -58,7 +59,7 @@ function install(o) {
     } catch (e) { /* that browser is not here */ }
   });
   console.log('Companion helper registered for: ' + (done.join(', ') || 'no browser found'));
-  console.log('Model: ' + (backend === 'command' ? cfg.command.join(' ') : cfg.model + ' via Ollama') + (repo ? '\nContext from: ' + repo : ''));
+  console.log('Model: ' + (backend === 'command' ? cfg.command.join(' ') : cfg.model + ' via Ollama') + (repo ? '\nContext from: ' + repo : '') + (cfg.voiceCommand.length ? '\nVoice: ' + cfg.voiceCommand[0] : ''));
   return host.handle({ type: 'ping' }).then(r => { console.log(r.ready ? 'Ready. Open the extension, Companion tab, and press Tie in your model.' : 'Almost: ' + r.why); });
 }
 

@@ -359,6 +359,8 @@ chrome.runtime.onMessage.addListener(function (msg, sender, reply) {
   if (!msg || typeof msg.type !== 'string' || msg.type.indexOf('buddy:') !== 0) return;
   if (sender && sender.id && sender.id !== chrome.runtime.id) return;
   if (msg.type === 'buddy:ping') { toHost({ type: 'ping' }, reply); return true; }
+  /* a line to say aloud with the neural voice the helper runs; the sound comes back, nothing goes anywhere else */
+  if (msg.type === 'buddy:speak') { toHost({ type: 'speak', text: clip(msg.text, 220) }, reply); return true; }
   if (msg.type === 'buddy:ask') {
     const p = msg.persona || {}, pg = msg.page || {}, st = msg.stats || {};
     toHost({ type: 'ask', question: clip(msg.question, 300),

@@ -14,23 +14,23 @@
     { id: 'king', name: 'Pineapple King', title: 'Ruler of your build',
       blurb: 'Regal, warm, a little dramatic. Rules over every project you finish.',
       voice: 'a cheerful pineapple king who speaks with gentle royal flair',
-      tag: 'By royal decree: ' },
+      tag: 'By royal decree: ', accent: '#ffc531', accent2: '#ff7a3c', speech: { rate: 0.95, pitch: 0.8 } },
     { id: 'nabi', name: 'Nabi', title: 'The little fairy',
       blurb: 'A tiny fairy with butterfly wings. Light, kind and quick to cheer.',
       voice: 'a tiny, kind fairy named Nabi who is bright and encouraging',
-      tag: '' },
+      tag: '', accent: '#ff8fd8', accent2: '#9f86f0', speech: { rate: 1.08, pitch: 1.6 } },
     { id: 'slime', name: 'Bloop', title: 'A bouncy slime',
       blurb: 'A happy blob of jelly. Bounces when you make progress, droops when you drift.',
       voice: 'a bouncy, simple, happy slime who speaks in short playful bursts',
-      tag: '*bloop* ' },
+      tag: '*bloop* ', accent: '#5ef0c8', accent2: '#3fa3ff', speech: { rate: 1.12, pitch: 1.35 } },
     { id: 'robot', name: 'NextWork Robot', title: 'The professor bot',
       blurb: 'A sage little robot in a graduation cap. Calm, precise, quietly proud of you.',
       voice: 'a calm, wise robot professor from NextWork who keeps learners on track',
-      tag: 'Professor’s note: ' },
+      tag: 'Professor’s note: ', accent: '#5ee4ff', accent2: '#5b7cff', speech: { rate: 0.95, pitch: 0.7 } },
     { id: 'ember', name: 'Ember', title: 'A dragon egg that hatches as you learn',
       blurb: 'Starts as an egg. An hour of focus hatches it; ten hours and it has wings.',
       voice: 'a small, brave baby dragon who grows stronger every time the learner focuses',
-      tag: '*chirp* ' }
+      tag: '*chirp* ', accent: '#ff9a3c', accent2: '#ff4f6d', speech: { rate: 1.05, pitch: 1.25 } }
   ];
   const byId = {}; PRESETS.forEach(p => { byId[p.id] = p; });
   const get = id => byId[id] || byId.king;
@@ -226,7 +226,7 @@
   function heart(ctx, x, y, r) { ctx.fillStyle = '#ff5a7a'; ctx.beginPath(); ctx.moveTo(x, y + r); ctx.bezierCurveTo(x - r * 2, y - r * 0.4, x - r * 0.8, y - r * 1.8, x, y - r * 0.5); ctx.bezierCurveTo(x + r * 0.8, y - r * 1.8, x + r * 2, y - r * 0.4, x, y + r); ctx.fill(); }
 
   /* the settings, shared by the page and the popup */
-  const DEFAULTS = { enabled: false, who: 'king', name: '', nudgeMin: 5, quiet: false, x: null, y: null, scale: 1, linked: false, snoozeUntil: 0 };
+  const DEFAULTS = { enabled: false, who: 'king', name: '', nudgeMin: 5, quiet: false, x: null, y: null, scale: 1, linked: false, snoozeUntil: 0, roam: true, voice: 'off', voiceName: '' };   /* voice: off, system (this computer's voices) or model (a neural voice through the helper) */
 
   self.NWB = { PRESETS, ACTIONS, DEFAULTS, get, stageOf, pickAction, line, draw };
 })();

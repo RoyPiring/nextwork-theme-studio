@@ -85,3 +85,12 @@ test('the extension asks for native messaging only when you tie in a model, and 
   const bg = fs.readFileSync(path.join(ROOT, 'src/background.js'), 'utf8'); assert.ok(/sender\.id !== chrome\.runtime\.id/.test(bg), 'the relay answers only its own extension');
   const ignore = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8'); assert.ok(ignore.includes('companion-host/.local/'), 'nothing about this machine goes into git');
 });
+
+test('a voice command turns a line into a WAV, and nothing that is not audio comes back', async () => {
+  const h = require('../companion-host/host.js');
+  const wav = "const b=Buffer.alloc(64);b.write('RIFF',0);b.write('WAVE',8);process.stdout.write(b)";
+  const out = await h.speakLine({ voiceCommand: [process.execPath, '-e', wav] }, 'Hello there');
+  assert.equal(out.toString('ascii', 0, 4), 'RIFF');
+  await assert.rejects(h.speakLine({ voiceCommand: [process.execPath, '-e', "process.stdout.write('not audio')"] }, 'Hi'), /did not return audio/);
+  await assert.rejects(h.speakLine({ voiceCommand: [] }, 'Hi'), /No voice/);
+});

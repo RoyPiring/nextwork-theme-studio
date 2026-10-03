@@ -10,14 +10,15 @@
  * command is yours, fixed at install, never chosen by the page.
  *
  *   node companion-host/host.js --selftest          is it working?
- *   node companion-host/host.js --ask "question"     ask once from the terminal */
+ *   node companion-host/host.js --ask "question"     ask once from the terminal
+ *   node companion-host/host.js --say "a line"       try the voice; writes .local/say-test.wav */
 'use strict';
 const fs = require('fs'), path = require('path'), http = require('http'), { execFileSync, spawn } = require('child_process');
 
 const LOCAL_DIR = path.join(__dirname, '.local');   /* everything about this machine lives here, and git ignores it */
 const CONFIG = path.join(LOCAL_DIR, 'config.json');
 const LOCAL_HOSTS = ['127.0.0.1', 'localhost', '::1', '[::1]'];
-const DEFAULTS = { backend: 'ollama', model: 'gemma3:4b', ollama: 'http://127.0.0.1:11434', command: [], repo: '', timeoutMs: 120000 };   /* a cold model can take a minute to load */
+const DEFAULTS = { backend: 'ollama', model: 'gemma3:4b', ollama: 'http://127.0.0.1:11434', command: [], repo: '', timeoutMs: 120000, voiceCommand: [] };   /* a cold model can take a minute to load */
 
 function config() { let c = {}; try { c = JSON.parse(fs.readFileSync(CONFIG, 'utf8')); } catch (e) { c = {}; } return Object.assign({}, DEFAULTS, c); }
 
@@ -63,6 +64,20 @@ function systemPrompt(msg, cfg) {
   return parts.join('\n');
 }
 
+/* ---- a voice: your text-to-speech command (Piper, say) takes the line on stdin and writes a WAV to stdout ---- */
+const AUDIO_MAX = 700 * 1024;   /* the browser takes at most a megabyte back, and base64 grows a third */
+function speakLine(cfg, text) {
+  return new Promise((resolve, reject) => {
+    const cmd = Array.isArray(cfg.voiceCommand) ? cfg.voiceCommand : []; if (!cmd.length) { reject(new Error('No voice is set up. Reinstall with --voice.')); return; }
+    const child = spawn(cmd[0], cmd.slice(1), { shell: false, windowsHide: true }); const parts = []; let size = 0, done = false;
+    const finish = (err, val) => { if (done) return; done = true; clearTimeout(timer); if (err) reject(err); else resolve(val); };
+    const timer = setTimeout(() => { child.kill(); finish(new Error('The voice took too long.')); }, 30000);
+    child.stdout.on('data', c => { size += c.length; if (size > AUDIO_MAX) { child.kill(); finish(new Error('That line is too long to say.')); return; } parts.push(c); });
+    child.on('error', e => finish(e)); child.on('close', () => { const wav = Buffer.concat(parts); if (wav.length < 44 || wav.toString('ascii', 0, 4) !== 'RIFF') finish(new Error('The voice did not return audio.')); else finish(null, wav); });
+    child.stdin.end(String(text).slice(0, 220));
+  });
+}
+
 function viaCommand(cfg, prompt) {
   return new Promise((resolve, reject) => {
     const cmd = Array.isArray(cfg.command) ? cfg.command : []; if (!cmd.length) { reject(new Error('No command is set. Reinstall with --command.')); return; }
@@ -84,7 +99,7 @@ async function ask(msg, cfg) {
 }
 
 async function ping(cfg) {
-  const out = { ok: true, backend: cfg.backend, model: cfg.backend === 'command' ? (cfg.command[0] || 'command') : cfg.model, repo: cfg.repo ? path.basename(cfg.repo) : '' };
+  const out = { ok: true, backend: cfg.backend, model: cfg.backend === 'command' ? (cfg.command[0] || 'command') : cfg.model, repo: cfg.repo ? path.basename(cfg.repo) : '', voice: !!(cfg.voiceCommand && cfg.voiceCommand.length) };
   if (cfg.backend === 'command') return Object.assign(out, { ready: !!(cfg.command && cfg.command.length), why: 'no command is set' });
   try { const tags = await ollama(Object.assign({}, cfg, { timeoutMs: 4000 }), '/api/tags'); const names = (tags.models || []).map(m => m.name); const has = names.some(n => n === cfg.model || n === cfg.model + ':latest');
     return Object.assign(out, { ready: has, why: has ? '' : 'the model is not pulled yet. Run: ollama pull ' + cfg.model });
@@ -96,7 +111,8 @@ async function handle(msg) {
   if (!msg || typeof msg !== 'object') return { ok: false, error: 'Nothing to do.' };
   if (msg.type === 'ping') return ping(cfg);
   if (msg.type === 'ask') { try { return await ask(msg, cfg); } catch (e) { return { ok: false, error: String(e.message || e).slice(0, 200) }; } }
-  return { ok: false, error: 'Unknown request.' };   /* only the two kinds of message, nothing else */
+  if (msg.type === 'speak') { try { const wav = await speakLine(cfg, String(msg.text || '').trim()); return { ok: true, audio: wav.toString('base64'), mime: 'audio/wav' }; } catch (e) { return { ok: false, error: String(e.message || e).slice(0, 200) }; } }
+  return { ok: false, error: 'Unknown request.' };   /* only these three kinds of message, nothing else */
 }
 
 /* the browser's side: read one message, answer it, leave */
@@ -112,8 +128,9 @@ function serve() {
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === '--selftest') ping(config()).then(r => { console.log(JSON.stringify(r, null, 2)); if (r.ready) return handle({ type: 'ask', question: 'Say hello in one sentence.', persona: { name: 'Pineapple King', voice: 'a cheerful pineapple king' }, page: {}, stats: {} }).then(x => console.log(x.ok ? 'Reply: ' + x.text : 'Error: ' + x.error)); return null; });
+  else if (a[0] === '--say') handle({ type: 'speak', text: a.slice(1).join(' ') || 'Hello! I am your companion.' }).then(r => { if (!r.ok) { console.log('Error: ' + r.error); return; } const out = path.join(LOCAL_DIR, 'say-test.wav'); fs.mkdirSync(LOCAL_DIR, { recursive: true }); fs.writeFileSync(out, Buffer.from(r.audio, 'base64')); console.log('Wrote ' + out); });
   else if (a[0] === '--ask') handle({ type: 'ask', question: a.slice(1).join(' '), persona: { name: 'NextWork Robot', voice: 'a calm robot professor' }, page: {}, stats: {} }).then(r => console.log(r.ok ? r.text : 'Error: ' + r.error));
   else serve();
 }
 
-module.exports = { encode, decode, localUrl, systemPrompt, repoContext, handle, LOCAL_DIR, CONFIG, DEFAULTS };
+module.exports = { encode, decode, localUrl, systemPrompt, repoContext, handle, speakLine, LOCAL_DIR, CONFIG, DEFAULTS };
