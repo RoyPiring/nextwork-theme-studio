@@ -277,6 +277,9 @@
     $('buddy-unlink').hidden = !b.linked;
     $('buddy-connect').textContent = b.linked ? 'Check the connection' : 'Tie in your model';
     $('buddy-cmd-install').textContent = 'node companion-host/install.js --extension ' + chrome.runtime.id;
+    /* The popup is read from disk every time it opens; what runs on the page is only read when the extension is reloaded. Say so, rather than leave an empty corner. */
+    const loaded = chrome.runtime.getManifest ? (chrome.runtime.getManifest().content_scripts || []).some(function (cs) { return (cs.js || []).indexOf('src/buddy.js') !== -1; }) : true;
+    $('buddy-reload').hidden = loaded;
   }
   /* the chosen companion moves in the popup while its tab is open, and nothing moves when it is not */
   function animateBuddy(on) {

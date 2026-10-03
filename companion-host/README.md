@@ -31,7 +31,8 @@ browser starts when you ask your companion something.
    ollama pull gemma3:4b
    ```
 
-2. From the extension's folder, register the helper with your extension's id.
+2. Open a terminal **in the folder you loaded the extension from** (`cd` into it
+   first), then register the helper with your extension's id.
    The popup shows the exact command under **Companion**, **Tie in your model**.
 
    ```

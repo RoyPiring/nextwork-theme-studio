@@ -219,6 +219,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .buddy-picks button[aria-checked="true"] { border-color: var(--ui-accent); box-shadow: 0 0 0 1px var(--ui-accent); }
 .buddy-picks canvas { width: 42px; height: 42px; }
 #buddy-name { width: 100%; }
+.buddy-warn { margin: 0; padding: 8px 10px; border-radius: 8px; line-height: 1.45; border: 1px solid var(--ui-accent); background: var(--ui-surface-alt); }
+.buddy-warn[hidden] { display: none; }
 .buddy-steps { display: flex; flex-direction: column; gap: 6px; }
 .buddy-steps p { margin: 0; line-height: 1.45; }
 .buddy-steps code, #buddy-model code { font-size: 10.5px; word-break: break-all; }

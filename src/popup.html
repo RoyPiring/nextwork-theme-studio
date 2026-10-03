@@ -148,6 +148,7 @@
       </label>
     </div>
     <p class="tiny muted">A small friend that floats on nextwork.ai, keeps you on track and nudges you when you drift. It lives on this computer only.</p>
+    <p class="tiny buddy-warn" id="buddy-reload" hidden>Your browser is still running an older copy of this extension, so the companion cannot appear yet. Open the extensions page, press <b>Reload</b> on Pineapple Theme Studio, then refresh your nextwork.ai tab.</p>
 
     <div class="buddy-picks" id="buddy-picks" role="radiogroup" aria-label="Choose your companion"></div>
     <p class="tiny" id="buddy-blurb"></p>
@@ -178,7 +179,7 @@
       <div class="buddy-steps" id="buddy-steps" hidden>
         <p class="tiny"><b>1.</b> Install Ollama on this computer, then pull a small model:</p>
         <div class="row cmd"><code id="buddy-cmd-pull">ollama pull gemma3:4b</code><button class="ghost tiny" data-copy="buddy-cmd-pull">Copy</button></div>
-        <p class="tiny"><b>2.</b> From this extension&#8217;s folder, register the helper. Add <code>--repo "C:\path\to\your\project"</code> to give it a project&#8217;s context.</p>
+        <p class="tiny"><b>2.</b> Open a terminal <b>in the folder you loaded this extension from</b> (<code>cd</code> into it first), then register the helper. Add <code>--repo "C:\path\to\your\project"</code> to give it a project&#8217;s context.</p>
         <div class="row cmd"><code id="buddy-cmd-install"></code><button class="ghost tiny" data-copy="buddy-cmd-install">Copy</button></div>
         <p class="tiny"><b>3.</b> Press <b>Tie in your model</b> again.</p>
         <p class="tiny muted">Any command-line AI works too: add <code>--command "your-cli --print"</code>. The helper only talks to this computer.</p>
